@@ -1,0 +1,161 @@
+﻿using CostVision.DataBase;
+using CostVision.DataBase.Repositories;
+using CostVision.DataBase.Repositories.Authorization;
+using CostVision.DataBase.Repositories.Base;
+using CostVision.DataBase.Repositories.Products;
+using CostVision.DataBase.Repositories.Receipts;
+using CostVision.Interfaces.DataBase;
+using CostVision.Interfaces.DataBase.Repositories;
+using CostVision.Interfaces.DataBase.Repositories.Authorization;
+using CostVision.Interfaces.DataBase.Repositories.Base;
+using CostVision.Interfaces.DataBase.Repositories.Products;
+using CostVision.Interfaces.DataBase.Repositories.Receipts;
+using CostVision.Interfaces.Service.Receipt;
+using CostVision.Models.ConfigClass;
+using CostVision.Services.Api;
+using CostVision.Services.Authorization;
+using CostVision.Services.DataBase;
+using CostVision.Services.Middleware;
+using CostVision.Services.Receipts;
+using HttpApiClientLibrary.API;
+using HttpApiClientLibrary.Interfaces;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
+using Newtonsoft.Json;
+using System.Net;
+
+namespace CostVision.Extensions
+{
+    public static class ServiceCollectionExtensions
+    {
+        private static IServiceCollection AddConfig(
+             this IServiceCollection services, IConfiguration conf)
+        {
+            services.Configure<ApiEndpointOptions>(conf.GetSection(ApiEndpointOptions.SectionName));
+            services.Configure<ProverkachekaOptions>(opt => { opt.ProverkachekaApiToken = conf[ProverkachekaOptions.SectionName]!; });
+
+            return services;
+        }
+
+        public static IServiceCollection ConfigureServices(this IServiceCollection services, IConfiguration configuration,
+            Action<JsonSerializerSettings>? configureNewtonsoft = null,
+            Action<HttpClient>? configureHttpClient = null)
+        {
+            services.AddConfig(configuration);
+            services.AddControllers();
+            services.AddLogging();
+            services.AddAuthorization();
+
+            services.AddTransient<ExceptionHandlingMiddleware>();
+
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen(options =>
+            {
+                options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Моё API",
+                    Version = "v1"
+                });
+            });
+
+            services.AddDbContext<ApplicationContext>(options =>
+            {
+                options.UseSqlServer(configuration.GetConnectionString("MSSql"));
+            });
+
+            services.AddScoped<IAppDbContext>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
+
+            services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(180);
+                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
+                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));
+                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("br"));
+                configureHttpClient?.Invoke(client);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                HttpClientHandler handler = new()
+                {
+                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
+                };
+                return handler;
+            });
+
+            services.AddSingleton<IJsonSerializer>(sp =>
+            {
+                JsonSerializerSettings settings = new();
+                configureNewtonsoft?.Invoke(settings);
+                return new NewtonsoftJsonSerializer(settings);
+            });
+
+            services.AddScoped<DataBaseCheckUpService<ApplicationContext>>();
+            services.AddScoped<BackupService<ApplicationContext>>(sp =>
+            {
+                ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                string connectionString = configuration.GetConnectionString("MSSql")!;
+                string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
+                return new BackupService<ApplicationContext>(connectionString, backupFolder, loggerFactory);
+            });
+
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.Cookie.Name = ".CostVision.Cookies";
+                    options.LoginPath = "/login";
+                    // Куки будут автоматически продливаться
+                    options.SlidingExpiration = true;
+                    // Если пользователь не будет заходить 7 дней подряд, то куки пропадут
+                    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+                });
+
+            services.AddRazorPages(options =>
+            {
+                // Делает все ссылки на страницы с маленькой буквы
+                options.Conventions.AddFolderRouteModelConvention("/", model =>
+                {
+                    foreach (var selector in model.Selectors)
+                    {
+                        var attrRoute = selector.AttributeRouteModel;
+                        if (attrRoute?.Template != null)
+                        {
+                            attrRoute.Template = attrRoute.Template.ToLowerInvariant();
+                        }
+                    }
+                });
+            });
+
+            services.AddAntiforgery(options =>
+            {
+                options.Cookie.Name = ".CostVision.Antiforgery";
+            });
+
+            services.AddScoped<Hasher>();
+            services.AddScoped<QrParser>();
+            services.AddScoped<ReceiptInfoRequest>();
+            services.AddScoped<IReceiptService, ReceiptService>();
+            services.AddScoped<IAccountService, AccountService>();
+
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IRoleRepository, RoleRepository>();
+            services.AddScoped<IAccountRepository, AccountRepository>();
+            services.AddScoped<IAccountMemberRepository, AccountMemberRepository>();
+            services.AddScoped<IReceiptAccountRepository, ReceiptAccountRepository>();
+            services.AddScoped<IReceiptRepository, ReceiptRepository>();
+            services.AddScoped<IReceiptItemRepository, ReceiptItemRepository>();
+            services.AddScoped<IProductRepository, ProductRepository>();
+
+            services.AddScoped(typeof(ICreateItemRepository<>), typeof(CreateItemRepository<>));
+            services.AddScoped(typeof(IDeleteItemRepository<>), typeof(DeleteItemRepository<>));
+            services.AddScoped(typeof(IGetItemByIdRepository<,>), typeof(GetItemByIdRepository<,>));
+            services.AddScoped(typeof(IGetItemByPredicateRepository<>), typeof(GetItemByPredicateRepository<>));
+            services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
+            services.AddScoped(typeof(IUpsertItemByIdRepository<,>), typeof(UpsertItemByIdRepository<,>));
+            services.AddScoped(typeof(IUpsertItemByPredicateRepository<>), typeof(UpsertItemByPredicateRepository<>));
+
+            return services;
+        }
+    }
+}

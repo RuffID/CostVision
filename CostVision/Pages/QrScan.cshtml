@@ -1,0 +1,86 @@
+﻿@page
+@model CostVision.Pages.QrScanModel
+@{
+    ViewData["Title"] = "QR Scan";
+}
+
+<link rel="stylesheet" href="~/css/qrScan/qrScan.css" asp-append-version="true" />
+
+<h2>Сканирование QR кода с чека</h2>
+
+<form method="post" id="qrForm">
+    <!-- Виджет камеры html5-qrcode -->
+    <div id="qr-reader" style="width: 400px; max-width: 100%;"></div>
+
+    <!-- Мультизагрузка файлов + drag-and-drop -->
+    <div class="qr-upload-block" style="margin-top: 1rem;">
+        <input type="file" id="multiFileInput" accept="image/*" multiple style="display:none;" />
+
+        <!-- Drag-and-drop -->
+        <div id="qr-dropzone" class="qr-dropzone">
+            <div class="qr-dropzone__content">
+                <div class="qr-dropzone__title">Перетащите сюда файлы с QR-кодами</div>
+                <div class="qr-dropzone__subtitle">или нажмите, чтобы выбрать из файлов на диске</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрытый контейнер для инстанса Html5Qrcode под файлы -->
+    <div id="file-scan-root" style="width: 0; height: 0; overflow: hidden;"></div>
+
+    <!-- Контейнер для скрытых полей Results[i].* -->
+    <div id="decoded-inputs"></div>
+</form>
+
+<!-- Ручной ввод: сворачиваемый блок -->
+<div class="qr-section">
+    <button type="button" class="qr-section__header qr-section__header--collapsed" data-collapse-target="#manual-request-root">
+        <span>Ручной ввод данных чека</span>
+        <span class="qr-section__arrow" aria-hidden="true"></span>
+    </button>
+
+    <div id="manual-request-root" class="qr-section__body qr-section__body--collapsed">
+        <div class="manual-row">
+            <label for="manual-fn" style="font-size:14px;">ФН (номер фискального накопителя)</label>
+            <input id="manual-fn" type="text" />
+        </div>
+        <div class="manual-row">
+            <label for="manual-fd" style="font-size:14px;">ФД (номер фискального документа)</label>
+            <input id="manual-fd" type="text" />
+        </div>
+        <div class="manual-row">
+            <label for="manual-fp" style="font-size:14px;">ФПД (фискальный признак документа)</label>
+            <input id="manual-fp" type="text" />
+        </div>
+        <div class="manual-row">
+            <label for="manual-sum" style="font-size:14px;">Сумма чека (руб)</label>
+            <input id="manual-sum" type="number" step="0.01" placeholder="Например: 1403.44" />
+        </div>
+
+        <div class="manual-row">
+            <label for="manual-date" style="font-size:14px;">Дата и время чека</label>
+            <input id="manual-date" type="datetime-local" />
+        </div>
+
+        <div class="manual-row">
+            <label for="manual-type" style="font-size:14px;">Вид чека</label>
+            <select id="manual-type">
+                <option value="1">Приход</option>
+                <option value="2">Возврат прихода</option>
+                <option value="3">Расход</option>
+                <option value="4">Возврат расхода</option>
+            </select>
+        </div>
+
+        <button type="button" id="manual-check-btn">Проверить</button>
+
+        <div id="manual-result-message" style="margin-top:8px; font-size:14px;"></div>
+    </div>
+</div>
+
+
+<script src="~/js/qrScan/html5-qrcode.min.js"></script>
+<script src="~/js/qrScan/exif-js.js"></script>
+<script src="~/js/helpers/http.js"></script>
+<script src="~/js/helpers/verificationToken.js"></script>
+<script src="~/js/qrScan/qrScan.js" asp-append-version="true"></script>

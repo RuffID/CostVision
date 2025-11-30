@@ -1,0 +1,73 @@
+﻿@page
+@model CostVision.Pages.RegisterModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Регистрация";
+}
+
+<h1>Регистрация</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <form id="registerForm">
+            <div class="mb-3">
+                <label asp-for="Login" class="form-label"></label>
+                <input asp-for="Login" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Login" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" autocomplete="name" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" type="password" autocomplete="new-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" type="password" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+
+            <fieldset class="mb-3">
+                <legend class="col-form-label pt-0">Роли</legend>
+
+                @if (Model.AvailableRoles != null && Model.AvailableRoles.Count > 0)
+                {
+                    foreach (var role in Model.AvailableRoles)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   name="role"
+                                   id="role_@role.Id"
+                                   value="@role.Id"
+                                   data-role-name="@role.Name" />
+                            <label class="form-check-label" for="role_@role.Id">
+                                @role.Name
+                            </label>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-danger">Список ролей пуст.</div>
+                }
+            </fieldset>
+
+            <div class="text-danger" id="registerError"></div>
+            <div class="text-success" id="registerSuccess"></div>
+
+            <button type="submit" class="btn btn-primary" id="registerButton">
+                Зарегистрироваться
+            </button>
+        </form>
+    </div>
+</div>
+
+<script src="~/js/authorization/register.js" asp-append-version="true"></script>

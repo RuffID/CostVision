@@ -1,0 +1,33 @@
+﻿@page
+@model CostVision.Pages.LoginModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Вход";
+}
+<h1>Вход</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <form id="loginForm">
+            <div class="mb-3">
+                <label asp-for="Login" class="form-label"></label>
+                <input asp-for="Login" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Login" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="text-danger" id="loginError"></div>
+
+            <button type="submit" class="btn btn-primary" id="loginButton">
+                Войти
+            </button>
+        </form>
+    </div>
+</div>
+
+<script src="~/js/authorization/login.js" asp-append-version="true"></script>

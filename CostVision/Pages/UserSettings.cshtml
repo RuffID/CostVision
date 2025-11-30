@@ -1,0 +1,126 @@
+﻿@page
+@model CostVision.Pages.UserSettingsModel
+@{
+    ViewData["Title"] = "Настройки пользователя";
+}
+
+<div class="container my-4" data-user-id="@Model.CurrentUser.Id">
+    <h2 class="mb-4">Настройки пользователя</h2>
+
+    <div class="row g-3">
+        <!-- Левая колонка: создание счёта -->
+        <div class="col-12 col-lg-6">
+            <div class="card mb-3">
+                <div class="card-header fs-5">
+                    Создание счёта
+                </div>
+                <div class="card-body">
+                    <form id="new-account-form" method="post" class="row g-3">
+                        <div class="col-12">
+                            <div class="mb-2">
+                                <label for="account-name" class="form-label">Название счёта</label>
+                                <input id="account-name" autocomplete="off" name="Name" type="text" class="form-control" />
+                                <div id="account-name-error" class="text-danger small"></div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="mb-2">
+                                <label for="account-description" class="form-label">Описание</label>
+                                <input id="account-description" name="Description" type="text" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="col-12 d-flex align-items-center justify-content-between">
+                            <button type="submit" id="create-account-btn" class="btn btn-success">
+                                Создать счёт
+                            </button>
+
+                            <div id="new-account-error" class="text-danger small"></div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="account-isdefault">
+                                <label class="form-check-label" for="account-isdefault">
+                                    Счёт по умолчанию
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- правая колонка: список счетов -->
+        <div class="col-12 col-lg-6">
+            <h5 class="mb-2">Мои счета</h5>
+
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="show-hidden-accounts">
+                <label class="form-check-label" for="show-hidden-accounts">
+                    Показывать удалённых
+                </label>
+            </div>
+
+            <div id="accountsListContainer" style="max-height: 600px; overflow-y: auto;">
+                <ul class="list-group" id="accountsList">
+                    <!-- элементы загружаются из JS -->
+                </ul>
+
+                <div id="accounts-empty" class="text-muted small p-3 d-none">
+                    Счета пока не созданы.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования счёта -->
+<div class="modal fade" id="account-modal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="accountModalLabel">Редактирование счёта</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="modal-account-id" />
+
+                <div class="mb-3">
+                    <label for="modal-account-name" class="form-label">Название счёта</label>
+                    <input type="text" id="modal-account-name" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="modal-account-description" class="form-label">Описание</label>
+                    <input type="text" id="modal-account-description" class="form-control" />
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="modal-account-isdefault">
+                    <label class="form-check-label" for="modal-account-isdefault">
+                        По умолчанию
+                    </label>
+                </div>
+
+                <div id="modal-account-error" class="text-danger small mt-2"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="modal-cancel-btn" data-bs-dismiss="modal">
+                    Отмена
+                </button>
+
+                <button type="button" class="btn btn-primary" id="modal-save-btn">
+                    Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/helpers/verificationToken.js" asp-asp-append-version="true"></script>
+<script src="~/js/helpers/http.js" asp-asp-append-version="true"></script>
+<script src="~/js/settings/usersettings.js" asp-append-version="true"></script>
