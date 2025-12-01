@@ -1,4 +1,5 @@
 ﻿@page
+@using CostVision.Models.Receipts
 @model CostVision.Pages.QrScanModel
 @{
     ViewData["Title"] = "QR Scan";
@@ -7,6 +8,25 @@
 <link rel="stylesheet" href="~/css/qrScan/qrScan.css" asp-append-version="true" />
 
 <h2>Сканирование QR кода с чека</h2>
+
+<!-- Выбор счёта -->
+<div class="mb-4" style="max-width:400px;">
+    <label for="accountSelect" class="form-label fw-semibold">Счёт для сохранения чека</label>
+
+    <select id="accountSelect" class="form-select form-select-lg">
+        @foreach (Account acc in Model.CurrentUser.Accounts)
+        {
+            if (acc.IsDefault)
+            {
+                <option value="@acc.Id" selected>@acc.Name</option>
+            }
+            else
+            {
+                <option value="@acc.Id">@acc.Name</option>
+            }
+        }
+    </select>
+</div>
 
 <form method="post" id="qrForm">
     <!-- Виджет камеры html5-qrcode -->

@@ -1,11 +1,12 @@
-﻿using CostVision.Models.Services.Receipts;
+﻿using CostVision.Models.Requests.Receipts;
+using CostVision.Models.Services.Receipts;
 
 namespace CostVision.Interfaces.Service.Receipt
 {
     public interface IReceiptService
     {
-        Task<ReceiptScanResultSummary> SaveScannedReceiptsAsync(List<QrScanResult> results, Guid currentUserId, CancellationToken ct);
+        Task<ReceiptScanResultSummary> SaveScannedReceiptsAsync(QrScanRequest request, Guid currentUserId, CancellationToken ct);
 
-        Task<ManualReceiptResult> SaveManualReceiptAsync(ManualReceiptInput input, Guid currentUserId, CancellationToken ct);
+        Task<ManualReceiptResult> SaveManualReceiptAsync(ReceiptManualCreateRequest request, Guid currentUserId, CancellationToken ct);
     }
 }

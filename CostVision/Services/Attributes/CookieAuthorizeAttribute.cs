@@ -34,7 +34,7 @@ namespace CostVision.Services.Attributes
             }
 
             IUnitOfWork unitOfWork = httpContext.RequestServices.GetRequiredService<IUnitOfWork>();
-            User? user = await unitOfWork.User.GetItemById(userId, true, context.HttpContext.RequestAborted, includes: u => u.Accounts.Where(a => a.IsDefault));
+            User? user = await unitOfWork.User.GetItemById(userId, true, context.HttpContext.RequestAborted, includes: u => u.Accounts.Where(a => !a.IsArchived));
 
             if (user == null || !user.IsActive)
             {

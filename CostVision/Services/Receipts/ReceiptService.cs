@@ -2,19 +2,20 @@
 using CostVision.Interfaces.Service.Receipt;
 using CostVision.Models.Enums.Document;
 using CostVision.Models.Receipts;
+using CostVision.Models.Requests.Receipts;
 using CostVision.Models.Services.Receipts;
 
 namespace CostVision.Services.Receipts
 {
     public class ReceiptService(IUnitOfWork unitOfWork, QrParser qrParser) : IReceiptService
     {
-        public async Task<ReceiptScanResultSummary> SaveScannedReceiptsAsync(List<QrScanResult> results, Guid currentUserId, CancellationToken ct)
+        public async Task<ReceiptScanResultSummary> SaveScannedReceiptsAsync(QrScanRequest request, Guid currentUserId, CancellationToken ct)
         {
             // Считать количество отсканированных чеков
-            int scannedCount = results.Count(r => !string.IsNullOrWhiteSpace(r.DecodedText));
+            int scannedCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.DecodedText));
             int addedCount = 0;
 
-            foreach (QrScanResult result in results)
+            foreach (QrScanResult result in request.Results)
             {
                 if (string.IsNullOrEmpty(result.DecodedText))
                     continue;
@@ -70,37 +71,44 @@ namespace CostVision.Services.Receipts
                     TotalSum = result.Parsed.Sum.Value
                 };
 
+                if (request.AccountId != Guid.Empty)
+                {
+                    ReceiptAccount link = new() { AccountId = request.AccountId, Receipt = receipt };
+                    receipt.Accounts.Add(link);
+                }
+
                 unitOfWork.Receipt.Create(receipt);
                 addedCount++;
             }
 
+
             if (addedCount > 0)
                 await unitOfWork.SaveAsync(ct);
 
-            int errorCount = results.Count(r => !string.IsNullOrWhiteSpace(r.ErrorMessage));
+            int errorCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.ErrorMessage));
 
             ReceiptScanResultSummary summary = new ()
             {
                 ScannedCount = scannedCount,
                 AddedToDbCount = addedCount,
                 ErrorCount = errorCount,
-                Results = results
+                Results = request.Results
             };
 
             return summary;
         }
 
-        public async Task<ManualReceiptResult> SaveManualReceiptAsync(ManualReceiptInput input, Guid currentUserId, CancellationToken ct)
+        public async Task<ManualReceiptResult> SaveManualReceiptAsync(ReceiptManualCreateRequest request, Guid currentUserId, CancellationToken ct)
         {
             // Проверять дубликат по тем же полям, что и при скане
             Receipt? exist = await unitOfWork.Receipt.GetItemByPredicate(
-                r => r.FiscalDocumentNumber == input.FiscalDocumentNumber &&
-                     r.FiscalDriveNumber == input.FiscalDriveNumber &&
-                     r.FiscalSign == input.FiscalSign &&
-                     r.TotalSum == input.Sum &&
-                     r.DateTime == input.DateTime &&
+                r => r.FiscalDocumentNumber == request.Receipt.FiscalDocumentNumber &&
+                     r.FiscalDriveNumber == request.Receipt.FiscalDriveNumber &&
+                     r.FiscalSign == request.Receipt.FiscalSign &&
+                     r.TotalSum == request.Receipt.Sum &&
+                     r.DateTime == request.Receipt.DateTime &&
                      r.CreatedByUserId == currentUserId &&
-                     r.OperationType == input.OperationType,
+                     r.OperationType == request.Receipt.OperationType,
                 asNoTracking: true,
                 ct: ct);
 
@@ -116,25 +124,31 @@ namespace CostVision.Services.Receipts
                 return duplicateResult;
             }
 
-            Receipt manualReceipt = new ()
+            Receipt receipt = new ()
             {
-                FiscalDocumentNumber = input.FiscalDocumentNumber,
-                FiscalDriveNumber = input.FiscalDriveNumber,
-                FiscalSign = input.FiscalSign,
+                FiscalDocumentNumber = request.Receipt.FiscalDocumentNumber,
+                FiscalDriveNumber = request.Receipt.FiscalDriveNumber,
+                FiscalSign = request.Receipt.FiscalSign,
                 CreatedAtUtc = DateTime.UtcNow,
                 CreatedByUserId = currentUserId,
-                OperationType = input.OperationType,
-                DateTime = input.DateTime,
-                TotalSum = input.Sum
+                OperationType = request.Receipt.OperationType,
+                DateTime = request.Receipt.DateTime,
+                TotalSum = request.Receipt.Sum
             };
 
-            unitOfWork.Receipt.Create(manualReceipt);
+            if (request.AccountId != Guid.Empty)
+            {
+                ReceiptAccount link = new() { AccountId = request.AccountId, Receipt = receipt };
+                receipt.Accounts.Add(link);
+            }
+
+            unitOfWork.Receipt.Create(receipt);
             await unitOfWork.SaveAsync(ct);
 
             ManualReceiptResult result = new ()
             {
                 IsCreated = true,
-                Receipt = manualReceipt
+                Receipt = receipt
             };
 
             return result;

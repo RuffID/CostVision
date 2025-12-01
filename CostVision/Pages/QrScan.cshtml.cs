@@ -1,6 +1,7 @@
 using CostVision.Interfaces.Entity;
 using CostVision.Interfaces.Service.Receipt;
 using CostVision.Models.Authorization;
+using CostVision.Models.Requests.Receipts;
 using CostVision.Models.Services.Receipts;
 using CostVision.Services.Attributes;
 using Microsoft.AspNetCore.Mvc;
@@ -12,14 +13,14 @@ namespace CostVision.Pages
     [LoadUser]
     public class QrScanModel(IReceiptService receiptService) : PageModel, IHasCurrentUser
     {
-        [BindProperty]
-        public List<QrScanResult> Results { get; set; } = new();
-
         public User CurrentUser { get; set; } = new();
 
-        public async Task<IActionResult> OnPostAsync(CancellationToken ct)
+        public async Task<IActionResult> OnPostAsync([FromBody] QrScanRequest request, CancellationToken ct)
         {
-            ReceiptScanResultSummary summary = await receiptService.SaveScannedReceiptsAsync(Results, CurrentUser.Id, ct);
+            if (request.Results.Count == 0)
+                return new JsonResult(new { success = false, errorMessage = "Нет данных для обработки." });
+
+            ReceiptScanResultSummary summary = await receiptService.SaveScannedReceiptsAsync(request, CurrentUser.Id, ct);
 
             return new JsonResult(new
             {
@@ -31,7 +32,7 @@ namespace CostVision.Pages
             });
         }
 
-        public async Task<IActionResult> OnPostManualAsync([FromBody] ManualReceiptInput input, CancellationToken ct)
+        public async Task<IActionResult> OnPostManualAsync([FromBody] ReceiptManualCreateRequest input, CancellationToken ct)
         {
             ManualReceiptResult result = await receiptService.SaveManualReceiptAsync(input, CurrentUser.Id, ct);
 

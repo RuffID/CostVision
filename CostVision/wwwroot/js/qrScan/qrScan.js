@@ -11,6 +11,9 @@ let qrScanLastCameraTs = 0;
 
 let qrScanOverlay = null;     // DOM-элемент оверлея загрузки
 let antiForgeryToken = null;
+let accountSelect = null;
+const ACCOUNT_STORAGE_KEY = "qrScan.selectedAccountId";
+let qrScanResults = [];
 
 document.addEventListener("DOMContentLoaded", function () {
     initQrScan();
@@ -27,6 +30,7 @@ function initQrScan() {
 
     const qrReaderElement = document.getElementById("qr-reader");
     const fileScanRootElement = document.getElementById("file-scan-root");
+    accountSelect = document.getElementById("accountSelect");
     antiForgeryToken = getRequestVerificationToken();
 
     const mobile = isMobileDevice();
@@ -35,6 +39,19 @@ function initQrScan() {
         !qrReaderElement || !fileScanRootElement) {
         console.warn("QR scan: необходимые элементы не найдены в DOM");
         return;
+    }
+
+    if (accountSelect) {
+        // восстановить выбор из localStorage, если он есть и валиден
+        let savedId = localStorage.getItem(ACCOUNT_STORAGE_KEY);
+        if (savedId && hasOption(accountSelect, savedId)) {
+            accountSelect.value = savedId;
+        }
+
+        // при смене — сохранять выбор
+        accountSelect.addEventListener("change", function () {
+            localStorage.setItem(ACCOUNT_STORAGE_KEY, accountSelect.value);
+        });
     }
 
     // Перехватываем submit формы, чтобы всегда работать через AJAX
@@ -81,25 +98,20 @@ function initQrScan() {
 
 // ===================== AJAX-отправка формы =====================
 
-function qrScanBuildHandlerUrl(handlerName) {
-    let url = (qrScanForm && qrScanForm.getAttribute("action")) || window.location.href;
-
-    const hasQuery = url.indexOf("?") >= 0;
-    const separator = hasQuery ? "&" : "?";
-
-    return url + separator + "handler=" + encodeURIComponent(handlerName);
-}
-
 async function qrScanSubmitFormAjax() {
     if (!qrScanForm) {
         return;
     }
 
-    const formData = new FormData(qrScanForm);
     const url = qrScanForm.getAttribute("action") || window.location.href;
 
+    const payload = {
+        accountId: getSelectedAccountId(),
+        results: qrScanResults
+    }
+
     try {
-        const data = await sendJsonRequest(url, "POST", { "X-Requested-With": "XMLHttpRequest" }, formData);
+        const data = await sendJsonRequest(url, "POST", buildJsonHeaders(antiForgeryToken), payload);
 
         if (!data.success) {
             console.error("QR scan: запрос завершился с ошибкой", data.errorMessage);
@@ -354,55 +366,25 @@ function qrScanRenderResults(results) {
 // ===================== Работа с результатами (Results) =====================
 
 function qrScanClearResults() {
-    qrScanResultsContainer.innerHTML = "";
+    if (qrScanResultsContainer) {
+        qrScanResultsContainer.innerHTML = "";
+    }
+
+    qrScanResults = [];
     qrScanResultIndex = 0;
 }
 
 function qrScanAddResult(fileName, decodedText, errorMessage, debugInfo, photoDateTimeIso) {
-    const index = qrScanResultIndex;
-
-    const fileNameInput = document.createElement("input");
-    fileNameInput.type = "hidden";
-    fileNameInput.name = `Results[${index}].FileName`;
-    fileNameInput.value = fileName || "";
-    qrScanResultsContainer.appendChild(fileNameInput);
-
-    const decodedInput = document.createElement("input");
-    decodedInput.type = "hidden";
-    decodedInput.name = `Results[${index}].DecodedText`;
-    decodedInput.value = decodedText || "";
-    qrScanResultsContainer.appendChild(decodedInput);
-
-    if (errorMessage && errorMessage.length > 0) {
-        const errorInput = document.createElement("input");
-        errorInput.type = "hidden";
-        errorInput.name = `Results[${index}].ErrorMessage`;
-        errorInput.value = errorMessage;
-        qrScanResultsContainer.appendChild(errorInput);
+    const result = {
+        fileName: fileName || "",
+        decodedText: decodedText || "",
+        errorMessage: errorMessage || null,
+        debugInfo: debugInfo || null,
+        photoDateTime: photoDateTimeIso || null
     }
 
-    // Result.DebugInfo.*
-    if (debugInfo) {
-        appendHidden(`Results[${index}].DebugInfo.FileName`, debugInfo.fileName);
-        appendHidden(`Results[${index}].DebugInfo.ContentType`, debugInfo.contentType);
-        appendHidden(`Results[${index}].DebugInfo.FileSizeBytes`, debugInfo.fileSizeBytes.toString());
-        appendHidden(`Results[${index}].DebugInfo.Width`, debugInfo.width?.toString() ?? "0");
-        appendHidden(`Results[${index}].DebugInfo.Height`, debugInfo.height?.toString() ?? "0");
-    }
-
-    if (photoDateTimeIso) {
-        appendHidden(`Results[${index}].PhotoDateTime`, photoDateTimeIso);
-    }
-
-    qrScanResultIndex++;
-
-    function appendHidden(name, value) {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = name;
-        input.value = value ?? "";
-        qrScanResultsContainer.appendChild(input);
-    }
+    qrScanResults.push(result);
+    qrScanResultIndex = qrScanResults.length;
 }
 
 // ===================== Камера =====================
@@ -676,12 +658,15 @@ function initManualCheckValidation() {
         }
 
         const payload = {
-            fiscalDriveNumber: fnDigits,
-            fiscalDocumentNumber: fdDigits,
-            fiscalSign: fpDigits,
-            sum: parseFloat(sumRaw.replace(",", ".")),
-            dateTime: dateValue,
-            operationType: parseInt(typeValue, 10)
+            receipt: {
+                fiscalDriveNumber: fnDigits,
+                fiscalDocumentNumber: fdDigits,
+                fiscalSign: fpDigits,
+                sum: parseFloat(sumRaw.replace(",", ".")),
+                dateTime: dateValue,
+                operationType: parseInt(typeValue, 10)
+            },
+            accountId: getSelectedAccountId()
         };
 
         qrScanShowOverlay();
@@ -962,6 +947,19 @@ function getImageSizeFromFile(file) {
 
         img.src = url;
     });
+}
+
+function hasOption(select, value) {
+    for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === value) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function getSelectedAccountId() {
+    return accountSelect ? accountSelect.value : null;
 }
 
 // ===================== Глобальная обработка Ctrl+V =====================
