@@ -11,7 +11,7 @@ namespace CostVision.Services.DataBase
         {
             string timestamp = DateTime.Now.ToString("yyyy.MM.dd_HHmmss");
             string backupFilePath = Path.Combine(backupFolder, $"backup_{timestamp}.sql");
-
+            Directory.CreateDirectory(backupFolder);
             using SqlConnection connection = new(connectionString);
             connection.Open();
 
