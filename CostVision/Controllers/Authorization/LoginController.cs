@@ -22,6 +22,7 @@ namespace CostVision.Controllers.Authorization
                 return BadRequest(new { error = "Укажите логин и пароль." });
 
             User? user = await unitOfWork.User.GetItemByPredicate(u => u.Login == dto.Login, false, ct, u => u.Roles);
+
             if (user == null || !hasher.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized(new { error = "Неверный логин или пароль." });
 
@@ -34,11 +35,9 @@ namespace CostVision.Controllers.Authorization
                 new(ClaimTypes.Name, user.Name)
             ];
 
-            if (user.Roles.Count > 0)
-            {
-                foreach (var role in user.Roles)
-                    claims.Add(new Claim(ClaimTypes.Role, role.Name));
-            }
+            foreach (var role in user.Roles)
+                claims.Add(new Claim(ClaimTypes.Role, role.Name));
+
 
             ClaimsIdentity claimsIdentity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal claimsPrincipal = new(claimsIdentity);

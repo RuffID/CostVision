@@ -23,18 +23,6 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 1000_000_000; // 1 gb
 });
 
-/*builder.WebHost.ConfigureKestrel(options =>
-{
-    // HTTP (если нужно оставить)
-    options.ListenAnyIP(5050);
-
-    // HTTPS
-    options.ListenAnyIP(5051, listenOptions =>
-    {
-        listenOptions.UseHttps("certs/devcert.pfx", "password");
-    });
-});*/
-
 WebApplication app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();

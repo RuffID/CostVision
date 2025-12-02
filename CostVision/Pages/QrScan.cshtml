@@ -7,11 +7,9 @@
 
 <link rel="stylesheet" href="~/css/qrScan/qrScan.css" asp-append-version="true" />
 
-<h2>Сканирование QR кода с чека</h2>
-
 <!-- Выбор счёта -->
 <div class="mb-4" style="max-width:400px;">
-    <label for="accountSelect" class="form-label fw-semibold">Счёт для сохранения чека</label>
+    <label for="accountSelect" class="form-label fw-semibold fs-5">Счёт для сохранения чека</label>
 
     <select id="accountSelect" class="form-select form-select-lg">
         @foreach (Account acc in Model.CurrentUser.Accounts)
