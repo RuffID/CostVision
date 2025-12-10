@@ -14,20 +14,20 @@ namespace CostVision.DataBase.Repositories.Base
         private const int DefaultTake = 100;
         private const int HardMaxTake = 1000;
 
-        public async Task<TEntity?> GetItemById(TId id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<TEntity, object>>[] includes)
+        public async Task<TEntity?> GetItemById(TId id, bool asNoTracking = false, Func<IQueryable<TEntity>, IQueryable<TEntity>>? include = null, CancellationToken ct = default)
         {
             IQueryable<TEntity> query = _context.Set<TEntity>();
 
             if (asNoTracking)
                 query = query.AsNoTracking();
 
-            foreach (Expression<Func<TEntity, object>> include in includes)
-                query = query.Include(include);
+            if (include != null)
+                query = include(query);
 
             return await query.FirstOrDefaultAsync(x => x.Id.Equals(id), ct);
         }
 
-        public async Task<List<TEntity>> GetItemsByPredicateAndSortById(Expression<Func<TEntity, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<TEntity, object>>[] includes)
+        public async Task<List<TEntity>> GetItemsByPredicateAndSortById(Expression<Func<TEntity, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<TEntity>, IQueryable<TEntity>>? include = null, CancellationToken ct = default)
         {
             int effectiveTake = take ?? DefaultTake;
             if (effectiveTake <= 0)
@@ -45,8 +45,8 @@ namespace CostVision.DataBase.Repositories.Base
             if (predicate != null)
                 query = query.Where(predicate);
 
-            foreach (var include in includes)
-                query = query.Include(include);
+            if (include != null)
+                query = include(query);
 
             query = query.OrderBy(e => e.Id)
                 .Skip(skip)

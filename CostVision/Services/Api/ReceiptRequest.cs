@@ -1,13 +1,14 @@
-﻿using CostVision.Models.Requests.ProverkachekaApi;
+﻿using CostVision.Interfaces.Api;
+using CostVision.Models.Requests.ProverkachekaApi;
 using CostVision.Models.Responses.ProverkachekaApi;
 using HttpApiClientLibrary.Interfaces;
 using System.Net.Http.Headers;
 
 namespace CostVision.Services.Api
 {
-    public class ReceiptInfoRequest(IHttpApiClient httpApiClient)
+    public class ReceiptRequest(IHttpApiClient httpApiClient) : IReceiptRequest
     {
-        public async Task<ProverkachekaResponse?> GetReceiptAsync(string url, string apiToken, string qrRaw, CancellationToken ct = default)
+        public async Task<ProverkachekaResponse?> GetReceiptByQrRawAsync(string url, string apiToken, string qrRaw, CancellationToken ct = default)
         {
             ProverkachekaQrRawRequest requestDto = new ()
             {
@@ -18,19 +19,17 @@ namespace CostVision.Services.Api
             return await httpApiClient.PostAsync<ProverkachekaQrRawRequest, ProverkachekaResponse>(url, requestDto, ct: ct);
         }
 
-        public async Task<ProverkachekaResponse?> GetReceiptAsync(string url, string apiToken, ProverkachekaManualRequest requestDto, CancellationToken ct = default)
+        public async Task<ProverkachekaResponse?> GetReceiptByReceiptAsync(string url, ProverkachekaManualRequest requestDto, CancellationToken ct = default)
         {
-            requestDto.Token = apiToken;
-
             return await httpApiClient.PostAsync<ProverkachekaManualRequest, ProverkachekaResponse>(url, requestDto, ct: ct);
         }
 
-        public async Task<ProverkachekaResponse?> GetReceiptAsync(string url, string apiToken, IFormFile file, CancellationToken ct = default)
+        public async Task<ProverkachekaResponse?> GetReceiptByFileAsync(string url, string apiToken, IFormFile file, CancellationToken ct = default)
         {
             if (file == null || file.Length == 0)
                 throw new ArgumentException("File is empty.", nameof(file));
 
-            using MultipartFormDataContent form = new ();
+            using MultipartFormDataContent form = new();
 
             await using Stream fileStream = file.OpenReadStream();
             StreamContent fileContent = new (fileStream);
@@ -40,9 +39,7 @@ namespace CostVision.Services.Api
             form.Add(fileContent, "qrfile", file.FileName);
             form.Add(new StringContent(apiToken), "token");
 
-            ProverkachekaResponse? result = await httpApiClient.PostAsync<HttpContent, ProverkachekaResponse>(url, form, ct: ct);
-
-            return result;
+            return await httpApiClient.PostAsync<HttpContent, ProverkachekaResponse>(url, form, ct: ct);
         }
     }
 }

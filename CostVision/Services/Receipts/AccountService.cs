@@ -1,10 +1,11 @@
 ﻿using CostVision.Interfaces.DataBase.Repositories;
-using CostVision.Interfaces.Service.Receipt;
+using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.Enums.Authorization;
 using CostVision.Models.Enums.Services.Receipts;
 using CostVision.Models.Receipts;
 using CostVision.Models.Requests.Receipts;
 using CostVision.Models.Services.Receipts;
+using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Services.Receipts
 {
@@ -186,7 +187,7 @@ namespace CostVision.Services.Receipts
         public async Task<ReceiptAccountLinkResult> LinkReceiptToAccountAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
         {
             // Проверяет, что счёт существует и пользователь имеет к нему доступ
-            Account? account = await unitOfWork.Account.GetItemByPredicate(a => a.Id == accountId, asNoTracking: false, includes: a => a.Members, ct: ct);
+            Account? account = await unitOfWork.Account.GetItemByPredicate(a => a.Id == accountId, asNoTracking: false, include: a => a.Include(a => a.Members), ct: ct);
 
             if (account == null)
             {

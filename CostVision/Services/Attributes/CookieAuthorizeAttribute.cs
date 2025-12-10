@@ -2,6 +2,7 @@
 using CostVision.Models.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace CostVision.Services.Attributes
@@ -34,7 +35,7 @@ namespace CostVision.Services.Attributes
             }
 
             IUnitOfWork unitOfWork = httpContext.RequestServices.GetRequiredService<IUnitOfWork>();
-            User? user = await unitOfWork.User.GetItemById(userId, true, context.HttpContext.RequestAborted, includes: u => u.Accounts.Where(a => !a.IsArchived));
+            User? user = await unitOfWork.User.GetItemById(userId, true, include: u => u.Include(u => u.Accounts.Where(a => !a.IsArchived)), ct: context.HttpContext.RequestAborted);
 
             if (user == null || !user.IsActive)
             {

@@ -1,7 +1,6 @@
 ﻿using CostVision.Interfaces.Entity;
-using CostVision.Models.Receipts;
 
-namespace CostVision.Models.Products
+namespace CostVision.Models.Receipts
 {
     public class Product : IEntity<Guid>, ICopyable<Product>
     {
@@ -10,7 +9,7 @@ namespace CostVision.Models.Products
         public string NormalizedName { get; set; } = string.Empty;
         public string? ProductCode { get; set; }
 
-        public ICollection<ReceiptItem> ReceiptItems { get; set; } = new List<ReceiptItem>();
+        public virtual ICollection<ReceiptItem> ReceiptItems { get; set; } = new List<ReceiptItem>();
 
         public void CopyData(Product entity)
         {

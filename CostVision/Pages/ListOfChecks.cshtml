@@ -1,0 +1,52 @@
+﻿@page "/list-of-checks"
+@model CostVision.Pages.ListOfChecksModel
+
+@{
+    ViewData["Title"] = "Список чеков";
+}
+
+<div class="container py-3">
+    <h2 class="mb-3">Список чеков</h2>
+
+    <div class="row g-2 mb-3 align-items-end">
+        <div class="col-auto">
+            <label for="dateFrom" class="form-label mb-1">Период с</label>
+            <input type="text" id="dateFrom" class="form-control" placeholder="YYYY-MM-DD" autocomplete="off">
+        </div>
+        <div class="col-auto">
+            <label for="dateTo" class="form-label mb-1">по</label>
+            <input type="text" id="dateTo" class="form-control" placeholder="YYYY-MM-DD" autocomplete="off">
+        </div>
+        <div class="col-auto">
+            <button type="button" id="applyFilter" class="btn btn-sm btn-primary">Показать</button>
+        </div>
+    </div>
+
+    <div id="receipt-list" class="d-flex flex-column gap-2">
+        <!-- Элементы будут добавляться через JS -->
+    </div>
+</div>
+
+<!-- Модальное окно деталей чека -->
+<div class="modal fade" id="receiptDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Детали чека</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div id="receipt-details-header" class="mb-2"></div>
+                <div id="receipt-details-list" class="d-flex flex-column gap-2"></div>
+            </div>
+            <div class="modal-footer">
+                <span id="receipt-details-total" class="me-auto fw-semibold"></span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/helpers/http.js" asp-append-version="true"></script>
+<script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
+<script src="~/js/reports/listOfChecks.js" asp-append-version="true"></script>

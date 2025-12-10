@@ -3,7 +3,7 @@ using CostVision.Models.Receipts;
 using CostVision.Models.Requests.Receipts;
 using CostVision.Models.Services.Receipts;
 
-namespace CostVision.Interfaces.Service.Receipt
+namespace CostVision.Interfaces.Service.Receipts
 {
     public interface IAccountService
     {

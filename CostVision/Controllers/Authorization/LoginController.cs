@@ -1,11 +1,12 @@
 ﻿using CostVision.Interfaces.DataBase.Repositories;
 using CostVision.Models.Authorization;
 using CostVision.Models.Requests.Authorize;
-using CostVision.Services.Authorization;
+using CostVision.Services.Helpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace CostVision.Controllers.Authorization
@@ -21,7 +22,7 @@ namespace CostVision.Controllers.Authorization
             if (string.IsNullOrWhiteSpace(dto.Login) || string.IsNullOrWhiteSpace(dto.Password))
                 return BadRequest(new { error = "Укажите логин и пароль." });
 
-            User? user = await unitOfWork.User.GetItemByPredicate(u => u.Login == dto.Login, false, ct, u => u.Roles);
+            User? user = await unitOfWork.User.GetItemByPredicate(u => u.Login == dto.Login, false, include: u => u.Include(u => u.Roles), ct);
 
             if (user == null || !hasher.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized(new { error = "Неверный логин или пароль." });

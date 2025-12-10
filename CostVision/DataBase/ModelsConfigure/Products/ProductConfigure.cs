@@ -1,4 +1,4 @@
-﻿using CostVision.Models.Products;
+﻿using CostVision.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

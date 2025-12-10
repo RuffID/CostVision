@@ -1,8 +1,8 @@
-﻿namespace CostVision.Services.Receipts
+﻿namespace CostVision.Services.Helpers
 {
     public static class NameNormalizedHelper
     {
-        public static string NormalizeProductName(string name)
+        public static string GetNormalizedName(string name)
         {
             return name
                 .Trim()

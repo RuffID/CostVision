@@ -1,17 +1,17 @@
-﻿using CostVision.Models.Products;
-using CostVision.Models.Receipts;
+﻿using CostVision.Models.Receipts;
 using CostVision.Models.Responses.ProverkachekaApi;
 
 namespace CostVision.Models.Dto.Mappers
 {
     public static class ReceiptItemMapper
     {
-        public static ReceiptItem MapToReceiptItem(this ProverkachekaItem item, Receipt receipt, Product product)
+        public static ReceiptItem MapToReceiptItem(this ProverkachekaItem item, Guid receiptId, Guid productId, Guid? categoryId = null)
         {
             return new()
             {
-                Receipt = receipt,
-                Product = product,
+                ReceiptId = receiptId,
+                ProductId = productId,
+                CategoryId = categoryId,
                 Price = item.Price / 100m,
                 Sum = item.Sum / 100m,
                 Quantity = item.Quantity,

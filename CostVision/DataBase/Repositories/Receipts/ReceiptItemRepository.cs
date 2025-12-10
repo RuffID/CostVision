@@ -10,17 +10,17 @@ namespace CostVision.DataBase.Repositories.Receipts
         ICreateItemRepository<ReceiptItem> create,
         IUpsertItemByIdRepository<ReceiptItem, Guid> upsert) : IReceiptItemRepository
     {
-        public Task<ReceiptItem?> GetItemByPredicate(Expression<Func<ReceiptItem, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<ReceiptItem, object>>[] includes)
-            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
+        public Task<ReceiptItem?> GetItemByPredicate(Expression<Func<ReceiptItem, bool>> predicate, bool asNoTracking = false, Func<IQueryable<ReceiptItem>, IQueryable<ReceiptItem>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, include, ct);
 
-        public Task<List<ReceiptItem>> GetItemsByPredicate(Expression<Func<ReceiptItem, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<ReceiptItem, object>>[] includes)
-            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<List<ReceiptItem>> GetItemsByPredicate(Expression<Func<ReceiptItem, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<ReceiptItem>, IQueryable<ReceiptItem>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, include, ct);
 
-        public Task<ReceiptItem?> GetItemById(Guid id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<ReceiptItem, object>>[] includes)
-            => getItemById.GetItemById(id, asNoTracking, ct, includes);
+        public Task<ReceiptItem?> GetItemById(Guid id, bool asNoTracking = false, Func<IQueryable<ReceiptItem>, IQueryable<ReceiptItem>>? include = null, CancellationToken ct = default)
+            => getItemById.GetItemById(id, asNoTracking, include, ct);
 
-        public Task<List<ReceiptItem>> GetItemsByPredicateAndSortById(Expression<Func<ReceiptItem, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<ReceiptItem, object>>[] includes)
-            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<List<ReceiptItem>> GetItemsByPredicateAndSortById(Expression<Func<ReceiptItem, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<ReceiptItem>, IQueryable<ReceiptItem>>? include = null, CancellationToken ct = default)
+            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(ReceiptItem item) => create.Create(item);
 

@@ -1,5 +1,4 @@
 ﻿using CostVision.Interfaces.DataBase.Repositories.Authorization;
-using CostVision.Interfaces.DataBase.Repositories.Products;
 using CostVision.Interfaces.DataBase.Repositories.Receipts;
 
 namespace CostVision.Interfaces.DataBase.Repositories

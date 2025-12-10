@@ -12,7 +12,7 @@ namespace CostVision.Controllers.Authorization
         [HttpPost]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request, CancellationToken ct)
         {
-            Role? exists = await unitOfWork.Role.GetItemByPredicate(r => r.Name.ToLower() == request.Name.ToLower(), true, ct);
+            Role? exists = await unitOfWork.Role.GetItemByPredicate(r => r.Name.ToLower() == request.Name.ToLower(), true, ct: ct);
 
             if (exists != null)
                 return Conflict(new { error = $"Role {request.Name} - already exist." });

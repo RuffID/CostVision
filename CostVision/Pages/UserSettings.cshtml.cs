@@ -1,5 +1,5 @@
 using CostVision.Interfaces.Entity;
-using CostVision.Interfaces.Service.Receipt;
+using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.Receipts;
 using CostVision.Models.Requests.Receipts;

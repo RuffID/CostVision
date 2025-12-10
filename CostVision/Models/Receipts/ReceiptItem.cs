@@ -1,6 +1,5 @@
 ﻿using CostVision.Interfaces.Entity;
 using CostVision.Models.Enums.Document;
-using CostVision.Models.Products;
 
 namespace CostVision.Models.Receipts
 {

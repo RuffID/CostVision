@@ -1,7 +1,6 @@
 ﻿using CostVision.Interfaces.DataBase;
 using CostVision.Interfaces.DataBase.Repositories;
 using CostVision.Interfaces.DataBase.Repositories.Authorization;
-using CostVision.Interfaces.DataBase.Repositories.Products;
 using CostVision.Interfaces.DataBase.Repositories.Receipts;
 using Microsoft.EntityFrameworkCore.Storage;
 

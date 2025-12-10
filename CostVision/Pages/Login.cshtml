@@ -10,13 +10,13 @@
     <div class="col-md-4">
         <form id="loginForm">
             <div class="mb-3">
-                <label asp-for="Login" class="form-label"></label>
+                <label asp-for="Login" class="form-label">Логин</label>
                 <input asp-for="Login" class="form-control" autocomplete="username" />
                 <span asp-validation-for="Login" class="text-danger"></span>
             </div>
 
             <div class="mb-3">
-                <label asp-for="Password" class="form-label"></label>
+                <label asp-for="Password" class="form-label">Пароль</label>
                 <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" />
                 <span asp-validation-for="Password" class="text-danger"></span>
             </div>

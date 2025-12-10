@@ -1,17 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
+п»їusing Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 
 namespace CostVision.Pages
 {
     public class LoginModel : PageModel
     {
-        [Required(ErrorMessage = "Укажи логин.")]
-        [Display(Name = "Логин")]
+        [Required(ErrorMessage = "РЈРєР°Р¶Рё Р»РѕРіРёРЅ.")]
         public string Login { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Укажи пароль.")]
-        [Display(Name = "Пароль")]
+        [Required(ErrorMessage = "РЈРєР°Р¶Рё РїР°СЂРѕР»СЊ.")]
         public string Password { get; set; } = string.Empty;
 
         public void OnGet()

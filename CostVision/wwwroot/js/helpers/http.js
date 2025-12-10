@@ -20,7 +20,17 @@
 
     if (!response.ok) {
         let errorText = await response.text();
-        throw new Error(errorText || ("HTTP error " + response.status));
+        let message;
+
+        try {
+            const parsed = JSON.parse(errorText);
+            message = (parsed && parsed.message) ? parsed.message : errorText;
+        }
+        catch {
+            message = errorText || ("HTTP error " + response.status);
+        }
+
+        throw new Error(message);
     }
 
     let text = await response.text();

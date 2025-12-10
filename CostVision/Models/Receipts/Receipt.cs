@@ -8,21 +8,33 @@ namespace CostVision.Models.Receipts
     {
         public Guid Id { get; set; }
 
-        // Номер фискального накопителя
+        /// <summary>
+        /// ФН (FN) - номер фискального накопителя
+        /// </summary>
         public string FiscalDriveNumber { get; set; } = string.Empty;
-        // Фискальный номер документа
+        /// <summary>
+        /// ФД (FD) - Фискальный номер документа 
+        /// </summary>
         public string FiscalDocumentNumber { get; set; } = string.Empty;
-        // Фискальный признак документа
+        /// <summary>
+        /// ФПД, ФП (FP) - Фискальный признак документа
+        /// </summary>
         public string FiscalSign { get; set; } = string.Empty;
         public string? RetailPlace { get; set; }
         public string? RetailPlaceAddress { get; set; }
-        // Наименование юрлица
+        /// <summary>
+        /// Наименование юрлица
+        /// </summary>
         public string? User { get; set; }
         public string? UserInn { get; set; }
 
-        // Время покупки
+        /// <summary>
+        /// Время покупки
+        /// </summary>
         public DateTime DateTime { get; set; }
-        // Номер чека за смену
+        /// <summary>
+        /// Номер чека за смену
+        /// </summary>
         public int? CheckNumber { get; set; }
         public int? ShiftNumber { get; set; }
 
@@ -32,28 +44,42 @@ namespace CostVision.Models.Receipts
         public decimal TotalSum { get; set; }
         public decimal CashTotalSum { get; set; }
         public decimal EcashTotalSum { get; set; }
-        // Налоги
+        /// <summary>
+        /// Налоги
+        /// </summary>
         public decimal? Nds18 { get; set; }
         public decimal? Nds10 { get; set; }
         public decimal? Nds0 { get; set; }
         public decimal? NdsNo { get; set; }
 
-        // Информация о ККТ
+        /// <summary>
+        /// Информация о ККТ
+        /// </summary>
         public string? KktRegId { get; set; }
         public string? NumberKkt { get; set; }
-        // Регион (город) покупки
+        /// <summary>
+        /// Регион (город) покупки
+        /// </summary>
         public string? Region { get; set; }
 
-        // Кто загрузил чек (владелец импорта)
+        /// <summary>
+        /// Кто загрузил чек (владелец импорта)
+        /// </summary>
         public Guid CreatedByUserId { get; set; }
         public virtual User? CreatedByUser { get; set; }
 
-        // Товары в чеке
+        /// <summary>
+        /// Товары в чеке
+        /// </summary>
         public virtual List<ReceiptItem> Items { get; set; } = new ();
-        // Много счетов у одного чека
+        /// <summary>
+        /// Много счетов у одного чека
+        /// </summary>
         public virtual List<ReceiptAccount> Accounts { get; set; } = new();
 
-        // Метаданные для аналитики (этой информации нет в чеке)
+        /// <summary>
+        /// Метаданные для аналитики (этой информации нет в чеке)
+        /// </summary>
         public DateTime CreatedAtUtc { get; set; }
         public DateTime? UpdatedAtUtc { get; set; }
 

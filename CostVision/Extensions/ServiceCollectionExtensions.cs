@@ -2,19 +2,18 @@
 using CostVision.DataBase.Repositories;
 using CostVision.DataBase.Repositories.Authorization;
 using CostVision.DataBase.Repositories.Base;
-using CostVision.DataBase.Repositories.Products;
 using CostVision.DataBase.Repositories.Receipts;
+using CostVision.Interfaces.Api;
 using CostVision.Interfaces.DataBase;
 using CostVision.Interfaces.DataBase.Repositories;
 using CostVision.Interfaces.DataBase.Repositories.Authorization;
 using CostVision.Interfaces.DataBase.Repositories.Base;
-using CostVision.Interfaces.DataBase.Repositories.Products;
 using CostVision.Interfaces.DataBase.Repositories.Receipts;
-using CostVision.Interfaces.Service.Receipt;
+using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.ConfigClass;
 using CostVision.Services.Api;
-using CostVision.Services.Authorization;
 using CostVision.Services.DataBase;
+using CostVision.Services.Helpers;
 using CostVision.Services.Middleware;
 using CostVision.Services.Receipts;
 using HttpApiClientLibrary.API;
@@ -133,7 +132,8 @@ namespace CostVision.Extensions
 
             services.AddScoped<Hasher>();
             services.AddScoped<QrParser>();
-            services.AddScoped<ReceiptInfoRequest>();
+            services.AddScoped<ReceiptAccessVerificationService>();
+            services.AddScoped<IReceiptRequest, ReceiptRequest>();
             services.AddScoped<IReceiptService, ReceiptService>();
             services.AddScoped<IAccountService, AccountService>();
 

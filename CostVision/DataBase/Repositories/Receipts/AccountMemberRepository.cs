@@ -9,11 +9,11 @@ namespace CostVision.DataBase.Repositories.Receipts
         ICreateItemRepository<AccountMember> create,
         IDeleteItemRepository<AccountMember> delete) : IAccountMemberRepository
     {
-        public Task<AccountMember?> GetItemByPredicate(Expression<Func<AccountMember, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<AccountMember, object>>[] includes)
-            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
+        public Task<AccountMember?> GetItemByPredicate(Expression<Func<AccountMember, bool>> predicate, bool asNoTracking = false, Func<IQueryable<AccountMember>, IQueryable<AccountMember>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, include, ct);
 
-        public Task<List<AccountMember>> GetItemsByPredicate(Expression<Func<AccountMember, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<AccountMember, object>>[] includes)
-            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<List<AccountMember>> GetItemsByPredicate(Expression<Func<AccountMember, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<AccountMember>, IQueryable<AccountMember>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(AccountMember item) => create.Create(item);
 

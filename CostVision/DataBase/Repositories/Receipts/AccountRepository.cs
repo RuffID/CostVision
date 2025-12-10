@@ -10,17 +10,17 @@ namespace CostVision.DataBase.Repositories.Receipts
         ICreateItemRepository<Account> create,
         IUpsertItemByIdRepository<Account, Guid> upsert) : IAccountRepository
     {
-        public Task<Account?> GetItemByPredicate(Expression<Func<Account, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Account, object>>[] includes)
-            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
+        public Task<Account?> GetItemByPredicate(Expression<Func<Account, bool>> predicate, bool asNoTracking = false, Func<IQueryable<Account>, IQueryable<Account>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, include, ct);
 
-        public Task<List<Account>> GetItemsByPredicate(Expression<Func<Account, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Account, object>>[] includes)
-            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<List<Account>> GetItemsByPredicate(Expression<Func<Account, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<Account>, IQueryable<Account>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, include, ct);
 
-        public Task<Account?> GetItemById(Guid id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Account, object>>[] includes)
-            => getItemById.GetItemById(id, asNoTracking, ct, includes);
+        public Task<Account?> GetItemById(Guid id, bool asNoTracking = false, Func<IQueryable<Account>, IQueryable<Account>>? include = null, CancellationToken ct = default)
+            => getItemById.GetItemById(id, asNoTracking, include, ct);
 
-        public Task<List<Account>> GetItemsByPredicateAndSortById(Expression<Func<Account, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Account, object>>[] includes)
-            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<List<Account>> GetItemsByPredicateAndSortById(Expression<Func<Account, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<Account>, IQueryable<Account>>? include = null, CancellationToken ct = default)
+            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(Account item) => create.Create(item);
 

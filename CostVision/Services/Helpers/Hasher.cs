@@ -1,7 +1,7 @@
 ﻿using CostVision.Models.Constants;
 using System.Security.Cryptography;
 
-namespace CostVision.Services.Authorization
+namespace CostVision.Services.Helpers
 {
     public class Hasher
     {
