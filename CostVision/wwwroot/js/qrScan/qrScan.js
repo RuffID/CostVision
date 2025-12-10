@@ -152,15 +152,15 @@ function qrScanEnsureStatusContainer() {
     container = document.createElement("div");
     container.className = "qr-status";
 
-    const header = document.querySelector("h2");
-    if (header && header.parentNode) {
-        if (header.nextSibling) {
-            header.parentNode.insertBefore(container, header.nextSibling);
-        } else {
-            header.parentNode.appendChild(container);
+    // Вставить над выбором счёта
+    if (accountSelect) {
+        // Берём не сам select, а его "строку" / form-group, если есть
+        let anchor = accountSelect.closest(".form-group, .mb-3, .row") || accountSelect;
+
+        if (anchor && anchor.parentNode) {
+            anchor.parentNode.insertBefore(container, anchor);
+            return container;
         }
-    } else {
-        document.body.insertBefore(container, document.body.firstChild);
     }
 
     return container;
