@@ -11,7 +11,7 @@ namespace CostVision.Pages
 {
     [CookieAuthorize]
     [LoadUser]
-    public class QrScanModel(IReceiptService receiptService) : PageModel, IHasCurrentUser
+    public class AddReceiptModel(IReceiptService receiptService) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = new();
 

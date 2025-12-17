@@ -7,8 +7,7 @@ namespace CostVision.DataBase.Repositories.Authorization
 {
     public class UserRepository(IGetItemByIdRepository<User, Guid> getItemById,
         IGetItemByPredicateRepository<User> getItemByPredicate,
-        ICreateItemRepository<User> create,
-        IUpsertItemByIdRepository<User, Guid> upsert) : IUserRepository
+        ICreateItemRepository<User> create) : IUserRepository
     {
         public Task<User?> GetItemByPredicate(Expression<Func<User, bool>> predicate, bool asNoTracking = false, Func<IQueryable<User>, IQueryable<User>>? include = null, CancellationToken ct = default)
             => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, include, ct);
@@ -23,9 +22,5 @@ namespace CostVision.DataBase.Repositories.Authorization
             => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(User item) => create.Create(item);
-
-        public Task Upsert(User item, CancellationToken ct = default) => upsert.Upsert(item, ct);
-
-        public Task Upsert(IEnumerable<User> items, CancellationToken ct = default) => upsert.Upsert(items, ct);
     }
 }

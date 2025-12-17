@@ -3,7 +3,7 @@ using CostVision.Models.Receipts;
 
 namespace CostVision.Models.Authorization
 {
-    public class User : IEntity<Guid>, ICopyable<User>
+    public class User : IEntity<Guid>
     {
         public Guid Id { get; set; }
 
@@ -32,15 +32,5 @@ namespace CostVision.Models.Authorization
         public virtual List<ExpenseCategory> Categories { get; set; } = new List<ExpenseCategory>();
 
         public virtual List<Account> Accounts { get; set; } = new List<Account>();
-
-        public void CopyData(User newItem)
-        {
-            Login = newItem.Login;
-            PasswordHash = newItem.PasswordHash;
-            Name = newItem.Name;
-            IsActive = newItem.IsActive;
-            CreatedAtUtc = newItem.CreatedAtUtc;
-            LastLoginAtUtc = newItem.LastLoginAtUtc;
-        }
     }
 }

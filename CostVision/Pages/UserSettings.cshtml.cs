@@ -20,7 +20,6 @@ namespace CostVision.Pages
             return new JsonResult(new { success = true, accounts = await accountService.GetUserAccountsAsync(CurrentUser.Id, includeInactive, ct) });
         }
 
-
         public async Task<IActionResult> OnPostCreateAccountAsync([FromBody] CreateAccountRequest request, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 3)

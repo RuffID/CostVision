@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace CostVision.DataBase.ModelsConfigure.Products
+namespace CostVision.DataBase.ModelsConfigure.Receipts
 {
     public class ProductConfigure : IEntityTypeConfiguration<Product>
     {

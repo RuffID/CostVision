@@ -14,7 +14,7 @@ namespace CostVision.Pages
 {
     [CookieAuthorize]
     [LoadUser]
-    public class ListOfChecksModel(IReceiptService receiptService) : PageModel, IHasCurrentUser
+    public class ReceiptsModel(IReceiptService receiptService) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
 
@@ -82,7 +82,7 @@ namespace CostVision.Pages
 
         public async Task<JsonResult> OnPostRefreshReceiptAsync([FromBody] RefreshReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<Receipt> result = await receiptService.RefreshReceiptFromExternalAsync(request.ReceiptId, CurrentUser, ct);
+            ServiceResult<Receipt> result = await receiptService.RefreshReceiptFromApiAsync(request.ReceiptId, CurrentUser, ct);
 
             if (!result.Success || result.Data == null)
                 return JsonResultMapper.ToJsonResult(result);
@@ -103,5 +103,19 @@ namespace CostVision.Pages
 
             return JsonResultMapper.ToJsonResult(dtoResult);
         }
-    }      
+
+        public async Task<JsonResult> OnPostDeleteReceiptAsync([FromBody] DeleteReceiptRequest request, CancellationToken ct)
+        {
+            if (request.ReceiptId == Guid.Empty)
+            {
+                ServiceResult<bool> badIdResult = ServiceResult<bool>.Fail(400, "Некорректный идентификатор чека.");
+
+                return JsonResultMapper.ToJsonResult(badIdResult);
+            }
+
+            ServiceResult<bool> serviceResult = await receiptService.DeleteReceiptAsync(request.ReceiptId, CurrentUser, ct);
+
+            return JsonResultMapper.ToJsonResult(serviceResult);
+        }
+    }
 }

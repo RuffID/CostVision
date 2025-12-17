@@ -1,5 +1,4 @@
 ﻿using CostVision.DataBase.ModelsConfigure.Authorization;
-using CostVision.DataBase.ModelsConfigure.Products;
 using CostVision.DataBase.ModelsConfigure.Receipts;
 using Microsoft.EntityFrameworkCore;
 

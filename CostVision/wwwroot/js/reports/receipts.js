@@ -13,6 +13,13 @@ let applyFilterButton;
 const RECEIPTS_DATE_FROM_KEY = 'costvision_receipts_dateFrom';
 const RECEIPTS_DATE_TO_KEY = 'costvision_receipts_dateTo';
 
+// Для удаления
+let deleteModalElement;
+let deleteBootstrapModal;
+let deleteConfirmButton;
+let pendingDeleteReceiptId = null;
+let pendingDeleteCardElement = null;
+
 // Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function () {
     initListOfChecksPage();
@@ -29,9 +36,12 @@ function initListOfChecksPage() {
     detailsList = document.getElementById('receipt-details-list');
     modalHeader = document.getElementById('receipt-details-header');
     modalTotal = document.getElementById('receipt-details-total');
-
+    deleteModalElement = document.getElementById('deleteReceiptModal');
+    deleteConfirmButton = document.getElementById('confirmDeleteReceiptBtn');
+    applyFilterButton = document.getElementById('applyFilter');
     dateFromInput = document.getElementById('dateFrom');
     dateToInput = document.getElementById('dateTo');
+    forgeryToken = getRequestVerificationToken();
 
     if (dateFromInput) {
         dateFromInput.addEventListener('input', function () {
@@ -47,14 +57,16 @@ function initListOfChecksPage() {
         });
     }
 
-
-    applyFilterButton = document.getElementById('applyFilter');
-
     if (modalElement) {
         bootstrapModal = new bootstrap.Modal(modalElement);
-    }
 
-    forgeryToken = getRequestVerificationToken();
+        // Убирать фокус из модалки при закрытии, чтобы избежать предупреждения aria-hidden
+        modalElement.addEventListener('hide.bs.modal', function () {
+            if (document.activeElement && modalElement.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+        });
+    }
 
     if (applyFilterButton) {
         applyFilterButton.addEventListener('click', function () {
@@ -65,6 +77,21 @@ function initListOfChecksPage() {
 
     if (listContainer) {
         listContainer.addEventListener('click', onReceiptListClick);
+    }
+
+    if (deleteModalElement) {
+        deleteBootstrapModal = new bootstrap.Modal(deleteModalElement);
+
+        // Убирать фокус из модалки при закрытии, чтобы избежать предупреждения aria-hidden
+        deleteModalElement.addEventListener('hide.bs.modal', function () {
+            if (document.activeElement && deleteModalElement.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+        });
+    }
+
+    if (deleteConfirmButton) {
+        deleteConfirmButton.addEventListener('click', onConfirmDeleteReceipt);
     }
 
     // Попробовать восстановить период из localStorage
@@ -145,6 +172,7 @@ function onReceiptListClick(event) {
 
     const openButton = target.closest('[data-action="open"]');
     const refreshButton = target.closest('[data-action="refresh"]');
+    const deleteButton = target.closest('[data-action="delete"]');
 
     if (openButton) {
         const card = openButton.closest('.card');
@@ -169,6 +197,19 @@ function onReceiptListClick(event) {
             return;
         }
         refreshReceipt(receiptId, card, refreshButton);
+    }
+
+    if (deleteButton) {
+        const card = deleteButton.closest('.card');
+        if (!card) {
+            return;
+        }
+        const receiptId = card.getAttribute('data-receipt-id');
+        if (!receiptId) {
+            return;
+        }
+        openDeleteReceiptModal(receiptId, card);
+        return;
     }
 }
 
@@ -267,6 +308,75 @@ async function refreshReceipt(receiptId, cardElement, buttonElement) {
     }
 }
 
+// Открыть модальное окно подтверждения удаления
+function openDeleteReceiptModal(receiptId, cardElement) {
+    if (!deleteBootstrapModal || !deleteModalElement) {
+        return;
+    }
+
+    pendingDeleteReceiptId = receiptId;
+    pendingDeleteCardElement = cardElement;
+
+    // Сбрасывать возможное предыдущее состояние кнопки
+    if (deleteConfirmButton) {
+        deleteConfirmButton.disabled = false;
+        deleteConfirmButton.textContent = 'Удалить';
+    }
+
+    deleteBootstrapModal.show();
+}
+
+// Обработать подтверждение удаления
+async function onConfirmDeleteReceipt() {
+    if (!pendingDeleteReceiptId) {
+        return;
+    }
+
+    if (!deleteConfirmButton) {
+        return;
+    }
+
+    // Блокировать кнопку и показать состояние удаления
+    const originalText = deleteConfirmButton.textContent;
+    deleteConfirmButton.disabled = true;
+    deleteConfirmButton.textContent = 'Удаление...';
+
+    try {
+        const payload = { receiptId: pendingDeleteReceiptId };
+
+        const result = await sendJsonRequest('?handler=DeleteReceipt', 'POST', buildJsonHeaders(forgeryToken), payload);
+
+        // Ожидать ServiceResult<bool> от сервера
+        if (!result || result.success === false) {
+            const message = result && result.errorMessage
+                ? result.errorMessage
+                : 'Не удалось удалить чек.';
+            alert(message);
+            return;
+        }
+
+        // Удалять карточку из DOM
+        if (pendingDeleteCardElement && pendingDeleteCardElement.parentNode) {
+            pendingDeleteCardElement.parentNode.removeChild(pendingDeleteCardElement);
+        }
+
+        // Закрывать модалку
+        if (deleteBootstrapModal) {
+            deleteBootstrapModal.hide();
+        }
+
+        pendingDeleteReceiptId = null;
+        pendingDeleteCardElement = null;
+    } catch (error) {
+        console.error(error);
+        alert('Ошибка при удалении чека.');
+    } finally {
+        // Восстанавливать кнопку
+        deleteConfirmButton.disabled = false;
+        deleteConfirmButton.textContent = originalText;
+    }
+}
+
 // Построить карточку чека
 function buildReceiptCard(r) {
     const card = document.createElement('div');
@@ -315,7 +425,7 @@ function buildReceiptCard(r) {
     totalDiv.appendChild(totalSpan);
 
     const btnGroup = document.createElement('div');
-    btnGroup.classList.add('btn-group');
+    btnGroup.classList.add('d-flex', 'gap-1'); // маленький зазор между кнопками
 
     const openBtn = document.createElement('button');
     openBtn.type = 'button';
@@ -329,6 +439,12 @@ function buildReceiptCard(r) {
     refreshBtn.setAttribute('data-action', 'refresh');
     refreshBtn.textContent = 'Обновить данные';
 
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.classList.add('btn', 'btn-sm', 'btn-outline-danger');
+    deleteBtn.setAttribute('data-action', 'delete');
+    deleteBtn.textContent = 'Удалить';
+
     btnGroup.appendChild(openBtn);
     btnGroup.appendChild(refreshBtn);
 
@@ -337,6 +453,8 @@ function buildReceiptCard(r) {
 
     cardBody.appendChild(leftDiv);
     cardBody.appendChild(rightDiv);
+
+    btnGroup.appendChild(deleteBtn);
 
     card.appendChild(cardBody);
 

@@ -1,5 +1,5 @@
-﻿@page "/list-of-checks"
-@model CostVision.Pages.ListOfChecksModel
+﻿@page
+@model CostVision.Pages.ReceiptsModel
 
 @{
     ViewData["Title"] = "Список чеков";
@@ -47,6 +47,29 @@
     </div>
 </div>
 
+<!-- Модальное окно подтверждения удаления чека -->
+<div class="modal fade" id="deleteReceiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удаление чека</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">
+                    Ты уверен(а) что действительно хочешь удалить этот чек? Отменить действие будет невозможно.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteReceiptBtn">
+                    Удалить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="~/js/helpers/http.js" asp-append-version="true"></script>
 <script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
-<script src="~/js/reports/listOfChecks.js" asp-append-version="true"></script>
+<script src="~/js/reports/receipts.js" asp-append-version="true"></script>

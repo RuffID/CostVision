@@ -87,7 +87,6 @@ namespace CostVision.Services.Receipts
             current.IsArchived = account.IsArchived;
             current.IsDefault = willBeDefault;
 
-            await unitOfWork.Account.Upsert(current, ct);
             await unitOfWork.SaveAsync(ct);
 
             // Обновить ссылочный объект, который уходит наверх

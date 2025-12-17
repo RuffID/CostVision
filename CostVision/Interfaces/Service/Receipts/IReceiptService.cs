@@ -16,6 +16,10 @@ namespace CostVision.Interfaces.Service.Receipts
 
         Task<ServiceResult<Receipt>> GetReceiptWithItemsAsync(Guid receiptId, User currentUser, CancellationToken ct);
 
-        Task<ServiceResult<Receipt>> RefreshReceiptFromExternalAsync(Guid receiptId, User currentUser, CancellationToken ct);
+        Task<ServiceResult<Receipt>> RefreshReceiptFromApiAsync(Guid receiptId, User currentUser, CancellationToken ct);
+
+        Task RefreshReceiptsWithoutItemsAsync(CancellationToken ct);
+
+        Task<ServiceResult<bool>> DeleteReceiptAsync(Guid receiptId, User currentUser, CancellationToken ct);
     }
 }

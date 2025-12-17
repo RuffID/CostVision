@@ -12,6 +12,7 @@ using CostVision.Interfaces.DataBase.Repositories.Receipts;
 using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.ConfigClass;
 using CostVision.Services.Api;
+using CostVision.Services.BackgroundServices;
 using CostVision.Services.DataBase;
 using CostVision.Services.Helpers;
 using CostVision.Services.Middleware;
@@ -132,11 +133,20 @@ namespace CostVision.Extensions
 
             services.AddScoped<Hasher>();
             services.AddScoped<QrParser>();
-            services.AddScoped<ReceiptAccessVerificationService>();
+            services.AddScoped<IReceiptAccessVerificationService, ReceiptAccessVerificationService>();
             services.AddScoped<IReceiptRequest, ReceiptRequest>();
             services.AddScoped<IReceiptService, ReceiptService>();
             services.AddScoped<IAccountService, AccountService>();
 
+            services.AddHostedService<ReceiptRefreshBackgroundService>();
+
+            ConfigureRepositoryServices(services);
+
+            return services;
+        }
+
+        private static void ConfigureRepositoryServices(IServiceCollection services)
+        {
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();
@@ -154,8 +164,6 @@ namespace CostVision.Extensions
             services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
             services.AddScoped(typeof(IUpsertItemByIdRepository<,>), typeof(UpsertItemByIdRepository<,>));
             services.AddScoped(typeof(IUpsertItemByPredicateRepository<>), typeof(UpsertItemByPredicateRepository<>));
-
-            return services;
         }
     }
 }

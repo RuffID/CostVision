@@ -1,11 +1,11 @@
-﻿@page
+﻿@page "/add-receipt"
 @using CostVision.Models.Receipts
-@model CostVision.Pages.QrScanModel
+@model CostVision.Pages.AddReceiptModel
 @{
-    ViewData["Title"] = "QR Scan";
+    ViewData["Title"] = "Добавить чек";
 }
 
-<link rel="stylesheet" href="~/css/qrScan/qrScan.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/receipt/addReceipt.css" asp-append-version="true" />
 
 <!-- Выбор счёта -->
 <div class="mb-4" style="max-width:400px;">
@@ -97,8 +97,8 @@
 </div>
 
 
-<script src="~/js/qrScan/html5-qrcode.min.js"></script>
-<script src="~/js/qrScan/exif-js.js"></script>
+<script src="~/js/receipt/html5-qrcode.min.js"></script>
+<script src="~/js/receipt/exif-js.js"></script>
 <script src="~/js/helpers/http.js" asp-append-version="true"></script>
 <script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
-<script src="~/js/qrScan/qrScan.js" asp-append-version="true"></script>
+<script src="~/js/receipt/receipt.js" asp-append-version="true"></script>

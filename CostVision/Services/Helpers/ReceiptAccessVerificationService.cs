@@ -1,9 +1,10 @@
-﻿using CostVision.Models.Authorization;
+﻿using CostVision.Interfaces.Service.Receipts;
+using CostVision.Models.Authorization;
 using CostVision.Models.Receipts;
 
 namespace CostVision.Services.Helpers
 {
-    public class ReceiptAccessVerificationService
+    public class ReceiptAccessVerificationService : IReceiptAccessVerificationService
     {
         public bool UserHasAccessToReceipt(User currentUser, Receipt receipt)
         {

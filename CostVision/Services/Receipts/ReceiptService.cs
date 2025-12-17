@@ -18,7 +18,7 @@ using Microsoft.Extensions.Options;
 
 namespace CostVision.Services.Receipts
 {
-    public class ReceiptService(IUnitOfWork unitOfWork, QrParser qrParser, IReceiptRequest receiptRequest, ReceiptAccessVerificationService accessVerification, IOptions<ApiEndpointOptions> endpointOptions, IOptions<ProverkachekaOptions> apiOptions) : IReceiptService
+    public class ReceiptService(IUnitOfWork unitOfWork, ILogger<ReceiptService> logger, QrParser qrParser, IReceiptRequest receiptRequest, IReceiptAccessVerificationService accessVerification, IOptions<ApiEndpointOptions> endpointOptions, IOptions<ProverkachekaOptions> apiOptions) : IReceiptService
     {
         private readonly ApiEndpointOptions _endpointOptions = endpointOptions.Value;
         private readonly ProverkachekaOptions _apiOptions = apiOptions.Value;
@@ -209,17 +209,38 @@ namespace CostVision.Services.Receipts
             return ServiceResult<Receipt>.Ok(receipt);
         }
 
-        public async Task<ServiceResult<Receipt>> RefreshReceiptFromExternalAsync(Guid receiptId, User currentUser, CancellationToken ct)
+        public async Task<ServiceResult<Receipt>> RefreshReceiptFromApiAsync(Guid receiptId, User currentUser, CancellationToken ct)
         {
             if (receiptId == Guid.Empty)
                 return ServiceResult<Receipt>.Fail(400, "Некорректный идентификатор чека.");
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemById(receiptId, asNoTracking: false, include: r => r.Include(r => r.Items), ct: ct);
+            Receipt? receipt = await unitOfWork.Receipt.GetItemById(receiptId, asNoTracking: false, include: r => r.Include(x => x.Items), ct: ct);
 
             if (receipt == null)
                 return ServiceResult<Receipt>.Fail(404, "Чек не найден.");
 
-            ProverkachekaManualRequest apiRequest = new()
+            if (!accessVerification.UserHasAccessToReceipt(currentUser, receipt))
+                return ServiceResult<Receipt>.Fail(401, "Нет доступа к этому чеку.");
+
+            return await RefreshReceiptFromApiInternalAsync(receipt, ct);
+        }
+
+        public async Task RefreshReceiptsWithoutItemsAsync(CancellationToken ct)
+        {
+            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicate(r => !r.Items.Any(), asNoTracking: false,
+                include: q => q.Include(r => r.Items), ct: ct);
+
+            foreach (Receipt receipt in receipts)
+            {
+                // Задержка, чтобы не посылать запросы в api слишком быстро
+                await Task.Delay(1000, ct);
+                await RefreshReceiptFromApiInternalAsync(receipt, ct);            
+            }
+        }
+
+        private async Task<ServiceResult<Receipt>> RefreshReceiptFromApiInternalAsync(Receipt receipt, CancellationToken ct)
+        {
+            ProverkachekaManualRequest apiRequest = new ()
             {
                 ApiToken = _apiOptions.ProverkachekaApiToken,
                 Fd = receipt.FiscalDocumentNumber,
@@ -235,8 +256,13 @@ namespace CostVision.Services.Receipts
             if (result == null)
                 return ServiceResult<Receipt>.Fail(500, "Не удалось обновить чек по внешнему API. \nОшибка при получении ответа.");
 
-            if (result.Code == (int)ReceiptResponseCodeEnum.Incorrect ||
-                result.Code == (int)ReceiptResponseCodeEnum.WaitBeforeRetry ||
+            if (result.Code == (int)ReceiptResponseCodeEnum.Incorrect)
+            {
+                logger.LogWarning("[Method:{MethodName}] Receipt with Id {ReceiptId} could not be refreshed from API because it is marked as incorrect.", nameof(RefreshReceiptFromApiInternalAsync), receipt.Id);
+                return ServiceResult<Receipt>.Fail(500, $"Не удалось обновить чек по внешнему API. \nОшибка: {result.Data?.Error}");
+            }
+
+            if (result.Code == (int)ReceiptResponseCodeEnum.WaitBeforeRetry ||
                 result.Code == (int)ReceiptResponseCodeEnum.RateLimitExceeded ||
                 result.Code == (int)ReceiptResponseCodeEnum.Pending ||
                 result.Code == (int)ReceiptResponseCodeEnum.Other)
@@ -249,6 +275,7 @@ namespace CostVision.Services.Receipts
 
             // Очистить чек от старых позиций (если они были)
             receipt.Items.Clear();
+
             if (result.Data != null && result.Data.Json != null)
             {
                 foreach (ProverkachekaItem item in result.Data.Json.Items)
@@ -258,7 +285,12 @@ namespace CostVision.Services.Receipts
 
                     if (product == null)
                     {
-                        product = new() { Name = item.Name, NormalizedName = normalizedName, ProductCode = item.ProductCode?.RawProductCode };
+                        product = new Product
+                        {
+                            Name = item.Name,
+                            NormalizedName = normalizedName,
+                            ProductCode = item.ProductCode?.RawProductCode
+                        };
                         unitOfWork.Product.Create(product);
                     }
                     else
@@ -274,6 +306,26 @@ namespace CostVision.Services.Receipts
 
             await unitOfWork.SaveAsync(ct);
             return ServiceResult<Receipt>.Ok(receipt);
+        }
+
+        public async Task<ServiceResult<bool>> DeleteReceiptAsync(Guid receiptId, User currentUser, CancellationToken ct)
+        {
+            if (receiptId == Guid.Empty)
+                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор чека.");
+
+            Receipt? receipt = await unitOfWork.Receipt.GetItemById(id: receiptId, asNoTracking: false, ct: ct);
+
+            if (receipt == null)
+                return ServiceResult<bool>.Fail(404, "Чек не найден.");
+
+            if (!accessVerification.UserHasAccessToReceipt(currentUser, receipt))
+                return ServiceResult<bool>.Fail(401, "Нет доступа к этому чеку.");
+
+            unitOfWork.Receipt.Delete(receipt);
+
+            await unitOfWork.SaveAsync(ct);
+
+            return ServiceResult<bool>.Ok(true);
         }
     }
 }
