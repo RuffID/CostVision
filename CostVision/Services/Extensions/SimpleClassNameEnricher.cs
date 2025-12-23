@@ -1,7 +1,7 @@
 ﻿using Serilog.Core;
 using Serilog.Events;
 
-namespace CostVision.Extensions
+namespace CostVision.Services.Extensions
 {
     /// <summary>
     /// Перехватывает каждое событие логирования и добавляет свойство "SourceContext" с простым именем класса.

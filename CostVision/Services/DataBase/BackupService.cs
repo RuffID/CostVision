@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.InteropServices;
 
 namespace CostVision.Services.DataBase
 {
@@ -9,6 +10,12 @@ namespace CostVision.Services.DataBase
 
         public void CreateSqlServerBackup()
         {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (!Directory.Exists(backupFolder))
+                    Directory.CreateDirectory(backupFolder);
+            }
+
             string timestamp = DateTime.Now.ToString("yyyy.MM.dd_HHmmss");
             string backupFilePath = Path.Combine(backupFolder, $"backup_{timestamp}.sql");
 

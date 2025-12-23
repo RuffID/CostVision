@@ -1,6 +1,6 @@
 using CostVision.DataBase;
-using CostVision.Extensions;
 using CostVision.Services.DataBase;
+using CostVision.Services.Extensions;
 using CostVision.Services.Middleware;
 using Serilog;
 

@@ -1,6 +1,6 @@
 ﻿using CostVision.Interfaces.Entity;
 using CostVision.Models.Authorization;
-using CostVision.Models.Enums.Document;
+using CostVision.Models.Enums.Receipts;
 
 namespace CostVision.Models.Receipts
 {

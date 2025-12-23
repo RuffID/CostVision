@@ -1,5 +1,4 @@
-﻿using CostVision.Models.Dto.Authorization;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace CostVision.Models.Requests.Authorize
 {

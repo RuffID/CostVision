@@ -2,7 +2,7 @@
 
 namespace CostVision.Models.Receipts
 {
-    public class Product : IEntity<Guid>, ICopyable<Product>
+    public class Product : IEntity<Guid>
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -10,12 +10,5 @@ namespace CostVision.Models.Receipts
         public string? ProductCode { get; set; }
 
         public virtual ICollection<ReceiptItem> ReceiptItems { get; set; } = new List<ReceiptItem>();
-
-        public void CopyData(Product entity)
-        {
-            Name = entity.Name;
-            ProductCode = entity.ProductCode;
-            NormalizedName = entity.NormalizedName;
-        }
     }
 }

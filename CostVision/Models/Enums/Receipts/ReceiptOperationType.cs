@@ -1,4 +1,4 @@
-﻿namespace CostVision.Models.Enums.Document
+﻿namespace CostVision.Models.Enums.Receipts
 {
     public enum ReceiptOperationType
     {

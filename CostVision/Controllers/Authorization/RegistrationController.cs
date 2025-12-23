@@ -36,7 +36,7 @@ namespace CostVision.Controllers.Authorization
             };
 
             unitOfWork.User.Create(user);
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             return NoContent();
         }

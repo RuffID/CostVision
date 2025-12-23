@@ -3,7 +3,7 @@ using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.Requests.Receipts;
 using CostVision.Models.Services.Receipts;
-using CostVision.Services.Attributes;
+using CostVision.Services.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 

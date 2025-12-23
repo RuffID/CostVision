@@ -3,7 +3,7 @@ using CostVision.Models.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace CostVision.Services.Attributes
+namespace CostVision.Services.Authorize.Attributes
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class LoadUserAttribute : Attribute, IAsyncPageFilter, IOrderedFilter

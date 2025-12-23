@@ -7,8 +7,7 @@ namespace CostVision.DataBase.Repositories.Receipts
 {
     public class ReceiptItemRepository(IGetItemByIdRepository<ReceiptItem, Guid> getItemById,
         IGetItemByPredicateRepository<ReceiptItem> getItemByPredicate,
-        ICreateItemRepository<ReceiptItem> create,
-        IUpsertItemByIdRepository<ReceiptItem, Guid> upsert) : IReceiptItemRepository
+        ICreateItemRepository<ReceiptItem> create) : IReceiptItemRepository
     {
         public Task<ReceiptItem?> GetItemByPredicate(Expression<Func<ReceiptItem, bool>> predicate, bool asNoTracking = false, Func<IQueryable<ReceiptItem>, IQueryable<ReceiptItem>>? include = null, CancellationToken ct = default)
             => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, include, ct);
@@ -23,9 +22,5 @@ namespace CostVision.DataBase.Repositories.Receipts
             => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(ReceiptItem item) => create.Create(item);
-
-        public Task Upsert(ReceiptItem item, CancellationToken ct = default) => upsert.Upsert(item, ct);
-
-        public Task Upsert(IEnumerable<ReceiptItem> items, CancellationToken ct = default) => upsert.Upsert(items, ct);
     }
 }

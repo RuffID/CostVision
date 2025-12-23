@@ -25,7 +25,7 @@ namespace CostVision.DataBase.Repositories
         public IReceiptAccountRepository ReceiptAccount { get; set; } = receiptAccount;
         public IAccountMemberRepository AccountMember { get; set; } = accountMember;
 
-        public Task SaveAsync(CancellationToken ct = default) => context.SaveChanges(ct);
+        public Task SaveChangesAsync(CancellationToken ct = default) => context.SaveChanges(ct);
 
         public async Task ExecuteInTransaction(Func<Task> action, CancellationToken ct = default)
         {
@@ -34,7 +34,7 @@ namespace CostVision.DataBase.Repositories
             try
             {
                 await action();
-                await SaveAsync(ct);
+                await SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
             }
             catch

@@ -1,7 +1,7 @@
 ﻿using CostVision.Models.Responses.Results;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CostVision.Models.Dto.Mappers
+namespace CostVision.Models.Dtos.Mappers
 {
     public static class JsonResultMapper
     {

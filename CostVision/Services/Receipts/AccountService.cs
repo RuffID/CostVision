@@ -87,7 +87,7 @@ namespace CostVision.Services.Receipts
             current.IsArchived = account.IsArchived;
             current.IsDefault = willBeDefault;
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             // Обновить ссылочный объект, который уходит наверх
             account.IsArchived = current.IsArchived;
@@ -116,7 +116,7 @@ namespace CostVision.Services.Receipts
             {
                 // Обновляет роль, если нужно
                 exist.Role = role;
-                await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
                 return exist;
             }
 
@@ -128,7 +128,7 @@ namespace CostVision.Services.Receipts
             };
 
             unitOfWork.AccountMember.Create(member);
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             return member;
         }
@@ -156,7 +156,7 @@ namespace CostVision.Services.Receipts
                 return;
 
             unitOfWork.AccountMember.Delete(member);
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task<List<UserAccountViewModel>> GetUserAccountsAsync(Guid userId, bool includeArchived, CancellationToken ct)
@@ -243,7 +243,7 @@ namespace CostVision.Services.Receipts
             };
 
             unitOfWork.ReceiptAccount.Create(link);
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             return new ReceiptAccountLinkResult
             {

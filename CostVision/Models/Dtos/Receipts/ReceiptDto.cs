@@ -1,4 +1,4 @@
-﻿namespace CostVision.Models.Dto.Receipts
+﻿namespace CostVision.Models.Dtos.Receipts
 {
     public class ReceiptDto
     {

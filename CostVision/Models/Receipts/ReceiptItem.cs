@@ -1,9 +1,9 @@
 ﻿using CostVision.Interfaces.Entity;
-using CostVision.Models.Enums.Document;
+using CostVision.Models.Enums.Receipts;
 
 namespace CostVision.Models.Receipts
 {
-    public class ReceiptItem : IEntity<Guid>, ICopyable<ReceiptItem>
+    public class ReceiptItem : IEntity<Guid>
     {
         public Guid Id { get; set; }
         public decimal Price { get; set; }
@@ -21,16 +21,5 @@ namespace CostVision.Models.Receipts
         public virtual Receipt? Receipt { get; set; }
         public virtual ExpenseCategory? Category { get; set; }
         public virtual Product? Product { get; set; }
-
-        public void CopyData(ReceiptItem entity)
-        {
-            Price = entity.Price;
-            Quantity = entity.Quantity;
-            Sum = entity.Sum;
-            Nds = entity.Nds;
-            PaymentType = entity.PaymentType;
-            ProductType = entity.ProductType;
-            ItemsQuantityMeasure = entity.ItemsQuantityMeasure;
-        }
     }
 }

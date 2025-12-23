@@ -1,7 +1,7 @@
 ﻿using CostVision.Models.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace CostVision.Extensions
+namespace CostVision.Services.Extensions
 {
     public static class PageModelUserExtensions
     {

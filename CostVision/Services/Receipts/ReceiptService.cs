@@ -3,8 +3,7 @@ using CostVision.Interfaces.DataBase.Repositories;
 using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.ConfigClass;
-using CostVision.Models.Dto.Mappers;
-using CostVision.Models.Enums.Document;
+using CostVision.Models.Dtos.Mappers;
 using CostVision.Models.Enums.Receipts;
 using CostVision.Models.Receipts;
 using CostVision.Models.Requests.ProverkachekaApi;
@@ -97,7 +96,7 @@ namespace CostVision.Services.Receipts
 
 
             if (addedCount > 0)
-                await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
 
             int errorCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.ErrorMessage));
 
@@ -157,7 +156,7 @@ namespace CostVision.Services.Receipts
             }
 
             unitOfWork.Receipt.Create(receipt);
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             ManualReceiptResult result = new()
             {
@@ -304,7 +303,7 @@ namespace CostVision.Services.Receipts
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
             return ServiceResult<Receipt>.Ok(receipt);
         }
 
@@ -323,7 +322,7 @@ namespace CostVision.Services.Receipts
 
             unitOfWork.Receipt.Delete(receipt);
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);
         }

@@ -9,9 +9,11 @@ using CostVision.Interfaces.DataBase.Repositories;
 using CostVision.Interfaces.DataBase.Repositories.Authorization;
 using CostVision.Interfaces.DataBase.Repositories.Base;
 using CostVision.Interfaces.DataBase.Repositories.Receipts;
+using CostVision.Interfaces.Service.Authorize;
 using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.ConfigClass;
 using CostVision.Services.Api;
+using CostVision.Services.Authorize;
 using CostVision.Services.BackgroundServices;
 using CostVision.Services.DataBase;
 using CostVision.Services.Helpers;
@@ -25,7 +27,7 @@ using Microsoft.OpenApi;
 using Newtonsoft.Json;
 using System.Net;
 
-namespace CostVision.Extensions
+namespace CostVision.Services.Extensions
 {
     public static class ServiceCollectionExtensions
     {
@@ -137,6 +139,8 @@ namespace CostVision.Extensions
             services.AddScoped<IReceiptRequest, ReceiptRequest>();
             services.AddScoped<IReceiptService, ReceiptService>();
             services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IRoleService, RoleService>();
 
             services.AddHostedService<ReceiptRefreshBackgroundService>();
 

@@ -6,7 +6,7 @@ namespace CostVision.Models.Receipts
     /// <summary>
     /// Счёт, кошелёк (например "Основная карта", "Наличные", "Совместный бюджет")
     /// </summary>
-    public class Account : IEntity<Guid>, ICopyable<Account>
+    public class Account : IEntity<Guid>
     {
         public Guid Id { get; set; }
 
@@ -26,13 +26,5 @@ namespace CostVision.Models.Receipts
         public virtual List<AccountMember> Members { get; set; } = new();
 
         public virtual List<ReceiptAccount> ReceiptLinks { get; set; } = new();
-
-        public void CopyData(Account entity)
-        {
-            Name = entity.Name;
-            Description = entity.Description;
-            IsArchived = entity.IsArchived;
-            IsDefault = entity.IsDefault;
-        }
     }
 }

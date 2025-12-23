@@ -1,12 +1,12 @@
 using CostVision.Interfaces.Entity;
 using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.Authorization;
-using CostVision.Models.Dto.Mappers;
-using CostVision.Models.Dto.Receipts;
+using CostVision.Models.Dtos.Mappers;
+using CostVision.Models.Dtos.Receipts;
 using CostVision.Models.Receipts;
 using CostVision.Models.Requests.Receipts;
 using CostVision.Models.Responses.Results;
-using CostVision.Services.Attributes;
+using CostVision.Services.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 

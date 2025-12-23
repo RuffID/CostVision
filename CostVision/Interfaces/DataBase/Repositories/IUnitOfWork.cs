@@ -14,7 +14,7 @@ namespace CostVision.Interfaces.DataBase.Repositories
         IReceiptAccountRepository ReceiptAccount { get; }
         IAccountMemberRepository AccountMember { get; }
 
-        Task SaveAsync(CancellationToken ct = default);
+        Task SaveChangesAsync(CancellationToken ct = default);
         Task ExecuteInTransaction(Func<Task> action, CancellationToken ct = default);
     }
 }

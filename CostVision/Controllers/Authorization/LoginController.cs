@@ -22,13 +22,13 @@ namespace CostVision.Controllers.Authorization
             if (string.IsNullOrWhiteSpace(dto.Login) || string.IsNullOrWhiteSpace(dto.Password))
                 return BadRequest(new { error = "Укажите логин и пароль." });
 
-            User? user = await unitOfWork.User.GetItemByPredicate(u => u.Login == dto.Login, false, include: u => u.Include(u => u.Roles), ct);
+            User? user = await unitOfWork.User.GetItemByPredicate(u => u.Login == dto.Login, asNoTracking: false, include: u => u.Include(u => u.Roles), ct: ct);
 
             if (user == null || !hasher.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized(new { error = "Неверный логин или пароль." });
 
             user.LastLoginAtUtc = DateTime.UtcNow;
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             List<Claim> claims =
             [

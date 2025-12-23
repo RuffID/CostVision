@@ -1,4 +1,4 @@
-using CostVision.Models.Dto.Authorization;
+using CostVision.Models.Dtos.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 

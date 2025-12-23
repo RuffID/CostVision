@@ -1,4 +1,4 @@
-﻿using CostVision.Models.Enums.Document;
+﻿using CostVision.Models.Enums.Receipts;
 
 namespace CostVision.Models.Responses.ProverkachekaApi
 {

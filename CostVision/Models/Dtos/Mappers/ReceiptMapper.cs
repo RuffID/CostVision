@@ -1,7 +1,7 @@
 ﻿using CostVision.Models.Receipts;
 using CostVision.Models.Responses.ProverkachekaApi;
 
-namespace CostVision.Models.Dto.Mappers
+namespace CostVision.Models.Dtos.Mappers
 {
     public static class ReceiptMapper
     {
