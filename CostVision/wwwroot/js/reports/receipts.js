@@ -20,6 +20,12 @@ let deleteConfirmButton;
 let pendingDeleteReceiptId = null;
 let pendingDeleteCardElement = null;
 
+let receiptSearchInput;
+let receiptSearchModeSelect;
+
+let receiptsCache = [];
+let searchDebounceTimerId = null;
+
 // Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function () {
     initListOfChecksPage();
@@ -42,20 +48,6 @@ function initListOfChecksPage() {
     dateFromInput = document.getElementById('dateFrom');
     dateToInput = document.getElementById('dateTo');
     forgeryToken = getRequestVerificationToken();
-
-    if (dateFromInput) {
-        dateFromInput.addEventListener('input', function () {
-            normalizeDateInput(dateFromInput);
-            clampDateTextInput(dateFromInput);
-        });
-    }
-
-    if (dateToInput) {
-        dateToInput.addEventListener('input', function () {
-            normalizeDateInput(dateToInput);
-            clampDateTextInput(dateToInput);
-        });
-    }
 
     if (modalElement) {
         bootstrapModal = new bootstrap.Modal(modalElement);
@@ -93,6 +85,18 @@ function initListOfChecksPage() {
     if (deleteConfirmButton) {
         deleteConfirmButton.addEventListener('click', onConfirmDeleteReceipt);
     }
+
+    receiptSearchInput = document.getElementById('receiptSearch');
+    receiptSearchModeSelect = document.getElementById('receiptSearchMode');
+
+    if (receiptSearchInput) {
+        receiptSearchInput.addEventListener('input', onSearchChanged);
+    }
+
+    if (receiptSearchModeSelect) {
+        receiptSearchModeSelect.addEventListener('change', onSearchChanged);
+    }
+
 
     // Попробовать восстановить период из localStorage
     loadPeriodFromStorage();
@@ -242,19 +246,9 @@ async function loadReceiptList() {
             ? '?handler=ReceiptList&' + rangeQuery
             : '?handler=ReceiptList';
 
-        const data = await sendJsonRequest(url, 'GET', buildJsonHeaders(forgeryToken), null);
+        receiptsCache = await sendJsonRequest(url, 'GET', buildJsonHeaders(forgeryToken), null);
 
-        // Успешный ответ от JsonResultMapper.ToJsonResult: data = List<ReceiptDto>
-        if (!Array.isArray(data)) {
-            return;
-        }
-
-        listContainer.innerHTML = '';
-
-        data.forEach(function (r) {
-            const card = buildReceiptCard(r);
-            listContainer.appendChild(card);
-        });
+        renderReceiptList(applyReceiptFilters(receiptsCache));
     } catch (error) {
         console.error(error);
         alert('Ошибка при получении списка чеков.');
@@ -279,6 +273,17 @@ async function openReceipt(receiptId) {
     } catch (error) {
         console.error(error);
         alert('Ошибка при получении деталей чека.');
+    }
+}
+
+function renderReceiptList(list) {
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+
+    for (const r of list) {
+        const card = buildReceiptCard(r);
+        listContainer.appendChild(card);
     }
 }
 
@@ -344,16 +349,7 @@ async function onConfirmDeleteReceipt() {
     try {
         const payload = { receiptId: pendingDeleteReceiptId };
 
-        const result = await sendJsonRequest('?handler=DeleteReceipt', 'POST', buildJsonHeaders(forgeryToken), payload);
-
-        // Ожидать ServiceResult<bool> от сервера
-        if (!result || result.success === false) {
-            const message = result && result.errorMessage
-                ? result.errorMessage
-                : 'Не удалось удалить чек.';
-            alert(message);
-            return;
-        }
+        await sendJsonRequest('?handler=DeleteReceipt', 'POST', buildJsonHeaders(forgeryToken), payload);
 
         // Удалять карточку из DOM
         if (pendingDeleteCardElement && pendingDeleteCardElement.parentNode) {
@@ -604,41 +600,90 @@ function formatCurrency(value) {
     }) + ' ₽';
 }
 
-function clampDateTextInput(input) {
-    const v = input.value;
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-        return; // формат ещё не готов
+function onSearchChanged() {
+    if (searchDebounceTimerId) {
+        clearTimeout(searchDebounceTimerId);
     }
 
-    const year = Number(v.slice(0, 4));
-    const month = Number(v.slice(5, 7));
-    let day = Number(v.slice(8, 10));
-
-    if (month < 1 || month > 12) return;
-
-    const lastDay = new Date(year, month, 0).getDate();
-    if (day > lastDay) day = lastDay;
-
-    input.value = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    searchDebounceTimerId = setTimeout(function () {
+        renderReceiptList(applyReceiptFilters(receiptsCache));
+    }, 250);
 }
 
+function applyReceiptFilters(list) {
+    const query = getSearchQuery();
+    const mode = getSearchMode();
 
-function normalizeDateInput(input) {
-    let v = input.value.replace(/[^\d-]/g, ''); // убрать всё, кроме цифр и '-'
-
-    // Автоформирование YYYY-MM-DD
-    if (v.length > 4 && v[4] !== '-') {
-        v = v.slice(0, 4) + '-' + v.slice(4);
-    }
-    if (v.length > 7 && v[7] !== '-') {
-        v = v.slice(0, 7) + '-' + v.slice(7);
+    if (!query) {
+        return list;
     }
 
-    // Ограничение длины
-    if (v.length > 10) {
-        v = v.slice(0, 10);
+    const lowered = query.toLowerCase();
+
+    const filtered = [];
+    for (const r of list) {
+        if (receiptMatchesQuery(r, lowered, mode)) {
+            filtered.push(r);
+        }
     }
 
-    input.value = v;
+    return filtered;
+}
+
+function getSearchQuery() {
+    if (!receiptSearchInput) return '';
+    const v = (receiptSearchInput.value || '').trim();
+    return v;
+}
+
+function getSearchMode() {
+    if (!receiptSearchModeSelect) return 'all';
+    return receiptSearchModeSelect.value || 'all';
+}
+
+function receiptMatchesQuery(r, loweredQuery, mode) {
+    const fn = (r.fiscalDriveNumber || '').toString();
+    const fd = (r.fiscalDocumentNumber || '').toString();
+    const fp = (r.fiscalSign || '').toString();
+
+    if (mode === 'fn') return fn.toLowerCase().includes(loweredQuery);
+    if (mode === 'fd') return fd.toLowerCase().includes(loweredQuery);
+    if (mode === 'fp') return fp.toLowerCase().includes(loweredQuery);
+
+    if (mode === 'sum') {
+        return sumMatchesQuery(r.totalSum, loweredQuery);
+    }
+
+    // mode === 'all'
+    const place = (r.retailPlace || '').toString().toLowerCase();
+    const addr = (r.retailPlaceAddress || '').toString().toLowerCase();
+
+    const sumText = (typeof r.totalSum === 'number')
+        ? r.totalSum.toString()
+        : (r.totalSum || '').toString();
+
+    // “all”: место/адрес/фискальные поля/сумма
+    return place.includes(loweredQuery)
+        || addr.includes(loweredQuery)
+        || fn.toLowerCase().includes(loweredQuery)
+        || fd.toLowerCase().includes(loweredQuery)
+        || fp.toLowerCase().includes(loweredQuery)
+        || sumText.toLowerCase().includes(loweredQuery);
+}
+
+function sumMatchesQuery(totalSum, loweredQuery) {
+    if (typeof totalSum !== 'number') return false;
+
+    // допускаем ввод "1234", "1234.56", "1234,56"
+    const normalized = loweredQuery.replace(',', '.').replace(/\s+/g, '');
+
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed)) {
+        // если не число — fallback: поиск по строке
+        return totalSum.toString().includes(normalized);
+    }
+
+    // сравнение по значению (рубли/копейки) с допуском
+    const diff = Math.abs(totalSum - parsed);
+    return diff < 0.01;
 }

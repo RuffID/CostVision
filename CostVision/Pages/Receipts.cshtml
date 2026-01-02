@@ -11,16 +11,36 @@
     <div class="row g-2 mb-3 align-items-end">
         <div class="col-auto">
             <label for="dateFrom" class="form-label mb-1">Период с</label>
-            <input type="text" id="dateFrom" class="form-control" placeholder="YYYY-MM-DD" autocomplete="off">
+            <input type="date" id="dateFrom" class="form-control" autocomplete="off">
         </div>
+
         <div class="col-auto">
             <label for="dateTo" class="form-label mb-1">по</label>
-            <input type="text" id="dateTo" class="form-control" placeholder="YYYY-MM-DD" autocomplete="off">
+            <input type="date" id="dateTo" class="form-control" autocomplete="off">
         </div>
+
         <div class="col-auto">
             <button type="button" id="applyFilter" class="btn btn-sm btn-primary">Показать</button>
         </div>
+
+        <div class="col"></div>
+
+        <div class="col-12 col-md-6">
+            <label for="receiptSearch" class="form-label mb-1">Поиск</label>
+            <div class="input-group">
+                <input type="text" id="receiptSearch" class="form-control" placeholder="Введите запрос..." autocomplete="off">
+
+                <select id="receiptSearchMode" class="form-select" style="max-width: 160px;">
+                    <option value="all" selected>Все</option>
+                    <option value="sum">Сумма</option>
+                    <option value="fn">ФН</option>
+                    <option value="fd">ФД</option>
+                    <option value="fp">ФП</option>
+                </select>
+            </div>
+        </div>
     </div>
+
 
     <div id="receipt-list" class="d-flex flex-column gap-2">
         <!-- Элементы будут добавляться через JS -->
@@ -57,7 +77,7 @@
             </div>
             <div class="modal-body">
                 <p class="mb-0">
-                    Ты уверен(а) что действительно хочешь удалить этот чек? Отменить действие будет невозможно.
+                    Ты действительно хочешь удалить этот чек? Отменить действие будет невозможно.
                 </p>
             </div>
             <div class="modal-footer">

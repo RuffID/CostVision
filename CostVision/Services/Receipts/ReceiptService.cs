@@ -226,15 +226,21 @@ namespace CostVision.Services.Receipts
 
         public async Task RefreshReceiptsWithoutItemsAsync(CancellationToken ct)
         {
-            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicate(r => !r.Items.Any(), asNoTracking: false,
-                include: q => q.Include(r => r.Items), ct: ct);
+            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicate(r => !r.Items.Any(), include: q => q.Include(r => r.Items), ct: ct);
 
+            int countUpdatedReceipts = 0;
             foreach (Receipt receipt in receipts)
             {
                 // Задержка, чтобы не посылать запросы в api слишком быстро
                 await Task.Delay(1000, ct);
-                await RefreshReceiptFromApiInternalAsync(receipt, ct);
+                ServiceResult<Receipt> result = await RefreshReceiptFromApiInternalAsync(receipt, ct);
+
+                if (result.Success)
+                    countUpdatedReceipts++;
             }
+
+            if (countUpdatedReceipts > 0)
+                logger.LogInformation("[Method:{MethodName}] Refreshed {Count} receipts without items from external API.", nameof(RefreshReceiptsWithoutItemsAsync), countUpdatedReceipts);
         }
 
         private async Task<ServiceResult<Receipt>> RefreshReceiptFromApiInternalAsync(Receipt receipt, CancellationToken ct)

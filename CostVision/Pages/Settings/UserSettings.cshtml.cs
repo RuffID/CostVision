@@ -7,7 +7,7 @@ using CostVision.Services.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace CostVision.Pages
+namespace CostVision.Pages.Settings
 {
     [CookieAuthorize]
     [LoadUser]

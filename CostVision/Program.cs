@@ -16,7 +16,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
-builder.Services.ConfigureServices(builder.Configuration);
+builder.Services.ConfigureServices(builder);
 
 builder.WebHost.ConfigureKestrel(options =>
 {

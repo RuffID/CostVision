@@ -22,17 +22,19 @@ using CostVision.Services.Receipts;
 using HttpApiClientLibrary.API;
 using HttpApiClientLibrary.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;
 using System.Net;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace CostVision.Services.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        private static IServiceCollection AddConfig(
-             this IServiceCollection services, IConfiguration conf)
+        private static IServiceCollection AddConfig(this IServiceCollection services, IConfiguration conf)
         {
             services.Configure<ApiEndpointOptions>(conf.GetSection(ApiEndpointOptions.SectionName));
             services.Configure<ProverkachekaOptions>(opt => { opt.ProverkachekaApiToken = conf[ProverkachekaOptions.SectionName]!; });
@@ -40,11 +42,11 @@ namespace CostVision.Services.Extensions
             return services;
         }
 
-        public static IServiceCollection ConfigureServices(this IServiceCollection services, IConfiguration configuration,
+        public static IServiceCollection ConfigureServices(this IServiceCollection services, WebApplicationBuilder builder,
             Action<JsonSerializerSettings>? configureNewtonsoft = null,
             Action<HttpClient>? configureHttpClient = null)
         {
-            services.AddConfig(configuration);
+            services.AddConfig(builder.Configuration);
             services.AddControllers();
             services.AddLogging();
             services.AddAuthorization();
@@ -61,11 +63,7 @@ namespace CostVision.Services.Extensions
                 });
             });
 
-            services.AddDbContext<ApplicationContext>(options =>
-            {
-                options.UseSqlServer(configuration.GetConnectionString("MSSql"));
-            });
-
+            services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("MSSql")));
             services.AddScoped<IAppDbContext>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
 
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
@@ -93,10 +91,10 @@ namespace CostVision.Services.Extensions
             });
 
             services.AddScoped<DataBaseCheckUpService<ApplicationContext>>();
-            services.AddScoped<BackupService<ApplicationContext>>(sp =>
+            services.AddScoped(sp =>
             {
                 ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                string connectionString = configuration.GetConnectionString("MSSql")!;
+                string connectionString = builder.Configuration.GetConnectionString("MSSql")!;
                 string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
                 return new BackupService<ApplicationContext>(connectionString, backupFolder, loggerFactory);
             });
@@ -108,8 +106,8 @@ namespace CostVision.Services.Extensions
                     options.LoginPath = "/login";
                     // Куки будут автоматически продливаться
                     options.SlidingExpiration = true;
-                    // Если пользователь не будет заходить 7 дней подряд, то куки пропадут
-                    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+                    // Если пользователь не будет заходить 14 дней подряд, то куки пропадут
+                    options.ExpireTimeSpan = TimeSpan.FromDays(14);
                 });
 
             services.AddRazorPages(options =>
@@ -132,6 +130,24 @@ namespace CostVision.Services.Extensions
             {
                 options.Cookie.Name = ".CostVision.Antiforgery";
             });
+
+            // Определяет путь в зависимости от ОС для папки, где будут храниться ключи для Data Protection
+            string keyPath;
+            string projectName = Assembly.GetEntryAssembly()?.GetName().Name ?? "DefaultAppName";
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                keyPath = Path.Combine(builder.Environment.ContentRootPath, "keys-windows");
+                // Убедиться, что папка существует
+                Directory.CreateDirectory(keyPath);
+            }
+            else
+                keyPath = Path.Combine(builder.Environment.ContentRootPath, "keys-linux");
+
+            // Настроить Data Protection
+            services.AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
+                .SetApplicationName(projectName);
 
             services.AddScoped<Hasher>();
             services.AddScoped<QrParser>();
