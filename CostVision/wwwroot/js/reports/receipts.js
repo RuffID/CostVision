@@ -645,7 +645,9 @@ function receiptMatchesQuery(r, loweredQuery, mode) {
     const fn = (r.fiscalDriveNumber || '').toString();
     const fd = (r.fiscalDocumentNumber || '').toString();
     const fp = (r.fiscalSign || '').toString();
+    const shop = (r.retailPlace || '').toString().toLowerCase();
 
+    if (mode === 'shop') return shop.includes(loweredQuery);
     if (mode === 'fn') return fn.toLowerCase().includes(loweredQuery);
     if (mode === 'fd') return fd.toLowerCase().includes(loweredQuery);
     if (mode === 'fp') return fp.toLowerCase().includes(loweredQuery);
