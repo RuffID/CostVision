@@ -233,19 +233,19 @@ namespace CostVision.Services.Receipts
             {
                 // Задержка, чтобы не посылать запросы в api слишком быстро
                 await Task.Delay(1000, ct);
-                await RefreshReceiptFromApiInternalAsync(receipt, ct);            
+                await RefreshReceiptFromApiInternalAsync(receipt, ct);
             }
         }
 
         private async Task<ServiceResult<Receipt>> RefreshReceiptFromApiInternalAsync(Receipt receipt, CancellationToken ct)
         {
-            ProverkachekaManualRequest apiRequest = new ()
+            ProverkachekaManualRequest apiRequest = new()
             {
                 ApiToken = _apiOptions.ProverkachekaApiToken,
                 Fd = receipt.FiscalDocumentNumber,
                 Fn = receipt.FiscalDriveNumber,
                 Fp = receipt.FiscalSign,
-                Time = receipt.DateTime.ToString("yyyyMMddTHHss"),
+                Time = receipt.DateTime.ToString("yyyyMMddTHHmm"),
                 Summ = receipt.TotalSum.ToString(),
                 OperationType = (int)receipt.OperationType
             };
@@ -275,31 +275,47 @@ namespace CostVision.Services.Receipts
             // Очистить чек от старых позиций (если они были)
             receipt.Items.Clear();
 
+            Dictionary<string, Product> productCache = new(StringComparer.Ordinal);
+
             if (result.Data != null && result.Data.Json != null)
             {
                 foreach (ProverkachekaItem item in result.Data.Json.Items)
                 {
                     string normalizedName = NameNormalizedHelper.GetNormalizedName(item.Name);
-                    Product? product = await unitOfWork.Product.GetItemByPredicate(p => normalizedName == p.NormalizedName, ct: ct);
 
-                    if (product == null)
+                    Product product;
+                    if (productCache.TryGetValue(normalizedName, out Product? cached))
                     {
-                        product = new Product
-                        {
-                            Name = item.Name,
-                            NormalizedName = normalizedName,
-                            ProductCode = item.ProductCode?.RawProductCode
-                        };
-                        unitOfWork.Product.Create(product);
-                    }
-                    else
-                    {
+                        product = cached;
                         product.Name = item.Name;
                         product.ProductCode = item.ProductCode?.RawProductCode;
                     }
+                    else
+                    {
+                        Product? productFromDb = await unitOfWork.Product.GetItemByPredicate(p => normalizedName == p.NormalizedName, ct: ct);
 
-                    ReceiptItem receiptItem = item.MapToReceiptItem(receipt.Id, product.Id);
-                    receipt.Items.Add(receiptItem);
+                        if (productFromDb == null)
+                        {
+                            product = new Product
+                            {
+                                Name = item.Name,
+                                NormalizedName = normalizedName,
+                                ProductCode = item.ProductCode?.RawProductCode
+                            };
+                            unitOfWork.Product.Create(product);
+                        }
+                        else
+                        {
+                            product = productFromDb;
+                            product.Name = item.Name;
+                            product.ProductCode = item.ProductCode?.RawProductCode;
+                        }
+
+                        productCache[normalizedName] = product;
+                    }
+                        ReceiptItem receiptItem = item.MapToReceiptItem(receipt.Id, product.Id);
+                        receiptItem.Product = product;
+                        receipt.Items.Add(receiptItem);                   
                 }
             }
 

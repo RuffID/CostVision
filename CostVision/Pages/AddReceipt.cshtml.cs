@@ -1,4 +1,4 @@
-using CostVision.Interfaces.Entity;
+п»їusing CostVision.Interfaces.Entity;
 using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.Requests.Receipts;
@@ -18,7 +18,7 @@ namespace CostVision.Pages
         public async Task<IActionResult> OnPostAsync([FromBody] QrScanRequest request, CancellationToken ct)
         {
             if (request.Results.Count == 0)
-                return new JsonResult(new { success = false, errorMessage = "Нет данных для обработки." });
+                return new JsonResult(new { success = false, errorMessage = "РќРµС‚ РґР°РЅРЅС‹С… РґР»СЏ РѕР±СЂР°Р±РѕС‚РєРё." });
 
             ReceiptScanResultSummary summary = await receiptService.SaveReceiptsScannedAsync(request, CurrentUser.Id, ct);
 

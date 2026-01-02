@@ -10,9 +10,5 @@ namespace CostVision.Pages
 
         [Required(ErrorMessage = "Укажи пароль.")]
         public string Password { get; set; } = string.Empty;
-
-        public void OnGet()
-        {
-        }
     }
 }

@@ -26,6 +26,7 @@ namespace CostVision.Services.BackgroundServices
                     using IServiceScope scope = serviceProvider.CreateScope();
                     IReceiptService receiptService = scope.ServiceProvider.GetRequiredService<IReceiptService>();
 
+                    logger.LogInformation("[Class:{ClassName}] The update of receipts from the API has been launched.", nameof(ReceiptRefreshBackgroundService));
                     // Обновлять все чеки без Items через ReceiptService
                     await receiptService.RefreshReceiptsWithoutItemsAsync(stoppingToken);
                 }

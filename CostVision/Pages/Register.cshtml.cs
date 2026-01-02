@@ -1,53 +1,55 @@
-using CostVision.Models.Dtos.Authorization;
+п»їusing CostVision.Models.Dtos.Authorization;
+using CostVision.Services.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 
 namespace CostVision.Pages
 {
+    [CookieAuthorize]
     public class RegisterModel : PageModel
     {
-        [Required(ErrorMessage = "Укажите логин.")]
-        [Display(Name = "Логин")]
-        [StringLength(100, ErrorMessage = "Логин должен быть не длиннее {1} символов.")]
+        [Required(ErrorMessage = "РЈРєР°Р¶РёС‚Рµ Р»РѕРіРёРЅ.")]
+        [Display(Name = "Р›РѕРіРёРЅ")]
+        [StringLength(100, ErrorMessage = "Р›РѕРіРёРЅ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РЅРµ РґР»РёРЅРЅРµРµ {1} СЃРёРјРІРѕР»РѕРІ.")]
         public string Login { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Укажите имя.")]
-        [Display(Name = "Имя")]
-        [StringLength(100, ErrorMessage = "Имя должно быть не длиннее {1} символов.")]
+        [Required(ErrorMessage = "РЈРєР°Р¶РёС‚Рµ РёРјСЏ.")]
+        [Display(Name = "РРјСЏ")]
+        [StringLength(100, ErrorMessage = "РРјСЏ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РЅРµ РґР»РёРЅРЅРµРµ {1} СЃРёРјРІРѕР»РѕРІ.")]
         public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Укажите пароль.")]
-        [Display(Name = "Пароль")]
+        [Required(ErrorMessage = "РЈРєР°Р¶РёС‚Рµ РїР°СЂРѕР»СЊ.")]
+        [Display(Name = "РџР°СЂРѕР»СЊ")]
         [DataType(DataType.Password)]
-        [StringLength(100, MinimumLength = 6, ErrorMessage = "Пароль должен быть не короче {2} символов.")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РЅРµ РєРѕСЂРѕС‡Рµ {2} СЃРёРјРІРѕР»РѕРІ.")]
         public string Password { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Подтвердите пароль.")]
-        [Display(Name = "Подтверждение пароля")]
+        [Required(ErrorMessage = "РџРѕРґС‚РІРµСЂРґРёС‚Рµ РїР°СЂРѕР»СЊ.")]
+        [Display(Name = "РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РїР°СЂРѕР»СЏ")]
         [DataType(DataType.Password)]
-        [Compare("Password", ErrorMessage = "Пароль и подтверждение пароля должны совпадать.")]
+        [Compare("Password", ErrorMessage = "РџР°СЂРѕР»СЊ Рё РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РїР°СЂРѕР»СЏ РґРѕР»Р¶РЅС‹ СЃРѕРІРїР°РґР°С‚СЊ.")]
         public string ConfirmPassword { get; set; } = string.Empty;
 
         public List<RoleDto> AvailableRoles { get; set; } = new List<RoleDto>();
 
-        [Required(ErrorMessage = "Выбери хотя бы одну роль.")]
+        [Required(ErrorMessage = "Р’С‹Р±РµСЂРё С…РѕС‚СЏ Р±С‹ РѕРґРЅСѓ СЂРѕР»СЊ.")]
         public List<Guid> SelectedRoleIds { get; set; } = new List<Guid>();
 
         public void OnGet()
         {
-            // В реальном коде брать из БД через IUnitOfWork/репозиторий
-            // Здесь захардкодить. GUID'ы подставь реальные Id ролей из таблицы Role.
+            // Р’ СЂРµР°Р»СЊРЅРѕРј РєРѕРґРµ Р±СЂР°С‚СЊ РёР· Р‘Р” С‡РµСЂРµР· IUnitOfWork/СЂРµРїРѕР·РёС‚РѕСЂРёР№
+            // Р—РґРµСЃСЊ Р·Р°С…Р°СЂРґРєРѕРґРёС‚СЊ. GUID'С‹ РїРѕРґСЃС‚Р°РІСЊ СЂРµР°Р»СЊРЅС‹Рµ Id СЂРѕР»РµР№ РёР· С‚Р°Р±Р»РёС†С‹ Role.
             AvailableRoles = new ()
             {
                 new ()
                 {
                     Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                    Name = "Администратор"
+                    Name = "РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ"
                 },
                 new ()
                 {
                     Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                    Name = "Пользователь"
+                    Name = "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ"
                 }
             };
         }

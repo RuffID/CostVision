@@ -1,4 +1,4 @@
-using CostVision.Interfaces.Entity;
+п»їusing CostVision.Interfaces.Entity;
 using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.Dtos.Mappers;
@@ -108,7 +108,7 @@ namespace CostVision.Pages
         {
             if (request.ReceiptId == Guid.Empty)
             {
-                ServiceResult<bool> badIdResult = ServiceResult<bool>.Fail(400, "Некорректный идентификатор чека.");
+                ServiceResult<bool> badIdResult = ServiceResult<bool>.Fail(400, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ С‡РµРєР°.");
 
                 return JsonResultMapper.ToJsonResult(badIdResult);
             }

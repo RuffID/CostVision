@@ -1,4 +1,4 @@
-using CostVision.Interfaces.Entity;
+п»їusing CostVision.Interfaces.Entity;
 using CostVision.Interfaces.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.Receipts;
@@ -23,7 +23,7 @@ namespace CostVision.Pages
         public async Task<IActionResult> OnPostCreateAccountAsync([FromBody] CreateAccountRequest request, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 3)
-                return new JsonResult(new { success = false, errorMessage = "Название счёта обязательно. Минимум 3 символа." });
+                return new JsonResult(new { success = false, errorMessage = "РќР°Р·РІР°РЅРёРµ СЃС‡С‘С‚Р° РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ. РњРёРЅРёРјСѓРј 3 СЃРёРјРІРѕР»Р°." });
 
             Account account = await accountService.CreateAccountAsync(CurrentUser.Id, request, ct);
 
@@ -43,10 +43,10 @@ namespace CostVision.Pages
         public async Task<IActionResult> OnPostUpdateAccountAsync([FromBody] UpdateAccountRequest request, CancellationToken ct)
         {
             if (request.AccountId == Guid.Empty)
-                return new JsonResult(new { success = false, errorMessage = "Некорректный идентификатор счёта." });
+                return new JsonResult(new { success = false, errorMessage = "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЃС‡С‘С‚Р°." });
 
             if (string.IsNullOrWhiteSpace(request.Name))
-                return new JsonResult(new { success = false, errorMessage = "Название счёта обязательно." });
+                return new JsonResult(new { success = false, errorMessage = "РќР°Р·РІР°РЅРёРµ СЃС‡С‘С‚Р° РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ." });
 
             Account account = new()
             {
@@ -58,7 +58,7 @@ namespace CostVision.Pages
             };
 
             if (await accountService.UpdateAccountAsync(CurrentUser.Id, account, ct) == false)
-                return new JsonResult(new { success = false, errorMessage = "Ошибка при редактировании счёта." });
+                return new JsonResult(new { success = false, errorMessage = "РћС€РёР±РєР° РїСЂРё СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРё СЃС‡С‘С‚Р°." });
 
             UserAccountViewModel dto = new ()
             {
