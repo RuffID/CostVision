@@ -8,7 +8,7 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
     .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Config"))
-    .AddJsonFile("appsettings.json");
+    .AddJsonFile("config.json");
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.With(new SimpleClassNameEnricher())
