@@ -81,7 +81,7 @@ namespace CostVision.Services.Extensions
                     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
                 };
                 return handler;
-            });
+            });            
 
             services.AddSingleton<IJsonSerializer>(sp =>
             {

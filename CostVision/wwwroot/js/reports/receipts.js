@@ -380,10 +380,10 @@ function buildReceiptCard(r) {
     card.setAttribute('data-receipt-id', r.id);
 
     const cardBody = document.createElement('div');
-    cardBody.classList.add('card-body', 'd-flex', 'justify-content-between', 'align-items-center');
+    cardBody.classList.add('card-body', 'd-flex', 'flex-column', 'flex-md-row', 'align-items-start', 'gap-2');
 
     const leftDiv = document.createElement('div');
-    leftDiv.classList.add('me-3');
+    leftDiv.classList.add('me-md-3', 'flex-grow-1');
 
     const titleDiv = document.createElement('div');
     titleDiv.classList.add('fw-semibold', 'mb-1');
@@ -401,18 +401,24 @@ function buildReceiptCard(r) {
 
     leftDiv.appendChild(titleDiv);
 
+    const addrDiv = document.createElement('div');
+    addrDiv.classList.add('text-muted', 'small');
+
     if (r.retailPlaceAddress) {
-        const addrDiv = document.createElement('div');
-        addrDiv.classList.add('text-muted', 'small');
         addrDiv.textContent = r.retailPlaceAddress;
-        leftDiv.appendChild(addrDiv);
+    } else {
+        addrDiv.textContent = '';
+        addrDiv.style.display = 'none'; // скрыт, но существует в DOM
     }
 
+    leftDiv.appendChild(addrDiv);
+
+
     const rightDiv = document.createElement('div');
-    rightDiv.classList.add('d-flex', 'align-items-center', 'ms-auto');
+    rightDiv.classList.add('d-flex', 'flex-column', 'align-items-start', 'align-items-md-end', 'ms-md-auto', 'w-100', 'w-md-auto', 'gap-2');
 
     const totalDiv = document.createElement('div');
-    totalDiv.classList.add('text-end', 'me-3');
+    totalDiv.classList.add('text-start', 'text-md-end');
 
     const totalSpan = document.createElement('div');
     totalSpan.classList.add('fw-bold');
@@ -421,23 +427,23 @@ function buildReceiptCard(r) {
     totalDiv.appendChild(totalSpan);
 
     const btnGroup = document.createElement('div');
-    btnGroup.classList.add('d-flex', 'gap-1'); // маленький зазор между кнопками
+    btnGroup.classList.add('d-flex', 'gap-1', 'flex-wrap', 'w-100', 'justify-content-start', 'justify-content-md-end');
 
     const openBtn = document.createElement('button');
     openBtn.type = 'button';
-    openBtn.classList.add('btn', 'btn-sm', 'btn-outline-primary');
+    openBtn.classList.add('btn', 'btn-sm', 'btn-outline-primary', 'flex-grow-1', 'flex-md-grow-0');
     openBtn.setAttribute('data-action', 'open');
     openBtn.textContent = 'Открыть';
 
     const refreshBtn = document.createElement('button');
     refreshBtn.type = 'button';
-    refreshBtn.classList.add('btn', 'btn-sm', 'btn-outline-secondary');
+    refreshBtn.classList.add('btn', 'btn-sm', 'btn-outline-secondary', 'flex-grow-1', 'flex-md-grow-0');
     refreshBtn.setAttribute('data-action', 'refresh');
     refreshBtn.textContent = 'Обновить данные';
 
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
-    deleteBtn.classList.add('btn', 'btn-sm', 'btn-outline-danger');
+    deleteBtn.classList.add('btn', 'btn-sm', 'btn-outline-danger', 'flex-grow-1', 'flex-md-grow-0');
     deleteBtn.setAttribute('data-action', 'delete');
     deleteBtn.textContent = 'Удалить';
 
@@ -560,8 +566,10 @@ function updateCardFromDto(cardElement, receiptDto) {
     if (addressElement) {
         if (receiptDto.retailPlaceAddress) {
             addressElement.textContent = receiptDto.retailPlaceAddress;
+            addressElement.style.display = '';
         } else {
             addressElement.textContent = '';
+            addressElement.style.display = 'none';
         }
     }
 
