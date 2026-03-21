@@ -218,6 +218,12 @@
     color: #14532d;
 }
 
+.qr-status__item--warning {
+    background-color: #fff7ed;
+    border-color: #fed7aa;
+    color: #9a3412;
+}
+
 /* Ошибка при сканировании */
 .qr-status__item--error {
     background-color: #fef2f2; /* мягкий красный фон */
@@ -295,4 +301,234 @@ body.qr-overlay-active {
     to {
         transform: rotate(360deg);
     }
+}
+
+/* ===== Мобильный блок камеры html5-qrcode ===== */
+#qr-reader.qr-reader-shell {
+    border: 1px solid #d9e2ec !important;
+    border-radius: 22px !important;
+    background:
+        radial-gradient(circle at top left, rgba(240, 249, 255, 0.9), transparent 42%),
+        linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08) !important;
+    overflow: hidden;
+}
+
+#qr-reader.qr-reader-shell > div:first-child {
+    padding: 10px 14px 0 14px;
+}
+
+#qr-reader.qr-reader-shell #qr-reader__scan_region {
+    min-height: 260px !important;
+    padding: 18px 16px 6px 16px !important;
+    border: none !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(239, 246, 255, 0.82));
+}
+
+#qr-reader.qr-reader-shell #qr-reader__dashboard {
+    padding: 0 14px 16px 14px;
+}
+
+#qr-reader.qr-reader-shell #qr-reader__dashboard_section {
+    padding: 0 !important;
+}
+
+#qr-reader.qr-reader-shell #qr-reader__dashboard_section_csr {
+    padding-top: 6px !important;
+}
+
+#qr-reader.qr-reader-shell img {
+    opacity: 0.96 !important;
+}
+
+#qr-reader.qr-reader-shell button {
+    border: none !important;
+    border-radius: 14px !important;
+    padding: 12px 16px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    background: linear-gradient(135deg, #0f766e 0%, #0f5d78 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 12px 24px rgba(15, 118, 110, 0.22) !important;
+}
+
+#qr-reader.qr-reader-shell button:disabled {
+    background: #94a3b8 !important;
+    box-shadow: none !important;
+}
+
+#qr-reader.qr-reader-shell select {
+    width: 100% !important;
+    padding: 12px 14px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 14px !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 15px !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+#qr-reader.qr-reader-shell #qr-reader__header_message {
+    border-top: none !important;
+    border-radius: 14px !important;
+    padding: 10px 12px !important;
+    margin: 8px 0 0 0 !important;
+    font-size: 13px !important;
+}
+
+#qr-reader.qr-reader-shell .qr-reader__camera-select--hidden {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    #qr-reader.qr-reader-shell {
+        margin-top: 8px;
+    }
+
+    #qr-reader.qr-reader-shell #qr-reader__scan_region {
+        min-height: 220px !important;
+        padding-top: 14px !important;
+    }
+
+    #qr-reader.qr-reader-shell button {
+        width: 100%;
+    }
+}
+
+body.qr-mobile-scan-mode .qr-upload-block {
+    display: none;
+}
+
+body.qr-mobile-scan-mode .qr-status {
+    display: none !important;
+}
+
+body.qr-mobile-scan-mode #decoded-results-section,
+body.qr-mobile-scan-mode #decoded-results-section + * {
+    display: none !important;
+}
+
+#qr-reader.qr-reader-shell .qr-reader__gallery-button {
+    width: 100%;
+    margin-top: 12px;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 14px !important;
+    padding: 12px 16px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    background: #ffffff !important;
+    color: #0f5d78 !important;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12) !important;
+}
+
+/* ===== Модальное окно после сканирования камерой ===== */
+.qr-camera-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10010;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.qr-camera-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(3px);
+}
+
+.qr-camera-modal__dialog {
+    position: relative;
+    width: min(100%, 420px);
+    border-radius: 24px;
+    background:
+        radial-gradient(circle at top left, rgba(224, 242, 254, 0.75), transparent 42%),
+        linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+    padding: 18px 18px 16px 18px;
+}
+
+.qr-camera-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.qr-camera-modal__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.15;
+}
+
+.qr-camera-modal__subtitle {
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: #475569;
+}
+
+.qr-camera-modal__close {
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #0f172a;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.qr-camera-modal__details {
+    margin-top: 18px;
+    display: grid;
+    gap: 10px;
+}
+
+.qr-camera-modal__detail {
+    border-radius: 16px;
+    padding: 12px 14px;
+    background: rgba(248, 250, 252, 0.92);
+    border: 1px solid #dbe7f3;
+}
+
+.qr-camera-modal__detail-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.qr-camera-modal__detail-value {
+    margin-top: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.qr-camera-modal__footer {
+    margin-top: 18px;
+}
+
+.qr-camera-modal__button {
+    width: 100%;
+    border: none;
+    border-radius: 16px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #0f766e 0%, #0f5d78 100%);
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 14px 28px rgba(15, 118, 110, 0.24);
+}
+
+body.qr-camera-modal-active {
+    overflow: hidden;
 }

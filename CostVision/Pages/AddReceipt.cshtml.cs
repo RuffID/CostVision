@@ -36,7 +36,13 @@ namespace CostVision.Pages
         {
             ManualReceiptResult result = await receiptService.SaveReceiptManualAsync(input, CurrentUser.Id, ct);
 
-            return new JsonResult(new { success = true, result });
+            return new JsonResult(new
+            {
+                success = true,
+                isCreated = result.IsCreated,
+                errorMessage = result.ErrorMessage,
+                receipt = result.Receipt
+            });
         }
     }
 }
