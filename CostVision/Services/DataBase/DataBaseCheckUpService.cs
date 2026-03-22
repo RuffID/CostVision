@@ -22,7 +22,7 @@ namespace CostVision.Services.DataBase
             if (pendingMigrations.Count != 0)
             {
                 foreach (string migration in pendingMigrations)                
-                    _logger.LogInformation("[Method:{MethodName}] Pending migration: {Migration}.", migration, nameof(CheckOrUpdateDB));                
+                    _logger.LogInformation("[Method:{MethodName}] Pending migration: {Migration}.", nameof(CheckOrUpdateDB), migration);
 
                 backupService.CreateSqlServerBackup();
 

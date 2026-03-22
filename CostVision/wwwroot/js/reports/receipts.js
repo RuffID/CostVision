@@ -638,6 +638,18 @@ function buildReceiptCard(r) {
 
     leftDiv.appendChild(addrDiv);
 
+    const accountDiv = document.createElement('div');
+    accountDiv.classList.add('small', 'mt-1', 'd-flex', 'align-items-start', 'gap-2', 'flex-wrap');
+    accountDiv.setAttribute('data-role', 'receipt-accounts');
+
+    if (getReceiptAccounts(r).length > 0) {
+        renderReceiptAccountBadges(accountDiv, r);
+    } else {
+        accountDiv.style.display = 'none';
+    }
+
+    leftDiv.appendChild(accountDiv);
+
     const rightDiv = document.createElement('div');
     rightDiv.classList.add('d-flex', 'flex-column', 'align-items-start', 'align-items-md-end', 'ms-md-auto', 'gap-2');
 
@@ -681,18 +693,7 @@ function buildReceiptCard(r) {
     topRow.appendChild(rightDiv);
     cardBody.appendChild(topRow);
 
-    const accountDiv = document.createElement('div');
-    accountDiv.classList.add('small', 'mt-2', 'd-flex', 'align-items-start', 'gap-2', 'flex-wrap');
-    accountDiv.setAttribute('data-role', 'receipt-accounts');
-
-    if (getReceiptAccounts(r).length > 0) {
-        renderReceiptAccountBadges(accountDiv, r);
-    } else {
-        accountDiv.style.display = 'none';
-    }
-
     btnGroup.appendChild(deleteBtn);
-    cardBody.appendChild(accountDiv);
 
     card.appendChild(cardBody);
 
@@ -791,7 +792,7 @@ function updateCardFromDto(cardElement, receiptDto) {
     }
 
     const datePlaceElement = bodyElement.querySelector('.fw-semibold');
-    const addressElement = bodyElement.querySelector('.text-muted.small.mt-2');
+    const addressElement = bodyElement.querySelector('.text-muted.small');
     const accountElement = bodyElement.querySelector('[data-role="receipt-accounts"]');
     const totalElement = bodyElement.querySelector('.fw-bold');
 
@@ -816,7 +817,7 @@ function updateCardFromDto(cardElement, receiptDto) {
 
     if (accountElement) {
         accountElement.replaceChildren();
-        accountElement.className = 'small mt-2 d-flex align-items-start gap-2 flex-wrap';
+        accountElement.className = 'small mt-1 d-flex align-items-start gap-2 flex-wrap';
 
         if (getReceiptAccounts(receiptDto).length > 0) {
             renderReceiptAccountBadges(accountElement, receiptDto);
