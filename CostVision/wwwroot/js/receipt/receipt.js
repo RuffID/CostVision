@@ -8,6 +8,8 @@ let qrScanHtml5QrcodeScanner;
 let qrScanFileScanner;
 let qrScanLastCameraText = null;
 let qrScanLastCameraTs = 0;
+let qrScanAvailableCameras = [];
+let qrScanCurrentCameraId = null;
 
 let qrScanOverlay = null;     // DOM-элемент оверлея загрузки
 let antiForgeryToken = null;
@@ -15,6 +17,7 @@ let accountSelect = null;
 let accountSelectError = null;
 const ACCOUNT_STORAGE_KEY = "qrScan.selectedAccountId";
 const MANUAL_RECEIPT_DRAFT_STORAGE_KEY = "qrScan.manualReceiptDraft";
+const CAMERA_STORAGE_KEY = "qrScan.selectedCameraId";
 let qrScanResults = [];
 let qrScanLastSubmitSource = null;
 let qrScanCameraPaused = false;
@@ -67,18 +70,7 @@ async function initQrScan() {
     // ====== Камера: только мобильные ======
     if (mobile && qrReaderElement) {
         document.body.classList.add("qr-mobile-scan-mode");
-        qrScanHtml5QrcodeScanner = new Html5QrcodeScanner(
-            "qr-reader",
-            {
-                fps: 10,
-                qrbox: 250,
-                rememberLastUsedCamera: false,
-                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-            },
-            false
-        );
-        qrScanHtml5QrcodeScanner.render(qrScanOnScanSuccess, qrScanOnScanError);
-        initQrScanMobileScannerUi(qrReaderElement);
+        await initQrScanMobileScannerUiAsync(qrReaderElement);
     } else if (qrReaderElement) {
         // На ПК виджет камеры не показываем вообще
         qrReaderElement.style.display = "none";
@@ -364,7 +356,7 @@ function qrScanRenderStatus(scannedCount, addedToDbCount, errorCount, errorMessa
     }
 }
 
-function qrScanRenderManualStatus(message, isSuccess) {
+function qrScanRenderManualStatus(message, statusType) {
     const container = qrScanEnsureStatusContainer();
     if (!container) {
         return;
@@ -373,7 +365,7 @@ function qrScanRenderManualStatus(message, isSuccess) {
     container.innerHTML = "";
 
     const item = document.createElement("div");
-    item.className = "qr-status__item " + (isSuccess ? "qr-status__item--info" : "qr-status__item--error");
+    item.className = "qr-status__item " + qrScanGetStatusClassName(statusType);
 
     const title = document.createElement("div");
     title.className = "qr-status__title";
@@ -386,6 +378,17 @@ function qrScanRenderManualStatus(message, isSuccess) {
     item.appendChild(title);
     item.appendChild(text);
     container.appendChild(item);
+}
+
+function qrScanGetStatusClassName(statusType) {
+    switch (statusType) {
+        case "success":
+            return "qr-status__item--info";
+        case "warning":
+            return "qr-status__item--warning";
+        default:
+            return "qr-status__item--error";
+    }
 }
 
 function qrScanRenderResults(results) {
@@ -848,7 +851,7 @@ function initManualCheckValidation() {
             const responseData = data && data.data ? data.data : null;
             if (responseData && responseData.isCreated) {
                 qrScanClearManualDraft(fnInput, fdInput, fpInput, sumInput, dateInput, typeSelect);
-                qrScanRenderManualStatus("Чек добавлен в систему", true);
+                qrScanRenderManualStatus("Чек добавлен в систему", "success");
                 if (resultMessage) {
                     resultMessage.textContent = "Чек добавлен в систему";
                     resultMessage.classList.remove("manual-result--error");
@@ -861,7 +864,8 @@ function initManualCheckValidation() {
                         ? responseData.message
                         : "Указаны некорректные данные чека";
 
-                qrScanRenderManualStatus(msg, false);
+                const statusType = /уже\s+(есть|существ)/i.test(msg) ? "warning" : "error";
+                qrScanRenderManualStatus(msg, statusType);
                 if (resultMessage) {
                     resultMessage.textContent = msg;
                     resultMessage.classList.remove("manual-result--success");
@@ -869,7 +873,7 @@ function initManualCheckValidation() {
                 }
             } else {
                 // Непредвиденный формат ответа
-                qrScanRenderManualStatus("Указаны некорректные данные чека", false);
+                qrScanRenderManualStatus("Указаны некорректные данные чека", "error");
                 if (resultMessage) {
                     resultMessage.textContent = "Указаны некорректные данные чека";
                     resultMessage.classList.remove("manual-result--success");
@@ -879,7 +883,7 @@ function initManualCheckValidation() {
         } catch (e) {
             console.error("QR scan: ошибка ручного запроса", e);
             const errorMessage = e && e.message ? e.message : "Указаны некорректные данные чека";
-            qrScanRenderManualStatus(errorMessage, false);
+            qrScanRenderManualStatus(errorMessage, "error");
             if (resultMessage) {
                 resultMessage.textContent = errorMessage;
                 resultMessage.classList.remove("manual-result--success");
@@ -1173,23 +1177,27 @@ function qrScanShowCameraReceiptFeedback(results, addedToDbCount, errorCount, er
     }
 
     details.innerHTML = "";
+    title.classList.remove("qr-camera-modal__title--success", "qr-camera-modal__title--warning", "qr-camera-modal__title--error");
 
     if (!receiptResult) {
         title.textContent = "Сканирование завершено";
+        title.classList.add("qr-camera-modal__title--warning");
         subtitle.textContent = source === "files"
             ? "Файл обработан, но результат не найден."
             : "Данные чека получены.";
         qrScanAppendCameraModalDetail(details, "Статус", "Результат не найден");
     } else if (receiptResult.errorMessage) {
         title.textContent = source === "files" ? "Файл обработан с ошибкой" : "Чек считан с ошибкой";
+        title.classList.add("qr-camera-modal__title--error");
         subtitle.textContent = receiptResult.errorMessage;
         qrScanAppendParsedReceiptDetails(details, receiptResult.parsed);
     } else {
         title.textContent = addedToDbCount > 0 ? "Чек добавлен" : "Чек уже есть в системе";
+        title.classList.add(addedToDbCount > 0 ? "qr-camera-modal__title--success" : "qr-camera-modal__title--warning");
         subtitle.textContent = addedToDbCount > 0
             ? (source === "files"
                 ? "Файл успешно распознан. Проверьте данные чека."
-                : "Проверьте данные и закройте окно для продолжения сканирования.")
+                : "")
             : "Такой чек уже был добавлен ранее.";
         qrScanAppendParsedReceiptDetails(details, receiptResult.parsed);
     }
@@ -1324,136 +1332,206 @@ function qrScanFormatOperationType(value) {
     }
 }
 
-function initQrScanMobileScannerUi(qrReaderElement) {
+async function initQrScanMobileScannerUiAsync(qrReaderElement) {
     if (!qrReaderElement) {
         return;
     }
 
-    if (qrReaderElement.dataset.mobileUiInitialized === "1") {
+    if (qrReaderElement.dataset.mobileUiInitialized === "1" && qrScanHtml5QrcodeScanner) {
         return;
     }
 
     qrReaderElement.dataset.mobileUiInitialized = "1";
-
     qrReaderElement.classList.add("qr-reader-shell");
+    qrReaderElement.replaceChildren();
 
-    const refreshUi = function () {
-        qrScanLocalizeScannerUi(qrReaderElement);
-        qrScanInjectGalleryButton(qrReaderElement);
-        qrScanSelectPreferredCamera(qrReaderElement);
-        qrScanHideCameraSelector(qrReaderElement);
-    };
+    const panel = document.createElement("div");
+    panel.className = "qr-reader-panel";
 
-    refreshUi();
+    const scanRegion = document.createElement("div");
+    scanRegion.className = "qr-reader-panel__scan-region";
 
-    const observer = new MutationObserver(function () {
-        observer.disconnect();
+    const viewport = document.createElement("div");
+    viewport.id = "qr-reader-viewport";
+    viewport.className = "qr-reader-panel__viewport";
+    scanRegion.appendChild(viewport);
 
-        try {
-            refreshUi();
-        } finally {
-            observer.observe(qrReaderElement, {
-                childList: true,
-                subtree: true
+    const hint = document.createElement("div");
+    hint.className = "qr-reader-panel__hint";
+    hint.textContent = "Наведите камеру на QR-код чека";
+    scanRegion.appendChild(hint);
+
+    const dashboard = document.createElement("div");
+    dashboard.className = "qr-reader-panel__dashboard";
+
+    const header = document.createElement("div");
+    header.className = "qr-reader-panel__header";
+
+    const title = document.createElement("div");
+    title.className = "qr-reader-panel__title";
+    title.textContent = "Сканирование чека";
+    header.appendChild(title);
+
+    const status = document.createElement("div");
+    status.className = "qr-reader-panel__status";
+    status.textContent = "Запрашиваем доступ к камере...";
+    header.appendChild(status);
+
+    dashboard.appendChild(header);
+
+    const controls = document.createElement("div");
+    controls.className = "qr-reader-panel__controls";
+
+    const cameraGroup = document.createElement("div");
+    cameraGroup.className = "qr-reader-panel__camera-group";
+
+    const cameraLabel = document.createElement("label");
+    cameraLabel.className = "qr-reader-panel__label";
+    cameraLabel.htmlFor = "qr-reader-camera-select";
+    cameraLabel.textContent = "Камера";
+    cameraGroup.appendChild(cameraLabel);
+
+    const cameraSelect = document.createElement("select");
+    cameraSelect.id = "qr-reader-camera-select";
+    cameraSelect.name = "qr-reader-camera-select";
+    cameraSelect.className = "qr-reader-panel__select";
+    cameraSelect.disabled = true;
+    cameraSelect.addEventListener("change", function () {
+        localStorage.setItem(CAMERA_STORAGE_KEY, cameraSelect.value);
+
+        if (qrScanCurrentCameraId) {
+            qrScanStartCameraByIdAsync(cameraSelect.value).catch(function (error) {
+                qrScanUpdateCameraStatus(error && error.message ? error.message : "Не удалось переключить камеру.", true);
             });
         }
     });
+    cameraGroup.appendChild(cameraSelect);
 
-    observer.observe(qrReaderElement, {
-        childList: true,
-        subtree: true
+    controls.appendChild(cameraGroup);
+
+    const buttonGroup = document.createElement("div");
+    buttonGroup.className = "qr-reader-panel__button-group";
+
+    const startButton = document.createElement("button");
+    startButton.type = "button";
+    startButton.className = "qr-reader-panel__button qr-reader-panel__button--primary";
+    startButton.textContent = "Сканировать камерой";
+    startButton.addEventListener("click", function () {
+        const cameraId = cameraSelect.value || qrScanGetPreferredCameraId(qrScanAvailableCameras);
+        qrScanStartCameraByIdAsync(cameraId).catch(function (error) {
+            qrScanUpdateCameraStatus(error && error.message ? error.message : "Не удалось запустить камеру.", true);
+        });
+    });
+    buttonGroup.appendChild(startButton);
+
+    const stopButton = document.createElement("button");
+    stopButton.type = "button";
+    stopButton.className = "qr-reader-panel__button qr-reader-panel__button--secondary";
+    stopButton.textContent = "Остановить";
+    stopButton.addEventListener("click", function () {
+        qrScanStopCameraAsync().catch(function (error) {
+            qrScanUpdateCameraStatus(error && error.message ? error.message : "Не удалось остановить камеру.", true);
+        });
+    });
+    buttonGroup.appendChild(stopButton);
+
+    const galleryButton = document.createElement("button");
+    galleryButton.type = "button";
+    galleryButton.className = "qr-reader-panel__button qr-reader-panel__button--ghost";
+    galleryButton.textContent = "Выбрать из галереи";
+    galleryButton.addEventListener("click", function () {
+        if (qrScanFileInput) {
+            qrScanFileInput.click();
+        }
+    });
+    buttonGroup.appendChild(galleryButton);
+
+    controls.appendChild(buttonGroup);
+    dashboard.appendChild(controls);
+    panel.appendChild(scanRegion);
+    panel.appendChild(dashboard);
+    qrReaderElement.appendChild(panel);
+
+    qrReaderElement.dataset.cameraStatusElementId = "";
+    qrReaderElement.dataset.cameraStartButtonId = "";
+    qrReaderElement.dataset.cameraStopButtonId = "";
+
+    status.id = "qr-reader-camera-status";
+    startButton.id = "qr-reader-camera-start";
+    stopButton.id = "qr-reader-camera-stop";
+    qrReaderElement.dataset.cameraStatusElementId = status.id;
+    qrReaderElement.dataset.cameraStartButtonId = startButton.id;
+    qrReaderElement.dataset.cameraStopButtonId = stopButton.id;
+    qrScanSetCameraButtonsState(false);
+
+    qrScanHtml5QrcodeScanner = new Html5Qrcode("qr-reader-viewport");
+
+    try {
+        qrScanAvailableCameras = await qrScanLoadAvailableCamerasAsync();
+        qrScanRenderCameraOptions(cameraSelect, qrScanAvailableCameras);
+
+        const preferredCameraId = qrScanGetPreferredCameraId(qrScanAvailableCameras);
+        if (preferredCameraId) {
+            cameraSelect.value = preferredCameraId;
+            await qrScanStartCameraByIdAsync(preferredCameraId);
+            return;
+        }
+
+        qrScanUpdateCameraStatus("Камера не найдена.", true);
+    } catch (error) {
+        qrScanUpdateCameraStatus(error && error.message ? error.message : "Не удалось получить доступ к камере.", true);
+    }
+}
+
+async function qrScanLoadAvailableCamerasAsync() {
+    const cameras = await Html5Qrcode.getCameras();
+    if (!Array.isArray(cameras) || cameras.length === 0) {
+        return [];
+    }
+
+    const normalizedCameras = cameras.map(function (camera, index) {
+        return {
+            id: camera.id,
+            label: qrScanNormalizeCameraLabel(camera.label, index + 1)
+        };
+    });
+
+    const backCameras = normalizedCameras.filter(function (camera) {
+        return qrScanIsBackCamera(camera.label);
+    });
+
+    const camerasForList = backCameras.length > 0
+        ? backCameras.filter(function (camera) { return !qrScanIsFrontCamera(camera.label); })
+        : normalizedCameras;
+
+    return camerasForList.sort(function (left, right) {
+        return qrScanGetCameraPriority(right.label) - qrScanGetCameraPriority(left.label);
     });
 }
 
-function qrScanLocalizeScannerUi(qrReaderElement) {
-    const permissionButton = qrReaderElement.querySelector("#html5-qrcode-button-camera-permission");
-    if (permissionButton) {
-        permissionButton.textContent = "Разрешить доступ к камере";
-    }
-
-    const startButton = qrReaderElement.querySelector("#html5-qrcode-button-camera-start");
-    if (startButton) {
-        const currentText = (startButton.textContent || "").trim();
-        if (/Launching Camera/i.test(currentText)) {
-            startButton.textContent = "Открываем камеру...";
-        } else {
-            startButton.textContent = "Сканировать камерой";
-        }
-    }
-
-    const stopButton = qrReaderElement.querySelector("#html5-qrcode-button-camera-stop");
-    if (stopButton) {
-        stopButton.textContent = "Остановить";
-    }
-
-    const galleryButton = qrReaderElement.querySelector(".qr-reader__gallery-button");
-    if (galleryButton) {
-        galleryButton.textContent = "Выбрать из галереи";
-    }
-
-    const select = qrReaderElement.querySelector("#html5-qrcode-select-camera");
-    if (select && select.parentElement) {
-        const optionElements = Array.from(select.options);
-        for (let i = 0; i < optionElements.length; i++) {
-            const option = optionElements[i];
-            option.text = qrScanTranslateCameraOption(option.text, i + 1);
-        }
-
-        const parentTextNode = Array.from(select.parentElement.childNodes).find(function (node) {
-            return node.nodeType === Node.TEXT_NODE && node.textContent && node.textContent.trim().length > 0;
-        });
-
-        if (parentTextNode) {
-            parentTextNode.textContent = "Камера ";
-        }
-    }
-
-    const headerMessage = qrReaderElement.querySelector("#qr-reader__header_message");
-    if (headerMessage && headerMessage.textContent) {
-        const text = headerMessage.textContent.trim();
-        if (text === "Requesting camera permissions...") {
-            headerMessage.textContent = "Запрашиваем доступ к камере...";
-        } else if (text === "No camera found") {
-            headerMessage.textContent = "Камера не найдена";
-        } else if (text === "Scanning") {
-            headerMessage.textContent = "Сканирование";
-        } else if (text === "Idle") {
-            headerMessage.textContent = "Ожидание";
-        }
-    }
-}
-
-function qrScanInjectGalleryButton(qrReaderElement) {
-    if (!qrScanFileInput) {
+function qrScanRenderCameraOptions(select, cameras) {
+    if (!select) {
         return;
     }
 
-    const dashboard = qrReaderElement.querySelector("#qr-reader__dashboard");
-    if (!dashboard) {
-        return;
+    select.replaceChildren();
+
+    const availableCameras = Array.isArray(cameras) ? cameras : [];
+    for (let i = 0; i < availableCameras.length; i++) {
+        const camera = availableCameras[i];
+        const option = document.createElement("option");
+        option.value = camera.id;
+        option.textContent = camera.label;
+        select.appendChild(option);
     }
 
-    let galleryButton = dashboard.querySelector(".qr-reader__gallery-button");
-    if (!galleryButton) {
-        galleryButton = document.createElement("button");
-        galleryButton.type = "button";
-        galleryButton.className = "qr-reader__gallery-button";
-        galleryButton.addEventListener("click", function () {
-            qrScanFileInput.click();
-        });
-        dashboard.appendChild(galleryButton);
-    }
-
-    galleryButton.textContent = "Выбрать из галереи";
+    select.disabled = availableCameras.length === 0;
 }
 
-function qrScanTranslateCameraOption(text, fallbackIndex) {
-    const value = (text || "").trim();
-    const match = value.match(/camera\s+(\d+)\s*,\s*facing\s+(front|back)/i);
-    if (match) {
-        const cameraNumber = match[1];
-        const facing = /back/i.test(match[2]) ? "задняя" : "фронтальная";
-        return `Камера ${cameraNumber}, ${facing}`;
+function qrScanNormalizeCameraLabel(label, fallbackIndex) {
+    const value = (label || "").trim();
+    if (!value) {
+        return `Камера ${fallbackIndex}`;
     }
 
     if (/anonymous camera/i.test(value)) {
@@ -1462,45 +1540,176 @@ function qrScanTranslateCameraOption(text, fallbackIndex) {
 
     return value
         .replace(/camera/gi, "Камера")
-        .replace(/facing back/gi, "задняя")
-        .replace(/facing front/gi, "фронтальная");
+        .replace(/back/gi, "задняя")
+        .replace(/rear/gi, "задняя")
+        .replace(/front/gi, "фронтальная")
+        .replace(/facing/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
 }
 
-function qrScanSelectPreferredCamera(qrReaderElement) {
-    const select = qrReaderElement.querySelector("#html5-qrcode-select-camera");
-    if (!select || select.options.length === 0) {
-        return;
-    }
-
-    const optionElements = Array.from(select.options);
-    const preferredOption = optionElements.find(function (option) {
-        return /back|rear|environment|задняя/i.test(option.text);
-    }) || optionElements[0];
-
-    if (!preferredOption) {
-        return;
-    }
-
-    if (select.value !== preferredOption.value) {
-        select.value = preferredOption.value;
-        select.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-
-    qrReaderElement.dataset.preferredCameraId = preferredOption.value;
-    qrReaderElement.dataset.preferredCameraFacing = /back|rear|environment|задняя/i.test(preferredOption.text) ? "back" : "other";
+function qrScanIsFrontCamera(label) {
+    return /front|user|selfie|frontal|фронт|перед/i.test(label || "");
 }
 
-function qrScanHideCameraSelector(qrReaderElement) {
-    const select = qrReaderElement.querySelector("#html5-qrcode-select-camera");
-    if (!select || !select.parentElement) {
+function qrScanIsBackCamera(label) {
+    return /back|rear|environment|world|задн|тыл/i.test(label || "");
+}
+
+function qrScanGetCameraPriority(label) {
+    const value = (label || "").toLowerCase();
+    let priority = 0;
+
+    if (qrScanIsBackCamera(value)) {
+        priority += 200;
+    }
+
+    if (/main|wide|1x|standard|default|основ/i.test(value)) {
+        priority += 80;
+    }
+
+    if (/ultra|macro|tele|zoom|depth|0\.5x|2x/i.test(value)) {
+        priority -= 40;
+    }
+
+    if (qrScanIsFrontCamera(value)) {
+        priority -= 200;
+    }
+
+    return priority;
+}
+
+function qrScanGetPreferredCameraId(cameras) {
+    if (!Array.isArray(cameras) || cameras.length === 0) {
+        return null;
+    }
+
+    const savedCameraId = localStorage.getItem(CAMERA_STORAGE_KEY);
+    if (savedCameraId && cameras.some(function (camera) { return camera.id === savedCameraId; })) {
+        return savedCameraId;
+    }
+
+    return cameras[0].id;
+}
+
+function qrScanGetMobileCameraElements() {
+    const qrReaderElement = document.getElementById("qr-reader");
+    if (!qrReaderElement) {
+        return {
+            statusElement: null,
+            startButton: null,
+            stopButton: null
+        };
+    }
+
+    const statusElementId = qrReaderElement.dataset.cameraStatusElementId || "";
+    const startButtonId = qrReaderElement.dataset.cameraStartButtonId || "";
+    const stopButtonId = qrReaderElement.dataset.cameraStopButtonId || "";
+
+    return {
+        statusElement: statusElementId ? document.getElementById(statusElementId) : null,
+        startButton: startButtonId ? document.getElementById(startButtonId) : null,
+        stopButton: stopButtonId ? document.getElementById(stopButtonId) : null
+    };
+}
+
+function qrScanUpdateCameraStatus(message, isError) {
+    const elements = qrScanGetMobileCameraElements();
+    if (!elements.statusElement) {
         return;
     }
 
-    if (qrReaderElement.dataset.preferredCameraFacing === "back") {
-        select.parentElement.classList.add("qr-reader__camera-select--hidden");
-    } else {
-        select.parentElement.classList.remove("qr-reader__camera-select--hidden");
+    elements.statusElement.textContent = message;
+    elements.statusElement.classList.toggle("qr-reader-panel__status--error", !!isError);
+}
+
+function qrScanSetCameraButtonsState(isRunning) {
+    const elements = qrScanGetMobileCameraElements();
+    if (elements.startButton) {
+        elements.startButton.disabled = !!isRunning;
     }
+
+    if (elements.stopButton) {
+        elements.stopButton.disabled = !isRunning;
+    }
+}
+
+function qrScanBuildCameraConfig() {
+    return {
+        fps: 10,
+        aspectRatio: 1.3333333,
+        qrbox: function (viewfinderWidth, viewfinderHeight) {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const boxSize = Math.max(180, Math.min(280, Math.floor(minEdge * 0.72)));
+            return {
+                width: boxSize,
+                height: boxSize
+            };
+        }
+    };
+}
+
+async function qrScanStartCameraByIdAsync(cameraId) {
+    if (!qrScanHtml5QrcodeScanner) {
+        throw new Error("Сканер камеры не инициализирован.");
+    }
+
+    const targetCameraId = cameraId || qrScanGetPreferredCameraId(qrScanAvailableCameras);
+    if (!targetCameraId) {
+        throw new Error("Не найдена подходящая камера.");
+    }
+
+    qrScanUpdateCameraStatus("Открываем камеру...", false);
+
+    const scannerState = typeof qrScanHtml5QrcodeScanner.getState === "function"
+        ? qrScanHtml5QrcodeScanner.getState()
+        : Html5QrcodeScannerState.NOT_STARTED;
+
+    if (scannerState !== Html5QrcodeScannerState.NOT_STARTED) {
+        await qrScanStopCameraAsync();
+    }
+
+    await qrScanHtml5QrcodeScanner.start(
+        targetCameraId,
+        qrScanBuildCameraConfig(),
+        qrScanOnScanSuccess,
+        qrScanOnScanError
+    );
+
+    qrScanCurrentCameraId = targetCameraId;
+    qrScanCameraPaused = false;
+    localStorage.setItem(CAMERA_STORAGE_KEY, targetCameraId);
+    qrScanSetCameraButtonsState(true);
+    qrScanUpdateCameraStatus("Сканирование активно", false);
+}
+
+async function qrScanStopCameraAsync() {
+    if (!qrScanHtml5QrcodeScanner || typeof qrScanHtml5QrcodeScanner.getState !== "function") {
+        return;
+    }
+
+    const scannerState = qrScanHtml5QrcodeScanner.getState();
+    if (scannerState === Html5QrcodeScannerState.NOT_STARTED) {
+        qrScanCameraPaused = false;
+        qrScanSetCameraButtonsState(false);
+        qrScanUpdateCameraStatus("Камера остановлена", false);
+        return;
+    }
+
+    if (qrScanCameraPaused) {
+        try {
+            qrScanHtml5QrcodeScanner.resume();
+            qrScanCameraPaused = false;
+        } catch (error) {
+            console.warn("QR scan: не удалось снять паузу перед остановкой камеры", error);
+        }
+    }
+
+    await qrScanHtml5QrcodeScanner.stop();
+    qrScanCameraPaused = false;
+    qrScanCurrentCameraId = null;
+    qrScanSetCameraButtonsState(false);
+    qrScanUpdateCameraStatus("Камера остановлена", false);
 }
 
 // получить дату фото из EXIF (DateTimeOriginal / Digitized / DateTime)

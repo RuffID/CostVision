@@ -1098,7 +1098,7 @@ function getMoveReceiptTargetDisabledReason(receipt, account) {
     }
 
     if (!canEditAccount(account)) {
-        return 'Нельзя переносить чек в чужой счёт.';
+        return 'Недостаточно прав для переноса чека в выбранный счёт.';
     }
 
     return '';
@@ -1122,7 +1122,7 @@ function openMoveReceiptAccountModal(receiptId, sourceAccountId) {
     }
 
     if (!sourceAccount.canEditReceipt) {
-        alert('Можно изменять только чек из собственного счёта.');
+        alert('Недостаточно прав для изменения чека в выбранном счёте.');
         return;
     }
 
@@ -1454,7 +1454,7 @@ function canEditAccount(account) {
         return false;
     }
 
-    return account.canManage === true;
+    return account.canManage === true || account.accessRole === 1 || account.accessRole === 2;
 }
 
 function replaceReceiptAccountLink(receiptId, sourceAccountId, targetAccountId) {

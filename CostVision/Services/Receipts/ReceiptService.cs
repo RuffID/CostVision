@@ -58,20 +58,48 @@ namespace CostVision.Services.Receipts
                 if (string.IsNullOrWhiteSpace(result.FileName))
                     result.FileName = "Browser file";
 
-                // Проверяет дубликат существующего чека
-                Receipt? exist = await unitOfWork.Receipt.GetItemByPredicate(
-                    r => r.FiscalDocumentNumber == result.Parsed.FiscalDocumentNumber &&
-                         r.FiscalDriveNumber == result.Parsed.FiscalDriveNumber &&
-                         r.FiscalSign == result.Parsed.FiscalSign &&
-                         r.TotalSum == result.Parsed.Sum &&
-                         r.DateTime == result.Parsed.DateTime &&
-                         r.CreatedByUserId == currentUserId &&
-                         r.OperationType == (ReceiptOperationType)result.Parsed.OperationType.Value,
-                    asNoTracking: true,
-                    ct: ct);
+                Receipt? existingReceiptInAccount = request.AccountId == Guid.Empty
+                    ? null
+                    : await FindExistingReceiptInAccountAsync(
+                        result.Parsed.FiscalDocumentNumber,
+                        result.Parsed.FiscalDriveNumber,
+                        result.Parsed.FiscalSign,
+                        result.Parsed.Sum.Value,
+                        result.Parsed.DateTime,
+                        (ReceiptOperationType)result.Parsed.OperationType.Value,
+                        request.AccountId,
+                        ct);
+
+                if (existingReceiptInAccount != null)
+                {
+                    result.ErrorMessage = "Такой чек уже есть на выбранном счёте.";
+                    continue;
+                }
+
+                Receipt? exist = await FindExistingReceiptAsync(
+                    result.Parsed.FiscalDocumentNumber,
+                    result.Parsed.FiscalDriveNumber,
+                    result.Parsed.FiscalSign,
+                    result.Parsed.Sum.Value,
+                    result.Parsed.DateTime,
+                    (ReceiptOperationType)result.Parsed.OperationType.Value,
+                    currentUserId,
+                    ct);
 
                 if (exist != null)
+                {
+                    if (request.AccountId == Guid.Empty)
+                        continue;
+
+                    unitOfWork.ReceiptAccount.Create(new ReceiptAccount
+                    {
+                        AccountId = request.AccountId,
+                        ReceiptId = exist.Id
+                    });
+
+                    addedCount++;
                     continue;
+                }
 
                 Receipt receipt = new()
                 {
@@ -118,25 +146,65 @@ namespace CostVision.Services.Receipts
 
         public async Task<ManualReceiptResult> SaveReceiptManualAsync(ReceiptManualCreateRequest request, Guid currentUserId, CancellationToken ct)
         {
-            // Проверять дубликат по тем же полям, что и при скане
-            Receipt? exist = await unitOfWork.Receipt.GetItemByPredicate(
-                r => r.FiscalDocumentNumber == request.Receipt.FiscalDocumentNumber &&
-                     r.FiscalDriveNumber == request.Receipt.FiscalDriveNumber &&
-                     r.FiscalSign == request.Receipt.FiscalSign &&
-                     r.TotalSum == request.Receipt.Sum &&
-                     r.DateTime == request.Receipt.DateTime &&
-                     r.CreatedByUserId == currentUserId &&
-                     r.OperationType == request.Receipt.OperationType,
-                asNoTracking: true,
-                ct: ct);
+            Receipt? existingReceiptInAccount = request.AccountId == Guid.Empty
+                ? null
+                : await FindExistingReceiptInAccountAsync(
+                    request.Receipt.FiscalDocumentNumber,
+                    request.Receipt.FiscalDriveNumber,
+                    request.Receipt.FiscalSign,
+                    request.Receipt.Sum,
+                    request.Receipt.DateTime,
+                    request.Receipt.OperationType,
+                    request.AccountId,
+                    ct);
+
+            if (existingReceiptInAccount != null)
+            {
+                return new ManualReceiptResult
+                {
+                    IsCreated = false,
+                    ErrorMessage = "Такой чек уже есть на выбранном счёте.",
+                    Receipt = await LoadReceiptWithAccountsAsync(existingReceiptInAccount.Id, ct)
+                };
+            }
+
+            Receipt? exist = await FindExistingReceiptAsync(
+                request.Receipt.FiscalDocumentNumber,
+                request.Receipt.FiscalDriveNumber,
+                request.Receipt.FiscalSign,
+                request.Receipt.Sum,
+                request.Receipt.DateTime,
+                request.Receipt.OperationType,
+                currentUserId,
+                ct);
 
             if (exist != null)
             {
+                if (request.AccountId != Guid.Empty)
+                {
+                    unitOfWork.ReceiptAccount.Create(new ReceiptAccount
+                    {
+                        AccountId = request.AccountId,
+                        ReceiptId = exist.Id
+                    });
+
+                    await unitOfWork.SaveChangesAsync(ct);
+
+                    Receipt linkedReceipt = await LoadReceiptWithAccountsAsync(exist.Id, ct);
+
+                    return new ManualReceiptResult
+                    {
+                        IsCreated = true,
+                        ErrorMessage = "Чек уже существовал и был добавлен на выбранный счёт.",
+                        Receipt = linkedReceipt
+                    };
+                }
+
                 ManualReceiptResult duplicateResult = new()
                 {
                     IsCreated = false,
                     ErrorMessage = "Такой чек уже существует в базе.",
-                    Receipt = exist
+                    Receipt = await LoadReceiptWithAccountsAsync(exist.Id, ct)
                 };
 
                 return duplicateResult;
@@ -369,6 +437,64 @@ namespace CostVision.Services.Receipts
                 receipt.DateTime.Ticks,
                 receipt.TotalSum,
                 (int)receipt.OperationType);
+        }
+
+        private Task<Receipt?> FindExistingReceiptAsync(
+            string fiscalDocumentNumber,
+            string fiscalDriveNumber,
+            string fiscalSign,
+            decimal totalSum,
+            DateTime dateTime,
+            ReceiptOperationType operationType,
+            Guid currentUserId,
+            CancellationToken ct)
+        {
+            return unitOfWork.Receipt.GetItemByPredicate(
+                r => r.FiscalDocumentNumber == fiscalDocumentNumber &&
+                     r.FiscalDriveNumber == fiscalDriveNumber &&
+                     r.FiscalSign == fiscalSign &&
+                     r.TotalSum == totalSum &&
+                     r.DateTime == dateTime &&
+                     r.CreatedByUserId == currentUserId &&
+                     r.OperationType == operationType,
+                asNoTracking: true,
+                ct: ct);
+        }
+
+        private Task<Receipt?> FindExistingReceiptInAccountAsync(
+            string fiscalDocumentNumber,
+            string fiscalDriveNumber,
+            string fiscalSign,
+            decimal totalSum,
+            DateTime dateTime,
+            ReceiptOperationType operationType,
+            Guid accountId,
+            CancellationToken ct)
+        {
+            return unitOfWork.Receipt.GetItemByPredicate(
+                r => r.FiscalDocumentNumber == fiscalDocumentNumber &&
+                     r.FiscalDriveNumber == fiscalDriveNumber &&
+                     r.FiscalSign == fiscalSign &&
+                     r.TotalSum == totalSum &&
+                     r.DateTime == dateTime &&
+                     r.OperationType == operationType &&
+                     r.Accounts.Any(link => link.AccountId == accountId),
+                asNoTracking: true,
+                ct: ct);
+        }
+
+        private async Task<Receipt> LoadReceiptWithAccountsAsync(Guid receiptId, CancellationToken ct)
+        {
+            Receipt? receipt = await unitOfWork.Receipt.GetItemById(
+                receiptId,
+                asNoTracking: true,
+                include: query => query
+                    .Include(r => r.Accounts)
+                        .ThenInclude(ra => ra.Account)
+                    .AsSplitQuery(),
+                ct: ct);
+
+            return receipt ?? throw new InvalidOperationException("Не удалось загрузить чек после сохранения.");
         }
 
         private async Task TryRefreshCreatedReceiptsAsync(IEnumerable<Receipt> receipts, CancellationToken ct)

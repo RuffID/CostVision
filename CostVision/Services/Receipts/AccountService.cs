@@ -419,8 +419,9 @@ namespace CostVision.Services.Receipts
             if (sourceAccount == null)
                 return ServiceResult<bool>.Fail(404, "Исходный счёт не найден.");
 
-            if (sourceAccount.CreatedByUserId != currentUserId)
-                return ServiceResult<bool>.Fail(403, "Можно изменять чек только в собственном счёте.");
+            ServiceResult<bool> sourceAccessResult = ValidateReceiptAccountModificationAccess(sourceAccount, currentUserId);
+            if (!sourceAccessResult.Success)
+                return ServiceResult<bool>.Fail(sourceAccessResult.Error!.StatusCode, sourceAccessResult.Error.Message);
 
             Account? targetAccount = await unitOfWork.Account.GetItemByPredicate(a => a.Id == targetAccountId,
                 asNoTracking: false,
@@ -430,8 +431,9 @@ namespace CostVision.Services.Receipts
             if (targetAccount == null)
                 return ServiceResult<bool>.Fail(404, "Счёт назначения не найден.");
 
-            if (targetAccount.CreatedByUserId != currentUserId)
-                return ServiceResult<bool>.Fail(403, "Можно переносить чек только в собственный счёт.");
+            ServiceResult<bool> targetAccessResult = ValidateReceiptAccountModificationAccess(targetAccount, currentUserId);
+            if (!targetAccessResult.Success)
+                return ServiceResult<bool>.Fail(targetAccessResult.Error!.StatusCode, targetAccessResult.Error.Message);
 
             Receipt? duplicateReceiptInTargetAccount = await unitOfWork.Receipt.GetItemByPredicate(r =>
                 r.Id != receiptId &&
@@ -491,8 +493,9 @@ namespace CostVision.Services.Receipts
             if (account == null)
                 return ServiceResult<bool>.Fail(404, "Счёт не найден.");
 
-            if (account.CreatedByUserId != currentUserId)
-                return ServiceResult<bool>.Fail(403, "Можно удалять чек только из собственного счёта.");
+            ServiceResult<bool> accountAccessResult = ValidateReceiptAccountModificationAccess(account, currentUserId);
+            if (!accountAccessResult.Success)
+                return ServiceResult<bool>.Fail(accountAccessResult.Error!.StatusCode, accountAccessResult.Error.Message);
 
             if (receipt.Accounts.Count < 2)
             {

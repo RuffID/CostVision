@@ -46,19 +46,14 @@ namespace CostVision.Pages
                 new(ClaimTypes.Name, user.Name)
             ];
 
-            foreach (var role in user.Roles)
+            foreach (Role role in user.Roles)
                 claims.Add(new Claim(ClaimTypes.Role, role.RoleType.ToString()));
 
 
             ClaimsIdentity claimsIdentity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal claimsPrincipal = new(claimsIdentity);
 
-            AuthenticationProperties props = new()
-            {
-                IsPersistent = true,
-                AllowRefresh = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14)
-            };
+            AuthenticationProperties props = new() { IsPersistent = true };
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal, props);
 

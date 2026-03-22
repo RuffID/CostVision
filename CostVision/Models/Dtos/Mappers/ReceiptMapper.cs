@@ -1,4 +1,5 @@
 ﻿using CostVision.Models.Dtos.Receipts;
+using CostVision.Models.Enums.Authorization;
 using CostVision.Models.Receipts;
 using CostVision.Models.Responses.ProverkachekaApi;
 
@@ -60,7 +61,12 @@ namespace CostVision.Models.Dtos.Mappers
                     Name = group.Select(x => x.Account!.Name).FirstOrDefault() ?? string.Empty,
                     ColorHex = group.Select(x => x.Account!.ColorHex).FirstOrDefault() ?? Account.DEFAULT_COLOR_HEX,
                     CanEditReceipt = receipt.CreatedByUserId == currentUserId
-                        && group.Select(x => x.Account!.CreatedByUserId).FirstOrDefault() == currentUserId
+                        && group.Any(x =>
+                            x.Account != null &&
+                            (x.Account.CreatedByUserId == currentUserId ||
+                             x.Account.Members.Any(member =>
+                                 member.UserId == currentUserId &&
+                                 member.Role != AccountAccessRole.Viewer)))
                 })
                 .OrderBy(x => x.Name)
                 .ToList();

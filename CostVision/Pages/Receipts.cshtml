@@ -20,7 +20,7 @@
         </div>
 
         <div class="col-auto">
-            <label for="dateFrom" class="form-label mb-1">Период с</label>
+            <label for="dateFrom" class="form-label mb-1">с</label>
             <input type="date" id="dateFrom" name="dateFrom" class="form-control" autocomplete="off">
         </div>
 
@@ -43,22 +43,31 @@
 
         <div class="col"></div>
 
-        <div class="col-12 col-md-6">
-            <label for="receiptSearch" class="form-label mb-1">Поиск</label>
-            <div class="input-group">
-                <input type="text" id="receiptSearch" name="receiptSearch" class="form-control" placeholder="Введите запрос..." autocomplete="off">
+        <div class="col-12 col-xl-7">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-lg">
+                    <label for="receiptSearch" class="form-label mb-1">Поиск</label>
+                    <input type="text" id="receiptSearch" name="receiptSearch" class="form-control" placeholder="Введите запрос..." autocomplete="off">
+                </div>
 
-                <select id="receiptSearchMode" name="receiptSearchMode" class="form-select" style="max-width: 160px;">
-                    <option value="all" selected>Все</option>
-                    <option value="sum">Сумма</option>
-                    <option value="shop">Магазин</option>
-                    <option value="fn">ФН</option>
-                    <option value="fd">ФД</option>
-                    <option value="fp">ФП</option>
-                </select>
+                <div class="col-12 col-sm-5 col-lg-4">
+                    <label for="receiptSearchMode" class="form-label mb-1">Искать по</label>
+                    <select id="receiptSearchMode" name="receiptSearchMode" class="form-select">
+                        <option value="all" selected>Все</option>
+                        <option value="sum">Сумма</option>
+                        <option value="shop">Магазин</option>
+                        <option value="fn">ФН</option>
+                        <option value="fd">ФД</option>
+                        <option value="fp">ФП</option>
+                    </select>
+                </div>
 
-                <span id="receiptsCount" class="input-group-text">Чеков: 0</span>
-                <span id="receiptsSum" class="input-group-text">Сумма: 0 ₽</span>
+                <div class="col-12 col-lg-auto">
+                    <div class="d-flex flex-wrap gap-2">
+                        <span id="receiptsCount" class="input-group-text">Чеков: 0</span>
+                        <span id="receiptsSum" class="input-group-text">Сумма: 0 ₽</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
