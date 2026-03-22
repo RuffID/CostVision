@@ -1,4 +1,4 @@
-﻿using CostVision.Interfaces.DataBase.Repositories;
+﻿using CostVision.Abstractions.DataBase.Repositories;
 using CostVision.Models.Authorization;
 using CostVision.Models.Enums.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;

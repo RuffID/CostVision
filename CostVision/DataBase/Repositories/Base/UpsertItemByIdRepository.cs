@@ -1,6 +1,6 @@
-﻿using CostVision.Interfaces.DataBase;
-using CostVision.Interfaces.DataBase.Repositories.Base;
-using CostVision.Interfaces.Entity;
+﻿using CostVision.Abstractions.DataBase;
+using CostVision.Abstractions.DataBase.Repositories.Base;
+using CostVision.Abstractions.Entity;
 using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.DataBase.Repositories.Base

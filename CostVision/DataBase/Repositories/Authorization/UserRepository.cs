@@ -1,5 +1,5 @@
-﻿using CostVision.Interfaces.DataBase.Repositories.Authorization;
-using CostVision.Interfaces.DataBase.Repositories.Base;
+﻿using CostVision.Abstractions.DataBase.Repositories.Authorization;
+using CostVision.Abstractions.DataBase.Repositories.Base;
 using CostVision.Models.Authorization;
 using System.Linq.Expressions;
 

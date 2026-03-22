@@ -1,5 +1,5 @@
-﻿using CostVision.Interfaces.DataBase.Repositories;
-using CostVision.Interfaces.Service.Receipts;
+﻿using CostVision.Abstractions.DataBase.Repositories;
+using CostVision.Abstractions.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.Dtos.Receipts;
 using CostVision.Models.Enums.Authorization;

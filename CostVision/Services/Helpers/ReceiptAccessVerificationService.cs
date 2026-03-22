@@ -1,4 +1,4 @@
-﻿using CostVision.Interfaces.Service.Receipts;
+﻿using CostVision.Abstractions.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.Receipts;
 

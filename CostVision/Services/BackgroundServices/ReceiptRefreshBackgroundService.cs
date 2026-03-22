@@ -1,4 +1,4 @@
-﻿using CostVision.Interfaces.Service.Receipts;
+﻿using CostVision.Abstractions.Service.Receipts;
 
 namespace CostVision.Services.BackgroundServices
 {

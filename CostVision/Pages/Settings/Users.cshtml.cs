@@ -1,5 +1,5 @@
-﻿using CostVision.Interfaces.Entity;
-using CostVision.Interfaces.Service.Authorize;
+﻿using CostVision.Abstractions.Entity;
+using CostVision.Abstractions.Service.Authorize;
 using CostVision.Models.Authorization;
 using CostVision.Models.Dtos.Authorization;
 using CostVision.Models.Dtos.Mappers;

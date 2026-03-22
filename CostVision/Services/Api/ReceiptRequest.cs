@@ -1,4 +1,4 @@
-﻿using CostVision.Interfaces.Api;
+﻿using CostVision.Abstractions.Api;
 using CostVision.Models.Requests.ProverkachekaApi;
 using CostVision.Models.Responses.ProverkachekaApi;
 using HttpApiClientLibrary.Interfaces;

@@ -1,4 +1,4 @@
-﻿using CostVision.Interfaces.DataBase;
+﻿using CostVision.Abstractions.DataBase;
 using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Services.DataBase

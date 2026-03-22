@@ -1,4 +1,4 @@
-﻿using CostVision.Interfaces.Entity;
+﻿using CostVision.Abstractions.Entity;
 
 namespace CostVision.Models.Receipts
 {

@@ -1,4 +1,4 @@
-﻿using CostVision.Interfaces.Entity;
+﻿using CostVision.Abstractions.Entity;
 using CostVision.Models.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;

@@ -1,7 +1,7 @@
-﻿using CostVision.Interfaces.DataBase;
-using CostVision.Interfaces.DataBase.Repositories;
-using CostVision.Interfaces.DataBase.Repositories.Authorization;
-using CostVision.Interfaces.DataBase.Repositories.Receipts;
+﻿using CostVision.Abstractions.DataBase;
+using CostVision.Abstractions.DataBase.Repositories;
+using CostVision.Abstractions.DataBase.Repositories.Authorization;
+using CostVision.Abstractions.DataBase.Repositories.Receipts;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CostVision.DataBase.Repositories

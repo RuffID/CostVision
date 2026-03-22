@@ -1,6 +1,6 @@
-﻿using CostVision.Interfaces.Api;
-using CostVision.Interfaces.DataBase.Repositories;
-using CostVision.Interfaces.Service.Receipts;
+﻿using CostVision.Abstractions.Api;
+using CostVision.Abstractions.DataBase.Repositories;
+using CostVision.Abstractions.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.ConfigClass;
 using CostVision.Models.Dtos.Mappers;

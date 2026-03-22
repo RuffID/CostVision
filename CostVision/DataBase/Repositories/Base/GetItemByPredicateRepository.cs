@@ -1,5 +1,5 @@
-﻿using CostVision.Interfaces.DataBase;
-using CostVision.Interfaces.DataBase.Repositories.Base;
+﻿using CostVision.Abstractions.DataBase;
+using CostVision.Abstractions.DataBase.Repositories.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 

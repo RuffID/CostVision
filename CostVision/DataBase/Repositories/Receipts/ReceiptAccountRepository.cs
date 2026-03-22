@@ -1,5 +1,5 @@
-﻿using CostVision.Interfaces.DataBase.Repositories.Base;
-using CostVision.Interfaces.DataBase.Repositories.Receipts;
+﻿using CostVision.Abstractions.DataBase.Repositories.Base;
+using CostVision.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Models.Receipts;
 using System.Linq.Expressions;
 
