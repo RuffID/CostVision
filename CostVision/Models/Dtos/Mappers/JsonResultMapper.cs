@@ -39,7 +39,11 @@ namespace CostVision.Models.Dtos.Mappers
                 };
             }
 
-            return new JsonResult(result.Data)
+            return new JsonResult(new
+            {
+                success = true,
+                data = result.Data
+            })
             {
                 StatusCode = 200
             };

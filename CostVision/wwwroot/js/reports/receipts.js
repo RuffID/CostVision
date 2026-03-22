@@ -9,9 +9,8 @@ let forgeryToken;
 let dateFromInput;
 let dateToInput;
 let applyFilterButton;
-
-const RECEIPTS_DATE_FROM_KEY = 'costvision_receipts_dateFrom';
-const RECEIPTS_DATE_TO_KEY = 'costvision_receipts_dateTo';
+let receiptPeriodPresetSelect;
+let receiptsCountElement;
 
 // Для удаления
 let deleteModalElement;
@@ -22,17 +21,23 @@ let pendingDeleteCardElement = null;
 
 let receiptSearchInput;
 let receiptSearchModeSelect;
+let receiptAccountFilterSelect;
+let receiptAccountFilterError;
 
 let receiptsCache = [];
+let availableAccountsCache = [];
 let searchDebounceTimerId = null;
 
 // Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function () {
-    initListOfChecksPage();
+    initListOfChecksPage().catch(function (error) {
+        console.error(error);
+        alert(error && error.message ? error.message : 'Ошибка при инициализации страницы чеков.');
+    });
 });
 
 // Инициализировать страницу списка чеков
-function initListOfChecksPage() {
+async function initListOfChecksPage() {
     listContainer = document.getElementById('receipt-list');
     if (!listContainer) {
         return;
@@ -47,6 +52,8 @@ function initListOfChecksPage() {
     applyFilterButton = document.getElementById('applyFilter');
     dateFromInput = document.getElementById('dateFrom');
     dateToInput = document.getElementById('dateTo');
+    receiptPeriodPresetSelect = document.getElementById('receiptPeriodPreset');
+    receiptsCountElement = document.getElementById('receiptsCount');
     forgeryToken = getRequestVerificationToken();
 
     if (modalElement) {
@@ -62,7 +69,6 @@ function initListOfChecksPage() {
 
     if (applyFilterButton) {
         applyFilterButton.addEventListener('click', function () {
-            savePeriodToStorage();
             loadReceiptList();
         });
     }
@@ -88,6 +94,8 @@ function initListOfChecksPage() {
 
     receiptSearchInput = document.getElementById('receiptSearch');
     receiptSearchModeSelect = document.getElementById('receiptSearchMode');
+    receiptAccountFilterSelect = document.getElementById('receiptAccountFilter');
+    receiptAccountFilterError = document.getElementById('receiptAccountFilterError');
 
     if (receiptSearchInput) {
         receiptSearchInput.addEventListener('input', onSearchChanged);
@@ -97,74 +105,89 @@ function initListOfChecksPage() {
         receiptSearchModeSelect.addEventListener('change', onSearchChanged);
     }
 
+    if (receiptAccountFilterSelect) {
+        receiptAccountFilterSelect.addEventListener('change', onSearchChanged);
+    }
+    if (receiptPeriodPresetSelect) {
+        receiptPeriodPresetSelect.addEventListener('change', onReceiptPeriodPresetChanged);
+    }
 
-    // Попробовать восстановить период из localStorage
-    loadPeriodFromStorage();
+    setCurrentMonthPeriod();
 
-    // Если период не задан, то установить период по умолчанию: текущий месяц
-    setDefaultMonthIfEmpty();
-
-    // Загрузить список чеков
-    loadReceiptList();
+    await loadAvailableAccountsAsync();
+    await loadReceiptList();
 }
 
-// Установить период по умолчанию (текущий месяц), если даты не заданы
-function setDefaultMonthIfEmpty() {
+function onReceiptPeriodPresetChanged() {
+    applySelectedReceiptPeriodPreset();
+}
+
+function applySelectedReceiptPeriodPreset() {
+    if (!receiptPeriodPresetSelect) {
+        const currentMonthRange = getDateRangeByPeriodPreset('currentMonth', new Date());
+        setReceiptDateRange(currentMonthRange.dateFrom, currentMonthRange.dateTo);
+        return;
+    }
+
+    const periodPreset = receiptPeriodPresetSelect.value || 'currentMonth';
+    const range = getDateRangeByPeriodPreset(periodPreset, new Date());
+
+    setReceiptDateRange(range.dateFrom, range.dateTo);
+}
+
+function setCurrentMonthPeriod() {
+    if (receiptPeriodPresetSelect) {
+        receiptPeriodPresetSelect.value = 'currentMonth';
+    }
+
+    applySelectedReceiptPeriodPreset();
+}
+
+function getDateRangeByPeriodPreset(periodPreset, now) {
+    const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (periodPreset === 'currentDay') {
+        return {
+            dateFrom: currentDate,
+            dateTo: currentDate
+        };
+    }
+
+    if (periodPreset === 'currentWeek') {
+        const dayOfWeek = currentDate.getDay();
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const dateFrom = new Date(currentDate);
+        dateFrom.setDate(currentDate.getDate() - daysFromMonday);
+
+        const dateTo = new Date(dateFrom);
+        dateTo.setDate(dateFrom.getDate() + 6);
+
+        return {
+            dateFrom: dateFrom,
+            dateTo: dateTo
+        };
+    }
+
+    if (periodPreset === 'currentYear') {
+        return {
+            dateFrom: new Date(currentDate.getFullYear(), 0, 1),
+            dateTo: new Date(currentDate.getFullYear(), 11, 31)
+        };
+    }
+
+    return {
+        dateFrom: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+        dateTo: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+    };
+}
+
+function setReceiptDateRange(dateFrom, dateTo) {
     if (!dateFromInput || !dateToInput) {
         return;
     }
 
-    const hasFrom = !!dateFromInput.value;
-    const hasTo = !!dateToInput.value;
-
-    if (hasFrom && hasTo) {
-        return;
-    }
-
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    const fromStr = formatDateForQuery(firstDay);
-    const toStr = formatDateForQuery(lastDay);
-
-    if (!hasFrom) {
-        dateFromInput.value = fromStr;
-    }
-    if (!hasTo) {
-        dateToInput.value = toStr;
-    }
-}
-
-// Загрузить период из localStorage (если есть)
-function loadPeriodFromStorage() {
-    if (!dateFromInput || !dateToInput) {
-        return;
-    }
-
-    const storedFrom = localStorage.getItem(RECEIPTS_DATE_FROM_KEY);
-    const storedTo = localStorage.getItem(RECEIPTS_DATE_TO_KEY);
-
-    if (storedFrom) {
-        dateFromInput.value = storedFrom;
-    }
-
-    if (storedTo) {
-        dateToInput.value = storedTo;
-    }
-}
-
-// Сохранить период в localStorage
-function savePeriodToStorage() {
-    if (!dateFromInput || !dateToInput) {
-        return;
-    }
-
-    const fromVal = dateFromInput.value || '';
-    const toVal = dateToInput.value || '';
-
-    localStorage.setItem(RECEIPTS_DATE_FROM_KEY, fromVal);
-    localStorage.setItem(RECEIPTS_DATE_TO_KEY, toVal);
+    dateFromInput.value = formatDateForQuery(dateFrom);
+    dateToInput.value = formatDateForQuery(dateTo);
 }
 
 // Обработчик клика по карточкам чеков
@@ -246,13 +269,120 @@ async function loadReceiptList() {
             ? '?handler=ReceiptList&' + rangeQuery
             : '?handler=ReceiptList';
 
-        receiptsCache = await sendJsonRequest(url, 'GET', buildJsonHeaders(forgeryToken), null);
-
+        const response = await sendJsonRequest(url, 'GET', buildJsonHeaders(forgeryToken), null);
+        receiptsCache = Array.isArray(response.data) ? response.data : [];
         renderReceiptList(applyReceiptFilters(receiptsCache));
     } catch (error) {
         console.error(error);
         alert('Ошибка при получении списка чеков.');
     }
+}
+
+async function loadAvailableAccountsAsync() {
+    if (!receiptAccountFilterSelect) {
+        throw new Error('Не найден фильтр счетов.');
+    }
+
+    receiptAccountFilterSelect.disabled = true;
+    renderReceiptAccountFilterLoading();
+
+    try {
+        const response = await sendJsonRequest('?handler=Accounts', 'GET', buildJsonHeaders(forgeryToken), null);
+        availableAccountsCache = Array.isArray(response.data)
+            ? response.data.map(normalizeAvailableAccount).filter(function (account) { return account !== null; })
+            : [];
+
+        renderReceiptAccountFilterOptions(availableAccountsCache);
+        hideReceiptAccountFilterError();
+        receiptAccountFilterSelect.disabled = false;
+    } catch (error) {
+        renderReceiptAccountFilterError(error);
+        throw error;
+    }
+}
+
+function normalizeAvailableAccount(dto) {
+    if (!dto) {
+        return null;
+    }
+
+    const id = dto.id || dto.Id || '';
+    const name = dto.name || dto.Name || '';
+    const colorHex = normalizeReceiptAccountColorHex(dto.colorHex ?? dto.ColorHex);
+
+    if (!id || !name) {
+        return null;
+    }
+
+    return {
+        id: id,
+        name: name,
+        colorHex: colorHex
+    };
+}
+
+function renderReceiptAccountFilterLoading() {
+    if (!receiptAccountFilterSelect) {
+        return;
+    }
+
+    receiptAccountFilterSelect.replaceChildren();
+
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Загрузка счетов...';
+    receiptAccountFilterSelect.appendChild(option);
+}
+
+function renderReceiptAccountFilterOptions(accounts) {
+    if (!receiptAccountFilterSelect) {
+        return;
+    }
+
+    const currentValue = receiptAccountFilterSelect.value || '';
+    receiptAccountFilterSelect.replaceChildren();
+
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = 'Все счета';
+    receiptAccountFilterSelect.appendChild(allOption);
+
+    for (const account of accounts) {
+        const option = document.createElement('option');
+        option.value = account.id;
+        option.textContent = account.name;
+        receiptAccountFilterSelect.appendChild(option);
+    }
+
+    if (currentValue && accounts.some(function (account) { return account.id === currentValue; })) {
+        receiptAccountFilterSelect.value = currentValue;
+    }
+}
+
+function renderReceiptAccountFilterError(error) {
+    renderReceiptAccountFilterOptions([]);
+
+    if (!receiptAccountFilterSelect) {
+        return;
+    }
+
+    receiptAccountFilterSelect.disabled = true;
+
+    if (!receiptAccountFilterError) {
+        return;
+    }
+
+    receiptAccountFilterError.textContent = error && error.message ? error.message : 'Не удалось загрузить список счетов.';
+    receiptAccountFilterError.classList.remove('d-none');
+}
+
+function hideReceiptAccountFilterError() {
+    if (!receiptAccountFilterError) {
+        return;
+    }
+
+    receiptAccountFilterError.textContent = '';
+    receiptAccountFilterError.classList.add('d-none');
 }
 
 // Открыть чек (ожидается один ReceiptDto с Items)
@@ -265,11 +395,11 @@ async function openReceipt(receiptId) {
             { receiptId: receiptId }
         );
 
-        if (!data) {
+        if (!data || !data.data) {
             return;
         }
 
-        renderReceiptDetails(data);
+        renderReceiptDetails(data.data);
     } catch (error) {
         console.error(error);
         alert('Ошибка при получении деталей чека.');
@@ -280,11 +410,20 @@ function renderReceiptList(list) {
     if (!listContainer) return;
 
     listContainer.innerHTML = '';
+    updateReceiptsCount(list.length);
 
     for (const r of list) {
         const card = buildReceiptCard(r);
         listContainer.appendChild(card);
     }
+}
+
+function updateReceiptsCount(count) {
+    if (!receiptsCountElement) {
+        return;
+    }
+
+    receiptsCountElement.textContent = 'Чеков: ' + count;
 }
 
 // Обновить чек (ожидается один ReceiptDto без Items)
@@ -301,8 +440,8 @@ async function refreshReceipt(receiptId, cardElement, buttonElement) {
             { receiptId: receiptId }
         );
 
-        if (data && cardElement) {
-            updateCardFromDto(cardElement, data);
+        if (data && data.data && cardElement) {
+            updateCardFromDto(cardElement, data.data);
         }
     } catch (error) {
         console.error(error);
@@ -350,11 +489,16 @@ async function onConfirmDeleteReceipt() {
         const payload = { receiptId: pendingDeleteReceiptId };
 
         await sendJsonRequest('?handler=DeleteReceipt', 'POST', buildJsonHeaders(forgeryToken), payload);
+        receiptsCache = receiptsCache.filter(function (receipt) {
+            return receipt && receipt.id !== pendingDeleteReceiptId;
+        });
 
         // Удалять карточку из DOM
         if (pendingDeleteCardElement && pendingDeleteCardElement.parentNode) {
             pendingDeleteCardElement.parentNode.removeChild(pendingDeleteCardElement);
         }
+
+        renderReceiptList(applyReceiptFilters(receiptsCache));
 
         // Закрывать модалку
         if (deleteBootstrapModal) {
@@ -380,10 +524,14 @@ function buildReceiptCard(r) {
     card.setAttribute('data-receipt-id', r.id);
 
     const cardBody = document.createElement('div');
-    cardBody.classList.add('card-body', 'd-flex', 'flex-column', 'flex-md-row', 'align-items-start', 'gap-2');
+    cardBody.classList.add('card-body');
+
+    const topRow = document.createElement('div');
+    topRow.classList.add('d-flex', 'flex-column', 'flex-md-row', 'align-items-start', 'gap-2');
 
     const leftDiv = document.createElement('div');
     leftDiv.classList.add('me-md-3', 'flex-grow-1');
+    leftDiv.style.minWidth = '0';
 
     const titleDiv = document.createElement('div');
     titleDiv.classList.add('fw-semibold', 'mb-1');
@@ -396,7 +544,7 @@ function buildReceiptCard(r) {
             date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
 
-    const place = r.retailPlace || '';
+    const place = normalizeSingleLineText(r.retailPlace);
     titleDiv.textContent = dateText + ' — ' + place;
 
     leftDiv.appendChild(titleDiv);
@@ -408,14 +556,13 @@ function buildReceiptCard(r) {
         addrDiv.textContent = r.retailPlaceAddress;
     } else {
         addrDiv.textContent = '';
-        addrDiv.style.display = 'none'; // скрыт, но существует в DOM
+        addrDiv.style.display = 'none';
     }
 
     leftDiv.appendChild(addrDiv);
 
-
     const rightDiv = document.createElement('div');
-    rightDiv.classList.add('d-flex', 'flex-column', 'align-items-start', 'align-items-md-end', 'ms-md-auto', 'w-100', 'w-md-auto', 'gap-2');
+    rightDiv.classList.add('d-flex', 'flex-column', 'align-items-start', 'align-items-md-end', 'ms-md-auto', 'gap-2');
 
     const totalDiv = document.createElement('div');
     totalDiv.classList.add('text-start', 'text-md-end');
@@ -453,10 +600,21 @@ function buildReceiptCard(r) {
     rightDiv.appendChild(totalDiv);
     rightDiv.appendChild(btnGroup);
 
-    cardBody.appendChild(leftDiv);
-    cardBody.appendChild(rightDiv);
+    topRow.appendChild(leftDiv);
+    topRow.appendChild(rightDiv);
+    cardBody.appendChild(topRow);
+
+    const accountDiv = document.createElement('div');
+    accountDiv.classList.add('small', 'mt-2', 'd-flex', 'align-items-start', 'gap-2', 'flex-wrap');
+
+    if (getReceiptAccounts(r).length > 0) {
+        renderReceiptAccountBadges(accountDiv, r);
+    } else {
+        accountDiv.style.display = 'none';
+    }
 
     btnGroup.appendChild(deleteBtn);
+    cardBody.appendChild(accountDiv);
 
     card.appendChild(cardBody);
 
@@ -512,6 +670,10 @@ function renderReceiptDetails(data) {
     if (data.retailPlaceAddress) {
         headerParts.push({ label: 'Адрес:', value: data.retailPlaceAddress });
     }
+    const accountNamesText = getReceiptAccountNamesText(data);
+    if (accountNamesText) {
+        headerParts.push({ label: 'Счета:', value: accountNamesText });
+    }
 
     let headerHtml = '';
     headerParts.forEach(function (p) {
@@ -551,7 +713,8 @@ function updateCardFromDto(cardElement, receiptDto) {
     }
 
     const datePlaceElement = bodyElement.querySelector('.fw-semibold');
-    const addressElement = bodyElement.querySelector('.text-muted.small');
+    const addressElement = bodyElement.querySelector('.text-muted.small.mt-2');
+    const accountElement = bodyElement.querySelector('.small.mt-2.d-flex');
     const totalElement = bodyElement.querySelector('.fw-bold');
 
     if (datePlaceElement && receiptDto.dateTime) {
@@ -559,7 +722,7 @@ function updateCardFromDto(cardElement, receiptDto) {
         const formatted =
             date.toLocaleDateString('ru-RU') + ' ' +
             date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        const place = receiptDto.retailPlace || '';
+        const place = normalizeSingleLineText(receiptDto.retailPlace);
         datePlaceElement.textContent = formatted + ' — ' + place;
     }
 
@@ -570,6 +733,18 @@ function updateCardFromDto(cardElement, receiptDto) {
         } else {
             addressElement.textContent = '';
             addressElement.style.display = 'none';
+        }
+    }
+
+    if (accountElement) {
+        accountElement.replaceChildren();
+        accountElement.className = 'small mt-2 d-flex align-items-start gap-2 flex-wrap';
+
+        if (getReceiptAccounts(receiptDto).length > 0) {
+            renderReceiptAccountBadges(accountElement, receiptDto);
+            accountElement.style.display = '';
+        } else {
+            accountElement.style.display = 'none';
         }
     }
 
@@ -608,6 +783,10 @@ function formatCurrency(value) {
     }) + ' ₽';
 }
 
+function normalizeSingleLineText(value) {
+    return (value || '').toString().replace(/\s+/g, ' ').trim();
+}
+
 function onSearchChanged() {
     if (searchDebounceTimerId) {
         clearTimeout(searchDebounceTimerId);
@@ -621,15 +800,26 @@ function onSearchChanged() {
 function applyReceiptFilters(list) {
     const query = getSearchQuery();
     const mode = getSearchMode();
+    const accountId = getSelectedReceiptAccountId();
+
+    let filteredByAccount = list;
+    if (accountId) {
+        filteredByAccount = [];
+        for (const receipt of list) {
+            if (receiptHasAccount(receipt, accountId)) {
+                filteredByAccount.push(receipt);
+            }
+        }
+    }
 
     if (!query) {
-        return list;
+        return filteredByAccount;
     }
 
     const lowered = query.toLowerCase();
 
     const filtered = [];
-    for (const r of list) {
+    for (const r of filteredByAccount) {
         if (receiptMatchesQuery(r, lowered, mode)) {
             filtered.push(r);
         }
@@ -649,11 +839,17 @@ function getSearchMode() {
     return receiptSearchModeSelect.value || 'all';
 }
 
+function getSelectedReceiptAccountId() {
+    if (!receiptAccountFilterSelect) return '';
+    return receiptAccountFilterSelect.value || '';
+}
+
 function receiptMatchesQuery(r, loweredQuery, mode) {
     const fn = (r.fiscalDriveNumber || '').toString();
     const fd = (r.fiscalDocumentNumber || '').toString();
     const fp = (r.fiscalSign || '').toString();
     const shop = (r.retailPlace || '').toString().toLowerCase();
+    const account = getReceiptAccountNamesText(r).toLowerCase();
 
     if (mode === 'shop') return shop.includes(loweredQuery);
     if (mode === 'fn') return fn.toLowerCase().includes(loweredQuery);
@@ -675,10 +871,105 @@ function receiptMatchesQuery(r, loweredQuery, mode) {
     // “all”: место/адрес/фискальные поля/сумма
     return place.includes(loweredQuery)
         || addr.includes(loweredQuery)
+        || account.includes(loweredQuery)
         || fn.toLowerCase().includes(loweredQuery)
         || fd.toLowerCase().includes(loweredQuery)
         || fp.toLowerCase().includes(loweredQuery)
         || sumText.toLowerCase().includes(loweredQuery);
+}
+
+function getReceiptAccounts(receipt) {
+    if (receipt && Array.isArray(receipt.accounts)) {
+        return receipt.accounts
+            .map(function (account) {
+                if (!account) {
+                    return null;
+                }
+
+                const id = account.id || account.Id || '';
+                const name = account.name || account.Name || '';
+                const colorHex = normalizeReceiptAccountColorHex(account.colorHex ?? account.ColorHex);
+                if (!id || !name) {
+                    return null;
+                }
+
+                return {
+                    id: id,
+                    name: name,
+                    colorHex: colorHex
+                };
+            })
+            .filter(function (account) { return account !== null; });
+    }
+
+    if (receipt && receipt.accountId && receipt.accountName) {
+        const availableAccount = findAvailableAccountById(receipt.accountId);
+
+        return [{
+            id: receipt.accountId,
+            name: receipt.accountName,
+            colorHex: availableAccount ? availableAccount.colorHex : normalizeReceiptAccountColorHex(null)
+        }];
+    }
+
+    return [];
+}
+
+function getReceiptAccountNamesText(receipt) {
+    const names = getReceiptAccounts(receipt)
+        .map(function (account) { return account.name; })
+        .filter(function (name, index, items) {
+            return !!name && items.indexOf(name) === index;
+        });
+
+    return names.join(', ');
+}
+
+function renderReceiptAccountBadges(container, receipt) {
+    if (!container) {
+        return;
+    }
+
+    container.replaceChildren();
+
+    const accounts = getReceiptAccounts(receipt);
+    for (const account of accounts) {
+        const badge = document.createElement('span');
+        badge.className = 'px-2 py-1 rounded-pill';
+        badge.textContent = account.name;
+        badge.style.border = '2px solid ' + account.colorHex;
+
+        container.appendChild(badge);
+    }
+}
+
+function findAvailableAccountById(accountId) {
+    if (!accountId) {
+        return null;
+    }
+
+    for (const account of availableAccountsCache) {
+        if (account && account.id === accountId) {
+            return account;
+        }
+    }
+
+    return null;
+}
+
+function normalizeReceiptAccountColorHex(colorHex) {
+    const value = (colorHex || '').toString().trim().toUpperCase();
+    return /^#[0-9A-F]{6}$/.test(value) ? value : '#0D6EFD';
+}
+
+function receiptHasAccount(receipt, accountId) {
+    if (!accountId) {
+        return true;
+    }
+
+    return getReceiptAccounts(receipt).some(function (account) {
+        return account.id === accountId;
+    });
 }
 
 function sumMatchesQuery(totalSum, loweredQuery) {

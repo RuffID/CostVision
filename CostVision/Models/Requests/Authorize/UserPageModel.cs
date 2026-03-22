@@ -1,8 +1,6 @@
-﻿using CostVision.Models.Authorization;
-
-namespace CostVision.Models.PageModels
+﻿namespace CostVision.Models.Requests.Authorize
 {
-    public class UserUpsertPageModel
+    public class UserUpsertRequest
     {
         public Guid? Id { get; set; }
 

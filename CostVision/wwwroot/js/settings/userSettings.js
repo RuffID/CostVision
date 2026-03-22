@@ -2,7 +2,10 @@
 
 let accountNameInput = null;
 let accountDescriptionInput = null;
-let accountIsDefaultInput = null;
+const DEFAULT_ACCOUNT_COLOR_HEX = "#0D6EFD";
+let accountColorInput = null;
+let accountColorButton = null;
+let accountColorValueElement = null;
 let newAccountErrorElement = null;
 let accountNameErrorElement = null;
 
@@ -14,8 +17,19 @@ let modalInstance = null;
 let modalAccountIdInput = null;
 let modalAccountNameInput = null;
 let modalAccountDescriptionInput = null;
-let modalAccountIsDefaultInput = null;
+let modalAccountColorInput = null;
+let modalAccountColorButton = null;
+let modalAccountColorValueElement = null;
 let modalAccountErrorElement = null;
+let modalShareButton = null;
+
+let shareModalInstance = null;
+let shareAccountIdInput = null;
+let shareAccountTitleElement = null;
+let shareUsersContainer = null;
+let shareEmptyElement = null;
+let shareErrorElement = null;
+let shareSaveButton = null;
 
 let antiForgeryToken = null;
 
@@ -27,7 +41,9 @@ function initUserSettingsPage() {
     const newAccountForm = document.getElementById("new-account-form");
     accountNameInput = document.getElementById("account-name");
     accountDescriptionInput = document.getElementById("account-description");
-    accountIsDefaultInput = document.getElementById("account-isdefault");
+    accountColorInput = document.getElementById("account-color-input");
+    accountColorButton = document.getElementById("account-color-button");
+    accountColorValueElement = document.getElementById("account-color-value");
     newAccountErrorElement = document.getElementById("new-account-error");
     accountNameErrorElement = document.getElementById("account-name-error");
 
@@ -36,22 +52,40 @@ function initUserSettingsPage() {
     accountsEmptyElement = document.getElementById("accounts-empty");
 
     const modalElement = document.getElementById("account-modal");
-    modalAccountIsDefaultInput = document.getElementById("modal-account-isdefault");
     modalAccountIdInput = document.getElementById("modal-account-id");
     modalAccountNameInput = document.getElementById("modal-account-name");
     modalAccountDescriptionInput = document.getElementById("modal-account-description");
+    modalAccountColorInput = document.getElementById("modal-account-color-input");
+    modalAccountColorButton = document.getElementById("modal-account-color-button");
+    modalAccountColorValueElement = document.getElementById("modal-account-color-value");
     modalAccountErrorElement = document.getElementById("modal-account-error");
     const modalSaveButton = document.getElementById("modal-save-btn");
+    modalShareButton = document.getElementById("modal-share-btn");
+
+    const shareModalElement = document.getElementById("account-share-modal");
+    shareAccountIdInput = document.getElementById("share-account-id");
+    shareAccountTitleElement = document.getElementById("accountShareModalLabel");
+    shareUsersContainer = document.getElementById("account-share-users");
+    shareEmptyElement = document.getElementById("account-share-empty");
+    shareErrorElement = document.getElementById("account-share-error");
+    shareSaveButton = document.getElementById("account-share-save-btn");
 
     antiForgeryToken = getRequestVerificationToken();
 
     if (modalElement && window.bootstrap && window.bootstrap.Modal) {
         modalInstance = window.bootstrap.Modal.getOrCreateInstance(modalElement);
     }
+    if (shareModalElement && window.bootstrap && window.bootstrap.Modal) {
+        shareModalInstance = window.bootstrap.Modal.getOrCreateInstance(shareModalElement);
+    }
 
     if (newAccountForm) newAccountForm.addEventListener("submit", onCreateAccountFormSubmit);
     if (showHiddenCheckbox) showHiddenCheckbox.addEventListener("change", loadAccountsAsync);
     if (modalSaveButton) modalSaveButton.addEventListener("click", onModalSaveClick);
+    if (modalShareButton) modalShareButton.addEventListener("click", onShareButtonClick);
+    if (shareSaveButton) shareSaveButton.addEventListener("click", onShareSaveClick);
+    initAccountColorPicker(accountColorButton, accountColorInput, accountColorValueElement);
+    initAccountColorPicker(modalAccountColorButton, modalAccountColorInput, modalAccountColorValueElement);
 
     loadAccountsAsync();
 }
@@ -62,8 +96,8 @@ async function loadAccountsAsync() {
 
     try {
         let data = await sendJsonRequest(url, "GET", { "Accept": "application/json" });
-
-        accounts = Array.isArray(data.accounts) ? data.accounts.map(normalizeAccountDto).filter(x => x) : [];
+        let accountItems = Array.isArray(data.data) ? data.data : [];
+        accounts = accountItems.map(normalizeAccountDto).filter(x => x);
         renderAccountsList();
     } catch (err) {
         console.error("Error loading acounts.", err);
@@ -76,36 +110,16 @@ async function onCreateAccountFormSubmit(e) {
     clearCreateAccountErrors();
 
     let name = accountNameInput ? accountNameInput.value.trim() : "";
-    let description = accountDescriptionInput ? accountDescriptionInput.value.trim() : "";    
-    let isDefault = accountIsDefaultInput.checked ? accountIsDefaultInput.checked : false;
+    let description = accountDescriptionInput ? accountDescriptionInput.value.trim() : "";
+    let colorHex = getColorPickerValue(accountColorInput);
 
-    let payload = { name: name, description: description, isDefault: isDefault };
+    let payload = { name: name, description: description, colorHex: colorHex };
 
     try {
         let data = await sendJsonRequest("?handler=CreateAccount", "POST", buildJsonHeaders(antiForgeryToken), payload);
-
-        if (!data.success) {
-            // Показываем ошибку под нужным полем
-            if (data.errorMessage) {
-                if (accountNameErrorElement) {
-                    accountNameErrorElement.textContent = data.errorMessage;
-                } else if (newAccountErrorElement) {
-                    // fallback – общий контейнер
-                    newAccountErrorElement.textContent = data.errorMessage;
-                }
-            } else if (newAccountErrorElement) {
-                newAccountErrorElement.textContent = "Не удалось создать счёт.";
-            }
-            return;
-        }
-
-        if (data.account) {
-            let created = normalizeAccountDto(data.account);
+        if (data.data) {
+            let created = normalizeAccountDto(data.data);
             if (created) {
-                // Снять флаг по умолчанию со всех существующих
-                if (created.isDefault) {
-                    accounts.forEach(a => { a.isDefault = false; });
-                }
                 accounts.push(created);
             }
             renderAccountsList();
@@ -113,10 +127,11 @@ async function onCreateAccountFormSubmit(e) {
 
         if (accountNameInput) accountNameInput.value = "";
         if (accountDescriptionInput) accountDescriptionInput.value = "";
+        setColorPickerValue(accountColorInput, accountColorButton, accountColorValueElement, DEFAULT_ACCOUNT_COLOR_HEX);
     } catch (err) {
         console.error("Error creating invoice.", err);
         if (newAccountErrorElement)
-            newAccountErrorElement.textContent = "Ошибка при создании счёта.";
+            newAccountErrorElement.textContent = err && err.message ? err.message : "Ошибка при создании счёта.";
     }
 }
 
@@ -141,14 +156,25 @@ function renderAccountsList() {
         info.className = "me-3";
 
         let title = document.createElement("div");
-        title.className = "fw-bold";
-        title.textContent = acc.name;
+        title.className = "fw-bold d-flex align-items-center gap-2";
 
-        if (acc.isDefault) {
-            let badge = document.createElement("span");
-            badge.className = "badge bg-primary ms-2";
-            badge.textContent = "По умолчанию";
-            title.appendChild(badge);
+        let colorBadge = document.createElement("span");
+        colorBadge.className = "d-inline-block rounded-1 border flex-shrink-0";
+        colorBadge.style.width = "0.9rem";
+        colorBadge.style.height = "0.9rem";
+        colorBadge.style.backgroundColor = acc.colorHex;
+
+        let titleText = document.createElement("span");
+        titleText.textContent = acc.name;
+
+        title.appendChild(colorBadge);
+        title.appendChild(titleText);
+
+        if (!acc.canManage) {
+            let sharedBadge = document.createElement("span");
+            sharedBadge.className = "badge bg-light text-dark border border-dark ms-2";
+            sharedBadge.textContent = "Доступ предоставлен";
+            title.appendChild(sharedBadge);
         }
 
         let desc = document.createElement("div");
@@ -161,23 +187,27 @@ function renderAccountsList() {
         let actions = document.createElement("div");
         actions.className = "btn-group btn-group-sm";
 
-        let editBtn = document.createElement("button");
-        editBtn.type = "button";
-        editBtn.className = "btn btn-outline-primary";
-        editBtn.textContent = "Изменить";
-        editBtn.addEventListener("click", () => openEditModal(acc.id));
+        if (acc.canManage) {
+            let editBtn = document.createElement("button");
+            editBtn.type = "button";
+            editBtn.className = "btn btn-outline-primary";
+            editBtn.textContent = "Изменить";
+            editBtn.addEventListener("click", () => openEditModal(acc.id));
 
-        let toggleBtn = document.createElement("button");
-        toggleBtn.type = "button";
-        toggleBtn.className = acc.isActive ? "btn btn-outline-danger" : "btn btn-outline-success";
-        toggleBtn.textContent = acc.isActive ? "Удалить" : "Восстановить";
-        toggleBtn.addEventListener("click", () => toggleAccountActiveAsync(acc.id, !acc.isActive));
+            let toggleBtn = document.createElement("button");
+            toggleBtn.type = "button";
+            toggleBtn.className = acc.isActive ? "btn btn-outline-danger" : "btn btn-outline-success";
+            toggleBtn.textContent = acc.isActive ? "Удалить" : "Восстановить";
+            toggleBtn.addEventListener("click", () => toggleAccountActiveAsync(acc.id, !acc.isActive));
 
-        actions.appendChild(editBtn);
-        actions.appendChild(toggleBtn);
+            actions.appendChild(editBtn);
+            actions.appendChild(toggleBtn);
+        }
 
         li.appendChild(info);
-        li.appendChild(actions);
+        if (actions.childElementCount > 0) {
+            li.appendChild(actions);
+        }
 
         accountsListElement.appendChild(li);
     });
@@ -188,25 +218,28 @@ function openEditModal(id) {
     if (!account || !modalInstance)
         return;
 
-    if (!modalAccountIdInput || !modalAccountNameInput || !modalAccountDescriptionInput || !modalAccountIsDefaultInput || !modalAccountErrorElement)
+    if (!modalAccountIdInput || !modalAccountNameInput || !modalAccountDescriptionInput || !modalAccountColorInput || !modalAccountErrorElement)
         return;
 
     modalAccountIdInput.value = account.id;
     modalAccountNameInput.value = account.name;
     modalAccountDescriptionInput.value = account.description;
-    modalAccountIsDefaultInput.checked = !!account.isDefault;
+    setColorPickerValue(modalAccountColorInput, modalAccountColorButton, modalAccountColorValueElement, account.colorHex);
     modalAccountErrorElement.textContent = "";
+    if (modalShareButton) {
+        modalShareButton.disabled = !account.canManage;
+    }
 
     modalInstance.show();
 }
 
 async function onModalSaveClick() {
-    if (!modalAccountIdInput || !modalAccountNameInput || !modalAccountDescriptionInput || !modalAccountErrorElement) return;
+    if (!modalAccountIdInput || !modalAccountNameInput || !modalAccountDescriptionInput || !modalAccountColorInput || !modalAccountErrorElement) return;
 
     let accountId = modalAccountIdInput.value;
     let name = modalAccountNameInput.value.trim();
     let description = modalAccountDescriptionInput.value.trim();
-    let isDefault = modalAccountIsDefaultInput ? modalAccountIsDefaultInput.checked : false;
+    let colorHex = getColorPickerValue(modalAccountColorInput);
 
     if (!name) {
         modalAccountErrorElement.textContent = "Название счёта обязательно.";
@@ -216,37 +249,147 @@ async function onModalSaveClick() {
     let existing = accounts.find(a => a.id === accountId);
     let isActive = existing ? existing.isActive : true;
 
-    let payload = { accountId: accountId, name: name, description: description, isActive: isActive, isDefault: isDefault };
+    let payload = { accountId: accountId, name: name, description: description, colorHex: colorHex, isActive: isActive };
 
     try {
         let data = await sendJsonRequest("?handler=UpdateAccount", "POST", buildJsonHeaders(antiForgeryToken), payload);
-
-        if (!data.success) {
-            modalAccountErrorElement.textContent = data.errorMessage || "Не удалось сохранить изменения.";
-            return;
-        }
-
-        if (data.account) {
-            let updated = normalizeAccountDto(data.account);
-
-            if (updated.isDefault) {
-                // новый "по умолчанию" – снимаем флаг с остальных
-                accounts.forEach(a => {
-                    a.isDefault = (a.id === updated.id);
-                });
-            } else {
-                let updated = normalizeAccountDto(data.account);
-                let idx = accounts.findIndex(a => a.id === updated.id);
-                if (idx >= 0)
-                    accounts[idx] = updated;
-            }
+        if (data.data) {
+            let updated = normalizeAccountDto(data.data);
+            let idx = accounts.findIndex(a => a.id === updated.id);
+            if (idx >= 0)
+                accounts[idx] = updated;
             renderAccountsList();
         }
 
         if (modalInstance) modalInstance.hide();
     } catch (err) {
-        modalAccountErrorElement.textContent = "Ошибка при сохранении счёта.";
+        modalAccountErrorElement.textContent = err && err.message ? err.message : "Ошибка при сохранении счёта.";
     }
+}
+
+async function onShareButtonClick() {
+    if (!modalAccountIdInput || !shareModalInstance || !shareAccountIdInput || !shareAccountTitleElement) {
+        return;
+    }
+
+    let accountId = modalAccountIdInput.value;
+    let account = accounts.find(a => a.id === accountId);
+    if (!account || !account.canManage) {
+        return;
+    }
+
+    shareAccountIdInput.value = account.id;
+    shareAccountTitleElement.textContent = `Доступ к счёту "${account.name}"`;
+
+    await loadShareCandidatesAsync(account.id);
+
+    if (modalInstance) {
+        modalInstance.hide();
+    }
+
+    shareModalInstance.show();
+}
+
+async function loadShareCandidatesAsync(accountId) {
+    if (!shareUsersContainer || !shareEmptyElement || !shareErrorElement) {
+        return;
+    }
+
+    shareErrorElement.textContent = "";
+    shareUsersContainer.replaceChildren();
+    shareEmptyElement.classList.add("d-none");
+
+    try {
+        let response = await sendJsonRequest("?handler=ShareCandidates&accountId=" + encodeURIComponent(accountId), "GET", buildJsonHeaders(antiForgeryToken));
+        let users = Array.isArray(response.data) ? response.data : [];
+        renderShareCandidates(users);
+    } catch (err) {
+        shareErrorElement.textContent = err && err.message ? err.message : "Ошибка при загрузке списка пользователей.";
+    }
+}
+
+function renderShareCandidates(users) {
+    if (!shareUsersContainer || !shareEmptyElement) {
+        return;
+    }
+
+    shareUsersContainer.replaceChildren();
+
+    if (!users.length) {
+        shareEmptyElement.classList.remove("d-none");
+        return;
+    }
+
+    shareEmptyElement.classList.add("d-none");
+
+    users.forEach(user => {
+        let row = document.createElement("div");
+        row.className = "border rounded px-3 py-2 d-flex align-items-center gap-2";
+
+        let input = document.createElement("input");
+        input.className = "form-check-input m-0 flex-shrink-0";
+        input.type = "checkbox";
+        input.id = "share-user-" + user.id;
+        input.name = "sharedUserIds";
+        input.value = user.id;
+        input.checked = !!user.isSelected;
+
+        let label = document.createElement("label");
+        label.className = "mb-0 flex-grow-1";
+        label.htmlFor = input.id;
+
+        let displayName = user.name || user.login || "Без имени";
+        let loginText = user.login ? " (" + user.login + ")" : "";
+        label.textContent = displayName + loginText;
+
+        row.appendChild(input);
+        row.appendChild(label);
+
+        shareUsersContainer.appendChild(row);
+    });
+}
+
+async function onShareSaveClick() {
+    if (!shareAccountIdInput || !shareUsersContainer || !shareErrorElement) {
+        return;
+    }
+
+    let payload = {
+        accountId: shareAccountIdInput.value,
+        userIds: getSelectedSharedUserIds()
+    };
+
+    shareErrorElement.textContent = "";
+
+    try {
+        let data = await sendJsonRequest("?handler=UpdateMembers", "POST", buildJsonHeaders(antiForgeryToken), payload);
+        if (!data.success) {
+            shareErrorElement.textContent = data.message || "Не удалось сохранить доступ.";
+            return;
+        }
+
+        if (shareModalInstance) {
+            shareModalInstance.hide();
+        }
+    } catch (err) {
+        shareErrorElement.textContent = err && err.message ? err.message : "Ошибка при сохранении доступа.";
+    }
+}
+
+function getSelectedSharedUserIds() {
+    if (!shareUsersContainer) {
+        return [];
+    }
+
+    let selected = shareUsersContainer.querySelectorAll('input[name="sharedUserIds"]:checked');
+    let ids = [];
+    selected.forEach(input => {
+        if (input.value) {
+            ids.push(input.value);
+        }
+    });
+
+    return ids;
 }
 
 async function toggleAccountActiveAsync(accountId, newIsActive) {
@@ -260,20 +403,14 @@ async function toggleAccountActiveAsync(accountId, newIsActive) {
         accountId: existing.id,
         name: existing.name,
         description: existing.description,
-        isActive: newIsActive,
-        isDefault: existing.isDefault
+        colorHex: existing.colorHex,
+        isActive: newIsActive
     };
 
     try {
         let data = await sendJsonRequest("?handler=UpdateAccount", "POST", buildJsonHeaders(antiForgeryToken), payload);
-
-        if (!data.success) {
-            console.error("Failed to change account status.");
-            return;
-        }
-
-        if (data.account) {
-            let updated = normalizeAccountDto(data.account);
+        if (data.data) {
+            let updated = normalizeAccountDto(data.data);
             let idx = accounts.findIndex(a => a.id === updated.id);
             if (idx >= 0) {
                 accounts[idx] = updated;
@@ -293,12 +430,54 @@ function normalizeAccountDto(dto) {
         id: dto.id || dto.Id || "",
         name: dto.name || dto.Name || "",
         description: dto.description || dto.Description || "",
+        colorHex: normalizeColorHex(dto.colorHex ?? dto.ColorHex),
         isActive: dto.isActive ?? dto.IsActive ?? true,
-        isDefault: dto.isDefault ?? dto.IsDefault ?? false
+        canManage: dto.canManage ?? dto.CanManage ?? false
     };
 }
 
 function clearCreateAccountErrors() {
     if (newAccountErrorElement) newAccountErrorElement.textContent = "";
     if (accountNameErrorElement) accountNameErrorElement.textContent = "";
+}
+
+function initAccountColorPicker(button, input, valueElement) {
+    if (!button || !input) {
+        return;
+    }
+
+    button.addEventListener("click", function () {
+        input.click();
+    });
+
+    input.addEventListener("input", function () {
+        setColorPickerValue(input, button, valueElement, input.value);
+    });
+
+    setColorPickerValue(input, button, valueElement, input.value || DEFAULT_ACCOUNT_COLOR_HEX);
+}
+
+function setColorPickerValue(input, button, valueElement, colorHex) {
+    let normalizedColorHex = normalizeColorHex(colorHex);
+
+    if (input) {
+        input.value = normalizedColorHex;
+    }
+
+    if (button) {
+        button.style.backgroundColor = normalizedColorHex;
+    }
+
+    if (valueElement) {
+        valueElement.textContent = normalizedColorHex;
+    }
+}
+
+function getColorPickerValue(input) {
+    return normalizeColorHex(input ? input.value : DEFAULT_ACCOUNT_COLOR_HEX);
+}
+
+function normalizeColorHex(colorHex) {
+    let value = (colorHex || "").trim().toUpperCase();
+    return /^#[0-9A-F]{6}$/.test(value) ? value : DEFAULT_ACCOUNT_COLOR_HEX;
 }

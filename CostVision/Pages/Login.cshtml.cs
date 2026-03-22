@@ -47,7 +47,7 @@ namespace CostVision.Pages
             ];
 
             foreach (var role in user.Roles)
-                claims.Add(new Claim(ClaimTypes.Role, role.Name));
+                claims.Add(new Claim(ClaimTypes.Role, role.RoleType.ToString()));
 
 
             ClaimsIdentity claimsIdentity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);

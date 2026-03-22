@@ -12,6 +12,7 @@ let qrScanLastCameraTs = 0;
 let qrScanOverlay = null;     // DOM-элемент оверлея загрузки
 let antiForgeryToken = null;
 let accountSelect = null;
+let accountSelectError = null;
 const ACCOUNT_STORAGE_KEY = "qrScan.selectedAccountId";
 const MANUAL_RECEIPT_DRAFT_STORAGE_KEY = "qrScan.manualReceiptDraft";
 let qrScanResults = [];
@@ -20,13 +21,15 @@ let qrScanCameraPaused = false;
 let qrScanCameraModal = null;
 
 document.addEventListener("DOMContentLoaded", function () {
-    initQrScan();
+    initQrScan().catch(function (error) {
+        console.error("QR scan: ошибка инициализации страницы", error);
+    });
     initManualCheckValidation();
     initCollapseSections();
     initGlobalPasteHandler(); // глобальный Ctrl+V по всей странице
 });
 
-function initQrScan() {
+async function initQrScan() {
     qrScanForm = document.getElementById("qrForm");
     qrScanResultsContainer = document.getElementById("decoded-inputs");
     qrScanFileInput = document.getElementById("multiFileInput");
@@ -35,6 +38,7 @@ function initQrScan() {
     const qrReaderElement = document.getElementById("qr-reader");
     const fileScanRootElement = document.getElementById("file-scan-root");
     accountSelect = document.getElementById("accountSelect");
+    accountSelectError = document.getElementById("accountSelectError");
     antiForgeryToken = getRequestVerificationToken();
 
     const mobile = isMobileDevice();
@@ -46,16 +50,12 @@ function initQrScan() {
     }
 
     if (accountSelect) {
-        // восстановить выбор из localStorage, если он есть и валиден
-        let savedId = localStorage.getItem(ACCOUNT_STORAGE_KEY);
-        if (savedId && hasOption(accountSelect, savedId)) {
-            accountSelect.value = savedId;
-        }
-
         // при смене — сохранять выбор
         accountSelect.addEventListener("change", function () {
             localStorage.setItem(ACCOUNT_STORAGE_KEY, accountSelect.value);
         });
+
+        await loadAvailableAccountsAsync();
     }
 
     // Перехватываем submit формы, чтобы всегда работать через AJAX
@@ -104,6 +104,119 @@ function initQrScan() {
         initQrScanDropzone();
 }
 
+async function loadAvailableAccountsAsync() {
+    if (!accountSelect) {
+        throw new Error("Не найден список счетов.");
+    }
+
+    accountSelect.disabled = true;
+    renderAvailableAccounts([]);
+
+    try {
+        const response = await sendJsonRequest("?handler=Accounts", "GET", buildJsonHeaders(antiForgeryToken));
+        const accountItems = Array.isArray(response.data)
+            ? response.data.map(normalizeReceiptAccountDto).filter(function (item) { return item !== null; })
+            : [];
+
+        if (accountItems.length === 0) {
+            throw new Error("Нет доступных счетов для сохранения чека.");
+        }
+
+        renderAvailableAccounts(accountItems);
+        restoreSelectedAccount(accountItems);
+        accountSelect.disabled = false;
+        hideAccountSelectError();
+    } catch (error) {
+        renderAccountSelectError(error);
+        throw error;
+    }
+}
+
+function renderAvailableAccounts(accounts) {
+    if (!accountSelect) {
+        return;
+    }
+
+    accountSelect.replaceChildren();
+
+    if (!Array.isArray(accounts) || accounts.length === 0) {
+        const loadingOption = document.createElement("option");
+        loadingOption.value = "";
+        loadingOption.textContent = "Загрузка счетов...";
+        accountSelect.appendChild(loadingOption);
+        return;
+    }
+
+    accounts.forEach(function (account) {
+        const option = document.createElement("option");
+        option.value = account.id;
+        option.textContent = account.name;
+        accountSelect.appendChild(option);
+    });
+}
+
+function restoreSelectedAccount(accounts) {
+    if (!accountSelect || !Array.isArray(accounts) || accounts.length === 0) {
+        return;
+    }
+
+    const savedId = localStorage.getItem(ACCOUNT_STORAGE_KEY);
+    if (savedId && hasOption(accountSelect, savedId)) {
+        accountSelect.value = savedId;
+        return;
+    }
+
+    accountSelect.value = accounts[0].id;
+    localStorage.setItem(ACCOUNT_STORAGE_KEY, accountSelect.value);
+}
+
+function normalizeReceiptAccountDto(dto) {
+    if (!dto) {
+        return null;
+    }
+
+    const id = dto.id || dto.Id || "";
+    const name = dto.name || dto.Name || "";
+
+    if (!id || !name) {
+        return null;
+    }
+
+    return {
+        id: id,
+        name: name
+    };
+}
+
+function renderAccountSelectError(error) {
+    if (accountSelect) {
+        accountSelect.disabled = true;
+        accountSelect.replaceChildren();
+
+        const errorOption = document.createElement("option");
+        errorOption.value = "";
+        errorOption.textContent = "Не удалось загрузить счета";
+        accountSelect.appendChild(errorOption);
+    }
+
+    if (!accountSelectError) {
+        return;
+    }
+
+    const message = error && error.message ? error.message : "Не удалось загрузить счета.";
+    accountSelectError.textContent = message;
+    accountSelectError.classList.remove("d-none");
+}
+
+function hideAccountSelectError() {
+    if (!accountSelectError) {
+        return;
+    }
+
+    accountSelectError.textContent = "";
+    accountSelectError.classList.add("d-none");
+}
+
 // ===================== AJAX-отправка формы =====================
 
 async function qrScanSubmitFormAjax() {
@@ -113,20 +226,13 @@ async function qrScanSubmitFormAjax() {
 
     const url = qrScanForm.getAttribute("action") || window.location.href;
 
-    const payload = {
-        accountId: getSelectedAccountId(),
-        results: qrScanResults
-    }
-
     try {
+        const payload = {
+            accountId: getSelectedAccountId(),
+            results: qrScanResults
+        };
+
         const data = await sendJsonRequest(url, "POST", buildJsonHeaders(antiForgeryToken), payload);
-
-        if (!data.success) {
-            console.error("QR scan: запрос завершился с ошибкой", data.errorMessage);
-            qrScanResumeCameraAfterFeedback();
-            return;
-        }
-
         qrScanApplyServerResponse(data);
     } catch (err) {
         console.error("QR scan: ошибка AJAX-запроса", err);
@@ -139,15 +245,16 @@ async function qrScanSubmitFormAjax() {
 }
 
 function qrScanApplyServerResponse(data) {
-    if (!data) {
+    if (!data || !data.data) {
         return;
     }
 
-    const scannedCount = typeof data.scannedCount === "number" ? data.scannedCount : 0;
-    const addedToDbCount = typeof data.addedToDbCount === "number" ? data.addedToDbCount : 0;
-    const errorCount = typeof data.errorCount === "number" ? data.errorCount : 0;
-    const errorMessage = typeof data.errorMessage === "string" ? data.errorMessage : "";
-    const results = Array.isArray(data.results) ? data.results : [];
+    const responseData = data.data;
+    const scannedCount = typeof responseData.scannedCount === "number" ? responseData.scannedCount : 0;
+    const addedToDbCount = typeof responseData.addedToDbCount === "number" ? responseData.addedToDbCount : 0;
+    const errorCount = typeof responseData.errorCount === "number" ? responseData.errorCount : 0;
+    const errorMessage = typeof responseData.message === "string" ? responseData.message : "";
+    const results = Array.isArray(responseData.results) ? responseData.results : [];
 
     qrScanRenderStatus(scannedCount, addedToDbCount, errorCount, errorMessage, results);
     qrScanRenderResults(results);
@@ -721,40 +828,25 @@ function initManualCheckValidation() {
             resultMessage.classList.remove("manual-result--error", "manual-result--success");
         }
 
-        const payload = {
-            receipt: {
-                fiscalDriveNumber: fnDigits,
-                fiscalDocumentNumber: fdDigits,
-                fiscalSign: fpDigits,
-                sum: parseFloat(sumRaw.replace(",", ".")),
-                dateTime: dateValue,
-                operationType: parseInt(typeValue, 10)
-            },
-            accountId: getSelectedAccountId()
-        };
-
         qrScanLastSubmitSource = "manual";
 
         qrScanShowOverlay();
         try {
+            const payload = {
+                receipt: {
+                    fiscalDriveNumber: fnDigits,
+                    fiscalDocumentNumber: fdDigits,
+                    fiscalSign: fpDigits,
+                    sum: parseFloat(sumRaw.replace(",", ".")),
+                    dateTime: dateValue,
+                    operationType: parseInt(typeValue, 10)
+                },
+                accountId: getSelectedAccountId()
+            };
+
             const data = await sendJsonRequest("?handler=Manual", "POST", buildJsonHeaders(antiForgeryToken), payload);
-
-            if (!data.success) {
-                const failureMessage =
-                    (typeof data.errorMessage === "string" && data.errorMessage.trim().length > 0)
-                        ? data.errorMessage
-                        : "Указаны некорректные данные чека";
-
-                qrScanRenderManualStatus(failureMessage, false);
-                if (resultMessage) {
-                    resultMessage.textContent = failureMessage;
-                    resultMessage.classList.remove("manual-result--success");
-                    resultMessage.classList.add("manual-result--error");
-                }
-                return;
-            }
-
-            if (data && data.isCreated) {
+            const responseData = data && data.data ? data.data : null;
+            if (responseData && responseData.isCreated) {
                 qrScanClearManualDraft(fnInput, fdInput, fpInput, sumInput, dateInput, typeSelect);
                 qrScanRenderManualStatus("Чек добавлен в систему", true);
                 if (resultMessage) {
@@ -762,11 +854,11 @@ function initManualCheckValidation() {
                     resultMessage.classList.remove("manual-result--error");
                     resultMessage.classList.add("manual-result--success");
                 }
-            } else if (data && data.isCreated === false) {
-                // Ошибка создания: выводит текст из ErrorMessage, если он есть
+            } else if (responseData && responseData.isCreated === false) {
+                // Ошибка создания: выводит текст из message, если он есть
                 const msg =
-                    (typeof data.errorMessage === "string" && data.errorMessage.trim().length > 0)
-                        ? data.errorMessage
+                    (typeof responseData.message === "string" && responseData.message.trim().length > 0)
+                        ? responseData.message
                         : "Указаны некорректные данные чека";
 
                 qrScanRenderManualStatus(msg, false);
@@ -786,9 +878,10 @@ function initManualCheckValidation() {
             }
         } catch (e) {
             console.error("QR scan: ошибка ручного запроса", e);
-            qrScanRenderManualStatus("Указаны некорректные данные чека", false);
+            const errorMessage = e && e.message ? e.message : "Указаны некорректные данные чека";
+            qrScanRenderManualStatus(errorMessage, false);
             if (resultMessage) {
-                resultMessage.textContent = "Указаны некорректные данные чека";
+                resultMessage.textContent = errorMessage;
                 resultMessage.classList.remove("manual-result--success");
                 resultMessage.classList.add("manual-result--error");
             }
@@ -1844,7 +1937,11 @@ function hasOption(select, value) {
 }
 
 function getSelectedAccountId() {
-    return accountSelect ? accountSelect.value : null;
+    if (!accountSelect || accountSelect.disabled || !accountSelect.value) {
+        throw new Error("Счёт для сохранения чека не выбран.");
+    }
+
+    return accountSelect.value;
 }
 
 // ===================== Глобальная обработка Ctrl+V =====================

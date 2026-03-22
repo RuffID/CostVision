@@ -31,21 +31,23 @@
                             </div>
                         </div>
 
+                        <div class="col-12">
+                            <div class="mb-2">
+                                <label class="form-label d-block" for="account-color-input">Цвет счёта</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" id="account-color-button" class="btn border rounded-2 p-0 flex-shrink-0" style="width: 2.5rem; height: 2.5rem; background-color: #0D6EFD;" aria-label="Выбрать цвет счёта"></button>
+                                    <input id="account-color-input" type="color" class="visually-hidden" value="#0D6EFD" />
+                                    <span id="account-color-value" class="small text-muted">#0D6EFD</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-12 d-flex align-items-center justify-content-between">
                             <button type="submit" id="create-account-btn" class="btn btn-success">
                                 Создать счёт
                             </button>
 
                             <div id="new-account-error" class="text-danger small"></div>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" id="account-isdefault">
-                                <label class="form-check-label" for="account-isdefault">
-                                    Счёт по умолчанию
-                                </label>
-                            </div>
                         </div>
                     </form>
                 </div>
@@ -98,11 +100,13 @@
                     <input type="text" id="modal-account-description" class="form-control" />
                 </div>
 
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="modal-account-isdefault">
-                    <label class="form-check-label" for="modal-account-isdefault">
-                        По умолчанию
-                    </label>
+                <div class="mb-3">
+                    <label class="form-label d-block" for="modal-account-color-input">Цвет счёта</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" id="modal-account-color-button" class="btn border rounded-2 p-0 flex-shrink-0" style="width: 2.5rem; height: 2.5rem; background-color: #0D6EFD;" aria-label="Выбрать цвет счёта"></button>
+                        <input id="modal-account-color-input" type="color" class="visually-hidden" value="#0D6EFD" />
+                        <span id="modal-account-color-value" class="small text-muted">#0D6EFD</span>
+                    </div>
                 </div>
 
                 <div id="modal-account-error" class="text-danger small mt-2"></div>
@@ -113,8 +117,45 @@
                     Отмена
                 </button>
 
+                <button type="button" class="btn btn-outline-secondary" id="modal-share-btn">
+                    Поделиться
+                </button>
+
                 <button type="button" class="btn btn-primary" id="modal-save-btn">
                     Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="account-share-modal" tabindex="-1" aria-labelledby="accountShareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="accountShareModalLabel">Доступ к счёту</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="share-account-id" name="share-account-id" />
+
+                <div id="account-share-error" class="text-danger small mb-3"></div>
+
+                <div id="account-share-users" class="d-flex flex-column gap-2"></div>
+
+                <div id="account-share-empty" class="text-muted small d-none">
+                    Нет пользователей, которым можно предоставить доступ.
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Отмена
+                </button>
+
+                <button type="button" class="btn btn-primary" id="account-share-save-btn">
+                    Сохранить доступ
                 </button>
             </div>
         </div>

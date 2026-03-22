@@ -213,7 +213,12 @@ namespace CostVision.Services.Receipts
             if (receiptId == Guid.Empty)
                 return ServiceResult<Receipt>.Fail(400, "Некорректный идентификатор чека.");
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemById(receiptId, asNoTracking: false, include: r => r.Include(x => x.Items), ct: ct);
+            Receipt? receipt = await unitOfWork.Receipt.GetItemById(receiptId, asNoTracking: false, include: q => q
+                .Include(r => r.Items)
+                .Include(r => r.Accounts)
+                    .ThenInclude(ra => ra.Account)
+                        .ThenInclude(a => a!.Members)
+                .AsSplitQuery(), ct: ct);
 
             if (receipt == null)
                 return ServiceResult<Receipt>.Fail(404, "Чек не найден.");

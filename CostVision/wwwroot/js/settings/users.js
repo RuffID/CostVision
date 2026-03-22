@@ -80,8 +80,8 @@ function initializeUsersPage() {
 
 async function ensureRolesLoaded() {
     try {
-        const roles = await sendJsonRequest('?handler=RoleList', 'GET', buildJsonHeaders(antiForgeryToken));
-        rolesCache = Array.isArray(roles) ? roles : [];
+        const response = await sendJsonRequest('?handler=RoleList', 'GET', buildJsonHeaders(antiForgeryToken));
+        rolesCache = Array.isArray(response.data) ? response.data : [];
     } catch (error) {
         console.error('Ошибка загрузки ролей:', error);
         rolesCache = [];
@@ -91,8 +91,8 @@ async function ensureRolesLoaded() {
 async function loadUsers() {
     try {
         const url = showInactive ? '?handler=UserList&includeInactive=true' : '?handler=UserList';
-        const users = await sendJsonRequest(url, 'GET', { 'Accept': 'application/json' });
-        usersCache = Array.isArray(users) ? users : [];
+        const response = await sendJsonRequest(url, 'GET', { 'Accept': 'application/json' });
+        usersCache = Array.isArray(response.data) ? response.data : [];
         applyClientFilters();
     } catch (error) {
         console.error('Ошибка при загрузке пользователей:', error);
@@ -264,7 +264,8 @@ async function openEditModal(userId) {
     clearEditUserError();
 
     try {
-        const user = await sendJsonRequest(`?handler=User&id=${userId}`, 'GET', buildJsonHeaders(antiForgeryToken));
+        const response = await sendJsonRequest(`?handler=User&id=${userId}`, 'GET', buildJsonHeaders(antiForgeryToken));
+        const user = response.data;
         fillModal(user);
         setModalTitle('Редактирование пользователя');
 

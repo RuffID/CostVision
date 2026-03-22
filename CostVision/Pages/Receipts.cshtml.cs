@@ -14,9 +14,15 @@ namespace CostVision.Pages
 {
     [CookieAuthorize]
     [LoadUser]
-    public class ReceiptsModel(IReceiptService receiptService) : PageModel, IHasCurrentUser
+    public class ReceiptsModel(IReceiptService receiptService, IAccountService accountService) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
+
+        public async Task<JsonResult> OnGetAccountsAsync(CancellationToken ct)
+        {
+            List<UserAccountViewModel> accounts = await accountService.GetUserAccountsAsync(CurrentUser.Id, false, ct);
+            return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
+        }
 
         public async Task<JsonResult> OnGetReceiptListAsync([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, CancellationToken ct)
         {
@@ -27,17 +33,7 @@ namespace CostVision.Pages
 
             List<ReceiptDto> items = result.Data
                 .OrderByDescending(r => r.DateTime)
-                .Select(r => new ReceiptDto
-                {
-                    Id = r.Id,
-                    DateTime = r.DateTime,
-                    RetailPlace = r.RetailPlace ?? r.User ?? string.Empty,
-                    RetailPlaceAddress = r.RetailPlaceAddress ?? string.Empty,
-                    FiscalDocumentNumber = r.FiscalDocumentNumber ?? string.Empty,
-                    FiscalDriveNumber = r.FiscalDriveNumber ?? string.Empty,
-                    FiscalSign = r.FiscalSign ?? string.Empty,
-                    TotalSum = r.TotalSum
-                })
+                .Select(r => r.MapReceiptDto())
                 .ToList();
 
             ServiceResult<List<ReceiptDto>> dtoResult = ServiceResult<List<ReceiptDto>>.Ok(items);
@@ -62,18 +58,8 @@ namespace CostVision.Pages
                 })
                 .ToList();
 
-            ReceiptDto receiptDto = new()
-            {
-                Id = result.Data.Id,
-                DateTime = result.Data.DateTime,
-                RetailPlace = result.Data.RetailPlace ?? result.Data.User ?? "-",
-                RetailPlaceAddress = result.Data.RetailPlaceAddress ?? "-",
-                FiscalDocumentNumber = result.Data.FiscalDocumentNumber ?? string.Empty,
-                FiscalDriveNumber = result.Data.FiscalDriveNumber ?? string.Empty,
-                FiscalSign = result.Data.FiscalSign ?? string.Empty,
-                TotalSum = result.Data.TotalSum,
-                Items = items
-            };
+            ReceiptDto receiptDto = result.Data.MapReceiptDto();
+            receiptDto.Items = items;
 
             ServiceResult<ReceiptDto> dtoResult = ServiceResult<ReceiptDto>.Ok(receiptDto);
 
@@ -87,17 +73,7 @@ namespace CostVision.Pages
             if (!result.Success || result.Data == null)
                 return JsonResultMapper.ToJsonResult(result);
 
-            ReceiptDto receiptDto = new()
-            {
-                Id = result.Data.Id,
-                DateTime = result.Data.DateTime,
-                RetailPlace = result.Data.RetailPlace ?? result.Data.User ?? "-",
-                RetailPlaceAddress = result.Data.RetailPlaceAddress ?? "-",
-                FiscalDocumentNumber = result.Data.FiscalDocumentNumber ?? string.Empty,
-                FiscalDriveNumber = result.Data.FiscalDriveNumber ?? string.Empty,
-                FiscalSign = result.Data.FiscalSign ?? string.Empty,
-                TotalSum = result.Data.TotalSum
-            };
+            ReceiptDto receiptDto = result.Data.MapReceiptDto();
 
             ServiceResult<ReceiptDto> dtoResult = ServiceResult<ReceiptDto>.Ok(receiptDto);
 
@@ -116,6 +92,6 @@ namespace CostVision.Pages
             ServiceResult<bool> serviceResult = await receiptService.DeleteReceiptAsync(request.ReceiptId, CurrentUser, ct);
 
             return JsonResultMapper.ToJsonResult(serviceResult);
-        }
+        }        
     }
 }

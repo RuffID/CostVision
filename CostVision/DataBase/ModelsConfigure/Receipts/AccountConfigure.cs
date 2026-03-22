@@ -21,6 +21,10 @@ namespace CostVision.DataBase.ModelsConfigure.Receipts
             builder.Property(x => x.Description)
                 .HasMaxLength(512);
 
+            builder.Property(x => x.ColorHex)
+                .IsRequired()
+                .HasMaxLength(7);
+
             builder.Property(x => x.IsArchived)
                 .IsRequired();
 

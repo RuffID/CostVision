@@ -80,7 +80,9 @@ namespace CostVision.Services.Authorize.Attributes
 
         private static bool IsUsersSettingsPage(string path)
         {
-            return path.StartsWith("/Settings/Users", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(path, "/Settings/Users", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(path, "/Settings/Users/", StringComparison.OrdinalIgnoreCase);
+
         }
 
         private static bool HasAdminRole(User user)

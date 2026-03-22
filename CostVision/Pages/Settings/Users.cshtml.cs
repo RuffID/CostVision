@@ -3,7 +3,7 @@ using CostVision.Interfaces.Service.Authorize;
 using CostVision.Models.Authorization;
 using CostVision.Models.Dtos.Authorization;
 using CostVision.Models.Dtos.Mappers;
-using CostVision.Models.PageModels;
+using CostVision.Models.Requests.Authorize;
 using CostVision.Models.Responses.Results;
 using CostVision.Services.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
@@ -48,13 +48,13 @@ namespace CostVision.Pages.Settings
             return JsonResultMapper.ToJsonResult(ServiceResult<List<RoleDto>>.Ok(dto));
         }
 
-        public async Task<IActionResult> OnPostCreateAsync([FromBody] UserUpsertPageModel dto, CancellationToken ct = default)
+        public async Task<IActionResult> OnPostCreateAsync([FromBody] UserUpsertRequest dto, CancellationToken ct = default)
         {
             ServiceResult result = await userService.CreateUserAsync(dto, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
-        public async Task<IActionResult> OnPostUpdateAsync([FromBody] UserUpsertPageModel dto, CancellationToken ct = default)
+        public async Task<IActionResult> OnPostUpdateAsync([FromBody] UserUpsertRequest dto, CancellationToken ct = default)
         {
             ServiceResult result = await userService.UpdateUserAsync(dto, ct);
             return JsonResultMapper.ToJsonResult(result);

@@ -8,7 +8,10 @@
 
         public string? Description { get; set; }
 
+        public string ColorHex { get; set; } = CostVision.Models.Receipts.Account.DEFAULT_COLOR_HEX;
+
         public bool IsActive { get; set; }
-        public bool IsDefault { get; set; }
+
+        public bool CanManage { get; set; }
     }
 }

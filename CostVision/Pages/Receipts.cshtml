@@ -10,13 +10,31 @@
 
     <div class="row g-2 mb-3 align-items-end">
         <div class="col-auto">
+            <label for="receiptPeriodPreset" class="form-label mb-1">Период</label>
+            <select id="receiptPeriodPreset" name="receiptPeriodPreset" class="form-select">
+                <option value="currentDay">Текущий день</option>
+                <option value="currentWeek">Текущая неделя</option>
+                <option value="currentMonth" selected>Текущий месяц</option>
+                <option value="currentYear">Текущий год</option>
+            </select>
+        </div>
+
+        <div class="col-auto">
             <label for="dateFrom" class="form-label mb-1">Период с</label>
-            <input type="date" id="dateFrom" class="form-control" autocomplete="off">
+            <input type="date" id="dateFrom" name="dateFrom" class="form-control" autocomplete="off">
         </div>
 
         <div class="col-auto">
             <label for="dateTo" class="form-label mb-1">по</label>
-            <input type="date" id="dateTo" class="form-control" autocomplete="off">
+            <input type="date" id="dateTo" name="dateTo" class="form-control" autocomplete="off">
+        </div>
+
+        <div class="col-12 col-md-4 col-lg-3">
+            <label for="receiptAccountFilter" class="form-label mb-1">Счёт</label>
+            <select id="receiptAccountFilter" name="receiptAccountFilter" class="form-select" disabled>
+                <option value="">Загрузка счетов...</option>
+            </select>
+            <div id="receiptAccountFilterError" class="text-danger small mt-2 d-none"></div>
         </div>
 
         <div class="col-auto">
@@ -28,9 +46,9 @@
         <div class="col-12 col-md-6">
             <label for="receiptSearch" class="form-label mb-1">Поиск</label>
             <div class="input-group">
-                <input type="text" id="receiptSearch" class="form-control" placeholder="Введите запрос..." autocomplete="off">
+                <input type="text" id="receiptSearch" name="receiptSearch" class="form-control" placeholder="Введите запрос..." autocomplete="off">
 
-                <select id="receiptSearchMode" class="form-select" style="max-width: 160px;">
+                <select id="receiptSearchMode" name="receiptSearchMode" class="form-select" style="max-width: 160px;">
                     <option value="all" selected>Все</option>
                     <option value="sum">Сумма</option>
                     <option value="shop">Магазин</option>
@@ -38,6 +56,8 @@
                     <option value="fd">ФД</option>
                     <option value="fp">ФП</option>
                 </select>
+
+                <span id="receiptsCount" class="input-group-text">Чеков: 0</span>
             </div>
         </div>
     </div>

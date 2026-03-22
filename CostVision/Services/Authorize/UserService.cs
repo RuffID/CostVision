@@ -2,7 +2,7 @@
 using CostVision.Interfaces.Service.Authorize;
 using CostVision.Models.Authorization;
 using CostVision.Models.Dtos.Authorization;
-using CostVision.Models.PageModels;
+using CostVision.Models.Requests.Authorize;
 using CostVision.Models.Responses.Results;
 using CostVision.Services.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -59,7 +59,7 @@ namespace CostVision.Services.Authorize
             return ServiceResult<UserEditDto>.Ok(dto);
         }
 
-        public async Task<ServiceResult> CreateUserAsync(UserUpsertPageModel dto, CancellationToken ct)
+        public async Task<ServiceResult> CreateUserAsync(UserUpsertRequest dto, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(dto.Login))
             
@@ -106,7 +106,7 @@ namespace CostVision.Services.Authorize
             return ServiceResult.Ok();
         }
 
-        public async Task<ServiceResult> UpdateUserAsync(UserUpsertPageModel dto, CancellationToken ct)
+        public async Task<ServiceResult> UpdateUserAsync(UserUpsertRequest dto, CancellationToken ct)
         {
             if (!dto.Id.HasValue)            
                 return ServiceResult.Fail(400, "Некорректный id пользователя.");

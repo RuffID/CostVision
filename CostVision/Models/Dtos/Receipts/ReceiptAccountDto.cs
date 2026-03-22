@@ -1,9 +1,11 @@
-﻿namespace CostVision.Models.Requests.Receipts
+namespace CostVision.Models.Dtos.Receipts
 {
-    public class CreateAccountRequest
+    public class ReceiptAccountDto
     {
+        public Guid Id { get; set; }
+
         public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
+
         public string ColorHex { get; set; } = CostVision.Models.Receipts.Account.DEFAULT_COLOR_HEX;
     }
 }

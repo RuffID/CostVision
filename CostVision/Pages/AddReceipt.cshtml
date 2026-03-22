@@ -1,5 +1,4 @@
 ﻿@page "/add-receipt"
-@using CostVision.Models.Receipts
 @model CostVision.Pages.AddReceiptModel
 @{
     ViewData["Title"] = "Добавить чек";
@@ -11,19 +10,11 @@
 <div class="mb-4" style="max-width:400px;">
     <label for="accountSelect" class="form-label fw-semibold fs-5">Счёт для сохранения чека</label>
 
-    <select id="accountSelect" class="form-select form-select-lg">
-        @foreach (Account acc in Model.CurrentUser.Accounts)
-        {
-            if (acc.IsDefault)
-            {
-                <option value="@acc.Id" selected>@acc.Name</option>
-            }
-            else
-            {
-                <option value="@acc.Id">@acc.Name</option>
-            }
-        }
+    <select id="accountSelect" name="accountSelect" class="form-select form-select-lg" disabled>
+        <option value="">Загрузка счетов...</option>
     </select>
+
+    <div id="accountSelectError" class="text-danger small mt-2 d-none"></div>
 </div>
 
 <form method="post" id="qrForm">

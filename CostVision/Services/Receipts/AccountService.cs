@@ -1,30 +1,35 @@
 ﻿using CostVision.Interfaces.DataBase.Repositories;
 using CostVision.Interfaces.Service.Receipts;
+using CostVision.Models.Authorization;
+using CostVision.Models.Dtos.Receipts;
 using CostVision.Models.Enums.Authorization;
 using CostVision.Models.Enums.Services.Receipts;
 using CostVision.Models.Receipts;
 using CostVision.Models.Requests.Receipts;
+using CostVision.Models.Responses.Results;
 using CostVision.Models.Services.Receipts;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace CostVision.Services.Receipts
 {
     public class AccountService(IUnitOfWork unitOfWork) : IAccountService
     {
-        public async Task<Account> CreateAccountAsync(Guid ownerUserId, CreateAccountRequest request, CancellationToken ct)
-        {
-            Account? existDefault = await unitOfWork.Account.GetItemByPredicate(a => a.IsDefault && a.CreatedByUserId == ownerUserId, ct: ct);
+        private static readonly Regex colorHexRegex = new("^#[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
 
-            if (existDefault != null && existDefault.IsDefault)
-                existDefault.IsDefault = false;
+        public async Task<ServiceResult<Account>> CreateAccountAsync(Guid ownerUserId, CreateAccountRequest request, CancellationToken ct)
+        {
+            ServiceResult<string> colorHexResult = NormalizeColorHex(request.ColorHex);
+            if (!colorHexResult.Success || colorHexResult.Data == null)
+                return ServiceResult<Account>.Fail(colorHexResult.Error!.StatusCode, colorHexResult.Error.Message);
 
             Account account = new()
             {
                 Name = request.Name,
                 Description = request.Description,
+                ColorHex = colorHexResult.Data,
                 CreatedAtUtc = DateTime.UtcNow,
                 CreatedByUserId = ownerUserId,
-                IsDefault = request.IsDefault,
             };
 
             AccountMember ownerMember = new()
@@ -40,60 +45,129 @@ namespace CostVision.Services.Receipts
                 unitOfWork.AccountMember.Create(ownerMember);
             }, ct);
 
-            return account;
+            return ServiceResult<Account>.Ok(account);
         }
 
-        public async Task<bool> UpdateAccountAsync(Guid ownerUserId, Account account, CancellationToken ct)
+        public async Task<ServiceResult<Account>> UpdateAccountAsync(Guid ownerUserId, Account account, CancellationToken ct)
         {
+            ServiceResult<string> colorHexResult = NormalizeColorHex(account.ColorHex);
+            if (!colorHexResult.Success || colorHexResult.Data == null)
+                return ServiceResult<Account>.Fail(colorHexResult.Error!.StatusCode, colorHexResult.Error.Message);
+
             Account? current = await unitOfWork.Account.GetItemByPredicate(a => a.Id == account.Id && a.CreatedByUserId == ownerUserId, ct: ct);
 
             if (current == null)
-                return false;
-
-            bool wasDefault = current.IsDefault;
-            bool willBeDefault = account.IsDefault;
-            bool willBeArchived = account.IsArchived;
-
-            // Нельзя делать дефолтным удалённый счёт
-            if (willBeDefault && willBeArchived)
-                return false;
-
-            // Нельзя удалять (архивировать) счёт по умолчанию
-            // Запретить, если счёт сейчас дефолтный и его пытаются заархивировать
-            if (willBeArchived && wasDefault)
-                return false;
-
-            // Нельзя снимать "по умолчанию" с текущего дефолтного счёта
-            // Т.е. запрет: было IsDefault = true, станет IsDefault = false, и при этом счёт не архивируется
-            if (wasDefault && !willBeDefault && !willBeArchived)
-                return false;
-
-            // Если делать счёт дефолтным — снять флаг со всех остальных активных
-            if (willBeDefault && !willBeArchived)
-            {
-                List<Account> activeAccounts = await unitOfWork.Account
-                    .GetItemsByPredicate(a => a.CreatedByUserId == ownerUserId && !a.IsArchived, ct: ct);
-
-                foreach (Account acc in activeAccounts)
-                {
-                    if (acc.Id != current.Id && acc.IsDefault)
-                        acc.IsDefault = false;
-                }
-            }
+                return ServiceResult<Account>.Fail(404, "Счёт не найден.");
 
             // Применить новые значения к текущему аккаунту
             current.Name = account.Name;
             current.Description = account.Description;
+            current.ColorHex = colorHexResult.Data;
             current.IsArchived = account.IsArchived;
-            current.IsDefault = willBeDefault;
 
             await unitOfWork.SaveChangesAsync(ct);
 
             // Обновить ссылочный объект, который уходит наверх
+            account.ColorHex = current.ColorHex;
             account.IsArchived = current.IsArchived;
-            account.IsDefault = current.IsDefault;
 
-            return true;
+            return ServiceResult<Account>.Ok(account);
+        }
+
+        public async Task<ServiceResult<List<AccountShareUserDto>>> GetAccountShareUsersAsync(Guid accountId, Guid ownerUserId, CancellationToken ct)
+        {
+            if (accountId == Guid.Empty)
+                return ServiceResult<List<AccountShareUserDto>>.Fail(400, "Некорректный идентификатор счёта.");
+
+            Account? account = await unitOfWork.Account.GetItemByPredicate(a => a.Id == accountId && a.CreatedByUserId == ownerUserId,
+                asNoTracking: true,
+                include: q => q.Include(a => a.Members),
+                ct: ct);
+
+            if (account == null)
+                return ServiceResult<List<AccountShareUserDto>>.Fail(404, "Счёт не найден.");
+
+            HashSet<Guid> selectedUserIds = account.Members
+                .Where(m => m.UserId != ownerUserId)
+                .Select(m => m.UserId)
+                .ToHashSet();
+
+            List<User> users = await unitOfWork.User.GetItemsByPredicate(u => u.IsActive && u.Id != ownerUserId, asNoTracking: true, ct: ct);
+
+            List<AccountShareUserDto> items = users
+                .OrderBy(u => u.Name)
+                .Select(u => new AccountShareUserDto
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Login = u.Login,
+                    IsSelected = selectedUserIds.Contains(u.Id)
+                })
+                .ToList();
+
+            return ServiceResult<List<AccountShareUserDto>>.Ok(items);
+        }
+
+        public async Task<ServiceResult<bool>> UpdateAccountMembersAsync(Guid accountId, Guid ownerUserId, IReadOnlyCollection<Guid> userIds, CancellationToken ct)
+        {
+            if (accountId == Guid.Empty)
+                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
+
+            Account? account = await unitOfWork.Account.GetItemByPredicate(a => a.Id == accountId && a.CreatedByUserId == ownerUserId,
+                asNoTracking: false,
+                include: q => q.Include(a => a.Members),
+                ct: ct);
+
+            if (account == null)
+                return ServiceResult<bool>.Fail(404, "Счёт не найден.");
+
+            List<Guid> desiredUserIds = userIds
+                .Where(x => x != Guid.Empty && x != ownerUserId)
+                .Distinct()
+                .ToList();
+
+            List<User> availableUsers = desiredUserIds.Count == 0
+                ? new()
+                : await unitOfWork.User.GetItemsByPredicate(u => desiredUserIds.Contains(u.Id) && u.IsActive, asNoTracking: true, ct: ct);
+
+            if (availableUsers.Count != desiredUserIds.Count)
+                return ServiceResult<bool>.Fail(400, "Один или несколько выбранных пользователей недоступны.");
+
+            List<AccountMember> currentMembers = account.Members
+                .Where(m => m.UserId != ownerUserId)
+                .ToList();
+
+            HashSet<Guid> currentUserIds = currentMembers
+                .Select(m => m.UserId)
+                .ToHashSet();
+
+            List<AccountMember> membersToRemove = currentMembers
+                .Where(m => !desiredUserIds.Contains(m.UserId))
+                .ToList();
+
+            List<Guid> userIdsToAdd = desiredUserIds
+                .Where(id => !currentUserIds.Contains(id))
+                .ToList();
+
+            await unitOfWork.ExecuteInTransaction(async () =>
+            {
+                if (membersToRemove.Count > 0)
+                    unitOfWork.AccountMember.DeleteRange(membersToRemove);
+
+                foreach (Guid userId in userIdsToAdd)
+                {
+                    unitOfWork.AccountMember.Create(new AccountMember
+                    {
+                        AccountId = accountId,
+                        UserId = userId,
+                        Role = AccountAccessRole.Viewer
+                    });
+                }
+
+                await Task.CompletedTask;
+            }, ct);
+
+            return ServiceResult<bool>.Ok(true);
         }
 
         public async Task<AccountMember> AddMemberAsync(Guid accountId, Guid ownerUserId, Guid targetUserId, AccountAccessRole role, CancellationToken ct)
@@ -178,8 +252,9 @@ namespace CostVision.Services.Receipts
                 Id = account.Id,
                 Name = account.Name,
                 Description = account.Description,
+                ColorHex = account.ColorHex,
                 IsActive = !account.IsArchived,
-                IsDefault = account.IsDefault
+                CanManage = account.CreatedByUserId == userId
             }).ToList();
         }
 
@@ -250,6 +325,18 @@ namespace CostVision.Services.Receipts
                 Status = ReceiptAccountLinkStatusEnum.Success,
                 Link = link
             };
+        }
+
+        private static ServiceResult<string> NormalizeColorHex(string? colorHex)
+        {
+            if (string.IsNullOrWhiteSpace(colorHex))
+                return ServiceResult<string>.Ok(Account.DEFAULT_COLOR_HEX);
+
+            string normalizedColorHex = colorHex.Trim().ToUpperInvariant();
+            if (!colorHexRegex.IsMatch(normalizedColorHex))
+                return ServiceResult<string>.Fail(400, "Некорректный цвет счёта.");
+
+            return ServiceResult<string>.Ok(normalizedColorHex);
         }
     }
 }

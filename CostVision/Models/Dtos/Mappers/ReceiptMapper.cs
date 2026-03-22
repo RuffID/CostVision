@@ -1,4 +1,5 @@
-﻿using CostVision.Models.Receipts;
+﻿using CostVision.Models.Dtos.Receipts;
+using CostVision.Models.Receipts;
 using CostVision.Models.Responses.ProverkachekaApi;
 
 namespace CostVision.Models.Dtos.Mappers
@@ -41,6 +42,37 @@ namespace CostVision.Models.Dtos.Mappers
                 NumberKkt = json.NumberKkt
             };
         }
-    }
 
+        public static ReceiptDto MapReceiptDto(this Receipt receipt)
+        {
+            List<ReceiptAccountDto> accounts = receipt.Accounts
+                .Where(x => x.Account != null)
+                .GroupBy(x => x.AccountId)
+                .Select(group => new ReceiptAccountDto
+                {
+                    Id = group.Key,
+                    Name = group.Select(x => x.Account!.Name).FirstOrDefault() ?? string.Empty,
+                    ColorHex = group.Select(x => x.Account!.ColorHex).FirstOrDefault() ?? Account.DEFAULT_COLOR_HEX
+                })
+                .OrderBy(x => x.Name)
+                .ToList();
+
+            ReceiptAccountDto? receiptAccount = accounts.FirstOrDefault();
+
+            return new ReceiptDto
+            {
+                Id = receipt.Id,
+                DateTime = receipt.DateTime,
+                RetailPlace = receipt.RetailPlace ?? receipt.User ?? string.Empty,
+                RetailPlaceAddress = receipt.RetailPlaceAddress ?? string.Empty,
+                FiscalDocumentNumber = receipt.FiscalDocumentNumber ?? string.Empty,
+                FiscalDriveNumber = receipt.FiscalDriveNumber ?? string.Empty,
+                FiscalSign = receipt.FiscalSign ?? string.Empty,
+                TotalSum = receipt.TotalSum,
+                AccountId = receiptAccount?.Id,
+                AccountName = receiptAccount?.Name ?? string.Empty,
+                Accounts = accounts
+            };
+        }
+    }
 }
