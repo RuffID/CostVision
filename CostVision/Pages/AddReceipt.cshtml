@@ -4,10 +4,8 @@
     ViewData["Title"] = "Добавить чек";
 }
 
-<link rel="stylesheet" href="~/css/receipt/addReceipt.css" asp-append-version="true" />
-
 <!-- Выбор счёта -->
-<div class="mb-4" style="max-width:400px;">
+<div class="mb-4 w-100" style="max-width: 400px;">
     <label for="accountSelect" class="form-label fw-semibold fs-5">Счёт для сохранения чека</label>
 
     <select id="accountSelect" name="accountSelect" class="form-select form-select-lg" disabled>
@@ -19,17 +17,17 @@
 
 <form method="post" id="qrForm">
     <!-- Виджет камеры html5-qrcode -->
-    <div id="qr-reader" style="width: 400px; max-width: 100%;"></div>
+    <div id="qr-reader" class="w-100" style="max-width: 400px;"></div>
 
     <!-- Мультизагрузка файлов + drag-and-drop -->
-    <div class="qr-upload-block" style="margin-top: 1rem;">
+    <div class="qr-upload-block d-flex flex-column gap-3 mt-3">
         <input type="file" id="multiFileInput" accept="image/*" multiple style="display:none;" />
 
         <!-- Drag-and-drop -->
-        <div id="qr-dropzone" class="qr-dropzone">
+        <div id="qr-dropzone" class="qr-dropzone border border-2 rounded-4 p-4 text-center" style="border-style: dashed !important; border-color: #94a3b8 !important; background-color: #f3f4f6;" role="button" tabindex="0">
             <div class="qr-dropzone__content">
-                <div class="qr-dropzone__title">Перетащите сюда файлы с QR-кодами</div>
-                <div class="qr-dropzone__subtitle">или нажмите, чтобы выбрать из файлов на диске</div>
+                <div class="qr-dropzone__title fw-semibold">Перетащите сюда файлы с QR-кодами</div>
+                <div class="qr-dropzone__subtitle small text-body-secondary mt-1">или нажмите, чтобы выбрать из файлов на диске</div>
             </div>
         </div>
     </div>
@@ -42,38 +40,38 @@
 </form>
 
 <!-- Ручной ввод: сворачиваемый блок -->
-<div class="qr-section">
-    <button type="button" class="qr-section__header qr-section__header--collapsed" data-collapse-target="#manual-request-root">
+<div class="qr-section mt-4 rounded-4 border overflow-hidden" style="background-color: #F9FAFB; border-color: #d1d5db !important; border-radius: 1rem;">
+    <button type="button" class="qr-section__header qr-section__header--collapsed btn w-100 d-flex align-items-center justify-content-between text-start px-4 py-3 border-0 rounded-top-4 bg-transparent fw-bold fs-6" data-collapse-target="#manual-request-root" aria-expanded="false">
         <span>Ручной ввод данных чека</span>
-        <span class="qr-section__arrow" aria-hidden="true"></span>
+        <span class="qr-section__arrow text-body-secondary fs-5" aria-hidden="true">▸</span>
     </button>
 
-    <div id="manual-request-root" class="qr-section__body qr-section__body--collapsed">
-        <div class="manual-row">
-            <label for="manual-fn" style="font-size:14px;">ФН (номер фискального накопителя)</label>
-            <input id="manual-fn" type="text" />
+    <div id="manual-request-root" class="qr-section__body qr-section__body--collapsed d-none px-4 pb-4 pt-3 border-top rounded-bottom-4" style="background-color: #F9FAFB; border-color: #d1d5db !important; border-bottom-left-radius: 1rem; border-bottom-right-radius: 1rem;">
+        <div class="manual-row mb-3">
+            <label for="manual-fn" class="form-label" style="font-size:14px;">ФН (номер фискального накопителя)</label>
+            <input id="manual-fn" type="text" class="form-control" />
         </div>
-        <div class="manual-row">
-            <label for="manual-fd" style="font-size:14px;">ФД (номер фискального документа)</label>
-            <input id="manual-fd" type="text" />
+        <div class="manual-row mb-3">
+            <label for="manual-fd" class="form-label" style="font-size:14px;">ФД (номер фискального документа)</label>
+            <input id="manual-fd" type="text" class="form-control" />
         </div>
-        <div class="manual-row">
-            <label for="manual-fp" style="font-size:14px;">ФПД (фискальный признак документа)</label>
-            <input id="manual-fp" type="text" />
+        <div class="manual-row mb-3">
+            <label for="manual-fp" class="form-label" style="font-size:14px;">ФПД (фискальный признак документа)</label>
+            <input id="manual-fp" type="text" class="form-control" />
         </div>
-        <div class="manual-row">
-            <label for="manual-sum" style="font-size:14px;">Сумма чека (руб)</label>
-            <input id="manual-sum" type="number" step="0.01" placeholder="Например: 1403.44" />
-        </div>
-
-        <div class="manual-row">
-            <label for="manual-date" style="font-size:14px;">Дата и время чека</label>
-            <input id="manual-date" type="datetime-local" />
+        <div class="manual-row mb-3">
+            <label for="manual-sum" class="form-label" style="font-size:14px;">Сумма чека (руб)</label>
+            <input id="manual-sum" type="number" step="0.01" placeholder="Например: 1403.44" class="form-control" />
         </div>
 
-        <div class="manual-row">
-            <label for="manual-type" style="font-size:14px;">Вид чека</label>
-            <select id="manual-type">
+        <div class="manual-row mb-3">
+            <label for="manual-date" class="form-label" style="font-size:14px;">Дата и время чека</label>
+            <input id="manual-date" type="datetime-local" class="form-control" />
+        </div>
+
+        <div class="manual-row mb-3">
+            <label for="manual-type" class="form-label" style="font-size:14px;">Вид чека</label>
+            <select id="manual-type" class="form-select">
                 <option value="1">Приход</option>
                 <option value="2">Возврат прихода</option>
                 <option value="3">Расход</option>
@@ -81,9 +79,9 @@
             </select>
         </div>
 
-        <button type="button" id="manual-check-btn">Добавить</button>
+        <button type="button" id="manual-check-btn" class="btn btn-primary rounded-pill px-4">Добавить</button>
 
-        <div id="manual-result-message" style="margin-top:8px; font-size:14px;"></div>
+        <div id="manual-result-message" class="small mt-2"></div>
     </div>
 </div>
 
