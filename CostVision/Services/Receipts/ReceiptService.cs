@@ -27,6 +27,7 @@ namespace CostVision.Services.Receipts
             // Считать количество отсканированных чеков
             int scannedCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.DecodedText));
             int addedCount = 0;
+            List<Receipt> createdReceipts = new();
 
             foreach (QrScanResult result in request.Results)
             {
@@ -91,12 +92,16 @@ namespace CostVision.Services.Receipts
                 }
 
                 unitOfWork.Receipt.Create(receipt);
+                createdReceipts.Add(receipt);
                 addedCount++;
             }
 
 
             if (addedCount > 0)
+            {
                 await unitOfWork.SaveChangesAsync(ct);
+                await TryRefreshCreatedReceiptsAsync(createdReceipts, ct);
+            }
 
             int errorCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.ErrorMessage));
 
@@ -157,11 +162,12 @@ namespace CostVision.Services.Receipts
 
             unitOfWork.Receipt.Create(receipt);
             await unitOfWork.SaveChangesAsync(ct);
+            Receipt refreshedReceipt = await TryRefreshCreatedReceiptAsync(receipt, ct);
 
             ManualReceiptResult result = new()
             {
                 IsCreated = true,
-                Receipt = receipt
+                Receipt = refreshedReceipt
             };
 
             return result;
@@ -352,6 +358,25 @@ namespace CostVision.Services.Receipts
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);
+        }
+
+        private async Task TryRefreshCreatedReceiptsAsync(IEnumerable<Receipt> receipts, CancellationToken ct)
+        {
+            foreach (Receipt receipt in receipts)            
+                await TryRefreshCreatedReceiptAsync(receipt, ct);            
+        }
+
+        private async Task<Receipt> TryRefreshCreatedReceiptAsync(Receipt receipt, CancellationToken ct)
+        {
+            try
+            {
+                ServiceResult<Receipt> refreshResult = await RefreshReceiptFromApiInternalAsync(receipt, ct);
+                return refreshResult.Success && refreshResult.Data != null ? refreshResult.Data : receipt;
+            }
+            catch
+            {
+                return receipt;
+            }
         }
     }
 }

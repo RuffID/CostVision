@@ -13,16 +13,24 @@ namespace CostVision.Abstractions.Service.Receipts
 
         Task<List<UserAccountViewModel>> GetUserAccountsAsync(Guid userId, bool includeArchived, CancellationToken ct);
 
+        Task<List<UserAccountViewModel>> GetUserAccountsForReceiptCreationAsync(Guid userId, CancellationToken ct);
+
         Task<ServiceResult<Account>> UpdateAccountAsync(Guid ownerUserId, Account account, CancellationToken ct);
 
         Task<ServiceResult<List<AccountShareUserDto>>> GetAccountShareUsersAsync(Guid accountId, Guid ownerUserId, CancellationToken ct);
 
-        Task<ServiceResult<bool>> UpdateAccountMembersAsync(Guid accountId, Guid ownerUserId, IReadOnlyCollection<Guid> userIds, CancellationToken ct);
+        Task<ServiceResult<bool>> UpdateAccountMembersAsync(Guid accountId, Guid ownerUserId, IReadOnlyCollection<UpdateAccountMemberRequest> members, CancellationToken ct);
+
+        Task<ServiceResult<bool>> ValidateReceiptCreationAccessAsync(Guid accountId, Guid userId, CancellationToken ct);
 
         Task<AccountMember> AddMemberAsync(Guid accountId, Guid ownerUserId, Guid targetUserId, AccountAccessRole role, CancellationToken ct);
 
         Task RemoveMemberAsync(Guid accountId, Guid ownerUserId, Guid targetUserId, CancellationToken ct);
 
         Task<ReceiptAccountLinkResult> LinkReceiptToAccountAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct);
+
+        Task<ServiceResult<bool>> MoveReceiptToAccountAsync(Guid sourceAccountId, Guid targetAccountId, Guid receiptId, Guid currentUserId, CancellationToken ct);
+
+        Task<ServiceResult<bool>> RemoveReceiptFromAccountAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct);
     }
 }

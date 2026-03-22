@@ -92,6 +92,20 @@ namespace CostVision.Pages
             ServiceResult<bool> serviceResult = await receiptService.DeleteReceiptAsync(request.ReceiptId, CurrentUser, ct);
 
             return JsonResultMapper.ToJsonResult(serviceResult);
-        }        
+        }
+
+        public async Task<JsonResult> OnPostMoveReceiptToAccountAsync([FromBody] MoveReceiptToAccountRequest request, CancellationToken ct)
+        {
+            ServiceResult<bool> serviceResult = await accountService.MoveReceiptToAccountAsync(request.SourceAccountId, request.TargetAccountId, request.ReceiptId, CurrentUser.Id, ct);
+
+            return JsonResultMapper.ToJsonResult(serviceResult);
+        }
+
+        public async Task<JsonResult> OnPostRemoveReceiptFromAccountAsync([FromBody] RemoveReceiptFromAccountRequest request, CancellationToken ct)
+        {
+            ServiceResult<bool> serviceResult = await accountService.RemoveReceiptFromAccountAsync(request.AccountId, request.ReceiptId, CurrentUser.Id, ct);
+
+            return JsonResultMapper.ToJsonResult(serviceResult);
+        }
     }
 }

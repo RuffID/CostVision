@@ -4,6 +4,6 @@ namespace CostVision.Models.Requests.Receipts
     {
         public Guid AccountId { get; set; }
 
-        public List<Guid> UserIds { get; set; } = new();
+        public List<UpdateAccountMemberRequest> Members { get; set; } = new();
     }
 }

@@ -6,7 +6,8 @@ using System.Linq.Expressions;
 namespace CostVision.DataBase.Repositories.Receipts
 {
     public class ReceiptAccountRepository(IGetItemByPredicateRepository<ReceiptAccount> getItemByPredicate,
-        ICreateItemRepository<ReceiptAccount> create) : IReceiptAccountRepository
+        ICreateItemRepository<ReceiptAccount> create,
+        IDeleteItemRepository<ReceiptAccount> delete) : IReceiptAccountRepository
     {
         public Task<ReceiptAccount?> GetItemByPredicate(Expression<Func<ReceiptAccount, bool>> predicate, bool asNoTracking = false, Func<IQueryable<ReceiptAccount>, IQueryable<ReceiptAccount>>? include = null, CancellationToken ct = default)
             => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, include, ct);
@@ -15,5 +16,9 @@ namespace CostVision.DataBase.Repositories.Receipts
             => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(ReceiptAccount item) => create.Create(item);
+
+        public void Delete(ReceiptAccount item) => delete.Delete(item);
+
+        public void DeleteRange(IEnumerable<ReceiptAccount> items) => delete.DeleteRange(items);
     }
 }

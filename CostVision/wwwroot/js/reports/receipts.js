@@ -5,12 +5,20 @@ let detailsList;
 let modalHeader;
 let modalTotal;
 let bootstrapModal;
+let moveReceiptAccountModalElement;
+let moveReceiptAccountBootstrapModal;
+let moveReceiptSourceAccountElement;
+let moveReceiptTargetAccountSelect;
+let moveReceiptAccountAlertElement;
+let confirmMoveReceiptAccountButton;
+let removeReceiptFromAccountButton;
 let forgeryToken;
 let dateFromInput;
 let dateToInput;
 let applyFilterButton;
 let receiptPeriodPresetSelect;
 let receiptsCountElement;
+let receiptsSumElement;
 
 // Для удаления
 let deleteModalElement;
@@ -27,6 +35,7 @@ let receiptAccountFilterError;
 let receiptsCache = [];
 let availableAccountsCache = [];
 let searchDebounceTimerId = null;
+let pendingReceiptAccountAction = null;
 
 // Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function () {
@@ -47,6 +56,12 @@ async function initListOfChecksPage() {
     detailsList = document.getElementById('receipt-details-list');
     modalHeader = document.getElementById('receipt-details-header');
     modalTotal = document.getElementById('receipt-details-total');
+    moveReceiptAccountModalElement = document.getElementById('moveReceiptAccountModal');
+    moveReceiptSourceAccountElement = document.getElementById('moveReceiptSourceAccount');
+    moveReceiptTargetAccountSelect = document.getElementById('moveReceiptTargetAccount');
+    moveReceiptAccountAlertElement = document.getElementById('moveReceiptAccountAlert');
+    confirmMoveReceiptAccountButton = document.getElementById('confirmMoveReceiptAccountBtn');
+    removeReceiptFromAccountButton = document.getElementById('removeReceiptFromAccountBtn');
     deleteModalElement = document.getElementById('deleteReceiptModal');
     deleteConfirmButton = document.getElementById('confirmDeleteReceiptBtn');
     applyFilterButton = document.getElementById('applyFilter');
@@ -54,6 +69,7 @@ async function initListOfChecksPage() {
     dateToInput = document.getElementById('dateTo');
     receiptPeriodPresetSelect = document.getElementById('receiptPeriodPreset');
     receiptsCountElement = document.getElementById('receiptsCount');
+    receiptsSumElement = document.getElementById('receiptsSum');
     forgeryToken = getRequestVerificationToken();
 
     if (modalElement) {
@@ -70,6 +86,31 @@ async function initListOfChecksPage() {
     if (applyFilterButton) {
         applyFilterButton.addEventListener('click', function () {
             loadReceiptList();
+        });
+    }
+
+    if (moveReceiptAccountModalElement) {
+        moveReceiptAccountBootstrapModal = new bootstrap.Modal(moveReceiptAccountModalElement);
+
+        moveReceiptAccountModalElement.addEventListener('hide.bs.modal', function () {
+            if (document.activeElement && moveReceiptAccountModalElement.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+        });
+
+        moveReceiptAccountModalElement.addEventListener('hidden.bs.modal', function () {
+            pendingReceiptAccountAction = null;
+            hideMoveReceiptAccountAlert();
+
+            if (moveReceiptTargetAccountSelect) {
+                moveReceiptTargetAccountSelect.replaceChildren();
+                moveReceiptTargetAccountSelect.disabled = false;
+            }
+
+            if (moveReceiptSourceAccountElement) {
+                moveReceiptSourceAccountElement.textContent = '';
+                moveReceiptSourceAccountElement.style.border = '';
+            }
         });
     }
 
@@ -90,6 +131,14 @@ async function initListOfChecksPage() {
 
     if (deleteConfirmButton) {
         deleteConfirmButton.addEventListener('click', onConfirmDeleteReceipt);
+    }
+
+    if (confirmMoveReceiptAccountButton) {
+        confirmMoveReceiptAccountButton.addEventListener('click', onConfirmMoveReceiptToAccount);
+    }
+
+    if (removeReceiptFromAccountButton) {
+        removeReceiptFromAccountButton.addEventListener('click', onRemoveReceiptFromAccount);
     }
 
     receiptSearchInput = document.getElementById('receiptSearch');
@@ -200,6 +249,7 @@ function onReceiptListClick(event) {
     const openButton = target.closest('[data-action="open"]');
     const refreshButton = target.closest('[data-action="refresh"]');
     const deleteButton = target.closest('[data-action="delete"]');
+    const accountButton = target.closest('[data-action="edit-account-link"]');
 
     if (openButton) {
         const card = openButton.closest('.card');
@@ -237,6 +287,16 @@ function onReceiptListClick(event) {
         }
         openDeleteReceiptModal(receiptId, card);
         return;
+    }
+
+    if (accountButton) {
+        const receiptId = accountButton.getAttribute('data-receipt-id');
+        const accountId = accountButton.getAttribute('data-account-id');
+        if (!receiptId || !accountId) {
+            return;
+        }
+
+        openMoveReceiptAccountModal(receiptId, accountId);
     }
 }
 
@@ -309,6 +369,8 @@ function normalizeAvailableAccount(dto) {
     const id = dto.id || dto.Id || '';
     const name = dto.name || dto.Name || '';
     const colorHex = normalizeReceiptAccountColorHex(dto.colorHex ?? dto.ColorHex);
+    const accessRole = dto.accessRole ?? dto.AccessRole ?? 0;
+    const canManage = dto.canManage === true || dto.CanManage === true;
 
     if (!id || !name) {
         return null;
@@ -317,7 +379,9 @@ function normalizeAvailableAccount(dto) {
     return {
         id: id,
         name: name,
-        colorHex: colorHex
+        colorHex: colorHex,
+        accessRole: Number(accessRole),
+        canManage: canManage
     };
 }
 
@@ -411,6 +475,7 @@ function renderReceiptList(list) {
 
     listContainer.innerHTML = '';
     updateReceiptsCount(list.length);
+    updateReceiptsSum(list);
 
     for (const r of list) {
         const card = buildReceiptCard(r);
@@ -424,6 +489,18 @@ function updateReceiptsCount(count) {
     }
 
     receiptsCountElement.textContent = 'Чеков: ' + count;
+}
+
+function updateReceiptsSum(list) {
+    if (!receiptsSumElement) {
+        return;
+    }
+
+    const totalSum = list.reduce(function (sum, receipt) {
+        return sum + (typeof receipt.totalSum === 'number' ? receipt.totalSum : 0);
+    }, 0);
+
+    receiptsSumElement.textContent = 'Сумма: ' + formatCurrency(totalSum);
 }
 
 // Обновить чек (ожидается один ReceiptDto без Items)
@@ -606,6 +683,7 @@ function buildReceiptCard(r) {
 
     const accountDiv = document.createElement('div');
     accountDiv.classList.add('small', 'mt-2', 'd-flex', 'align-items-start', 'gap-2', 'flex-wrap');
+    accountDiv.setAttribute('data-role', 'receipt-accounts');
 
     if (getReceiptAccounts(r).length > 0) {
         renderReceiptAccountBadges(accountDiv, r);
@@ -714,7 +792,7 @@ function updateCardFromDto(cardElement, receiptDto) {
 
     const datePlaceElement = bodyElement.querySelector('.fw-semibold');
     const addressElement = bodyElement.querySelector('.text-muted.small.mt-2');
-    const accountElement = bodyElement.querySelector('.small.mt-2.d-flex');
+    const accountElement = bodyElement.querySelector('[data-role="receipt-accounts"]');
     const totalElement = bodyElement.querySelector('.fw-bold');
 
     if (datePlaceElement && receiptDto.dateTime) {
@@ -889,6 +967,7 @@ function getReceiptAccounts(receipt) {
                 const id = account.id || account.Id || '';
                 const name = account.name || account.Name || '';
                 const colorHex = normalizeReceiptAccountColorHex(account.colorHex ?? account.ColorHex);
+                const accessRole = account.accessRole ?? account.AccessRole ?? null;
                 if (!id || !name) {
                     return null;
                 }
@@ -896,7 +975,8 @@ function getReceiptAccounts(receipt) {
                 return {
                     id: id,
                     name: name,
-                    colorHex: colorHex
+                    colorHex: colorHex,
+                    accessRole: accessRole !== null ? Number(accessRole) : null
                 };
             })
             .filter(function (account) { return account !== null; });
@@ -908,7 +988,8 @@ function getReceiptAccounts(receipt) {
         return [{
             id: receipt.accountId,
             name: receipt.accountName,
-            colorHex: availableAccount ? availableAccount.colorHex : normalizeReceiptAccountColorHex(null)
+            colorHex: availableAccount ? availableAccount.colorHex : normalizeReceiptAccountColorHex(null),
+            accessRole: availableAccount ? availableAccount.accessRole : null
         }];
     }
 
@@ -934,12 +1015,315 @@ function renderReceiptAccountBadges(container, receipt) {
 
     const accounts = getReceiptAccounts(receipt);
     for (const account of accounts) {
-        const badge = document.createElement('span');
-        badge.className = 'px-2 py-1 rounded-pill';
+        const badge = document.createElement('button');
+        badge.type = 'button';
+        badge.className = 'btn btn-sm px-2 py-1 rounded-pill';
+        badge.setAttribute('data-action', 'edit-account-link');
+        badge.setAttribute('data-receipt-id', receipt.id);
+        badge.setAttribute('data-account-id', account.id);
         badge.textContent = account.name;
+        badge.style.backgroundColor = 'transparent';
+        badge.style.color = '#212529';
         badge.style.border = '2px solid ' + account.colorHex;
+        badge.style.transition = 'background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease';
+
+        badge.addEventListener('mouseenter', function () {
+            badge.style.backgroundColor = account.colorHex + '14';
+            badge.style.boxShadow = '0 0 0 0.2rem ' + account.colorHex + '22';
+            badge.style.transform = 'translateY(-1px)';
+        });
+
+        badge.addEventListener('mouseleave', function () {
+            badge.style.backgroundColor = 'transparent';
+            badge.style.boxShadow = 'none';
+            badge.style.transform = 'translateY(0)';
+        });
 
         container.appendChild(badge);
+    }
+}
+
+function getAvailableTargetAccounts(receipt, sourceAccountId) {
+    return availableAccountsCache
+        .filter(function (account) {
+            return account && account.id !== sourceAccountId;
+        })
+        .map(function (account) {
+            const reason = getMoveReceiptTargetDisabledReason(receipt, account);
+            return {
+                id: account.id,
+                name: account.name,
+                isDisabled: !!reason,
+                disabledReason: reason
+            };
+        })
+        .sort(function (left, right) {
+            if (left.isDisabled === right.isDisabled) {
+                return left.name.localeCompare(right.name, 'ru');
+            }
+
+            return left.isDisabled ? 1 : -1;
+        });
+}
+
+function getMoveReceiptTargetDisabledReason(receipt, account) {
+    if (!account) {
+        return 'Счёт назначения недоступен.';
+    }
+
+    if (receiptHasAccount(receipt, account.id)) {
+        return 'Этот чек уже привязан к выбранному счёту.';
+    }
+
+    if (!canEditAccount(account)) {
+        return 'Нельзя переносить чек в счёт, где у тебя только роль Viewer.';
+    }
+
+    return '';
+}
+
+function openMoveReceiptAccountModal(receiptId, sourceAccountId) {
+    if (!moveReceiptAccountBootstrapModal || !moveReceiptSourceAccountElement || !moveReceiptTargetAccountSelect) {
+        return;
+    }
+
+    const receipt = findReceiptById(receiptId);
+    if (!receipt) {
+        alert('Чек не найден в текущем списке.');
+        return;
+    }
+
+    const sourceAccount = findReceiptAccount(receipt, sourceAccountId);
+    if (!sourceAccount) {
+        alert('Связь со счётом не найдена.');
+        return;
+    }
+
+    pendingReceiptAccountAction = {
+        receiptId: receiptId,
+        sourceAccountId: sourceAccountId
+    };
+
+    moveReceiptSourceAccountElement.textContent = sourceAccount.name;
+    moveReceiptSourceAccountElement.style.border = '2px solid ' + sourceAccount.colorHex;
+    hideMoveReceiptAccountAlert();
+    renderMoveReceiptTargetOptions(receipt, sourceAccountId);
+    updateMoveReceiptActionState();
+    moveReceiptAccountBootstrapModal.show();
+}
+
+function renderMoveReceiptTargetOptions(receipt, sourceAccountId) {
+    if (!moveReceiptTargetAccountSelect) {
+        return;
+    }
+
+    const selectedValue = moveReceiptTargetAccountSelect.value || '';
+    moveReceiptTargetAccountSelect.replaceChildren();
+
+    const accounts = getAvailableTargetAccounts(receipt, sourceAccountId);
+    for (const account of accounts) {
+        const option = document.createElement('option');
+        option.value = account.id;
+        option.textContent = account.name;
+        option.disabled = account.isDisabled === true;
+        option.setAttribute('data-reason', account.disabledReason || '');
+        moveReceiptTargetAccountSelect.appendChild(option);
+    }
+
+    if (selectedValue) {
+        const matchingOption = Array.from(moveReceiptTargetAccountSelect.options).find(function (option) {
+            return option.value === selectedValue && option.disabled === false;
+        });
+
+        moveReceiptTargetAccountSelect.value = matchingOption ? selectedValue : '';
+    } else {
+        const firstEnabledOption = Array.from(moveReceiptTargetAccountSelect.options).find(function (option) {
+            return option.value && option.disabled === false;
+        });
+
+        moveReceiptTargetAccountSelect.value = firstEnabledOption ? firstEnabledOption.value : '';
+    }
+
+    moveReceiptTargetAccountSelect.disabled = accounts.length === 0;
+    moveReceiptTargetAccountSelect.onchange = onMoveReceiptTargetAccountChanged;
+}
+
+function onMoveReceiptTargetAccountChanged() {
+    updateMoveReceiptActionState();
+}
+
+function updateMoveReceiptActionState() {
+    const canRemove = canRemoveReceiptFromSelectedAccount();
+    const selectedOption = getSelectedMoveReceiptTargetOption();
+    const hasOtherAccounts = !!moveReceiptTargetAccountSelect && moveReceiptTargetAccountSelect.options.length > 0;
+    const canMove = hasOtherAccounts && !!selectedOption && !selectedOption.disabled;
+
+    if (removeReceiptFromAccountButton) {
+        removeReceiptFromAccountButton.disabled = !canRemove;
+    }
+
+    if (confirmMoveReceiptAccountButton) {
+        confirmMoveReceiptAccountButton.disabled = !canMove;
+    }
+
+    if (!hasOtherAccounts) {
+        hideMoveReceiptAccountAlert();
+        return;
+    }
+
+    if (!selectedOption) {
+        const unavailableReason = getUnavailableMoveReceiptReason();
+        if (unavailableReason) {
+            showMoveReceiptAccountAlert(unavailableReason);
+            return;
+        }
+
+        hideMoveReceiptAccountAlert();
+        return;
+    }
+
+    const reason = selectedOption.getAttribute('data-reason') || '';
+    if (selectedOption.disabled && reason) {
+        showMoveReceiptAccountAlert(reason);
+        return;
+    }
+
+    hideMoveReceiptAccountAlert();
+}
+
+function getUnavailableMoveReceiptReason() {
+    if (!moveReceiptTargetAccountSelect) {
+        return '';
+    }
+
+    if (moveReceiptTargetAccountSelect.options.length === 0) {
+        return '';
+    }
+
+    const enabledOption = Array.from(moveReceiptTargetAccountSelect.options).find(function (option) {
+        return option.value && option.disabled === false;
+    });
+
+    if (enabledOption) {
+        return '';
+    }
+
+    const disabledOption = Array.from(moveReceiptTargetAccountSelect.options).find(function (option) {
+        return option.value && option.disabled === true && option.getAttribute('data-reason');
+    });
+
+    return disabledOption ? disabledOption.getAttribute('data-reason') || '' : 'Нет доступных счетов для переноса этого чека.';
+}
+
+async function onConfirmMoveReceiptToAccount() {
+    if (!pendingReceiptAccountAction || !confirmMoveReceiptAccountButton) {
+        return;
+    }
+
+    const selectedOption = getSelectedMoveReceiptTargetOption();
+    if (!selectedOption || selectedOption.disabled) {
+        updateMoveReceiptActionState();
+        return;
+    }
+
+    const originalText = confirmMoveReceiptAccountButton.textContent;
+    confirmMoveReceiptAccountButton.disabled = true;
+    confirmMoveReceiptAccountButton.textContent = 'Перенос...';
+
+    if (removeReceiptFromAccountButton) {
+        removeReceiptFromAccountButton.disabled = true;
+    }
+
+    try {
+        await sendJsonRequest(
+            '?handler=MoveReceiptToAccount',
+            'POST',
+            buildJsonHeaders(forgeryToken),
+            {
+                receiptId: pendingReceiptAccountAction.receiptId,
+                sourceAccountId: pendingReceiptAccountAction.sourceAccountId,
+                targetAccountId: selectedOption.value
+            }
+        );
+
+        replaceReceiptAccountLink(
+            pendingReceiptAccountAction.receiptId,
+            pendingReceiptAccountAction.sourceAccountId,
+            selectedOption.value
+        );
+
+        closeMoveReceiptAccountModal();
+        renderReceiptList(applyReceiptFilters(receiptsCache));
+    } catch (error) {
+        console.error(error);
+        showMoveReceiptAccountAlert(error && error.message ? error.message : 'Не удалось перенести чек в другой счёт.');
+    } finally {
+        confirmMoveReceiptAccountButton.textContent = originalText;
+        updateMoveReceiptActionState();
+    }
+}
+
+async function onRemoveReceiptFromAccount() {
+    if (!pendingReceiptAccountAction || !removeReceiptFromAccountButton) {
+        return;
+    }
+
+    if (!canRemoveReceiptFromSelectedAccount()) {
+        updateMoveReceiptActionState();
+        return;
+    }
+
+    const originalText = removeReceiptFromAccountButton.textContent;
+    removeReceiptFromAccountButton.disabled = true;
+    removeReceiptFromAccountButton.textContent = 'Удаление...';
+
+    if (confirmMoveReceiptAccountButton) {
+        confirmMoveReceiptAccountButton.disabled = true;
+    }
+
+    try {
+        await sendJsonRequest(
+            '?handler=RemoveReceiptFromAccount',
+            'POST',
+            buildJsonHeaders(forgeryToken),
+            {
+                receiptId: pendingReceiptAccountAction.receiptId,
+                accountId: pendingReceiptAccountAction.sourceAccountId
+            }
+        );
+
+        removeReceiptAccountLink(
+            pendingReceiptAccountAction.receiptId,
+            pendingReceiptAccountAction.sourceAccountId
+        );
+
+        closeMoveReceiptAccountModal();
+        renderReceiptList(applyReceiptFilters(receiptsCache));
+    } catch (error) {
+        console.error(error);
+        showMoveReceiptAccountAlert(error && error.message ? error.message : 'Не удалось удалить чек из счёта.');
+    } finally {
+        removeReceiptFromAccountButton.textContent = originalText;
+        updateMoveReceiptActionState();
+    }
+}
+
+function closeMoveReceiptAccountModal() {
+    pendingReceiptAccountAction = null;
+    hideMoveReceiptAccountAlert();
+
+    if (moveReceiptTargetAccountSelect) {
+        moveReceiptTargetAccountSelect.replaceChildren();
+        moveReceiptTargetAccountSelect.disabled = false;
+    }
+
+    if (moveReceiptSourceAccountElement) {
+        moveReceiptSourceAccountElement.textContent = '';
+        moveReceiptSourceAccountElement.style.border = '';
+    }
+
+    if (moveReceiptAccountBootstrapModal) {
+        moveReceiptAccountBootstrapModal.hide();
     }
 }
 
@@ -955,6 +1339,153 @@ function findAvailableAccountById(accountId) {
     }
 
     return null;
+}
+
+function findReceiptById(receiptId) {
+    for (const receipt of receiptsCache) {
+        if (receipt && receipt.id === receiptId) {
+            return receipt;
+        }
+    }
+
+    return null;
+}
+
+function findReceiptAccount(receipt, accountId) {
+    const accounts = getReceiptAccounts(receipt);
+
+    for (const account of accounts) {
+        if (account && account.id === accountId) {
+            return account;
+        }
+    }
+
+    return null;
+}
+
+function getSelectedMoveReceiptTargetOption() {
+    if (!moveReceiptTargetAccountSelect) {
+        return null;
+    }
+
+    const selectedIndex = moveReceiptTargetAccountSelect.selectedIndex;
+    if (selectedIndex < 0) {
+        return null;
+    }
+
+    const option = moveReceiptTargetAccountSelect.options[selectedIndex];
+    if (!option || !option.value) {
+        return null;
+    }
+
+    return option;
+}
+
+function canRemoveReceiptFromSelectedAccount() {
+    if (!pendingReceiptAccountAction) {
+        return false;
+    }
+
+    const receipt = findReceiptById(pendingReceiptAccountAction.receiptId);
+    if (!receipt) {
+        return false;
+    }
+
+    const accounts = getReceiptAccounts(receipt);
+    if (accounts.length < 2) {
+        return false;
+    }
+
+    const sourceAccount = findAvailableAccountById(pendingReceiptAccountAction.sourceAccountId);
+    return canEditAccount(sourceAccount);
+}
+
+function canEditAccount(account) {
+    if (!account) {
+        return false;
+    }
+
+    return account.canManage === true || account.accessRole === 1 || account.accessRole === 2;
+}
+
+function replaceReceiptAccountLink(receiptId, sourceAccountId, targetAccountId) {
+    const receipt = findReceiptById(receiptId);
+    if (!receipt) {
+        throw new Error('Не удалось обновить чек после переноса.');
+    }
+
+    const targetAccount = findAvailableAccountById(targetAccountId);
+    if (!targetAccount) {
+        throw new Error('Счёт назначения не найден в текущем списке.');
+    }
+
+    const accounts = getReceiptAccounts(receipt);
+    const updatedAccounts = [];
+
+    for (const account of accounts) {
+        if (!account || account.id === targetAccountId) {
+            continue;
+        }
+
+        if (account.id === sourceAccountId) {
+            updatedAccounts.push({
+                id: targetAccount.id,
+                name: targetAccount.name,
+                colorHex: targetAccount.colorHex,
+                accessRole: targetAccount.accessRole
+            });
+            continue;
+        }
+
+        updatedAccounts.push(account);
+    }
+
+    applyReceiptAccounts(receipt, updatedAccounts);
+}
+
+function removeReceiptAccountLink(receiptId, accountId) {
+    const receipt = findReceiptById(receiptId);
+    if (!receipt) {
+        throw new Error('Не удалось обновить чек после удаления связи.');
+    }
+
+    const updatedAccounts = getReceiptAccounts(receipt).filter(function (account) {
+        return account && account.id !== accountId;
+    });
+
+    applyReceiptAccounts(receipt, updatedAccounts);
+}
+
+function applyReceiptAccounts(receipt, accounts) {
+    const normalizedAccounts = accounts
+        .filter(function (account) { return !!account; })
+        .sort(function (left, right) { return left.name.localeCompare(right.name, 'ru'); });
+
+    receipt.accounts = normalizedAccounts.map(function (account) {
+        return {
+            id: account.id,
+            name: account.name,
+            colorHex: account.colorHex,
+            accessRole: account.accessRole
+        };
+    });
+
+    const firstAccount = normalizedAccounts.length > 0 ? normalizedAccounts[0] : null;
+    receipt.accountId = firstAccount ? firstAccount.id : null;
+    receipt.accountName = firstAccount ? firstAccount.name : '';
+}
+
+function showMoveReceiptAccountAlert(message) {
+    if (!moveReceiptAccountAlertElement) {
+        return;
+    }
+
+    moveReceiptAccountAlertElement.textContent = message || '';
+    moveReceiptAccountAlertElement.classList.toggle('d-none', !message);
+}
+
+function hideMoveReceiptAccountAlert() {
+    showMoveReceiptAccountAlert('');
 }
 
 function normalizeReceiptAccountColorHex(colorHex) {

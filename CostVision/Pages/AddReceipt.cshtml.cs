@@ -19,7 +19,7 @@ namespace CostVision.Pages
 
         public async Task<IActionResult> OnGetAccountsAsync(CancellationToken ct)
         {
-            List<UserAccountViewModel> accounts = await accountService.GetUserAccountsAsync(CurrentUser.Id, false, ct);
+            List<UserAccountViewModel> accounts = await accountService.GetUserAccountsForReceiptCreationAsync(CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
         }
 
@@ -27,6 +27,13 @@ namespace CostVision.Pages
         {
             if (request.Results.Count == 0)
                 return JsonResultMapper.ToJsonResult(ServiceResult<AddReceiptScanResponse>.Fail(400, "Нет данных для обработки."));
+
+            if (request.AccountId != Guid.Empty)
+            {
+                ServiceResult<bool> accessResult = await accountService.ValidateReceiptCreationAccessAsync(request.AccountId, CurrentUser.Id, ct);
+                if (!accessResult.Success)
+                    return JsonResultMapper.ToJsonResult(accessResult);
+            }
 
             ReceiptScanResultSummary summary = await receiptService.SaveReceiptsScannedAsync(request, CurrentUser.Id, ct);
 
@@ -43,6 +50,13 @@ namespace CostVision.Pages
 
         public async Task<IActionResult> OnPostManualAsync([FromBody] ReceiptManualCreateRequest input, CancellationToken ct)
         {
+            if (input.AccountId != Guid.Empty)
+            {
+                ServiceResult<bool> accessResult = await accountService.ValidateReceiptCreationAccessAsync(input.AccountId, CurrentUser.Id, ct);
+                if (!accessResult.Success)
+                    return JsonResultMapper.ToJsonResult(accessResult);
+            }
+
             ManualReceiptResult result = await receiptService.SaveReceiptManualAsync(input, CurrentUser.Id, ct);
 
             AddReceiptManualResponse data = new()

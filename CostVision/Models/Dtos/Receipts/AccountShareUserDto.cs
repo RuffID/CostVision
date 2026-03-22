@@ -1,3 +1,5 @@
+using CostVision.Models.Enums.Authorization;
+
 namespace CostVision.Models.Dtos.Receipts
 {
     public class AccountShareUserDto
@@ -9,5 +11,7 @@ namespace CostVision.Models.Dtos.Receipts
         public string Login { get; set; } = string.Empty;
 
         public bool IsSelected { get; set; }
+
+        public AccountAccessRole? Role { get; set; }
     }
 }

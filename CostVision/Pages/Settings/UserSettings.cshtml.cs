@@ -2,6 +2,7 @@
 using CostVision.Abstractions.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.Dtos.Mappers;
+using CostVision.Models.Enums.Authorization;
 using CostVision.Models.Receipts;
 using CostVision.Models.Requests.Receipts;
 using CostVision.Models.Responses.Results;
@@ -39,7 +40,8 @@ namespace CostVision.Pages.Settings
                 Description = result.Data.Description,
                 ColorHex = result.Data.ColorHex,
                 IsActive = !result.Data.IsArchived,
-                CanManage = true
+                CanManage = true,
+                AccessRole = AccountAccessRole.Owner
             };
 
             return JsonResultMapper.ToJsonResult(ServiceResult<UserAccountViewModel>.Ok(dto));
@@ -74,7 +76,8 @@ namespace CostVision.Pages.Settings
                 Description = result.Data.Description,
                 ColorHex = result.Data.ColorHex,
                 IsActive = !result.Data.IsArchived,
-                CanManage = true
+                CanManage = true,
+                AccessRole = AccountAccessRole.Owner
             };
 
             return JsonResultMapper.ToJsonResult(ServiceResult<UserAccountViewModel>.Ok(dto));
@@ -87,7 +90,7 @@ namespace CostVision.Pages.Settings
 
         public async Task<IActionResult> OnPostUpdateMembersAsync([FromBody] UpdateAccountMembersRequest request, CancellationToken ct)
         {
-            return JsonResultMapper.ToJsonResult(await accountService.UpdateAccountMembersAsync(request.AccountId, CurrentUser.Id, request.UserIds, ct));
+            return JsonResultMapper.ToJsonResult(await accountService.UpdateAccountMembersAsync(request.AccountId, CurrentUser.Id, request.Members, ct));
         }
     }
 }

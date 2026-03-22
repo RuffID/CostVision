@@ -87,10 +87,9 @@ namespace CostVision.Services.Receipts
             if (account == null)
                 return ServiceResult<List<AccountShareUserDto>>.Fail(404, "Счёт не найден.");
 
-            HashSet<Guid> selectedUserIds = account.Members
+            Dictionary<Guid, AccountAccessRole> selectedUsers = account.Members
                 .Where(m => m.UserId != ownerUserId)
-                .Select(m => m.UserId)
-                .ToHashSet();
+                .ToDictionary(m => m.UserId, m => m.Role);
 
             List<User> users = await unitOfWork.User.GetItemsByPredicate(u => u.IsActive && u.Id != ownerUserId, asNoTracking: true, ct: ct);
 
@@ -101,14 +100,15 @@ namespace CostVision.Services.Receipts
                     Id = u.Id,
                     Name = u.Name,
                     Login = u.Login,
-                    IsSelected = selectedUserIds.Contains(u.Id)
+                    IsSelected = selectedUsers.ContainsKey(u.Id),
+                    Role = selectedUsers.TryGetValue(u.Id, out AccountAccessRole role) ? role : null
                 })
                 .ToList();
 
             return ServiceResult<List<AccountShareUserDto>>.Ok(items);
         }
 
-        public async Task<ServiceResult<bool>> UpdateAccountMembersAsync(Guid accountId, Guid ownerUserId, IReadOnlyCollection<Guid> userIds, CancellationToken ct)
+        public async Task<ServiceResult<bool>> UpdateAccountMembersAsync(Guid accountId, Guid ownerUserId, IReadOnlyCollection<UpdateAccountMemberRequest> members, CancellationToken ct)
         {
             if (accountId == Guid.Empty)
                 return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
@@ -121,9 +121,17 @@ namespace CostVision.Services.Receipts
             if (account == null)
                 return ServiceResult<bool>.Fail(404, "Счёт не найден.");
 
-            List<Guid> desiredUserIds = userIds
-                .Where(x => x != Guid.Empty && x != ownerUserId)
-                .Distinct()
+            List<UpdateAccountMemberRequest> desiredMembers = members
+                .Where(x => x.UserId != Guid.Empty && x.UserId != ownerUserId)
+                .GroupBy(x => x.UserId)
+                .Select(x => x.Last())
+                .ToList();
+
+            if (desiredMembers.Any(x => !Enum.IsDefined(typeof(AccountAccessRole), x.Role) || x.Role == AccountAccessRole.Owner))
+                return ServiceResult<bool>.Fail(400, "Можно назначить только роли Viewer или Editor.");
+
+            List<Guid> desiredUserIds = desiredMembers
+                .Select(x => x.UserId)
                 .ToList();
 
             List<User> availableUsers = desiredUserIds.Count == 0
@@ -149,10 +157,24 @@ namespace CostVision.Services.Receipts
                 .Where(id => !currentUserIds.Contains(id))
                 .ToList();
 
+            List<AccountMember> membersToUpdate = currentMembers
+                .Where(m => desiredUserIds.Contains(m.UserId))
+                .ToList();
+
+            Dictionary<Guid, AccountAccessRole> desiredRolesByUserId = desiredMembers
+                .ToDictionary(x => x.UserId, x => x.Role);
+
             await unitOfWork.ExecuteInTransaction(async () =>
             {
                 if (membersToRemove.Count > 0)
                     unitOfWork.AccountMember.DeleteRange(membersToRemove);
+
+                foreach (AccountMember member in membersToUpdate)
+                {
+                    AccountAccessRole desiredRole = desiredRolesByUserId[member.UserId];
+                    if (member.Role != desiredRole)
+                        member.Role = desiredRole;
+                }
 
                 foreach (Guid userId in userIdsToAdd)
                 {
@@ -160,12 +182,31 @@ namespace CostVision.Services.Receipts
                     {
                         AccountId = accountId,
                         UserId = userId,
-                        Role = AccountAccessRole.Viewer
+                        Role = desiredRolesByUserId[userId]
                     });
                 }
 
                 await Task.CompletedTask;
             }, ct);
+
+            return ServiceResult<bool>.Ok(true);
+        }
+
+        public async Task<ServiceResult<bool>> ValidateReceiptCreationAccessAsync(Guid accountId, Guid userId, CancellationToken ct)
+        {
+            if (accountId == Guid.Empty)
+                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
+
+            AccountMember? membership = await unitOfWork.AccountMember.GetItemByPredicate(
+                m => m.AccountId == accountId && m.UserId == userId,
+                asNoTracking: true,
+                ct: ct);
+
+            if (membership == null)
+                return ServiceResult<bool>.Fail(404, "Счёт не найден или доступ к нему отсутствует.");
+
+            if (membership.Role == AccountAccessRole.Viewer)
+                return ServiceResult<bool>.Fail(403, "Недостаточно прав для добавления чеков в этот счёт.");
 
             return ServiceResult<bool>.Ok(true);
         }
@@ -245,7 +286,12 @@ namespace CostVision.Services.Receipts
 
             List<Account> accounts = await unitOfWork.Account.GetItemsByPredicate(a => accountIds.Contains(a.Id) && (includeArchived || !a.IsArchived),
                     asNoTracking: true,
+                    include: query => query.Include(a => a.CreatedByUser),
                     ct: ct);
+
+            Dictionary<Guid, AccountAccessRole> rolesByAccountId = memberships
+                .GroupBy(m => m.AccountId)
+                .ToDictionary(g => g.Key, g => g.Select(m => m.Role).First());
 
             return accounts.Select(account => new UserAccountViewModel()
             {
@@ -254,8 +300,19 @@ namespace CostVision.Services.Receipts
                 Description = account.Description,
                 ColorHex = account.ColorHex,
                 IsActive = !account.IsArchived,
-                CanManage = account.CreatedByUserId == userId
+                CanManage = account.CreatedByUserId == userId,
+                OwnerName = account.CreatedByUser?.Name ?? string.Empty,
+                AccessRole = rolesByAccountId[account.Id]
             }).ToList();
+        }
+
+        public async Task<List<UserAccountViewModel>> GetUserAccountsForReceiptCreationAsync(Guid userId, CancellationToken ct)
+        {
+            List<UserAccountViewModel> accounts = await GetUserAccountsAsync(userId, false, ct);
+
+            return accounts
+                .Where(x => x.AccessRole == AccountAccessRole.Owner || x.AccessRole == AccountAccessRole.Editor)
+                .ToList();
         }
 
         public async Task<ReceiptAccountLinkResult> LinkReceiptToAccountAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
@@ -272,15 +329,13 @@ namespace CostVision.Services.Receipts
                 };
             }
 
-            bool hasAccess = account.CreatedByUserId == currentUserId
-                             || account.Members.Any(m => m.UserId == currentUserId);
-
-            if (!hasAccess)
+            ServiceResult<bool> accessResult = ValidateReceiptAccountModificationAccess(account, currentUserId);
+            if (!accessResult.Success)
             {
                 return new ReceiptAccountLinkResult
                 {
                     Status = ReceiptAccountLinkStatusEnum.AccessDenied,
-                    ErrorMessage = "Нет доступа к указанному счёту."
+                    ErrorMessage = accessResult.Error!.Message
                 };
             }
 
@@ -327,6 +382,109 @@ namespace CostVision.Services.Receipts
             };
         }
 
+        public async Task<ServiceResult<bool>> MoveReceiptToAccountAsync(Guid sourceAccountId, Guid targetAccountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
+        {
+            if (receiptId == Guid.Empty)
+                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор чека.");
+
+            if (sourceAccountId == Guid.Empty || targetAccountId == Guid.Empty)
+                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
+
+            if (sourceAccountId == targetAccountId)
+                return ServiceResult<bool>.Fail(400, "Счёт назначения должен отличаться от исходного счёта.");
+
+            Receipt? receipt = await unitOfWork.Receipt.GetItemById(receiptId,
+                asNoTracking: false,
+                include: query => query
+                    .Include(r => r.Accounts)
+                        .ThenInclude(link => link.Account)
+                            .ThenInclude(account => account!.Members)
+                    .AsSplitQuery(),
+                ct: ct);
+
+            if (receipt == null)
+                return ServiceResult<bool>.Fail(404, "Чек не найден.");
+
+            ReceiptAccount? sourceLink = receipt.Accounts.FirstOrDefault(link => link.AccountId == sourceAccountId);
+            if (sourceLink == null)
+                return ServiceResult<bool>.Fail(404, "Чек не привязан к выбранному исходному счёту.");
+
+            if (receipt.Accounts.Any(link => link.AccountId == targetAccountId))
+                return ServiceResult<bool>.Fail(409, "Чек уже привязан к счёту назначения.");
+
+            Account? sourceAccount = sourceLink.Account;
+            if (sourceAccount == null)
+                return ServiceResult<bool>.Fail(404, "Исходный счёт не найден.");
+
+            Account? targetAccount = await unitOfWork.Account.GetItemByPredicate(a => a.Id == targetAccountId,
+                asNoTracking: false,
+                include: query => query.Include(account => account.Members),
+                ct: ct);
+
+            if (targetAccount == null)
+                return ServiceResult<bool>.Fail(404, "Счёт назначения не найден.");
+
+            ServiceResult<bool> sourceAccessResult = ValidateReceiptAccountModificationAccess(sourceAccount, currentUserId);
+            if (!sourceAccessResult.Success)
+                return sourceAccessResult;
+
+            ServiceResult<bool> targetAccessResult = ValidateReceiptAccountModificationAccess(targetAccount, currentUserId);
+            if (!targetAccessResult.Success)
+                return targetAccessResult;
+
+            unitOfWork.ReceiptAccount.Delete(sourceLink);
+            unitOfWork.ReceiptAccount.Create(new ReceiptAccount
+            {
+                ReceiptId = receiptId,
+                AccountId = targetAccountId
+            });
+
+            await unitOfWork.SaveChangesAsync(ct);
+
+            return ServiceResult<bool>.Ok(true);
+        }
+
+        public async Task<ServiceResult<bool>> RemoveReceiptFromAccountAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
+        {
+            if (receiptId == Guid.Empty)
+                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор чека.");
+
+            if (accountId == Guid.Empty)
+                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
+
+            Receipt? receipt = await unitOfWork.Receipt.GetItemById(receiptId,
+                asNoTracking: false,
+                include: query => query
+                    .Include(r => r.Accounts)
+                        .ThenInclude(link => link.Account)
+                            .ThenInclude(account => account!.Members)
+                    .AsSplitQuery(),
+                ct: ct);
+
+            if (receipt == null)
+                return ServiceResult<bool>.Fail(404, "Чек не найден.");
+
+            ReceiptAccount? link = receipt.Accounts.FirstOrDefault(item => item.AccountId == accountId);
+            if (link == null)
+                return ServiceResult<bool>.Fail(404, "Чек не привязан к выбранному счёту.");
+
+            if (receipt.Accounts.Count < 2)
+                return ServiceResult<bool>.Fail(400, "Нельзя удалить последнюю связь чека со счётом.");
+
+            Account? account = link.Account;
+            if (account == null)
+                return ServiceResult<bool>.Fail(404, "Счёт не найден.");
+
+            ServiceResult<bool> accessResult = ValidateReceiptAccountModificationAccess(account, currentUserId);
+            if (!accessResult.Success)
+                return accessResult;
+
+            unitOfWork.ReceiptAccount.Delete(link);
+            await unitOfWork.SaveChangesAsync(ct);
+
+            return ServiceResult<bool>.Ok(true);
+        }
+
         private static ServiceResult<string> NormalizeColorHex(string? colorHex)
         {
             if (string.IsNullOrWhiteSpace(colorHex))
@@ -337,6 +495,21 @@ namespace CostVision.Services.Receipts
                 return ServiceResult<string>.Fail(400, "Некорректный цвет счёта.");
 
             return ServiceResult<string>.Ok(normalizedColorHex);
+        }
+
+        private static ServiceResult<bool> ValidateReceiptAccountModificationAccess(Account account, Guid currentUserId)
+        {
+            if (account.CreatedByUserId == currentUserId)
+                return ServiceResult<bool>.Ok(true);
+
+            AccountMember? membership = account.Members.FirstOrDefault(member => member.UserId == currentUserId);
+            if (membership == null)
+                return ServiceResult<bool>.Fail(403, "Нет доступа к указанному счёту.");
+
+            if (membership.Role == AccountAccessRole.Viewer)
+                return ServiceResult<bool>.Fail(403, "Недостаточно прав для изменения чека в выбранном счёте.");
+
+            return ServiceResult<bool>.Ok(true);
         }
     }
 }

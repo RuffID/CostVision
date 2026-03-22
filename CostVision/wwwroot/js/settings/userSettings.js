@@ -30,6 +30,8 @@ let shareUsersContainer = null;
 let shareEmptyElement = null;
 let shareErrorElement = null;
 let shareSaveButton = null;
+const ACCOUNT_ACCESS_ROLE_EDITOR = 2;
+const ACCOUNT_ACCESS_ROLE_VIEWER = 3;
 
 let antiForgeryToken = null;
 
@@ -173,7 +175,7 @@ function renderAccountsList() {
         if (!acc.canManage) {
             let sharedBadge = document.createElement("span");
             sharedBadge.className = "badge bg-light text-dark border border-dark ms-2";
-            sharedBadge.textContent = "Доступ предоставлен";
+            sharedBadge.textContent = "Владелец: " + (acc.ownerName || "—");
             title.appendChild(sharedBadge);
         }
 
@@ -342,8 +344,32 @@ function renderShareCandidates(users) {
         let loginText = user.login ? " (" + user.login + ")" : "";
         label.textContent = displayName + loginText;
 
+        let roleSelect = document.createElement("select");
+        roleSelect.className = "form-select form-select-sm flex-shrink-0";
+        roleSelect.id = "share-role-" + user.id;
+        roleSelect.name = "sharedUserRole";
+        roleSelect.style.width = "140px";
+        roleSelect.disabled = !input.checked;
+
+        let viewerOption = document.createElement("option");
+        viewerOption.value = String(ACCOUNT_ACCESS_ROLE_VIEWER);
+        viewerOption.textContent = "Только просмотр";
+
+        let editorOption = document.createElement("option");
+        editorOption.value = String(ACCOUNT_ACCESS_ROLE_EDITOR);
+        editorOption.textContent = "Редактирование";
+
+        roleSelect.appendChild(viewerOption);
+        roleSelect.appendChild(editorOption);
+        roleSelect.value = String(normalizeShareRole(user.role ?? user.Role));
+
+        input.addEventListener("change", function () {
+            roleSelect.disabled = !input.checked;
+        });
+
         row.appendChild(input);
         row.appendChild(label);
+        row.appendChild(roleSelect);
 
         shareUsersContainer.appendChild(row);
     });
@@ -356,7 +382,7 @@ async function onShareSaveClick() {
 
     let payload = {
         accountId: shareAccountIdInput.value,
-        userIds: getSelectedSharedUserIds()
+        members: getSelectedSharedMembers()
     };
 
     shareErrorElement.textContent = "";
@@ -376,20 +402,24 @@ async function onShareSaveClick() {
     }
 }
 
-function getSelectedSharedUserIds() {
+function getSelectedSharedMembers() {
     if (!shareUsersContainer) {
         return [];
     }
 
     let selected = shareUsersContainer.querySelectorAll('input[name="sharedUserIds"]:checked');
-    let ids = [];
+    let members = [];
     selected.forEach(input => {
         if (input.value) {
-            ids.push(input.value);
+            let roleSelect = document.getElementById("share-role-" + input.value);
+            members.push({
+                userId: input.value,
+                role: normalizeShareRole(roleSelect ? roleSelect.value : ACCOUNT_ACCESS_ROLE_VIEWER)
+            });
         }
     });
 
-    return ids;
+    return members;
 }
 
 async function toggleAccountActiveAsync(accountId, newIsActive) {
@@ -432,7 +462,9 @@ function normalizeAccountDto(dto) {
         description: dto.description || dto.Description || "",
         colorHex: normalizeColorHex(dto.colorHex ?? dto.ColorHex),
         isActive: dto.isActive ?? dto.IsActive ?? true,
-        canManage: dto.canManage ?? dto.CanManage ?? false
+        canManage: dto.canManage ?? dto.CanManage ?? false,
+        ownerName: dto.ownerName || dto.OwnerName || "",
+        accessRole: dto.accessRole ?? dto.AccessRole ?? 0
     };
 }
 
@@ -480,4 +512,13 @@ function getColorPickerValue(input) {
 function normalizeColorHex(colorHex) {
     let value = (colorHex || "").trim().toUpperCase();
     return /^#[0-9A-F]{6}$/.test(value) ? value : DEFAULT_ACCOUNT_COLOR_HEX;
+}
+
+function normalizeShareRole(role) {
+    let numericRole = Number(role);
+    if (numericRole === ACCOUNT_ACCESS_ROLE_EDITOR) {
+        return ACCOUNT_ACCESS_ROLE_EDITOR;
+    }
+
+    return ACCOUNT_ACCESS_ROLE_VIEWER;
 }
