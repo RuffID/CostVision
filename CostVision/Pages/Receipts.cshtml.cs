@@ -32,8 +32,9 @@ namespace CostVision.Pages
                 return JsonResultMapper.ToJsonResult(result);
 
             List<ReceiptDto> items = result.Data
+                .GroupBy(receiptService.BuildReceiptIdentityKey)
+                .Select(receiptGroup => receiptGroup.MapReceiptGroupDto(CurrentUser.Id))
                 .OrderByDescending(r => r.DateTime)
-                .Select(r => r.MapReceiptDto())
                 .ToList();
 
             ServiceResult<List<ReceiptDto>> dtoResult = ServiceResult<List<ReceiptDto>>.Ok(items);
@@ -58,7 +59,7 @@ namespace CostVision.Pages
                 })
                 .ToList();
 
-            ReceiptDto receiptDto = result.Data.MapReceiptDto();
+            ReceiptDto receiptDto = result.Data.MapReceiptDto(CurrentUser.Id);
             receiptDto.Items = items;
 
             ServiceResult<ReceiptDto> dtoResult = ServiceResult<ReceiptDto>.Ok(receiptDto);
@@ -73,7 +74,7 @@ namespace CostVision.Pages
             if (!result.Success || result.Data == null)
                 return JsonResultMapper.ToJsonResult(result);
 
-            ReceiptDto receiptDto = result.Data.MapReceiptDto();
+            ReceiptDto receiptDto = result.Data.MapReceiptDto(CurrentUser.Id);
 
             ServiceResult<ReceiptDto> dtoResult = ServiceResult<ReceiptDto>.Ok(receiptDto);
 

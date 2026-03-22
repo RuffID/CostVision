@@ -45,14 +45,22 @@ namespace CostVision.Models.Dtos.Mappers
 
         public static ReceiptDto MapReceiptDto(this Receipt receipt)
         {
+            return receipt.MapReceiptDto(receipt.CreatedByUserId);
+        }
+
+        public static ReceiptDto MapReceiptDto(this Receipt receipt, Guid currentUserId)
+        {
             List<ReceiptAccountDto> accounts = receipt.Accounts
                 .Where(x => x.Account != null)
                 .GroupBy(x => x.AccountId)
                 .Select(group => new ReceiptAccountDto
                 {
                     Id = group.Key,
+                    ReceiptId = receipt.Id,
                     Name = group.Select(x => x.Account!.Name).FirstOrDefault() ?? string.Empty,
-                    ColorHex = group.Select(x => x.Account!.ColorHex).FirstOrDefault() ?? Account.DEFAULT_COLOR_HEX
+                    ColorHex = group.Select(x => x.Account!.ColorHex).FirstOrDefault() ?? Account.DEFAULT_COLOR_HEX,
+                    CanEditReceipt = receipt.CreatedByUserId == currentUserId
+                        && group.Select(x => x.Account!.CreatedByUserId).FirstOrDefault() == currentUserId
                 })
                 .OrderBy(x => x.Name)
                 .ToList();

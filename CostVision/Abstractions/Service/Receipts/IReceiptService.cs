@@ -21,5 +21,7 @@ namespace CostVision.Abstractions.Service.Receipts
         Task RefreshReceiptsWithoutItemsAsync(CancellationToken ct);
 
         Task<ServiceResult<bool>> DeleteReceiptAsync(Guid receiptId, User currentUser, CancellationToken ct);
+
+        string BuildReceiptIdentityKey(Receipt receipt);
     }
 }

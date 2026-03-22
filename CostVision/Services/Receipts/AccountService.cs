@@ -405,6 +405,9 @@ namespace CostVision.Services.Receipts
             if (receipt == null)
                 return ServiceResult<bool>.Fail(404, "Чек не найден.");
 
+            if (receipt.CreatedByUserId != currentUserId)
+                return ServiceResult<bool>.Fail(403, "Можно изменять только собственный чек.");
+
             ReceiptAccount? sourceLink = receipt.Accounts.FirstOrDefault(link => link.AccountId == sourceAccountId);
             if (sourceLink == null)
                 return ServiceResult<bool>.Fail(404, "Чек не привязан к выбранному исходному счёту.");
@@ -416,6 +419,9 @@ namespace CostVision.Services.Receipts
             if (sourceAccount == null)
                 return ServiceResult<bool>.Fail(404, "Исходный счёт не найден.");
 
+            if (sourceAccount.CreatedByUserId != currentUserId)
+                return ServiceResult<bool>.Fail(403, "Можно изменять чек только в собственном счёте.");
+
             Account? targetAccount = await unitOfWork.Account.GetItemByPredicate(a => a.Id == targetAccountId,
                 asNoTracking: false,
                 include: query => query.Include(account => account.Members),
@@ -424,13 +430,23 @@ namespace CostVision.Services.Receipts
             if (targetAccount == null)
                 return ServiceResult<bool>.Fail(404, "Счёт назначения не найден.");
 
-            ServiceResult<bool> sourceAccessResult = ValidateReceiptAccountModificationAccess(sourceAccount, currentUserId);
-            if (!sourceAccessResult.Success)
-                return sourceAccessResult;
+            if (targetAccount.CreatedByUserId != currentUserId)
+                return ServiceResult<bool>.Fail(403, "Можно переносить чек только в собственный счёт.");
 
-            ServiceResult<bool> targetAccessResult = ValidateReceiptAccountModificationAccess(targetAccount, currentUserId);
-            if (!targetAccessResult.Success)
-                return targetAccessResult;
+            Receipt? duplicateReceiptInTargetAccount = await unitOfWork.Receipt.GetItemByPredicate(r =>
+                r.Id != receiptId &&
+                r.FiscalDriveNumber == receipt.FiscalDriveNumber &&
+                r.FiscalDocumentNumber == receipt.FiscalDocumentNumber &&
+                r.FiscalSign == receipt.FiscalSign &&
+                r.DateTime == receipt.DateTime &&
+                r.TotalSum == receipt.TotalSum &&
+                r.OperationType == receipt.OperationType &&
+                r.Accounts.Any(link => link.AccountId == targetAccountId),
+                asNoTracking: true,
+                ct: ct);
+
+            if (duplicateReceiptInTargetAccount != null)
+                return ServiceResult<bool>.Fail(409, "В счёте назначения уже есть такой же чек.");
 
             unitOfWork.ReceiptAccount.Delete(sourceLink);
             unitOfWork.ReceiptAccount.Create(new ReceiptAccount
@@ -464,20 +480,26 @@ namespace CostVision.Services.Receipts
             if (receipt == null)
                 return ServiceResult<bool>.Fail(404, "Чек не найден.");
 
+            if (receipt.CreatedByUserId != currentUserId)
+                return ServiceResult<bool>.Fail(403, "Можно удалять только собственный чек.");
+
             ReceiptAccount? link = receipt.Accounts.FirstOrDefault(item => item.AccountId == accountId);
             if (link == null)
                 return ServiceResult<bool>.Fail(404, "Чек не привязан к выбранному счёту.");
-
-            if (receipt.Accounts.Count < 2)
-                return ServiceResult<bool>.Fail(400, "Нельзя удалить последнюю связь чека со счётом.");
 
             Account? account = link.Account;
             if (account == null)
                 return ServiceResult<bool>.Fail(404, "Счёт не найден.");
 
-            ServiceResult<bool> accessResult = ValidateReceiptAccountModificationAccess(account, currentUserId);
-            if (!accessResult.Success)
-                return accessResult;
+            if (account.CreatedByUserId != currentUserId)
+                return ServiceResult<bool>.Fail(403, "Можно удалять чек только из собственного счёта.");
+
+            if (receipt.Accounts.Count < 2)
+            {
+                unitOfWork.Receipt.Delete(receipt);
+                await unitOfWork.SaveChangesAsync(ct);
+                return ServiceResult<bool>.Ok(true);
+            }
 
             unitOfWork.ReceiptAccount.Delete(link);
             await unitOfWork.SaveChangesAsync(ct);

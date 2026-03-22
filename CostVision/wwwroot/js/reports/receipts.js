@@ -290,7 +290,11 @@ function onReceiptListClick(event) {
     }
 
     if (accountButton) {
-        const receiptId = accountButton.getAttribute('data-receipt-id');
+        if (accountButton.disabled) {
+            return;
+        }
+
+        const receiptId = accountButton.getAttribute('data-account-receipt-id');
         const accountId = accountButton.getAttribute('data-account-id');
         if (!receiptId || !accountId) {
             return;
@@ -682,6 +686,8 @@ function buildReceiptCard(r) {
     deleteBtn.classList.add('btn', 'btn-sm', 'btn-outline-danger', 'flex-grow-1', 'flex-md-grow-0');
     deleteBtn.setAttribute('data-action', 'delete');
     deleteBtn.textContent = 'Удалить';
+    deleteBtn.disabled = true;
+    deleteBtn.title = 'Удаление доступно только через модальное окно собственного счёта.';
 
     btnGroup.appendChild(openBtn);
     btnGroup.appendChild(refreshBtn);
@@ -786,6 +792,8 @@ function renderReceiptDetails(data) {
 
 // Обновить существующую карточку чека
 function updateCardFromDto(cardElement, receiptDto) {
+    cardElement.setAttribute('data-receipt-id', receiptDto.id);
+
     const bodyElement = cardElement.querySelector('.card-body');
     if (!bodyElement) {
         return;
@@ -966,18 +974,22 @@ function getReceiptAccounts(receipt) {
                 }
 
                 const id = account.id || account.Id || '';
+                const receiptId = account.receiptId || account.ReceiptId || '';
                 const name = account.name || account.Name || '';
                 const colorHex = normalizeReceiptAccountColorHex(account.colorHex ?? account.ColorHex);
                 const accessRole = account.accessRole ?? account.AccessRole ?? null;
-                if (!id || !name) {
+                const canEditReceipt = account.canEditReceipt === true || account.CanEditReceipt === true;
+                if (!id || !name || !receiptId) {
                     return null;
                 }
 
                 return {
                     id: id,
+                    receiptId: receiptId,
                     name: name,
                     colorHex: colorHex,
-                    accessRole: accessRole !== null ? Number(accessRole) : null
+                    accessRole: accessRole !== null ? Number(accessRole) : null,
+                    canEditReceipt: canEditReceipt
                 };
             })
             .filter(function (account) { return account !== null; });
@@ -988,9 +1000,11 @@ function getReceiptAccounts(receipt) {
 
         return [{
             id: receipt.accountId,
+            receiptId: receipt.id,
             name: receipt.accountName,
             colorHex: availableAccount ? availableAccount.colorHex : normalizeReceiptAccountColorHex(null),
-            accessRole: availableAccount ? availableAccount.accessRole : null
+            accessRole: availableAccount ? availableAccount.accessRole : null,
+            canEditReceipt: availableAccount ? canEditAccount(availableAccount) : false
         }];
     }
 
@@ -1020,25 +1034,32 @@ function renderReceiptAccountBadges(container, receipt) {
         badge.type = 'button';
         badge.className = 'btn btn-sm px-2 py-1 rounded-pill';
         badge.setAttribute('data-action', 'edit-account-link');
-        badge.setAttribute('data-receipt-id', receipt.id);
+        badge.setAttribute('data-account-receipt-id', account.receiptId);
         badge.setAttribute('data-account-id', account.id);
         badge.textContent = account.name;
         badge.style.backgroundColor = 'transparent';
         badge.style.color = '#212529';
         badge.style.border = '2px solid ' + account.colorHex;
         badge.style.transition = 'background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease';
+        badge.disabled = !account.canEditReceipt;
 
-        badge.addEventListener('mouseenter', function () {
-            badge.style.backgroundColor = account.colorHex + '14';
-            badge.style.boxShadow = '0 0 0 0.2rem ' + account.colorHex + '22';
-            badge.style.transform = 'translateY(-1px)';
-        });
+        if (account.canEditReceipt) {
+            badge.addEventListener('mouseenter', function () {
+                badge.style.backgroundColor = account.colorHex + '14';
+                badge.style.boxShadow = '0 0 0 0.2rem ' + account.colorHex + '22';
+                badge.style.transform = 'translateY(-1px)';
+            });
 
-        badge.addEventListener('mouseleave', function () {
-            badge.style.backgroundColor = 'transparent';
-            badge.style.boxShadow = 'none';
-            badge.style.transform = 'translateY(0)';
-        });
+            badge.addEventListener('mouseleave', function () {
+                badge.style.backgroundColor = 'transparent';
+                badge.style.boxShadow = 'none';
+                badge.style.transform = 'translateY(0)';
+            });
+        } else {
+            badge.title = 'Чужой расшаренный счёт недоступен для изменения чека.';
+            badge.style.opacity = '0.65';
+            badge.style.cursor = 'not-allowed';
+        }
 
         container.appendChild(badge);
     }
@@ -1047,7 +1068,7 @@ function renderReceiptAccountBadges(container, receipt) {
 function getAvailableTargetAccounts(receipt, sourceAccountId) {
     return availableAccountsCache
         .filter(function (account) {
-            return account && account.id !== sourceAccountId;
+            return account && account.id !== sourceAccountId && canEditAccount(account);
         })
         .map(function (account) {
             const reason = getMoveReceiptTargetDisabledReason(receipt, account);
@@ -1077,7 +1098,7 @@ function getMoveReceiptTargetDisabledReason(receipt, account) {
     }
 
     if (!canEditAccount(account)) {
-        return 'Нельзя переносить чек в счёт, где у тебя только роль Viewer.';
+        return 'Нельзя переносить чек в чужой счёт.';
     }
 
     return '';
@@ -1088,15 +1109,20 @@ function openMoveReceiptAccountModal(receiptId, sourceAccountId) {
         return;
     }
 
-    const receipt = findReceiptById(receiptId);
+    const receipt = findReceiptByAccountReceiptId(receiptId, sourceAccountId);
     if (!receipt) {
         alert('Чек не найден в текущем списке.');
         return;
     }
 
-    const sourceAccount = findReceiptAccount(receipt, sourceAccountId);
+    const sourceAccount = findReceiptAccount(receipt, sourceAccountId, receiptId);
     if (!sourceAccount) {
         alert('Связь со счётом не найдена.');
+        return;
+    }
+
+    if (!sourceAccount.canEditReceipt) {
+        alert('Можно изменять только чек из собственного счёта.');
         return;
     }
 
@@ -1352,11 +1378,34 @@ function findReceiptById(receiptId) {
     return null;
 }
 
-function findReceiptAccount(receipt, accountId) {
+function findReceiptByAccountReceiptId(receiptId, accountId) {
+    if (!receiptId || !accountId) {
+        return null;
+    }
+
+    for (const receipt of receiptsCache) {
+        if (!receipt) {
+            continue;
+        }
+
+        const account = findReceiptAccount(receipt, accountId, receiptId);
+        if (account) {
+            return receipt;
+        }
+    }
+
+    return null;
+}
+
+function findReceiptAccount(receipt, accountId, receiptId) {
     const accounts = getReceiptAccounts(receipt);
 
     for (const account of accounts) {
-        if (account && account.id === accountId) {
+        if (!account || account.id !== accountId) {
+            continue;
+        }
+
+        if (!receiptId || account.receiptId === receiptId) {
             return account;
         }
     }
@@ -1387,18 +1436,17 @@ function canRemoveReceiptFromSelectedAccount() {
         return false;
     }
 
-    const receipt = findReceiptById(pendingReceiptAccountAction.receiptId);
+    const receipt = findReceiptByAccountReceiptId(pendingReceiptAccountAction.receiptId, pendingReceiptAccountAction.sourceAccountId);
     if (!receipt) {
         return false;
     }
 
-    const accounts = getReceiptAccounts(receipt);
-    if (accounts.length < 2) {
+    const sourceAccount = findReceiptAccount(receipt, pendingReceiptAccountAction.sourceAccountId, pendingReceiptAccountAction.receiptId);
+    if (!sourceAccount) {
         return false;
     }
 
-    const sourceAccount = findAvailableAccountById(pendingReceiptAccountAction.sourceAccountId);
-    return canEditAccount(sourceAccount);
+    return sourceAccount.canEditReceipt === true;
 }
 
 function canEditAccount(account) {
@@ -1406,11 +1454,11 @@ function canEditAccount(account) {
         return false;
     }
 
-    return account.canManage === true || account.accessRole === 1 || account.accessRole === 2;
+    return account.canManage === true;
 }
 
 function replaceReceiptAccountLink(receiptId, sourceAccountId, targetAccountId) {
-    const receipt = findReceiptById(receiptId);
+    const receipt = findReceiptByAccountReceiptId(receiptId, sourceAccountId);
     if (!receipt) {
         throw new Error('Не удалось обновить чек после переноса.');
     }
@@ -1431,9 +1479,11 @@ function replaceReceiptAccountLink(receiptId, sourceAccountId, targetAccountId) 
         if (account.id === sourceAccountId) {
             updatedAccounts.push({
                 id: targetAccount.id,
+                receiptId: receiptId,
                 name: targetAccount.name,
                 colorHex: targetAccount.colorHex,
-                accessRole: targetAccount.accessRole
+                accessRole: targetAccount.accessRole,
+                canEditReceipt: true
             });
             continue;
         }
@@ -1445,14 +1495,21 @@ function replaceReceiptAccountLink(receiptId, sourceAccountId, targetAccountId) 
 }
 
 function removeReceiptAccountLink(receiptId, accountId) {
-    const receipt = findReceiptById(receiptId);
+    const receipt = findReceiptByAccountReceiptId(receiptId, accountId);
     if (!receipt) {
         throw new Error('Не удалось обновить чек после удаления связи.');
     }
 
     const updatedAccounts = getReceiptAccounts(receipt).filter(function (account) {
-        return account && account.id !== accountId;
+        return account && !(account.id === accountId && account.receiptId === receiptId);
     });
+
+    if (updatedAccounts.length === 0) {
+        receiptsCache = receiptsCache.filter(function (item) {
+            return item && item !== receipt;
+        });
+        return;
+    }
 
     applyReceiptAccounts(receipt, updatedAccounts);
 }
@@ -1465,13 +1522,17 @@ function applyReceiptAccounts(receipt, accounts) {
     receipt.accounts = normalizedAccounts.map(function (account) {
         return {
             id: account.id,
+            receiptId: account.receiptId,
             name: account.name,
             colorHex: account.colorHex,
-            accessRole: account.accessRole
+            accessRole: account.accessRole,
+            canEditReceipt: account.canEditReceipt === true
         };
     });
 
     const firstAccount = normalizedAccounts.length > 0 ? normalizedAccounts[0] : null;
+    const firstEditableAccount = normalizedAccounts.find(function (account) { return account.canEditReceipt === true; }) || firstAccount;
+    receipt.id = firstEditableAccount ? firstEditableAccount.receiptId : receipt.id;
     receipt.accountId = firstAccount ? firstAccount.id : null;
     receipt.accountName = firstAccount ? firstAccount.name : '';
 }

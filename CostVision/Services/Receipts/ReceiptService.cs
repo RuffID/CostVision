@@ -350,14 +350,25 @@ namespace CostVision.Services.Receipts
             if (receipt == null)
                 return ServiceResult<bool>.Fail(404, "Чек не найден.");
 
-            if (!accessVerification.UserHasAccessToReceipt(currentUser, receipt))
-                return ServiceResult<bool>.Fail(401, "Нет доступа к этому чеку.");
+            if (receipt.CreatedByUserId != currentUser.Id)
+                return ServiceResult<bool>.Fail(403, "Можно удалять только собственный чек.");
 
             unitOfWork.Receipt.Delete(receipt);
 
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);
+        }
+
+        public string BuildReceiptIdentityKey(Receipt receipt)
+        {
+            return string.Join('|',
+                receipt.FiscalDriveNumber,
+                receipt.FiscalDocumentNumber,
+                receipt.FiscalSign,
+                receipt.DateTime.Ticks,
+                receipt.TotalSum,
+                (int)receipt.OperationType);
         }
 
         private async Task TryRefreshCreatedReceiptsAsync(IEnumerable<Receipt> receipts, CancellationToken ct)
