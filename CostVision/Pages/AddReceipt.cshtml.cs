@@ -2,6 +2,7 @@
 using CostVision.Abstractions.Service.Receipts;
 using CostVision.Models.Authorization;
 using CostVision.Models.Dtos.Mappers;
+using CostVision.Models.Dtos.Receipts;
 using CostVision.Models.Requests.Receipts;
 using CostVision.Models.Responses.Results;
 using CostVision.Models.Services.Receipts;
@@ -58,12 +59,13 @@ namespace CostVision.Pages
             }
 
             ManualReceiptResult result = await receiptService.SaveReceiptManualAsync(input, CurrentUser.Id, ct);
+            ReceiptDto? receiptDto = result.Receipt?.MapReceiptDto();
 
             AddReceiptManualResponse data = new()
             {
                 IsCreated = result.IsCreated,
                 Message = result.ErrorMessage,
-                Receipt = result.Receipt
+                Receipt = receiptDto
             };
 
             return JsonResultMapper.ToJsonResult(ServiceResult<AddReceiptManualResponse>.Ok(data));

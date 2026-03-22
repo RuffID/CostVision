@@ -1,4 +1,4 @@
-using CostVision.Models.Receipts;
+using CostVision.Models.Dtos.Receipts;
 
 namespace CostVision.Models.Responses.Results
 {
@@ -20,6 +20,6 @@ namespace CostVision.Models.Responses.Results
         /// <summary>
         /// Созданный чек.
         /// </summary>
-        public Receipt? Receipt { get; set; }
+        public ReceiptDto? Receipt { get; set; }
     }
 }
