@@ -48,7 +48,7 @@ namespace CostVision.Services.Authorize
 
             List<Guid> roleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();
 
-            UserEditDto dto = new ()
+            UserEditDto dto = new()
             {
                 Id = user.Id,
                 Name = user.Name,
@@ -62,26 +62,28 @@ namespace CostVision.Services.Authorize
         public async Task<ServiceResult> CreateUserAsync(UserUpsertRequest dto, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(dto.Login))
-            
-                return ServiceResult.Fail(400, "Логин обязателен.");            
 
-            if (string.IsNullOrWhiteSpace(dto.Name))            
-                return ServiceResult.Fail(400, "Имя обязательно.");            
+                return ServiceResult.Fail(400, "Логин обязателен.");
 
-            if (string.IsNullOrWhiteSpace(dto.Password))            
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                return ServiceResult.Fail(400, "Имя обязательно.");
+
+            if (string.IsNullOrWhiteSpace(dto.Password))
                 return ServiceResult.Fail(400, "Пароль обязателен.");
-            
-            if (dto.RoleIds.Count == 0)        
+
+            if (dto.RoleIds.Count == 0)
                 return ServiceResult.Fail(400, "Роль обязательна.");
 
-            User? existing = await unitOfWork.User.GetItemByPredicate(u => u.Login.Equals(dto.Login.ToLower(), StringComparison.CurrentCultureIgnoreCase), asNoTracking: true, ct: ct);
+            string normalizedLogin = dto.Login.Trim().ToUpper();
+
+            User? existing = await unitOfWork.User.GetItemByPredicate(u => u.Login.ToUpper() == normalizedLogin, asNoTracking: true, ct: ct);
 
             if (existing != null)
                 return ServiceResult.Fail(409, "Пользователь с таким логином уже существует");
 
             List<Guid> roleIds = dto.RoleIds.Where(x => x != Guid.Empty).ToList();
-
-            User user = new ()
+    
+            User user = new()
             {
                 Login = dto.Login.Trim(),
                 Name = dto.Name.Trim(),
@@ -95,7 +97,7 @@ namespace CostVision.Services.Authorize
             {
                 user.UserRoles.Add(new UserRole
                 {
-                    UserId = user.Id,
+                    User = user,
                     RoleId = roleId
                 });
             }
@@ -108,9 +110,9 @@ namespace CostVision.Services.Authorize
 
         public async Task<ServiceResult> UpdateUserAsync(UserUpsertRequest dto, CancellationToken ct)
         {
-            if (!dto.Id.HasValue)            
+            if (!dto.Id.HasValue)
                 return ServiceResult.Fail(400, "Некорректный id пользователя.");
-            
+
             User? user = await unitOfWork.User.GetItemById(dto.Id.Value, include: q => q.Include(x => x.UserRoles), ct: ct);
 
             if (user == null)
@@ -128,8 +130,8 @@ namespace CostVision.Services.Authorize
             if (!string.Equals(user.Login, dto.Login, StringComparison.OrdinalIgnoreCase))
             {
                 User? conflict = await unitOfWork.User.GetItemByPredicate(
-                    u => u.Login.Equals(dto.Login.ToLower(), StringComparison.CurrentCultureIgnoreCase), 
-                    asNoTracking: true, 
+                    u => u.Login.Equals(dto.Login.ToLower(), StringComparison.CurrentCultureIgnoreCase),
+                    asNoTracking: true,
                     ct: ct);
 
                 if (conflict != null && conflict.Id != user.Id)
@@ -176,7 +178,7 @@ namespace CostVision.Services.Authorize
         public async Task<ServiceResult<bool>> ToggleUserActiveAsync(Guid id, CancellationToken ct)
         {
             User? user = await unitOfWork.User.GetItemById(id, ct: ct);
-            
+
             if (user == null)
                 return ServiceResult<bool>.Fail(404, "Пользователь не найден");
 
