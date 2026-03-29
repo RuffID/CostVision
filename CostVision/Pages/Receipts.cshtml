@@ -143,13 +143,14 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Удаление чека</h5>
+                <h5 class="modal-title" id="deleteReceiptModalTitle">Удаление чека</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-0">
-                    Ты действительно хочешь удалить этот чек? Отменить действие будет невозможно.
+                <p class="mb-2" id="deleteReceiptModalMessage">
+                    Вы уверены, что хотите удалить этот чек?
                 </p>
+                <div class="text-muted" id="deleteReceiptModalReceiptInfo"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>

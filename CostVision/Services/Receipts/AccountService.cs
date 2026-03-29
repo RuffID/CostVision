@@ -54,7 +54,7 @@ namespace CostVision.Services.Receipts
             if (!colorHexResult.Success || colorHexResult.Data == null)
                 return ServiceResult<Account>.Fail(colorHexResult.Error!.StatusCode, colorHexResult.Error.Message);
 
-            Account? current = await unitOfWork.Account.GetItemByPredicate(a => a.Id == account.Id && a.CreatedByUserId == ownerUserId, ct: ct);
+            Account? current = await unitOfWork.Account.GetItemByPredicateAsync(a => a.Id == account.Id && a.CreatedByUserId == ownerUserId, ct: ct);
 
             if (current == null)
                 return ServiceResult<Account>.Fail(404, "Счёт не найден.");
@@ -79,7 +79,7 @@ namespace CostVision.Services.Receipts
             if (accountId == Guid.Empty)
                 return ServiceResult<List<AccountShareUserDto>>.Fail(400, "Некорректный идентификатор счёта.");
 
-            Account? account = await unitOfWork.Account.GetItemByPredicate(a => a.Id == accountId && a.CreatedByUserId == ownerUserId,
+            Account? account = await unitOfWork.Account.GetItemByPredicateAsync(a => a.Id == accountId && a.CreatedByUserId == ownerUserId,
                 asNoTracking: true,
                 include: q => q.Include(a => a.Members),
                 ct: ct);
@@ -91,7 +91,7 @@ namespace CostVision.Services.Receipts
                 .Where(m => m.UserId != ownerUserId)
                 .ToDictionary(m => m.UserId, m => m.Role);
 
-            List<User> users = await unitOfWork.User.GetItemsByPredicate(u => u.IsActive && u.Id != ownerUserId, asNoTracking: true, ct: ct);
+            List<User> users = await unitOfWork.User.GetItemsByPredicateAsync(u => u.IsActive && u.Id != ownerUserId, asNoTracking: true, ct: ct);
 
             List<AccountShareUserDto> items = users
                 .OrderBy(u => u.Name)
@@ -113,7 +113,7 @@ namespace CostVision.Services.Receipts
             if (accountId == Guid.Empty)
                 return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
 
-            Account? account = await unitOfWork.Account.GetItemByPredicate(a => a.Id == accountId && a.CreatedByUserId == ownerUserId,
+            Account? account = await unitOfWork.Account.GetItemByPredicateAsync(a => a.Id == accountId && a.CreatedByUserId == ownerUserId,
                 asNoTracking: false,
                 include: q => q.Include(a => a.Members),
                 ct: ct);
@@ -136,7 +136,7 @@ namespace CostVision.Services.Receipts
 
             List<User> availableUsers = desiredUserIds.Count == 0
                 ? new()
-                : await unitOfWork.User.GetItemsByPredicate(u => desiredUserIds.Contains(u.Id) && u.IsActive, asNoTracking: true, ct: ct);
+                : await unitOfWork.User.GetItemsByPredicateAsync(u => desiredUserIds.Contains(u.Id) && u.IsActive, asNoTracking: true, ct: ct);
 
             if (availableUsers.Count != desiredUserIds.Count)
                 return ServiceResult<bool>.Fail(400, "Один или несколько выбранных пользователей недоступны.");
@@ -197,7 +197,7 @@ namespace CostVision.Services.Receipts
             if (accountId == Guid.Empty)
                 return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
 
-            AccountMember? membership = await unitOfWork.AccountMember.GetItemByPredicate(
+            AccountMember? membership = await unitOfWork.AccountMember.GetItemByPredicateAsync(
                 m => m.AccountId == accountId && m.UserId == userId,
                 asNoTracking: true,
                 ct: ct);
@@ -214,7 +214,7 @@ namespace CostVision.Services.Receipts
         public async Task<AccountMember> AddMemberAsync(Guid accountId, Guid ownerUserId, Guid targetUserId, AccountAccessRole role, CancellationToken ct)
         {
             // Проверяет, что вызывающий является владельцем счёта
-            Account? account = await unitOfWork.Account.GetItemByPredicate(a => a.Id == accountId, asNoTracking: false, ct: ct);
+            Account? account = await unitOfWork.Account.GetItemByPredicateAsync(a => a.Id == accountId, asNoTracking: false, ct: ct);
 
             if (account == null)
                 throw new InvalidOperationException("Счёт не найден.");
@@ -223,7 +223,7 @@ namespace CostVision.Services.Receipts
                 throw new InvalidOperationException("Нет прав управлять участниками счёта.");
 
             // Проверяет, что участник ещё не добавлен
-            AccountMember? exist = await unitOfWork.AccountMember.GetItemByPredicate(m => m.AccountId == accountId && m.UserId == targetUserId,
+            AccountMember? exist = await unitOfWork.AccountMember.GetItemByPredicateAsync(m => m.AccountId == accountId && m.UserId == targetUserId,
                     asNoTracking: false,
                     ct: ct);
 
@@ -251,7 +251,7 @@ namespace CostVision.Services.Receipts
         public async Task RemoveMemberAsync(Guid accountId, Guid ownerUserId, Guid targetUserId, CancellationToken ct)
         {
             // Проверяет права владельца
-            Account? account = await unitOfWork.Account.GetItemByPredicate(a => a.Id == accountId, asNoTracking: false, ct: ct);
+            Account? account = await unitOfWork.Account.GetItemByPredicateAsync(a => a.Id == accountId, asNoTracking: false, ct: ct);
 
             if (account == null)
                 throw new InvalidOperationException("Счёт не найден.");
@@ -263,7 +263,7 @@ namespace CostVision.Services.Receipts
             if (targetUserId == ownerUserId)
                 throw new InvalidOperationException("Нельзя удалить владельца счёта.");
 
-            AccountMember? member = await unitOfWork.AccountMember.GetItemByPredicate(m => m.AccountId == accountId && m.UserId == targetUserId,
+            AccountMember? member = await unitOfWork.AccountMember.GetItemByPredicateAsync(m => m.AccountId == accountId && m.UserId == targetUserId,
                     asNoTracking: false,
                     ct: ct);
 
@@ -277,14 +277,14 @@ namespace CostVision.Services.Receipts
         public async Task<List<UserAccountViewModel>> GetUserAccountsAsync(Guid userId, bool includeArchived, CancellationToken ct)
         {
             // Получает все счета, где пользователь является участником
-            List<AccountMember> memberships = await unitOfWork.AccountMember.GetItemsByPredicate(m => m.UserId == userId, asNoTracking: true, ct: ct);
+            List<AccountMember> memberships = await unitOfWork.AccountMember.GetItemsByPredicateAsync(m => m.UserId == userId, asNoTracking: true, ct: ct);
 
             List<Guid> accountIds = memberships.Select(m => m.AccountId).Distinct().ToList();
 
             if (accountIds.Count == 0)
                 return new();
 
-            List<Account> accounts = await unitOfWork.Account.GetItemsByPredicate(a => accountIds.Contains(a.Id) && (includeArchived || !a.IsArchived),
+            List<Account> accounts = await unitOfWork.Account.GetItemsByPredicateAsync(a => accountIds.Contains(a.Id) && (includeArchived || !a.IsArchived),
                     asNoTracking: true,
                     include: query => query.Include(a => a.CreatedByUser),
                     ct: ct);
@@ -318,7 +318,7 @@ namespace CostVision.Services.Receipts
         public async Task<ReceiptAccountLinkResult> LinkReceiptToAccountAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
         {
             // Проверяет, что счёт существует и пользователь имеет к нему доступ
-            Account? account = await unitOfWork.Account.GetItemByPredicate(a => a.Id == accountId, asNoTracking: false, include: a => a.Include(a => a.Members), ct: ct);
+            Account? account = await unitOfWork.Account.GetItemByPredicateAsync(a => a.Id == accountId, asNoTracking: false, include: a => a.Include(a => a.Members), ct: ct);
 
             if (account == null)
             {
@@ -340,7 +340,7 @@ namespace CostVision.Services.Receipts
             }
 
             // Проверяет, что чек существует
-            Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicate(r => r.Id == receiptId, asNoTracking: false, ct: ct);
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(r => r.Id == receiptId, asNoTracking: false, ct: ct);
 
             if (receipt == null)
             {
@@ -352,7 +352,7 @@ namespace CostVision.Services.Receipts
             }
 
             // Проверяет, что чек ещё не привязан к этому счёту (один чек → один счёт)
-            ReceiptAccount? exist = await unitOfWork.ReceiptAccount.GetItemByPredicate(x => x.AccountId == accountId && x.ReceiptId == receiptId,
+            ReceiptAccount? exist = await unitOfWork.ReceiptAccount.GetItemByPredicateAsync(x => x.AccountId == accountId && x.ReceiptId == receiptId,
                     asNoTracking: true,
                     ct: ct);
 
@@ -393,7 +393,7 @@ namespace CostVision.Services.Receipts
             if (sourceAccountId == targetAccountId)
                 return ServiceResult<bool>.Fail(400, "Счёт назначения должен отличаться от исходного счёта.");
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemById(receiptId,
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByIdAsync(receiptId,
                 asNoTracking: false,
                 include: query => query
                     .Include(r => r.Accounts)
@@ -423,7 +423,7 @@ namespace CostVision.Services.Receipts
             if (!sourceAccessResult.Success)
                 return ServiceResult<bool>.Fail(sourceAccessResult.Error!.StatusCode, sourceAccessResult.Error.Message);
 
-            Account? targetAccount = await unitOfWork.Account.GetItemByPredicate(a => a.Id == targetAccountId,
+            Account? targetAccount = await unitOfWork.Account.GetItemByPredicateAsync(a => a.Id == targetAccountId,
                 asNoTracking: false,
                 include: query => query.Include(account => account.Members),
                 ct: ct);
@@ -435,7 +435,7 @@ namespace CostVision.Services.Receipts
             if (!targetAccessResult.Success)
                 return ServiceResult<bool>.Fail(targetAccessResult.Error!.StatusCode, targetAccessResult.Error.Message);
 
-            Receipt? duplicateReceiptInTargetAccount = await unitOfWork.Receipt.GetItemByPredicate(r =>
+            Receipt? duplicateReceiptInTargetAccount = await unitOfWork.Receipt.GetItemByPredicateAsync(r =>
                 r.Id != receiptId &&
                 r.FiscalDriveNumber == receipt.FiscalDriveNumber &&
                 r.FiscalDocumentNumber == receipt.FiscalDocumentNumber &&
@@ -470,7 +470,7 @@ namespace CostVision.Services.Receipts
             if (accountId == Guid.Empty)
                 return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemById(receiptId,
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByIdAsync(receiptId,
                 asNoTracking: false,
                 include: query => query
                     .Include(r => r.Accounts)
@@ -481,9 +481,6 @@ namespace CostVision.Services.Receipts
 
             if (receipt == null)
                 return ServiceResult<bool>.Fail(404, "Чек не найден.");
-
-            if (receipt.CreatedByUserId != currentUserId)
-                return ServiceResult<bool>.Fail(403, "Можно удалять только собственный чек.");
 
             ReceiptAccount? link = receipt.Accounts.FirstOrDefault(item => item.AccountId == accountId);
             if (link == null)

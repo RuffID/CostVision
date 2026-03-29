@@ -9,19 +9,21 @@
 
   <ItemGroup>
     <Compile Remove="certs\**" />
+    <Compile Remove="keys-windows\**" />
+    <Compile Remove="Libs\**" />
+    <Compile Remove="Logs\**" />
     <Content Remove="certs\**" />
+    <Content Remove="keys-windows\**" />
+    <Content Remove="Libs\**" />
+    <Content Remove="Logs\**" />
     <EmbeddedResource Remove="certs\**" />
+    <EmbeddedResource Remove="keys-windows\**" />
+    <EmbeddedResource Remove="Libs\**" />
+    <EmbeddedResource Remove="Logs\**" />
     <None Remove="certs\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Libs\HttpApiClientLibrary.dll" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Libs\HttpApiClientLibrary.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <None Remove="keys-windows\**" />
+    <None Remove="Libs\**" />
+    <None Remove="Logs\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,8 +45,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="HttpApiClientLibrary">
-      <HintPath>Libs\HttpApiClientLibrary.dll</HintPath>
+    <Reference Include="EFCoreLibrary">
+      <HintPath>..\..\CRMService\libs\EFCoreLibrary.dll</HintPath>
+    </Reference>
+    <Reference Include="HttpClientLibrary">
+      <HintPath>..\..\CRMService\libs\HttpClientLibrary.dll</HintPath>
     </Reference>
   </ItemGroup>
 

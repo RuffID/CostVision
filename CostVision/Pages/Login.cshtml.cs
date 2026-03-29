@@ -29,7 +29,7 @@ namespace CostVision.Pages
                 return Page();
             }
 
-            User? user = await unitOfWork.User.GetItemByPredicate(u => u.Login == Input.Login, asNoTracking: false, include: u => u.Include(u => u.Roles), ct: ct);
+            User? user = await unitOfWork.User.GetItemByPredicateAsync(u => u.Login == Input.Login, asNoTracking: false, include: u => u.Include(u => u.Roles), ct: ct);
 
             if (user == null || !hasher.Verify(Input.Password, user.PasswordHash))
             {

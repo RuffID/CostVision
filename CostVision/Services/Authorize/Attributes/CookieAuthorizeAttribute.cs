@@ -36,7 +36,7 @@ namespace CostVision.Services.Authorize.Attributes
             }
 
             IUnitOfWork unitOfWork = httpContext.RequestServices.GetRequiredService<IUnitOfWork>();
-            User? user = await unitOfWork.User.GetItemById(userId, true,
+            User? user = await unitOfWork.User.GetItemByIdAsync(userId, true,
                 include: u => u
                     .Include(u => u.Roles)
                     .Include(u => u.Accounts.Where(a => !a.IsArchived))

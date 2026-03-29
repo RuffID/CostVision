@@ -1,9 +1,9 @@
-﻿using CostVision.Abstractions.DataBase;
+using EFCoreLibrary.Abstractions.Database;
 using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Services.DataBase
 {
-    public class DataBaseCheckUpService<TContext>(IAppDbContext dbContext, ILoggerFactory logger, BackupService<TContext> backupService) where TContext : DbContext
+    public class DataBaseCheckUpService<TContext>(IAppDbContext<TContext> dbContext, ILoggerFactory logger, BackupService<TContext> backupService) where TContext : DbContext
     {
         private readonly ILogger<DataBaseCheckUpService<TContext>> _logger = logger.CreateLogger<DataBaseCheckUpService<TContext>>();
 
@@ -21,7 +21,7 @@ namespace CostVision.Services.DataBase
 
             if (pendingMigrations.Count != 0)
             {
-                foreach (string migration in pendingMigrations)                
+                foreach (string migration in pendingMigrations)
                     _logger.LogInformation("[Method:{MethodName}] Pending migration: {Migration}.", nameof(CheckOrUpdateDB), migration);
 
                 backupService.CreateSqlServerBackup();

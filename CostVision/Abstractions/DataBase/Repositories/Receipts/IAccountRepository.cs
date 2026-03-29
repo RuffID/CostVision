@@ -1,9 +1,10 @@
-﻿using CostVision.Abstractions.DataBase.Repositories.Base;
+using CostVision.DataBase;
 using CostVision.Models.Receipts;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 
 namespace CostVision.Abstractions.DataBase.Repositories.Receipts
 {
-    public interface IAccountRepository : IGetItemByIdRepository<Account, Guid>, IGetItemByPredicateRepository<Account>, ICreateItemRepository<Account>
+    public interface IAccountRepository : IGetItemByIdRepository<Account, Guid, ApplicationContext>, IGetItemByPredicateRepository<Account, ApplicationContext>, ICreateItemRepository<Account, ApplicationContext>
     {
     }
 }

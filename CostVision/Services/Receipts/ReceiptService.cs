@@ -243,7 +243,7 @@ namespace CostVision.Services.Receipts
 
         public async Task<ServiceResult<List<Receipt>>> GetReceiptListAsync(User currentUser, DateTime dateFrom, DateTime dateTo, CancellationToken ct)
         {
-            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicate(r =>
+            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(r =>
                 r.DateTime >= dateFrom &&
                 r.DateTime <= dateTo &&
                 (
@@ -265,7 +265,7 @@ namespace CostVision.Services.Receipts
             if (receiptId == Guid.Empty)
                 return ServiceResult<Receipt>.Fail(400, "Некорректный идентификатор чека.");
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemById(id: receiptId, asNoTracking: false, include: q => q
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByIdAsync(id: receiptId, asNoTracking: false, include: q => q
                     .Include(r => r.Items)
                         .ThenInclude(i => i.Product)
                     .Include(r => r.Accounts)
@@ -287,7 +287,7 @@ namespace CostVision.Services.Receipts
             if (receiptId == Guid.Empty)
                 return ServiceResult<Receipt>.Fail(400, "Некорректный идентификатор чека.");
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemById(receiptId, asNoTracking: false, include: q => q
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByIdAsync(receiptId, asNoTracking: false, include: q => q
                 .Include(r => r.Items)
                 .Include(r => r.Accounts)
                     .ThenInclude(ra => ra.Account)
@@ -305,7 +305,7 @@ namespace CostVision.Services.Receipts
 
         public async Task RefreshReceiptsWithoutItemsAsync(CancellationToken ct)
         {
-            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicate(r => !r.Items.Any(), include: q => q.Include(r => r.Items), ct: ct);
+            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(r => !r.Items.Any(), include: q => q.Include(r => r.Items), ct: ct);
 
             int countUpdatedReceipts = 0;
             foreach (Receipt receipt in receipts)
@@ -377,7 +377,7 @@ namespace CostVision.Services.Receipts
                     }
                     else
                     {
-                        Product? productFromDb = await unitOfWork.Product.GetItemByPredicate(p => normalizedName == p.NormalizedName, ct: ct);
+                        Product? productFromDb = await unitOfWork.Product.GetItemByPredicateAsync(p => normalizedName == p.NormalizedName, ct: ct);
 
                         if (productFromDb == null)
                         {
@@ -413,7 +413,7 @@ namespace CostVision.Services.Receipts
             if (receiptId == Guid.Empty)
                 return ServiceResult<bool>.Fail(400, "Некорректный идентификатор чека.");
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemById(id: receiptId, asNoTracking: false, ct: ct);
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByIdAsync(id: receiptId, asNoTracking: false, ct: ct);
 
             if (receipt == null)
                 return ServiceResult<bool>.Fail(404, "Чек не найден.");
@@ -449,7 +449,7 @@ namespace CostVision.Services.Receipts
             Guid currentUserId,
             CancellationToken ct)
         {
-            return unitOfWork.Receipt.GetItemByPredicate(
+            return unitOfWork.Receipt.GetItemByPredicateAsync(
                 r => r.FiscalDocumentNumber == fiscalDocumentNumber &&
                      r.FiscalDriveNumber == fiscalDriveNumber &&
                      r.FiscalSign == fiscalSign &&
@@ -471,7 +471,7 @@ namespace CostVision.Services.Receipts
             Guid accountId,
             CancellationToken ct)
         {
-            return unitOfWork.Receipt.GetItemByPredicate(
+            return unitOfWork.Receipt.GetItemByPredicateAsync(
                 r => r.FiscalDocumentNumber == fiscalDocumentNumber &&
                      r.FiscalDriveNumber == fiscalDriveNumber &&
                      r.FiscalSign == fiscalSign &&
@@ -485,7 +485,7 @@ namespace CostVision.Services.Receipts
 
         private async Task<Receipt> LoadReceiptWithAccountsAsync(Guid receiptId, CancellationToken ct)
         {
-            Receipt? receipt = await unitOfWork.Receipt.GetItemById(
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByIdAsync(
                 receiptId,
                 asNoTracking: true,
                 include: query => query

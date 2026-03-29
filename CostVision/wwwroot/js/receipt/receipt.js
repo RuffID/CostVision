@@ -11,7 +11,7 @@ let qrScanLastCameraTs = 0;
 let qrScanAvailableCameras = [];
 let qrScanCurrentCameraId = null;
 
-let qrScanOverlay = null;     // DOM-элемент оверлея загрузки
+let qrScanOverlay = null;
 let antiForgeryToken = null;
 let accountSelect = null;
 let accountSelectError = null;

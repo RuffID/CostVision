@@ -16,7 +16,7 @@ namespace CostVision.Services.Authorize
         {
             Expression<Func<User, bool>>? predicate = u => includeInactive || u.IsActive;
 
-            List<User> users = await unitOfWork.User.GetItemsByPredicate(predicate: predicate, asNoTracking: true,
+            List<User> users = await unitOfWork.User.GetItemsByPredicateAsync(predicate: predicate, asNoTracking: true,
                 include: q => q
                     .Include(u => u.UserRoles),
                 ct: ct);
@@ -39,7 +39,7 @@ namespace CostVision.Services.Authorize
 
         public async Task<ServiceResult<UserEditDto>> GetUserAsync(Guid id, CancellationToken ct)
         {
-            User? user = await unitOfWork.User.GetItemById(id, asNoTracking: true,
+            User? user = await unitOfWork.User.GetItemByIdAsync(id, asNoTracking: true,
                 include: q => q.Include(u => u.UserRoles),
                 ct: ct);
 
@@ -76,7 +76,7 @@ namespace CostVision.Services.Authorize
 
             string normalizedLogin = dto.Login.Trim().ToUpper();
 
-            User? existing = await unitOfWork.User.GetItemByPredicate(u => u.Login.ToUpper() == normalizedLogin, asNoTracking: true, ct: ct);
+            User? existing = await unitOfWork.User.GetItemByPredicateAsync(u => u.Login.ToUpper() == normalizedLogin, asNoTracking: true, ct: ct);
 
             if (existing != null)
                 return ServiceResult.Fail(409, "Пользователь с таким логином уже существует");
@@ -113,7 +113,7 @@ namespace CostVision.Services.Authorize
             if (!dto.Id.HasValue)
                 return ServiceResult.Fail(400, "Некорректный id пользователя.");
 
-            User? user = await unitOfWork.User.GetItemById(dto.Id.Value, include: q => q.Include(x => x.UserRoles), ct: ct);
+            User? user = await unitOfWork.User.GetItemByIdAsync(dto.Id.Value, include: q => q.Include(x => x.UserRoles), ct: ct);
 
             if (user == null)
                 return ServiceResult.Fail(404, "Пользователь не найден.");
@@ -129,7 +129,7 @@ namespace CostVision.Services.Authorize
 
             if (!string.Equals(user.Login, dto.Login, StringComparison.OrdinalIgnoreCase))
             {
-                User? conflict = await unitOfWork.User.GetItemByPredicate(
+                User? conflict = await unitOfWork.User.GetItemByPredicateAsync(
                     u => u.Login.Equals(dto.Login.ToLower(), StringComparison.CurrentCultureIgnoreCase),
                     asNoTracking: true,
                     ct: ct);
@@ -177,7 +177,7 @@ namespace CostVision.Services.Authorize
 
         public async Task<ServiceResult<bool>> ToggleUserActiveAsync(Guid id, CancellationToken ct)
         {
-            User? user = await unitOfWork.User.GetItemById(id, ct: ct);
+            User? user = await unitOfWork.User.GetItemByIdAsync(id, ct: ct);
 
             if (user == null)
                 return ServiceResult<bool>.Fail(404, "Пользователь не найден");

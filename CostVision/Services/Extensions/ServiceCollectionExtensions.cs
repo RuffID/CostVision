@@ -1,15 +1,12 @@
-﻿using CostVision.Abstractions.Api;
-using CostVision.Abstractions.DataBase;
+using CostVision.Abstractions.Api;
 using CostVision.Abstractions.DataBase.Repositories;
 using CostVision.Abstractions.DataBase.Repositories.Authorization;
-using CostVision.Abstractions.DataBase.Repositories.Base;
 using CostVision.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Abstractions.Service.Authorize;
 using CostVision.Abstractions.Service.Receipts;
 using CostVision.DataBase;
 using CostVision.DataBase.Repositories;
 using CostVision.DataBase.Repositories.Authorization;
-using CostVision.DataBase.Repositories.Base;
 using CostVision.DataBase.Repositories.Receipts;
 using CostVision.Models.ConfigClass;
 using CostVision.Services.Api;
@@ -19,8 +16,11 @@ using CostVision.Services.DataBase;
 using CostVision.Services.Helpers;
 using CostVision.Services.Middleware;
 using CostVision.Services.Receipts;
-using HttpApiClientLibrary.API;
-using HttpApiClientLibrary.Interfaces;
+using EFCoreLibrary.Abstractions.Database;
+using EFCoreLibrary.EfCore;
+using EFCoreLibrary.Extensions;
+using HttpClientLibrary;
+using HttpClientLibrary.Abstractions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
@@ -42,9 +42,7 @@ namespace CostVision.Services.Extensions
             return services;
         }
 
-        public static IServiceCollection ConfigureServices(this IServiceCollection services, WebApplicationBuilder builder,
-            Action<JsonSerializerSettings>? configureNewtonsoft = null,
-            Action<HttpClient>? configureHttpClient = null)
+        public static IServiceCollection ConfigureServices(this IServiceCollection services, WebApplicationBuilder builder)
         {
             services.AddConfig(builder.Configuration);
             services.AddControllers();
@@ -64,30 +62,12 @@ namespace CostVision.Services.Extensions
             });
 
             services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("MSSql")));
-            services.AddScoped<IAppDbContext>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
+            services.AddScoped<IAppDbContext<ApplicationContext>>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
+            services.AddEfCoreBaseRepositories<ApplicationContext>();
 
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(180);
-                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
-                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));
-                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("br"));
-                configureHttpClient?.Invoke(client);
-            })
-            .ConfigurePrimaryHttpMessageHandler(() =>
-            {
-                HttpClientHandler handler = new()
-                {
-                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
-                };
-                return handler;
-            });            
-
-            services.AddSingleton<IJsonSerializer>(sp =>
-            {
-                JsonSerializerSettings settings = new();
-                configureNewtonsoft?.Invoke(settings);
-                return new NewtonsoftJsonSerializer(settings);
             });
 
             services.AddScoped<DataBaseCheckUpService<ApplicationContext>>();
@@ -126,10 +106,6 @@ namespace CostVision.Services.Extensions
                 });
             });
 
-            services.AddAntiforgery(options =>
-            {
-                options.Cookie.Name = ".CostVision.Antiforgery";
-            });
 
             // Определяет путь в зависимости от ОС для папки, где будут храниться ключи для Data Protection
             string keyPath;
@@ -176,14 +152,6 @@ namespace CostVision.Services.Extensions
             services.AddScoped<IReceiptRepository, ReceiptRepository>();
             services.AddScoped<IReceiptItemRepository, ReceiptItemRepository>();
             services.AddScoped<IProductRepository, ProductRepository>();
-
-            services.AddScoped(typeof(ICreateItemRepository<>), typeof(CreateItemRepository<>));
-            services.AddScoped(typeof(IDeleteItemRepository<>), typeof(DeleteItemRepository<>));
-            services.AddScoped(typeof(IGetItemByIdRepository<,>), typeof(GetItemByIdRepository<,>));
-            services.AddScoped(typeof(IGetItemByPredicateRepository<>), typeof(GetItemByPredicateRepository<>));
-            services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
-            services.AddScoped(typeof(IUpsertItemByIdRepository<,>), typeof(UpsertItemByIdRepository<,>));
-            services.AddScoped(typeof(IUpsertItemByPredicateRepository<>), typeof(UpsertItemByPredicateRepository<>));
         }
     }
 }

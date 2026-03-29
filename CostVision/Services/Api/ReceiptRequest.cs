@@ -1,7 +1,7 @@
 ﻿using CostVision.Abstractions.Api;
 using CostVision.Models.Requests.ProverkachekaApi;
 using CostVision.Models.Responses.ProverkachekaApi;
-using HttpApiClientLibrary.Interfaces;
+using HttpClientLibrary.Abstractions;
 using System.Net.Http.Headers;
 
 namespace CostVision.Services.Api
