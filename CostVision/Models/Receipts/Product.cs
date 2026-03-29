@@ -1,4 +1,4 @@
-﻿using CostVision.Abstractions.Entity;
+﻿using EFCoreLibrary.Abstractions.Entity;
 
 namespace CostVision.Models.Receipts
 {

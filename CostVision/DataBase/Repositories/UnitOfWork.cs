@@ -1,12 +1,12 @@
-﻿using CostVision.Abstractions.DataBase;
 using CostVision.Abstractions.DataBase.Repositories;
 using CostVision.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Abstractions.DataBase.Repositories.Receipts;
+using EFCoreLibrary.Abstractions.Database;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CostVision.DataBase.Repositories
 {
-    public class UnitOfWork(IAppDbContext context,
+    public class UnitOfWork(IAppDbContext<ApplicationContext> context,
         IUserRepository user,
         IRoleRepository role,
         IAccountRepository account,

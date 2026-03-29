@@ -24,8 +24,14 @@ let receiptsSumElement;
 let deleteModalElement;
 let deleteBootstrapModal;
 let deleteConfirmButton;
+let deleteModalTitleElement;
+let deleteModalMessageElement;
+let deleteModalReceiptInfoElement;
 let pendingDeleteReceiptId = null;
 let pendingDeleteCardElement = null;
+let pendingDeleteAction = null;
+let preserveMoveReceiptAccountModalStateOnHide = false;
+let shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation = false;
 
 let receiptSearchInput;
 let receiptSearchModeSelect;
@@ -36,6 +42,9 @@ let receiptsCache = [];
 let availableAccountsCache = [];
 let searchDebounceTimerId = null;
 let pendingReceiptAccountAction = null;
+
+const DELETE_ACTION_DELETE_RECEIPT = 'delete-receipt';
+const DELETE_ACTION_REMOVE_FROM_ACCOUNT = 'remove-from-account';
 
 // Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function () {
@@ -64,6 +73,9 @@ async function initListOfChecksPage() {
     removeReceiptFromAccountButton = document.getElementById('removeReceiptFromAccountBtn');
     deleteModalElement = document.getElementById('deleteReceiptModal');
     deleteConfirmButton = document.getElementById('confirmDeleteReceiptBtn');
+    deleteModalTitleElement = document.getElementById('deleteReceiptModalTitle');
+    deleteModalMessageElement = document.getElementById('deleteReceiptModalMessage');
+    deleteModalReceiptInfoElement = document.getElementById('deleteReceiptModalReceiptInfo');
     applyFilterButton = document.getElementById('applyFilter');
     dateFromInput = document.getElementById('dateFrom');
     dateToInput = document.getElementById('dateTo');
@@ -99,6 +111,10 @@ async function initListOfChecksPage() {
         });
 
         moveReceiptAccountModalElement.addEventListener('hidden.bs.modal', function () {
+            if (preserveMoveReceiptAccountModalStateOnHide) {
+                return;
+            }
+
             pendingReceiptAccountAction = null;
             hideMoveReceiptAccountAlert();
 
@@ -127,6 +143,19 @@ async function initListOfChecksPage() {
                 document.activeElement.blur();
             }
         });
+
+        deleteModalElement.addEventListener('hidden.bs.modal', function () {
+            if (shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation && moveReceiptAccountBootstrapModal) {
+                shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation = false;
+                preserveMoveReceiptAccountModalStateOnHide = false;
+                moveReceiptAccountBootstrapModal.show();
+                return;
+            }
+
+            pendingDeleteAction = null;
+            pendingDeleteReceiptId = null;
+            pendingDeleteCardElement = null;
+        });
     }
 
     if (deleteConfirmButton) {
@@ -138,7 +167,7 @@ async function initListOfChecksPage() {
     }
 
     if (removeReceiptFromAccountButton) {
-        removeReceiptFromAccountButton.addEventListener('click', onRemoveReceiptFromAccount);
+        removeReceiptFromAccountButton.addEventListener('click', openRemoveReceiptFromAccountConfirmation);
     }
 
     receiptSearchInput = document.getElementById('receiptSearch');
@@ -539,8 +568,25 @@ function openDeleteReceiptModal(receiptId, cardElement) {
         return;
     }
 
+    const receipt = findReceiptById(receiptId);
+    if (!receipt) {
+        alert('Чек не найден в текущем списке.');
+        return;
+    }
+
     pendingDeleteReceiptId = receiptId;
     pendingDeleteCardElement = cardElement;
+    pendingDeleteAction = {
+        type: DELETE_ACTION_DELETE_RECEIPT,
+        receiptId: receiptId,
+        cardElement: cardElement
+    };
+
+    fillDeleteReceiptModal(
+        'Удаление чека',
+        'Вы уверены, что хотите удалить этот чек?',
+        receipt
+    );
 
     // Сбрасывать возможное предыдущее состояние кнопки
     if (deleteConfirmButton) {
@@ -553,7 +599,7 @@ function openDeleteReceiptModal(receiptId, cardElement) {
 
 // Обработать подтверждение удаления
 async function onConfirmDeleteReceipt() {
-    if (!pendingDeleteReceiptId) {
+    if (!pendingDeleteAction) {
         return;
     }
 
@@ -567,25 +613,25 @@ async function onConfirmDeleteReceipt() {
     deleteConfirmButton.textContent = 'Удаление...';
 
     try {
-        const payload = { receiptId: pendingDeleteReceiptId };
-
-        await sendJsonRequest('?handler=DeleteReceipt', 'POST', buildJsonHeaders(forgeryToken), payload);
-        receiptsCache = receiptsCache.filter(function (receipt) {
-            return receipt && receipt.id !== pendingDeleteReceiptId;
-        });
-
-        // Удалять карточку из DOM
-        if (pendingDeleteCardElement && pendingDeleteCardElement.parentNode) {
-            pendingDeleteCardElement.parentNode.removeChild(pendingDeleteCardElement);
+        if (pendingDeleteAction.type === DELETE_ACTION_DELETE_RECEIPT) {
+            await deleteReceiptAsync(pendingDeleteAction.receiptId);
+        } else if (pendingDeleteAction.type === DELETE_ACTION_REMOVE_FROM_ACCOUNT) {
+            shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation = false;
+            preserveMoveReceiptAccountModalStateOnHide = false;
+            await removeReceiptFromAccountAsync(pendingDeleteAction.receiptId, pendingDeleteAction.accountId);
+            closeMoveReceiptAccountModal();
+        }
+        else {
+            throw new Error('Неизвестный тип удаления чека.');
         }
 
         renderReceiptList(applyReceiptFilters(receiptsCache));
 
-        // Закрывать модалку
         if (deleteBootstrapModal) {
             deleteBootstrapModal.hide();
         }
 
+        pendingDeleteAction = null;
         pendingDeleteReceiptId = null;
         pendingDeleteCardElement = null;
     } catch (error) {
@@ -646,7 +692,9 @@ function buildReceiptCard(r) {
     accountDiv.classList.add('small', 'mt-1', 'd-flex', 'align-items-start', 'gap-2', 'flex-wrap');
     accountDiv.setAttribute('data-role', 'receipt-accounts');
 
-    if (getReceiptAccounts(r).length > 0) {
+    const receiptAccounts = getReceiptAccounts(r);
+
+    if (receiptAccounts.length > 0) {
         renderReceiptAccountBadges(accountDiv, r);
     } else {
         accountDiv.style.display = 'none';
@@ -681,13 +729,15 @@ function buildReceiptCard(r) {
     refreshBtn.setAttribute('data-action', 'refresh');
     refreshBtn.textContent = 'Обновить данные';
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.type = 'button';
-    deleteBtn.classList.add('btn', 'btn-sm', 'btn-outline-danger', 'flex-grow-1', 'flex-md-grow-0');
-    deleteBtn.setAttribute('data-action', 'delete');
-    deleteBtn.textContent = 'Удалить';
-    deleteBtn.disabled = true;
-    deleteBtn.title = 'Удаление доступно только через модальное окно собственного счёта.';
+    let deleteBtn = null;
+
+    if (receiptAccounts.length === 0) {
+        deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.classList.add('btn', 'btn-sm', 'btn-outline-danger', 'flex-grow-1', 'flex-md-grow-0');
+        deleteBtn.setAttribute('data-action', 'delete');
+        deleteBtn.textContent = 'Удалить';
+    }
 
     btnGroup.appendChild(openBtn);
     btnGroup.appendChild(refreshBtn);
@@ -699,7 +749,9 @@ function buildReceiptCard(r) {
     topRow.appendChild(rightDiv);
     cardBody.appendChild(topRow);
 
-    btnGroup.appendChild(deleteBtn);
+    if (deleteBtn) {
+        btnGroup.appendChild(deleteBtn);
+    }
 
     card.appendChild(cardBody);
 
@@ -868,6 +920,97 @@ function formatCurrency(value) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }) + ' ₽';
+}
+
+function fillDeleteReceiptModal(title, message, receipt) {
+    if (deleteModalTitleElement) {
+        deleteModalTitleElement.textContent = title;
+    }
+
+    if (deleteModalMessageElement) {
+        deleteModalMessageElement.textContent = message;
+    }
+
+    if (deleteModalReceiptInfoElement) {
+        deleteModalReceiptInfoElement.textContent = buildDeleteReceiptInfoText(receipt);
+    }
+}
+
+function buildDeleteReceiptInfoText(receipt) {
+    if (!receipt) {
+        return '';
+    }
+
+    const parts = [];
+    if (receipt.dateTime) {
+        const date = new Date(receipt.dateTime);
+        parts.push(formatDeleteReceiptDateTime(date));
+    }
+
+    if (typeof receipt.totalSum === 'number') {
+        parts.push(formatCurrency(receipt.totalSum));
+    }
+
+    return parts.join(', ');
+}
+
+function formatDeleteReceiptDateTime(date) {
+    return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+async function deleteReceiptAsync(receiptId) {
+    const payload = { receiptId: receiptId };
+
+    await sendJsonRequest('?handler=DeleteReceipt', 'POST', buildJsonHeaders(forgeryToken), payload);
+    receiptsCache = receiptsCache.filter(function (receipt) {
+        return receipt && receipt.id !== receiptId;
+    });
+
+    if (pendingDeleteCardElement && pendingDeleteCardElement.parentNode) {
+        pendingDeleteCardElement.parentNode.removeChild(pendingDeleteCardElement);
+    }
+}
+
+function openRemoveReceiptFromAccountConfirmation() {
+    if (!pendingReceiptAccountAction || !deleteBootstrapModal || !moveReceiptAccountBootstrapModal) {
+        return;
+    }
+
+    if (!canRemoveReceiptFromSelectedAccount()) {
+        updateMoveReceiptActionState();
+        return;
+    }
+
+    const receipt = findReceiptByAccountReceiptId(pendingReceiptAccountAction.receiptId, pendingReceiptAccountAction.sourceAccountId);
+    if (!receipt) {
+        alert('Чек не найден в текущем списке.');
+        return;
+    }
+
+    pendingDeleteAction = {
+        type: DELETE_ACTION_REMOVE_FROM_ACCOUNT,
+        receiptId: pendingReceiptAccountAction.receiptId,
+        accountId: pendingReceiptAccountAction.sourceAccountId
+    };
+
+    fillDeleteReceiptModal(
+        'Удаление чека из счёта',
+        'Вы уверены, что хотите удалить этот чек из счёта?',
+        receipt
+    );
+
+    if (deleteConfirmButton) {
+        deleteConfirmButton.disabled = false;
+        deleteConfirmButton.textContent = 'Удалить';
+    }
+
+    preserveMoveReceiptAccountModalStateOnHide = true;
+    shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation = true;
+    moveReceiptAccountBootstrapModal.hide();
+    deleteBootstrapModal.show();
 }
 
 function normalizeSingleLineText(value) {
@@ -1290,49 +1433,18 @@ async function onConfirmMoveReceiptToAccount() {
     }
 }
 
-async function onRemoveReceiptFromAccount() {
-    if (!pendingReceiptAccountAction || !removeReceiptFromAccountButton) {
-        return;
-    }
+async function removeReceiptFromAccountAsync(receiptId, accountId) {
+    await sendJsonRequest(
+        '?handler=RemoveReceiptFromAccount',
+        'POST',
+        buildJsonHeaders(forgeryToken),
+        {
+            receiptId: receiptId,
+            accountId: accountId
+        }
+    );
 
-    if (!canRemoveReceiptFromSelectedAccount()) {
-        updateMoveReceiptActionState();
-        return;
-    }
-
-    const originalText = removeReceiptFromAccountButton.textContent;
-    removeReceiptFromAccountButton.disabled = true;
-    removeReceiptFromAccountButton.textContent = 'Удаление...';
-
-    if (confirmMoveReceiptAccountButton) {
-        confirmMoveReceiptAccountButton.disabled = true;
-    }
-
-    try {
-        await sendJsonRequest(
-            '?handler=RemoveReceiptFromAccount',
-            'POST',
-            buildJsonHeaders(forgeryToken),
-            {
-                receiptId: pendingReceiptAccountAction.receiptId,
-                accountId: pendingReceiptAccountAction.sourceAccountId
-            }
-        );
-
-        removeReceiptAccountLink(
-            pendingReceiptAccountAction.receiptId,
-            pendingReceiptAccountAction.sourceAccountId
-        );
-
-        closeMoveReceiptAccountModal();
-        renderReceiptList(applyReceiptFilters(receiptsCache));
-    } catch (error) {
-        console.error(error);
-        showMoveReceiptAccountAlert(error && error.message ? error.message : 'Не удалось удалить чек из счёта.');
-    } finally {
-        removeReceiptFromAccountButton.textContent = originalText;
-        updateMoveReceiptActionState();
-    }
+    removeReceiptAccountLink(receiptId, accountId);
 }
 
 function closeMoveReceiptAccountModal() {

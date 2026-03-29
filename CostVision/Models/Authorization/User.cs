@@ -1,5 +1,5 @@
-﻿using CostVision.Abstractions.Entity;
-using CostVision.Models.Receipts;
+﻿using CostVision.Models.Receipts;
+using EFCoreLibrary.Abstractions.Entity;
 
 namespace CostVision.Models.Authorization
 {

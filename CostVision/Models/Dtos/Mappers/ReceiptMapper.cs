@@ -66,7 +66,7 @@ namespace CostVision.Models.Dtos.Mappers
                             (x.Account.CreatedByUserId == currentUserId ||
                              x.Account.Members.Any(member =>
                                  member.UserId == currentUserId &&
-                                 member.Role != AccountAccessRole.Viewer)))
+                                 member.Role == AccountAccessRole.Owner || member.Role == AccountAccessRole.Editor)))
                 })
                 .OrderBy(x => x.Name)
                 .ToList();

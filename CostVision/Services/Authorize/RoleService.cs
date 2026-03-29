@@ -9,7 +9,7 @@ namespace CostVision.Services.Authorize
     {
         public async Task<ServiceResult<List<Role>>> GetRoleListAsync(CancellationToken ct)
         {
-            List<Role> roles = await unitOfWork.Role.GetItemsByPredicate(asNoTracking: true, ct: ct);
+            List<Role> roles = await unitOfWork.Role.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
             roles = roles.OrderBy(x => x.Name).ToList();
             return ServiceResult<List<Role>>.Ok(roles);
         }
