@@ -1,26 +1,31 @@
-﻿using CostVision.Abstractions.Entity;
-using CostVision.Abstractions.Service.Receipts;
-using CostVision.Models.Authorization;
-using CostVision.Models.Dtos.Mappers;
-using CostVision.Models.Enums.Authorization;
-using CostVision.Models.Receipts;
-using CostVision.Models.Requests.Receipts;
-using CostVision.Models.Responses.Results;
-using CostVision.Services.Authorize.Attributes;
+using CostVision.Web.Abstractions.Entity;
+using CostVision.Application.UseCases.Receipts;
+using CostVision.Domain.Models.Authorization;
+using CostVision.Domain.Models.Enums.Authorization;
+using CostVision.Domain.Models.Receipts;
+using CostVision.Application.Models.Dtos.Mappers;
+using CostVision.Application.Models.Requests.Receipts;
+using CostVision.Application.Models.Responses.Results;
+using CostVision.Web.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace CostVision.Pages.Settings
+namespace CostVision.Web.Pages.Settings
 {
     [CookieAuthorize]
     [LoadUser]
-    public class UserSettingsModel(IAccountService accountService) : PageModel, IHasCurrentUser
+    public class UserSettingsModel(
+        IGetUserAccountsUseCase getUserAccountsUseCase,
+        ICreateAccountUseCase createAccountUseCase,
+        IUpdateAccountUseCase updateAccountUseCase,
+        IGetAccountShareUsersUseCase getAccountShareUsersUseCase,
+        IUpdateAccountMembersUseCase updateAccountMembersUseCase) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = new();
 
         public async Task<IActionResult> OnGetAccountsAsync(bool includeInactive = false, CancellationToken ct = default)
         {
-            List<UserAccountViewModel> accounts = await accountService.GetUserAccountsAsync(CurrentUser.Id, includeInactive, ct);
+            List<UserAccountViewModel> accounts = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeInactive, ct);
             return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
         }
 
@@ -29,11 +34,11 @@ namespace CostVision.Pages.Settings
             if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 3)
                 return JsonResultMapper.ToJsonResult(ServiceResult<UserAccountViewModel>.Fail(400, "Название счёта обязательно. Минимум 3 символа."));
 
-            ServiceResult<Account> result = await accountService.CreateAccountAsync(CurrentUser.Id, request, ct);
+            ServiceResult<Account> result = await createAccountUseCase.ExecuteAsync(CurrentUser.Id, request, ct);
             if (!result.Success || result.Data == null)
                 return JsonResultMapper.ToJsonResult(result);
 
-            UserAccountViewModel dto = new ()
+            UserAccountViewModel dto = new()
             {
                 Id = result.Data.Id,
                 Name = result.Data.Name,
@@ -46,7 +51,6 @@ namespace CostVision.Pages.Settings
 
             return JsonResultMapper.ToJsonResult(ServiceResult<UserAccountViewModel>.Ok(dto));
         }
-
 
         public async Task<IActionResult> OnPostUpdateAccountAsync([FromBody] UpdateAccountRequest request, CancellationToken ct)
         {
@@ -65,11 +69,11 @@ namespace CostVision.Pages.Settings
                 IsArchived = !request.IsActive
             };
 
-            ServiceResult<Account> result = await accountService.UpdateAccountAsync(CurrentUser.Id, account, ct);
+            ServiceResult<Account> result = await updateAccountUseCase.ExecuteAsync(CurrentUser.Id, account, ct);
             if (!result.Success || result.Data == null)
                 return JsonResultMapper.ToJsonResult(result);
 
-            UserAccountViewModel dto = new ()
+            UserAccountViewModel dto = new()
             {
                 Id = result.Data.Id,
                 Name = result.Data.Name,
@@ -85,12 +89,12 @@ namespace CostVision.Pages.Settings
 
         public async Task<IActionResult> OnGetShareCandidatesAsync([FromQuery] Guid accountId, CancellationToken ct)
         {
-            return JsonResultMapper.ToJsonResult(await accountService.GetAccountShareUsersAsync(accountId, CurrentUser.Id, ct));
+            return JsonResultMapper.ToJsonResult(await getAccountShareUsersUseCase.ExecuteAsync(accountId, CurrentUser.Id, ct));
         }
 
         public async Task<IActionResult> OnPostUpdateMembersAsync([FromBody] UpdateAccountMembersRequest request, CancellationToken ct)
         {
-            return JsonResultMapper.ToJsonResult(await accountService.UpdateAccountMembersAsync(request.AccountId, CurrentUser.Id, request.Members, ct));
+            return JsonResultMapper.ToJsonResult(await updateAccountMembersUseCase.ExecuteAsync(request.AccountId, CurrentUser.Id, request.Members, ct));
         }
     }
 }

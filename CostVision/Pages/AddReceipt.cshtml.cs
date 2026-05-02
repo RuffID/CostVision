@@ -1,26 +1,30 @@
-﻿using CostVision.Abstractions.Entity;
-using CostVision.Abstractions.Service.Receipts;
-using CostVision.Models.Authorization;
-using CostVision.Models.Dtos.Mappers;
-using CostVision.Models.Dtos.Receipts;
-using CostVision.Models.Requests.Receipts;
-using CostVision.Models.Responses.Results;
-using CostVision.Models.Services.Receipts;
-using CostVision.Services.Authorize.Attributes;
+using CostVision.Web.Abstractions.Entity;
+using CostVision.Application.UseCases.Receipts;
+using CostVision.Domain.Models.Authorization;
+using CostVision.Application.Models.Dtos.Mappers;
+using CostVision.Application.Models.Dtos.Receipts;
+using CostVision.Application.Models.Requests.Receipts;
+using CostVision.Application.Models.Responses.Results;
+using CostVision.Application.Models.Services.Receipts;
+using CostVision.Web.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace CostVision.Pages
+namespace CostVision.Web.Pages
 {
     [CookieAuthorize]
     [LoadUser]
-    public class AddReceiptModel(IReceiptService receiptService, IAccountService accountService) : PageModel, IHasCurrentUser
+    public class AddReceiptModel(
+        IGetUserAccountsForReceiptCreationUseCase getUserAccountsForReceiptCreationUseCase,
+        IValidateReceiptCreationAccessUseCase validateReceiptCreationAccessUseCase,
+        ISaveReceiptsScannedUseCase saveReceiptsScannedUseCase,
+        ISaveManualReceiptUseCase saveManualReceiptUseCase) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = new();
 
         public async Task<IActionResult> OnGetAccountsAsync(CancellationToken ct)
         {
-            List<UserAccountViewModel> accounts = await accountService.GetUserAccountsForReceiptCreationAsync(CurrentUser.Id, ct);
+            List<UserAccountViewModel> accounts = await getUserAccountsForReceiptCreationUseCase.ExecuteAsync(CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
         }
 
@@ -31,12 +35,12 @@ namespace CostVision.Pages
 
             if (request.AccountId != Guid.Empty)
             {
-                ServiceResult<bool> accessResult = await accountService.ValidateReceiptCreationAccessAsync(request.AccountId, CurrentUser.Id, ct);
+                ServiceResult<bool> accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(request.AccountId, CurrentUser.Id, ct);
                 if (!accessResult.Success)
                     return JsonResultMapper.ToJsonResult(accessResult);
             }
 
-            ReceiptScanResultSummary summary = await receiptService.SaveReceiptsScannedAsync(request, CurrentUser.Id, ct);
+            ReceiptScanResultSummary summary = await saveReceiptsScannedUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
 
             AddReceiptScanResponse data = new()
             {
@@ -53,12 +57,12 @@ namespace CostVision.Pages
         {
             if (input.AccountId != Guid.Empty)
             {
-                ServiceResult<bool> accessResult = await accountService.ValidateReceiptCreationAccessAsync(input.AccountId, CurrentUser.Id, ct);
+                ServiceResult<bool> accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(input.AccountId, CurrentUser.Id, ct);
                 if (!accessResult.Success)
                     return JsonResultMapper.ToJsonResult(accessResult);
             }
 
-            ManualReceiptResult result = await receiptService.SaveReceiptManualAsync(input, CurrentUser.Id, ct);
+            ManualReceiptResult result = await saveManualReceiptUseCase.ExecuteAsync(input, CurrentUser.Id, ct);
             ReceiptDto? receiptDto = result.Receipt?.MapReceiptDto();
 
             AddReceiptManualResponse data = new()

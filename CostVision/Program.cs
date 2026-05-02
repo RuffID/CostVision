@@ -1,7 +1,7 @@
-using CostVision.DataBase;
-using CostVision.Services.DataBase;
-using CostVision.Services.Extensions;
-using CostVision.Services.Middleware;
+﻿using CostVision.Infrastructure.DataBase;
+using CostVision.Infrastructure.Services.DataBase;
+using CostVision.Web.Extensions;
+using CostVision.Infrastructure.Services.Middleware;
 using Serilog;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -39,7 +39,7 @@ if (!app.Environment.IsDevelopment())
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "�� API v1");
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Моё API v1");
     options.RoutePrefix = "swagger";
 });
 

@@ -1,40 +1,46 @@
-﻿using CostVision.Abstractions.Entity;
-using CostVision.Abstractions.Service.Authorize;
-using CostVision.Models.Authorization;
-using CostVision.Models.Dtos.Authorization;
-using CostVision.Models.Dtos.Mappers;
-using CostVision.Models.Requests.Authorize;
-using CostVision.Models.Responses.Results;
-using CostVision.Services.Authorize.Attributes;
+using CostVision.Web.Abstractions.Entity;
+using CostVision.Application.UseCases.Authorize;
+using CostVision.Domain.Models.Authorization;
+using CostVision.Application.Models.Dtos.Authorization;
+using CostVision.Application.Models.Dtos.Mappers;
+using CostVision.Application.Models.Requests.Authorize;
+using CostVision.Application.Models.Responses.Results;
+using CostVision.Web.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace CostVision.Pages.Settings
+namespace CostVision.Web.Pages.Settings
 {
     [CookieAuthorize]
     [LoadUser]
-    public class UsersModel(IUserService userService, IRoleService roleService) : PageModel, IHasCurrentUser
+    public class UsersModel(
+        IGetUserListUseCase getUserListUseCase,
+        IGetUserUseCase getUserUseCase,
+        ICreateUserUseCase createUserUseCase,
+        IUpdateUserUseCase updateUserUseCase,
+        IToggleUserActiveUseCase toggleUserActiveUseCase,
+        IGetRoleListUseCase getRoleListUseCase) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
 
         public async Task<IActionResult> OnGetUserListAsync([FromQuery] bool includeInactive = false, CancellationToken ct = default)
         {
-            ServiceResult<List<UserListItemDto>> result = await userService.GetUserListAsync(includeInactive, ct);
+            ServiceResult<List<UserListItemDto>> result = await getUserListUseCase.ExecuteAsync(includeInactive, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnGetUserAsync([FromQuery] Guid id, CancellationToken ct = default)
         {
-            ServiceResult<UserEditDto> result = await userService.GetUserAsync(id, ct);
+            ServiceResult<UserEditDto> result = await getUserUseCase.ExecuteAsync(id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnGetRoleListAsync(CancellationToken ct = default)
         {
-            ServiceResult<List<Role>> result = await roleService.GetRoleListAsync(ct);
-            if (!result.Success || result.Data == null)            
+            ServiceResult<List<Role>> result = await getRoleListUseCase.ExecuteAsync(ct);
+            if (!result.Success || result.Data == null)
                 return JsonResultMapper.ToJsonResult(result);
-            
+
             List<RoleDto> dto = result.Data
                 .OrderBy(x => x.Name)
                 .Select(x => new RoleDto
@@ -50,19 +56,19 @@ namespace CostVision.Pages.Settings
 
         public async Task<IActionResult> OnPostCreateAsync([FromBody] UserUpsertRequest dto, CancellationToken ct = default)
         {
-            ServiceResult result = await userService.CreateUserAsync(dto, ct);
+            ServiceResult result = await createUserUseCase.ExecuteAsync(dto, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostUpdateAsync([FromBody] UserUpsertRequest dto, CancellationToken ct = default)
         {
-            ServiceResult result = await userService.UpdateUserAsync(dto, ct);
+            ServiceResult result = await updateUserUseCase.ExecuteAsync(dto, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostToggleActiveAsync([FromQuery] Guid id, CancellationToken ct = default)
         {
-            ServiceResult<bool> result = await userService.ToggleUserActiveAsync(id, ct);
+            ServiceResult<bool> result = await toggleUserActiveUseCase.ExecuteAsync(id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
     }
