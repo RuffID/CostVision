@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <AssemblyName>CostVision.Web</AssemblyName>
+    <RootNamespace>CostVision.Web</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="certs\**" />
+    <Compile Remove="keys-windows\**" />
+    <Compile Remove="Libs\**" />
+    <Compile Remove="Logs\**" />
+    <Content Remove="certs\**" />
+    <Content Remove="keys-windows\**" />
+    <Content Remove="Libs\**" />
+    <Content Remove="Logs\**" />
+    <EmbeddedResource Remove="certs\**" />
+    <EmbeddedResource Remove="keys-windows\**" />
+    <EmbeddedResource Remove="Libs\**" />
+    <EmbeddedResource Remove="Logs\**" />
+    <None Remove="certs\**" />
+    <None Remove="keys-windows\**" />
+    <None Remove="Libs\**" />
+    <None Remove="Logs\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CostVision.Domain\CostVision.Domain.csproj" />
+    <ProjectReference Include="..\CostVision.Application\CostVision.Application.csproj" />
+    <ProjectReference Include="..\CostVision.Infrastructure\CostVision.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.5" />
+  </ItemGroup>
+
+</Project>

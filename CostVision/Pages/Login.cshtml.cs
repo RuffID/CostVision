@@ -1,20 +1,18 @@
-﻿using CostVision.Abstractions.DataBase.Repositories;
-using CostVision.DataBase.Repositories;
-using CostVision.Models.Authorization;
-using CostVision.Models.Requests.Authorize;
-using CostVision.Services.Helpers;
+using CostVision.Application.UseCases.Authorize;
+using CostVision.Domain.Models.Authorization;
+using CostVision.Application.Models.Requests.Authorize;
+using CostVision.Application.Models.Responses.Results;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace CostVision.Pages
+namespace CostVision.Web.Pages
 {
     [AllowAnonymous]
-    public class LoginModel(IUnitOfWork unitOfWork, Hasher hasher) : PageModel
+    public class LoginModel(IAuthenticateUserUseCase authenticateUserUseCase) : PageModel
     {
         [BindProperty]
         public LoginRequest Input { get; set; } = new();
@@ -29,16 +27,14 @@ namespace CostVision.Pages
                 return Page();
             }
 
-            User? user = await unitOfWork.User.GetItemByPredicateAsync(u => u.Login == Input.Login, asNoTracking: false, include: u => u.Include(u => u.Roles), ct: ct);
-
-            if (user == null || !hasher.Verify(Input.Password, user.PasswordHash))
+            ServiceResult<User> authenticationResult = await authenticateUserUseCase.ExecuteAsync(Input, ct);
+            if (!authenticationResult.Success || authenticationResult.Data == null)
             {
-                ErrorMessage = "Неверный логин или пароль.";
+                ErrorMessage = authenticationResult.Error?.Message ?? "Неверный логин или пароль.";
                 return Page();
             }
 
-            user.LastLoginAtUtc = DateTime.UtcNow;
-            await unitOfWork.SaveChangesAsync(ct);
+            User user = authenticationResult.Data;
 
             List<Claim> claims =
             [
@@ -48,7 +44,6 @@ namespace CostVision.Pages
 
             foreach (Role role in user.Roles)
                 claims.Add(new Claim(ClaimTypes.Role, role.RoleType.ToString()));
-
 
             ClaimsIdentity claimsIdentity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal claimsPrincipal = new(claimsIdentity);

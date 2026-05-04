@@ -1,6 +1,4 @@
-﻿@using CostVision.Models.Authorization
-@using CostVision.Models.Constants
-@using CostVision.Models.Enums.Authorization
+@using CostVision.Domain.Models.Enums.Authorization
 @using Microsoft.AspNetCore.Antiforgery
 @inject IAntiforgery Antiforgery
 <!DOCTYPE html>
@@ -52,10 +50,10 @@
                                 <span class="me-3" style="font-weight:600; color:#1E3A50;">
                                     @User.Identity.Name
                                 </span>
-                                
+
                                <a asp-area="" asp-page="/Settings/UserSettings" class="btn p-0 me-3" aria-label="Настройки пользователя" title="Настройки">
                                    <img src="~/icon/settings.svg" alt="settings" style="width:25px; height:25px;">
-                               </a>                                
+                               </a>
 
                                 <form method="post" asp-page="/Logout" class="m-0 p-0">
                                     <button type="submit" class="btn p-0">
