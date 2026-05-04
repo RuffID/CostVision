@@ -13,7 +13,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <Reference Include="EFCoreLibrary">
-      <HintPath>..\..\CRMService\libs\EFCoreLibrary.dll</HintPath>
+      <HintPath>..\libs\EFCoreLibrary.dll</HintPath>
     </Reference>
   </ItemGroup>
 

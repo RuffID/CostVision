@@ -31,10 +31,10 @@
 
   <ItemGroup>
     <Reference Include="EFCoreLibrary">
-      <HintPath>..\..\CRMService\libs\EFCoreLibrary.dll</HintPath>
+      <HintPath>..\libs\EFCoreLibrary.dll</HintPath>
     </Reference>
     <Reference Include="HttpClientLibrary">
-      <HintPath>..\..\CRMService\libs\HttpClientLibrary.dll</HintPath>
+      <HintPath>..\libs\HttpClientLibrary.dll</HintPath>
     </Reference>
   </ItemGroup>
 
