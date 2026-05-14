@@ -1,11 +1,12 @@
 using CostVision.Domain.Models.Authorization;
+using EFCoreLibrary.Abstractions.Entity;
 
 namespace CostVision.Domain.Models.Receipts
 {
     /// <summary>
     /// Счёт, кошелёк или общий бюджет для группировки чеков и расходов.
     /// </summary>
-    public class Account
+    public class Account : IEntity<Guid>
     {
         public const string DEFAULT_COLOR_HEX = "#0D6EFD";
 

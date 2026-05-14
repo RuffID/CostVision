@@ -1,9 +1,10 @@
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Enums.Receipts;
+using EFCoreLibrary.Abstractions.Entity;
 
 namespace CostVision.Domain.Models.Receipts
 {
-    public class Receipt
+    public class Receipt : IEntity<Guid>
     {
         public Guid Id { get; set; }
 

@@ -1,6 +1,8 @@
+using EFCoreLibrary.Abstractions.Entity;
+
 namespace CostVision.Domain.Models.Receipts
 {
-    public class Product
+    public class Product : IEntity<Guid>
     {
         public Guid Id { get; set; }
 

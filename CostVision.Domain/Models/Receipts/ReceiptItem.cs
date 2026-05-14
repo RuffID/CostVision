@@ -1,8 +1,9 @@
 using CostVision.Domain.Models.Enums.Receipts;
+using EFCoreLibrary.Abstractions.Entity;
 
 namespace CostVision.Domain.Models.Receipts
 {
-    public class ReceiptItem
+    public class ReceiptItem : IEntity<Guid>
     {
         public Guid Id { get; set; }
 

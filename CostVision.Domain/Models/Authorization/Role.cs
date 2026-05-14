@@ -1,8 +1,9 @@
 using CostVision.Domain.Models.Enums.Authorization;
+using EFCoreLibrary.Abstractions.Entity;
 
 namespace CostVision.Domain.Models.Authorization
 {
-    public class Role
+    public class Role : IEntity<Guid>
     {
         public Guid Id { get; set; }
 
