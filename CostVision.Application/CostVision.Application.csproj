@@ -11,6 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
+
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <Reference Include="EFCoreLibrary">
       <HintPath>..\libs\EFCoreLibrary.dll</HintPath>

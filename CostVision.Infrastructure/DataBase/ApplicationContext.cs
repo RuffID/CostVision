@@ -1,10 +1,11 @@
+using CostVision.Application.Abstractions.DataBase;
 using CostVision.Infrastructure.DataBase.ModelsConfigure.Authorization;
 using CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts;
 using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Infrastructure.DataBase
 {
-    public partial class ApplicationContext(DbContextOptions<ApplicationContext> options) : DbContext(options)
+    public partial class ApplicationContext(DbContextOptions<ApplicationContext> options) : AppDbContextBase(options)
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

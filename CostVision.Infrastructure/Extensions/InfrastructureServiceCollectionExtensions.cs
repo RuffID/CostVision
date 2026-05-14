@@ -1,3 +1,4 @@
+using CostVision.Application.Abstractions.DataBase;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -37,6 +38,7 @@ namespace CostVision.Infrastructure.Extensions
 
             services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(configuration.GetConnectionString("MSSql")));
             services.AddScoped<IAppDbContext<ApplicationContext>>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
+            services.AddScoped<IAppDbContext<AppDbContextBase>>(sp => new EfDbContextAdapter<AppDbContextBase>(sp.GetRequiredService<ApplicationContext>()));
             services.AddEfCoreBaseRepositories<ApplicationContext>();
 
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>

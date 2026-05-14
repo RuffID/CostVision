@@ -1,8 +1,9 @@
 using CostVision.Domain.Models.Receipts;
+using EFCoreLibrary.Abstractions.Entity;
 
 namespace CostVision.Domain.Models.Authorization
 {
-    public class User
+    public class User : IEntity<Guid>
     {
         public Guid Id { get; set; }
 
