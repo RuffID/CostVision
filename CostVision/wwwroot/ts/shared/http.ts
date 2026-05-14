@@ -1,4 +1,17 @@
-export async function sendJsonRequest(url: string, method = "GET", headers: Record<string, string> = {}, body: BodyInit | object | null = null): Promise<any> {
+export type JsonHeaders = Record<string, string>;
+
+export type JsonRequestBody = BodyInit | object | null;
+
+export interface ServiceResult {
+    success: boolean;
+    message?: string;
+}
+
+export interface ServiceResultWithData<TData> extends ServiceResult {
+    data?: TData;
+}
+
+export async function sendJsonRequest<TResponse = unknown>(url: string, method = "GET", headers: JsonHeaders = {}, body: JsonRequestBody = null): Promise<TResponse> {
     const options: RequestInit = {
         method: method,
         headers: headers
@@ -34,10 +47,10 @@ export async function sendJsonRequest(url: string, method = "GET", headers: Reco
     }
 
     let text = await response.text();
-    if (!text || text.trim() === "") return {};
+    if (!text || text.trim() === "") return {} as TResponse;
 
     try {
-        return JSON.parse(text);
+        return JSON.parse(text) as TResponse;
     }
     catch (error) {
         console.error("Failed to parse JSON", error);
@@ -45,8 +58,8 @@ export async function sendJsonRequest(url: string, method = "GET", headers: Reco
     }
 }
 
-export function buildJsonHeaders(forgeryToken: string | null): Record<string, string> {
-    let headers: Record<string, string> = {
+export function buildJsonHeaders(forgeryToken: string | null): JsonHeaders {
+    const headers: JsonHeaders = {
         "Accept": "application/json",
         "Content-Type": "application/json"
     };
@@ -56,4 +69,18 @@ export function buildJsonHeaders(forgeryToken: string | null): Record<string, st
     }
 
     return headers;
+}
+
+export function unwrapServiceResult<TData>(result: ServiceResultWithData<TData>): TData {
+    if (!result.success) {
+        throw new Error(result.message || "Ошибка выполнения запроса.");
+    }
+
+    return result.data as TData;
+}
+
+export function unwrapServiceSuccess(result: ServiceResult): void {
+    if (!result.success) {
+        throw new Error(result.message || "Ошибка выполнения запроса.");
+    }
 }
