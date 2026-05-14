@@ -17,7 +17,9 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
             if (predicate != null)
                 query = query.Where(predicate);
 
-            query = query.Skip(skip);
+            if (skip > 0)
+                query = query.Skip(skip);
+
             if (take.HasValue)
                 query = query.Take(take.Value);
 

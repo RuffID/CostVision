@@ -49,6 +49,9 @@ namespace CostVision.Infrastructure.Services.Receipts
                 return ServiceResult<Receipt>.Fail(500, $"Не удалось обновить чек по внешнему API.\nОшибка: {result.Data?.Error}");
             }
 
+            if (result.Code != (int)ReceiptResponseCodeEnum.Correct || result.Data?.Json == null)
+                return ServiceResult<Receipt>.Fail(500, $"Не удалось обновить чек по внешнему API.\nОшибка: {result.Data?.Error ?? "В ответе API отсутствует JSON чека."}");
+
             Receipt mappedReceipt = result.MapToReceipt();
             mappedReceipt.Items = result.Data?.Json?.Items
                 .Select(item =>

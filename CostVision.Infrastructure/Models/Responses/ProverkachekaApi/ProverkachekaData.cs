@@ -1,5 +1,5 @@
 using CostVision.Infrastructure.Services.Converters;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace CostVision.Infrastructure.Models.Responses.ProverkachekaApi
 {
@@ -11,7 +11,7 @@ namespace CostVision.Infrastructure.Models.Responses.ProverkachekaApi
         public string? Html { get; set; }
 
         /// <summary>
-        /// В Error записывается ошибка, в случае когда "Data" приходит не объектом, а строкой
+        /// Содержит текст ошибки, если поле data пришло строкой вместо объекта.
         /// </summary>
         public string? Error { get; set; }
 

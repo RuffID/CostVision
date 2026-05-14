@@ -1,19 +1,19 @@
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace CostVision.Infrastructure.Models.Requests.ProverkachekaApi
 {
     public class ProverkachekaQrRawRequest
     {
         // Токен доступа
-        [JsonProperty("token")]
+        [JsonPropertyName("token")]
         public string Token { get; set; } = string.Empty;
 
         // Сырая строка QR-кода
-        [JsonProperty("qrraw")]
+        [JsonPropertyName("qrraw")]
         public string QrRaw { get; set; } = string.Empty;
 
         // Идентификатор акции (если нужно)
-        [JsonProperty("promoid")]
+        [JsonPropertyName("promoid")]
         public int? PromoId { get; set; }
     }
 }

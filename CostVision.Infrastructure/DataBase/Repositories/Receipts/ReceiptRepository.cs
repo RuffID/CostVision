@@ -20,7 +20,9 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
             if (predicate != null)
                 query = query.Where(predicate);
 
-            query = query.Skip(skip);
+            if (skip > 0)
+                query = query.Skip(skip);
+
             if (take.HasValue)
                 query = query.Take(take.Value);
 
@@ -56,6 +58,7 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
                                   (receipt.CreatedByUserId == currentUserId ||
                                    receipt.Accounts.Any(link => link.Account!.CreatedByUserId == currentUserId) ||
                                    receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUserId))))
+                .AsSplitQuery()
                 .ToListAsync(ct);
 
         public Task<List<Receipt>> GetWithoutItemsAsync(CancellationToken ct = default)

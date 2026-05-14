@@ -1,69 +1,60 @@
 using CostVision.Infrastructure.Models.Responses.ProverkachekaApi;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CostVision.Infrastructure.Services.Converters
 {
     public class ProverkachekaDataConverter : JsonConverter<ProverkachekaData>
     {
-        public override ProverkachekaData? ReadJson(JsonReader reader, Type objectType, ProverkachekaData? existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override ProverkachekaData? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            if (reader.TokenType == JsonToken.Null)
+            if (reader.TokenType == JsonTokenType.Null)
                 return null;
 
-            // data = "Не вышло время ожидания..."
-            if (reader.TokenType == JsonToken.String)
+            if (reader.TokenType == JsonTokenType.String)
             {
-                string errorText = (string)reader.Value!;
                 return new ProverkachekaData
                 {
-                    Error = errorText
+                    Error = reader.GetString()
                 };
             }
 
-            // data = { "json": {...}, "html": "..." }
-            if (reader.TokenType == JsonToken.StartObject)
-            {
-                JObject obj = JObject.Load(reader);
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException($"Unexpected token type for Proverkacheka data: {reader.TokenType}.");
 
-                ProverkachekaData result = new ();
-                serializer.Populate(obj.CreateReader(), result);
-                return result;
-            }
+            using JsonDocument document = JsonDocument.ParseValue(ref reader);
+            JsonElement root = document.RootElement;
 
-            // любой другой мусор
-            JToken token = JToken.Load(reader);
-            return new ProverkachekaData
-            {
-                Error = token.ToString()
-            };
+            ProverkachekaData result = new();
+            if (root.TryGetProperty("json", out JsonElement jsonElement) && jsonElement.ValueKind != JsonValueKind.Null)
+                result.Json = jsonElement.Deserialize<ProverkachekaJson>(options);
+
+            if (root.TryGetProperty("html", out JsonElement htmlElement) && htmlElement.ValueKind != JsonValueKind.Null)
+                result.Html = htmlElement.GetString();
+
+            return result;
         }
 
-        public override void WriteJson(JsonWriter writer, ProverkachekaData? value, JsonSerializer serializer)
+        public override void Write(Utf8JsonWriter writer, ProverkachekaData value, JsonSerializerOptions options)
         {
-            if (value == null)
-            {
-                writer.WriteNull();
-                return;
-            }
-
-            // если это просто ошибка — пишем строкой
             if (value.Json == null && value.Html == null && !string.IsNullOrWhiteSpace(value.Error))
             {
-                writer.WriteValue(value.Error);
+                writer.WriteStringValue(value.Error);
                 return;
             }
 
-            // иначе сериализуем как объект { json: ..., html: ... }
-            JObject obj = new();
+            writer.WriteStartObject();
 
             if (value.Json != null)
-                obj["json"] = JToken.FromObject(value.Json, serializer);
+            {
+                writer.WritePropertyName("json");
+                JsonSerializer.Serialize(writer, value.Json, options);
+            }
 
             if (value.Html != null)
-                obj["html"] = value.Html;
+                writer.WriteString("html", value.Html);
 
-            obj.WriteTo(writer);
+            writer.WriteEndObject();
         }
     }
 }

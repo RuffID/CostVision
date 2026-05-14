@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model CostVision.Web.Pages.Settings.UsersModel
 @{
     ViewData["Title"] = "Настройки — Пользователи";
@@ -79,6 +79,4 @@
     </div>
 </div>
 
-<script src="~/js/helpers/http.js" asp-append-version="true"></script>
-<script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
-<script src="~/js/settings/users.js" asp-append-version="true"></script>
+<script type="module" src="~/dist/settings/users.js" asp-append-version="true"></script>

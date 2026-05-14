@@ -13,6 +13,7 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm && rm -rf /var/lib/apt/lists/*
 COPY ["CostVision/CostVision.Web.csproj", "CostVision/"]
 COPY ["CostVision.Domain/CostVision.Domain.csproj", "CostVision.Domain/"]
 COPY ["CostVision.Application/CostVision.Application.csproj", "CostVision.Application/"]
@@ -20,6 +21,8 @@ COPY ["CostVision.Infrastructure/CostVision.Infrastructure.csproj", "CostVision.
 RUN dotnet restore "./CostVision/CostVision.Web.csproj" --disable-parallel
 COPY . .
 WORKDIR "/src/CostVision"
+RUN npm ci
+RUN npm run build:ts
 RUN dotnet build "./CostVision.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Этот этап используется для публикации проекта службы, который будет скопирован на последний этап

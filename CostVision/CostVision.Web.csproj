@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -38,7 +38,15 @@
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.5" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
   </ItemGroup>
+
+  <Target Name="RestoreFrontendDependencies" BeforeTargets="Build" Condition="!Exists('node_modules\typescript\bin\tsc')">
+    <Exec Command="npm ci" />
+  </Target>
+
+  <Target Name="BuildFrontend" BeforeTargets="Build" DependsOnTargets="RestoreFrontendDependencies">
+    <Exec Command="npm run build:ts" />
+  </Target>
 
 </Project>
