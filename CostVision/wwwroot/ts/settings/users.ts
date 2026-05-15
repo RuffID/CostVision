@@ -1,13 +1,67 @@
-// @ts-nocheck
-import { buildJsonHeaders, sendJsonRequest } from "../shared/http.js";
+import { buildJsonHeaders, sendJsonRequest, ServiceResult, ServiceResultWithData, unwrapServiceResult, unwrapServiceSuccess } from "../shared/http.js";
 import { getRequestVerificationToken } from "../shared/verificationToken.js";
-import { clearElement } from "../shared/dom.js";
+import { requireElementById, requireInputById } from "../shared/dom.js";
+import { BootstrapModal, createBootstrapModal } from "../shared/bootstrap.js";
 
-let usersCache = [];
-let rolesCache = [];
-let antiForgeryToken = null;
+interface UserDto {
+    id: string;
+    name: string;
+    login: string;
+    isActive: boolean;
+    createdAtUtc: string;
+    lastLoginAtUtc: string | null;
+}
 
-let editUserModalInstance = null;
+interface RoleDto {
+    id: string;
+    name: string;
+    roleType: number;
+}
+
+interface UserEditDto {
+    id: string;
+    name: string;
+    login: string;
+    roleIds: string[];
+}
+
+interface UserUpsertRequest {
+    id: string | null;
+    name: string;
+    login: string;
+    password: string;
+    roleIds: string[];
+}
+
+type UserListResponse = ServiceResultWithData<UserDto[]>;
+type RoleListResponse = ServiceResultWithData<RoleDto[]>;
+type UserEditResponse = ServiceResultWithData<UserEditDto>;
+type UserSaveResponse = ServiceResult;
+type ToggleUserActiveResponse = ServiceResultWithData<boolean>;
+
+interface UsersPageElements {
+    modalElement: HTMLElement;
+    tableHead: HTMLTableSectionElement;
+    tableBody: HTMLTableSectionElement;
+    createButton: HTMLButtonElement;
+    saveButton: HTMLButtonElement;
+    inactiveCheckbox: HTMLInputElement;
+    searchInput: HTMLInputElement;
+    modalTitle: HTMLElement;
+    userIdInput: HTMLInputElement;
+    nameInput: HTMLInputElement;
+    loginInput: HTMLInputElement;
+    passwordInput: HTMLInputElement;
+    rolesContainer: HTMLElement;
+    errorElement: HTMLElement;
+}
+
+let usersCache: UserDto[] = [];
+let rolesCache: RoleDto[] = [];
+let antiForgeryToken: string | null = null;
+let pageElements: UsersPageElements | null = null;
+
+let editUserModalInstance: BootstrapModal | null = null;
 let isCreateMode = false;
 
 const INACTIVE_CHECKBOX_ID = 'showInactiveUsers';
@@ -23,96 +77,122 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function initializeUsersPage() {
     antiForgeryToken = getRequestVerificationToken();
+    pageElements = requireUsersPageElements();
+    editUserModalInstance = createBootstrapModal(pageElements.modalElement);
 
-    const modalElement = document.getElementById('editUserModal');
-    if (window.bootstrap && modalElement) {
-        editUserModalInstance = new bootstrap.Modal(modalElement);
-
-        modalElement.addEventListener('hide.bs.modal', function () {
-            const active = document.activeElement;
-            if (active && modalElement.contains(active)) {
-                active.blur();
-            }
-        });
-    }
-
-    const tableBody = document.getElementById('usersBody');
-    if (tableBody) {
-        tableBody.addEventListener('click', onUsersTableClick);
-    }
-
-    const createBtn = document.getElementById('createUserButton');
-    if (createBtn) {
-        createBtn.addEventListener('click', openCreateModal);
-    }
-
-    const saveBtn = document.getElementById('saveEditUserButton');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveUser);
-    }
-
-    const inactiveCheckbox = document.getElementById(INACTIVE_CHECKBOX_ID);
-    if (inactiveCheckbox) {
-        const stored = localStorage.getItem(INACTIVE_STORAGE_KEY);
-        if (stored !== null) {
-            inactiveCheckbox.checked = stored === 'true';
+    pageElements.modalElement.addEventListener('hide.bs.modal', function () {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && pageElements!.modalElement.contains(active)) {
+            active.blur();
         }
+    });
 
-        showInactive = inactiveCheckbox.checked === true;
+    pageElements.tableBody.addEventListener('click', onUsersTableClick);
+    pageElements.createButton.addEventListener('click', openCreateModal);
+    pageElements.saveButton.addEventListener('click', saveUser);
 
-        inactiveCheckbox.addEventListener('change', function () {
-            showInactive = inactiveCheckbox.checked === true;
-            localStorage.setItem(INACTIVE_STORAGE_KEY, showInactive ? 'true' : 'false');
-            loadUsers();
-        });
+    const stored = localStorage.getItem(INACTIVE_STORAGE_KEY);
+    if (stored !== null) {
+        pageElements.inactiveCheckbox.checked = stored === 'true';
     }
 
-    const searchInput = document.getElementById('userSearch');
-    if (searchInput) {
-        searchInput.value = searchText;
+    showInactive = pageElements.inactiveCheckbox.checked === true;
 
-        searchInput.addEventListener('input', function () {
-            searchText = (searchInput.value || '').trim().toLowerCase();
-            localStorage.setItem(SEARCH_STORAGE_KEY, searchText);
-            applyClientFilters();
-        });
-    }
+    pageElements.inactiveCheckbox.addEventListener('change', function () {
+        showInactive = pageElements!.inactiveCheckbox.checked === true;
+        localStorage.setItem(INACTIVE_STORAGE_KEY, showInactive ? 'true' : 'false');
+        loadUsers();
+    });
+
+    pageElements.searchInput.value = searchText;
+
+    pageElements.searchInput.addEventListener('input', function () {
+        searchText = pageElements!.searchInput.value.trim().toLowerCase();
+        localStorage.setItem(SEARCH_STORAGE_KEY, searchText);
+        applyClientFilters();
+    });
 
     ensureRolesLoaded().then(function () {
         loadUsers();
     });
 }
 
+function requireUsersPageElements(): UsersPageElements {
+    return {
+        modalElement: requireElementById<HTMLElement>('editUserModal'),
+        tableHead: requireElementById<HTMLTableSectionElement>('usersHead'),
+        tableBody: requireElementById<HTMLTableSectionElement>('usersBody'),
+        createButton: requireElementById<HTMLButtonElement>('createUserButton'),
+        saveButton: requireElementById<HTMLButtonElement>('saveEditUserButton'),
+        inactiveCheckbox: requireInputById(INACTIVE_CHECKBOX_ID),
+        searchInput: requireInputById('userSearch'),
+        modalTitle: requireElementById<HTMLElement>('editUserModalLabel'),
+        userIdInput: requireInputById('editUserId'),
+        nameInput: requireInputById('editUserName'),
+        loginInput: requireInputById('editUserLogin'),
+        passwordInput: requireInputById('editUserPassword'),
+        rolesContainer: requireElementById<HTMLElement>('editUserRolesContainer'),
+        errorElement: requireElementById<HTMLElement>('editUserError')
+    };
+}
+
+function requirePageElements(): UsersPageElements {
+    if (pageElements === null) {
+        throw new Error('Страница пользователей не инициализирована.');
+    }
+
+    return pageElements;
+}
+
 async function ensureRolesLoaded() {
     try {
-        const response = await sendJsonRequest('?handler=RoleList', 'GET', buildJsonHeaders(antiForgeryToken));
-        rolesCache = Array.isArray(response.data) ? response.data : [];
+        rolesCache = await loadRolesAsync();
     } catch (error) {
         console.error('Ошибка загрузки ролей:', error);
-        rolesCache = [];
     }
 }
 
 async function loadUsers() {
     try {
-        const url = showInactive ? '?handler=UserList&includeInactive=true' : '?handler=UserList';
-        const response = await sendJsonRequest(url, 'GET', { 'Accept': 'application/json' });
-        usersCache = Array.isArray(response.data) ? response.data : [];
+        usersCache = await loadUsersAsync();
         applyClientFilters();
     } catch (error) {
         console.error('Ошибка при загрузке пользователей:', error);
     }
 }
 
-function applyClientFilters() {
-    if (!Array.isArray(usersCache)) {
-        return;
-    }
+async function loadRolesAsync(): Promise<RoleDto[]> {
+    const response = await sendJsonRequest<RoleListResponse>('?handler=RoleList', 'GET', buildJsonHeaders(antiForgeryToken));
+    return unwrapServiceResult(response);
+}
 
+async function loadUsersAsync(): Promise<UserDto[]> {
+    const url = showInactive ? '?handler=UserList&includeInactive=true' : '?handler=UserList';
+    const response = await sendJsonRequest<UserListResponse>(url, 'GET', { 'Accept': 'application/json' });
+    return unwrapServiceResult(response);
+}
+
+async function getUserAsync(userId: string): Promise<UserEditDto> {
+    const response = await sendJsonRequest<UserEditResponse>(`?handler=User&id=${userId}`, 'GET', buildJsonHeaders(antiForgeryToken));
+    return unwrapServiceResult(response);
+}
+
+async function saveUserAsync(dto: UserUpsertRequest): Promise<void> {
+    const handler = isCreateMode ? 'Create' : 'Update';
+    const result = await sendJsonRequest<UserSaveResponse>(`?handler=${handler}`, 'POST', buildJsonHeaders(antiForgeryToken), dto);
+    unwrapServiceSuccess(result);
+}
+
+async function toggleUserActiveAsync(userId: string): Promise<boolean> {
+    const response = await sendJsonRequest<ToggleUserActiveResponse>(`?handler=ToggleActive&id=${userId}`, 'POST', buildJsonHeaders(antiForgeryToken));
+    return unwrapServiceResult(response);
+}
+
+function applyClientFilters(): void {
     let result = usersCache.slice();
 
     if (searchText) {
-        result = result.filter(function (u) {
+        result = result.filter(function (u: UserDto) {
             const name = (u.name || '').toLowerCase();
             const login = (u.login || '').toLowerCase();
             return name.includes(searchText) || login.includes(searchText);
@@ -126,13 +206,10 @@ function applyClientFilters() {
     renderUsersTable(result);
 }
 
-function renderUsersTable(users) {
-    const head = document.getElementById('usersHead');
-    const body = document.getElementById('usersBody');
-
-    if (!head || !body) {
-        return;
-    }
+function renderUsersTable(users: UserDto[]): void {
+    const elements = requirePageElements();
+    const head = elements.tableHead;
+    const body = elements.tableBody;
 
     head.replaceChildren();
     body.replaceChildren();
@@ -164,7 +241,7 @@ function renderUsersTable(users) {
 
     head.appendChild(trh);
 
-    if (!Array.isArray(users) || users.length === 0) {
+    if (users.length === 0) {
         const emptyRow = document.createElement('tr');
         const emptyCell = document.createElement('td');
         emptyCell.colSpan = headers.length;
@@ -215,7 +292,7 @@ function renderUsersTable(users) {
     }
 }
 
-function createTextCell(text) {
+function createTextCell(text: string | number | boolean | null | undefined): HTMLTableCellElement {
     const td = document.createElement('td');
     td.className = 'align-middle';
 
@@ -225,13 +302,13 @@ function createTextCell(text) {
     span.style.whiteSpace = 'nowrap';
     span.style.overflow = 'hidden';
     span.style.textOverflow = 'ellipsis';
-    span.textContent = text ?? '';
+    span.textContent = String(text ?? '');
 
     td.appendChild(span);
     return td;
 }
 
-function formatUtcDate(utcString) {
+function formatUtcDate(utcString: string | null): string {
     if (!utcString) {
         return '';
     }
@@ -244,45 +321,50 @@ function formatUtcDate(utcString) {
     return date.toLocaleString('ru-RU');
 }
 
-function onUsersTableClick(event) {
-    const editBtn = event.target.closest('.js-edit-user');
+function onUsersTableClick(event: MouseEvent): void {
+    if (!(event.target instanceof Element)) {
+        return;
+    }
+
+    const editBtn = event.target.closest<HTMLButtonElement>('.js-edit-user');
     if (editBtn) {
         const userId = editBtn.dataset.userId;
+        if (!userId) {
+            throw new Error('Не указан идентификатор пользователя для редактирования.');
+        }
+
         openEditModal(userId);
         return;
     }
 
-    const toggleBtn = event.target.closest('.js-toggle-user');
+    const toggleBtn = event.target.closest<HTMLButtonElement>('.js-toggle-user');
     if (toggleBtn) {
         const userId = toggleBtn.dataset.userId;
+        if (!userId) {
+            throw new Error('Не указан идентификатор пользователя для изменения активности.');
+        }
+
         toggleUserActive(userId, toggleBtn);
         return;
     }
 }
 
-async function openEditModal(userId) {
-    if (!userId) {
-        return;
-    }
-
+async function openEditModal(userId: string): Promise<void> {
     isCreateMode = false;
     clearEditUserError();
 
     try {
-        const response = await sendJsonRequest(`?handler=User&id=${userId}`, 'GET', buildJsonHeaders(antiForgeryToken));
-        const user = response.data;
+        const user = await getUserAsync(userId);
         fillModal(user);
         setModalTitle('Редактирование пользователя');
 
-        if (editUserModalInstance) {
-            editUserModalInstance.show();
-        }
+        editUserModalInstance?.show();
     } catch (error) {
         console.error('Ошибка загрузки пользователя:', error);
     }
 }
 
-function openCreateModal() {
+function openCreateModal(): void {
     isCreateMode = true;
     clearEditUserError();
 
@@ -295,130 +377,92 @@ function openCreateModal() {
 
     setModalTitle('Создание пользователя');
 
-    if (editUserModalInstance) {
-        editUserModalInstance.show();
-    }
+    editUserModalInstance?.show();
 }
 
-function setModalTitle(text) {
-    const titleElement = document.getElementById('editUserModalLabel');
-    if (titleElement) {
-        titleElement.textContent = text;
-    }
+function setModalTitle(text: string): void {
+    requirePageElements().modalTitle.textContent = text;
 }
 
-function fillModal(user) {
-    const idInput = document.getElementById('editUserId');
-    const nameInput = document.getElementById('editUserName');
-    const loginInput = document.getElementById('editUserLogin');
-    const passwordInput = document.getElementById('editUserPassword');
-    const rolesContainer = document.getElementById('editUserRolesContainer');
+function fillModal(user: UserEditDto): void {
+    const elements = requirePageElements();
 
-    if (idInput) idInput.value = user && user.id ? user.id : '';
-    if (nameInput) nameInput.value = user && user.name ? user.name : '';
-    if (loginInput) loginInput.value = user && user.login ? user.login : '';
-    if (passwordInput) passwordInput.value = '';
+    elements.userIdInput.value = user.id;
+    elements.nameInput.value = user.name;
+    elements.loginInput.value = user.login;
+    elements.passwordInput.value = '';
 
-    const selectedRoleIds = user && Array.isArray(user.roleIds) ? user.roleIds : [];
-    renderRoleCheckboxes(rolesContainer, rolesCache, selectedRoleIds);
+    renderRoleCheckboxes(elements.rolesContainer, rolesCache, user.roleIds);
 }
 
-async function saveUser() {
-    const idInput = document.getElementById('editUserId');
-    const nameInput = document.getElementById('editUserName');
-    const loginInput = document.getElementById('editUserLogin');
-    const passwordInput = document.getElementById('editUserPassword');
+async function saveUser(): Promise<void> {
+    const elements = requirePageElements();
+    const idValue = elements.userIdInput.value || null;
 
-    const idValue = idInput && idInput.value ? idInput.value : null;
-
-    const dto = {
+    const dto: UserUpsertRequest = {
         id: idValue,
-        name: nameInput ? nameInput.value : '',
-        login: loginInput ? loginInput.value : '',
-        password: passwordInput ? passwordInput.value : '',
+        name: elements.nameInput.value,
+        login: elements.loginInput.value,
+        password: elements.passwordInput.value,
         roleIds: getSelectedRoleIds()
     };
 
-    const handler = isCreateMode ? 'Create' : 'Update';
-
     try {
-        const headers = buildJsonHeaders(antiForgeryToken);
-        const result = await sendJsonRequest(`?handler=${handler}`, 'POST', headers, dto);
+        await saveUserAsync(dto);
 
-        if (result?.success === false) {
-            showEditUserError(result.message || 'Ошибка при сохранении пользователя');
-            return;
-        }
-
-        if (editUserModalInstance) {
-            editUserModalInstance.hide();
-        }
+        editUserModalInstance?.hide();
 
         await loadUsers();
     } catch (error) {
         console.error('Ошибка при сохранении пользователя:', error);
-        showEditUserError(error.message);
+        showEditUserError(getErrorMessage(error));
     }
 }
 
-async function toggleUserActive(userId, buttonElement) {
-    if (!userId) {
-        return;
-    }
-
-    if (buttonElement) {
-        buttonElement.disabled = true;
-    }
+async function toggleUserActive(userId: string, buttonElement: HTMLButtonElement): Promise<void> {
+    buttonElement.disabled = true;
 
     try {
-        await sendJsonRequest(`?handler=ToggleActive&id=${userId}`, 'POST', buildJsonHeaders(antiForgeryToken));
+        await toggleUserActiveAsync(userId);
         await loadUsers();
     } catch (error) {
         console.error('Ошибка при изменении активности:', error);
     } finally {
-        if (buttonElement) {
-            buttonElement.disabled = false;
-        }
+        buttonElement.disabled = false;
     }
 }
 
-function showEditUserError(message) {
-    const element = document.getElementById('editUserError');
-    if (!element) {
-        return;
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
     }
 
-    element.textContent = message || 'Ошибка';
+    return 'Ошибка';
+}
+
+function showEditUserError(message: string): void {
+    const element = requirePageElements().errorElement;
+
+    element.textContent = message;
     element.classList.remove('d-none');
 }
 
-function clearEditUserError() {
-    const element = document.getElementById('editUserError');
-    if (!element) {
-        return;
-    }
+function clearEditUserError(): void {
+    const element = requirePageElements().errorElement;
 
     element.textContent = '';
     element.classList.add('d-none');
 }
 
-function renderRoleCheckboxes(container, roles, selectedRoleIds) {
-    if (!container) {
-        return;
-    }
-
+function renderRoleCheckboxes(container: HTMLElement, roles: RoleDto[], selectedRoleIds: string[]): void {
     container.replaceChildren();
 
-    const selectedSet = new Set();
-    if (Array.isArray(selectedRoleIds)) {
-        for (const id of selectedRoleIds) {
-            if (id) {
-                selectedSet.add(String(id));
-            }
-        }
+    const selectedSet = new Set<string>();
+    for (const id of selectedRoleIds) {
+        selectedSet.add(String(id));
     }
 
-    if (!Array.isArray(roles) || roles.length === 0) {
+    if (roles.length === 0) {
         const empty = document.createElement('div');
         empty.classList.add('text-muted');
         empty.textContent = 'Роли не найдены';
@@ -435,6 +479,7 @@ function renderRoleCheckboxes(container, roles, selectedRoleIds) {
         input.classList.add('form-check-input', 'js-role-cb');
         input.value = role.id;
         input.id = `editUserRole_${role.id}`;
+        input.name = 'editUserRoleIds';
 
         if (selectedSet.has(String(role.id))) {
             input.checked = true;
@@ -450,17 +495,18 @@ function renderRoleCheckboxes(container, roles, selectedRoleIds) {
     }
 }
 
-function getSelectedRoleIds() {
-    const container = document.getElementById('editUserRolesContainer');
-    if (!container) {
-        return [];
-    }
+function getSelectedRoleIds(): string[] {
+    const container = requirePageElements().rolesContainer;
 
-    const checkboxes = container.querySelectorAll('input.js-role-cb[type="checkbox"]');
+    const checkboxes = Array.from(container.querySelectorAll<HTMLInputElement>('input.js-role-cb[type="checkbox"]'));
 
-    const result = [];
+    const result: string[] = [];
     for (const cb of checkboxes) {
-        if (cb.checked === true && cb.value) {
+        if (!(cb instanceof HTMLInputElement)) {
+            throw new Error('Элемент роли должен быть checkbox.');
+        }
+
+        if (cb.checked === true) {
             result.push(cb.value);
         }
     }
