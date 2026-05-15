@@ -1,158 +1,257 @@
-// @ts-nocheck
-import { buildJsonHeaders, sendJsonRequest } from "../shared/http.js";
+import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../shared/http.js";
 import { getRequestVerificationToken } from "../shared/verificationToken.js";
-import { clearElement } from "../shared/dom.js";
+import { clearElement, requireElementById, requireInputById } from "../shared/dom.js";
+import { BootstrapModal, getOrCreateBootstrapModal } from "../shared/bootstrap.js";
 
-let accounts = [];
+interface AccountDto {
+    id: string;
+    name: string;
+    description: string | null;
+    colorHex: string;
+    isActive: boolean;
+    canManage: boolean;
+    ownerName: string;
+    accessRole: AccountAccessRole;
+}
 
-let accountNameInput = null;
-let accountDescriptionInput = null;
+interface ShareCandidateDto {
+    id: string;
+    name: string;
+    login: string;
+    isSelected: boolean;
+    role: AccountAccessRole | null;
+}
+
+interface AccountPayload {
+    name: string;
+    description: string;
+    colorHex: string;
+}
+
+interface AccountUpdatePayload extends AccountPayload {
+    accountId: string;
+    isActive: boolean;
+}
+
+interface ShareMemberPayload {
+    userId: string;
+    role: ShareAssignableRole;
+}
+
+interface ShareMembersPayload {
+    accountId: string;
+    members: ShareMemberPayload[];
+}
+
+interface UserSettingsPageElements {
+    newAccountForm: HTMLFormElement;
+    accountNameInput: HTMLInputElement;
+    accountDescriptionInput: HTMLInputElement;
+    accountColorInput: HTMLInputElement;
+    accountColorButton: HTMLButtonElement;
+    accountColorValueElement: HTMLElement;
+    newAccountErrorElement: HTMLElement;
+    accountNameErrorElement: HTMLElement;
+    showHiddenCheckbox: HTMLInputElement;
+    accountsListElement: HTMLElement;
+    accountsEmptyElement: HTMLElement;
+    modalElement: HTMLElement;
+    modalAccountIdInput: HTMLInputElement;
+    modalAccountNameInput: HTMLInputElement;
+    modalAccountDescriptionInput: HTMLInputElement;
+    modalAccountColorInput: HTMLInputElement;
+    modalAccountColorButton: HTMLButtonElement;
+    modalAccountColorValueElement: HTMLElement;
+    modalAccountErrorElement: HTMLElement;
+    modalSaveButton: HTMLButtonElement;
+    modalShareButton: HTMLButtonElement;
+    shareModalElement: HTMLElement;
+    shareAccountIdInput: HTMLInputElement;
+    shareAccountTitleElement: HTMLElement;
+    shareUsersContainer: HTMLElement;
+    shareEmptyElement: HTMLElement;
+    shareErrorElement: HTMLElement;
+    shareSaveButton: HTMLButtonElement;
+}
+
+type AccountsResponse = ServiceResultWithData<AccountDto[]>;
+type AccountResponse = ServiceResultWithData<AccountDto>;
+type ShareCandidatesResponse = ServiceResultWithData<ShareCandidateDto[]>;
+type UpdateMembersResponse = ServiceResultWithData<boolean>;
+
+const enum AccountAccessRole {
+    Viewer = 0,
+    Editor = 1,
+    Owner = 2
+}
+
+type ShareAssignableRole = AccountAccessRole.Viewer | AccountAccessRole.Editor;
+
+let accounts: AccountDto[] = [];
+let pageElements: UserSettingsPageElements | null = null;
+
 const DEFAULT_ACCOUNT_COLOR_HEX = "#0D6EFD";
-let accountColorInput = null;
-let accountColorButton = null;
-let accountColorValueElement = null;
-let newAccountErrorElement = null;
-let accountNameErrorElement = null;
 
-let showHiddenCheckbox = null;
-let accountsListElement = null;
-let accountsEmptyElement = null;
+let modalInstance: BootstrapModal | null = null;
+let shareModalInstance: BootstrapModal | null = null;
+const ACCOUNT_ACCESS_ROLE_EDITOR = AccountAccessRole.Editor;
+const ACCOUNT_ACCESS_ROLE_VIEWER = AccountAccessRole.Viewer;
 
-let modalInstance = null;
-let modalAccountIdInput = null;
-let modalAccountNameInput = null;
-let modalAccountDescriptionInput = null;
-let modalAccountColorInput = null;
-let modalAccountColorButton = null;
-let modalAccountColorValueElement = null;
-let modalAccountErrorElement = null;
-let modalShareButton = null;
-
-let shareModalInstance = null;
-let shareAccountIdInput = null;
-let shareAccountTitleElement = null;
-let shareUsersContainer = null;
-let shareEmptyElement = null;
-let shareErrorElement = null;
-let shareSaveButton = null;
-const ACCOUNT_ACCESS_ROLE_EDITOR = 2;
-const ACCOUNT_ACCESS_ROLE_VIEWER = 3;
-
-let antiForgeryToken = null;
+let antiForgeryToken: string | null = null;
 
 document.addEventListener("DOMContentLoaded", function () {
     initUserSettingsPage();
 });
 
 function initUserSettingsPage() {
-    const newAccountForm = document.getElementById("new-account-form");
-    accountNameInput = document.getElementById("account-name");
-    accountDescriptionInput = document.getElementById("account-description");
-    accountColorInput = document.getElementById("account-color-input");
-    accountColorButton = document.getElementById("account-color-button");
-    accountColorValueElement = document.getElementById("account-color-value");
-    newAccountErrorElement = document.getElementById("new-account-error");
-    accountNameErrorElement = document.getElementById("account-name-error");
-
-    showHiddenCheckbox = document.getElementById("show-hidden-accounts");
-    accountsListElement = document.getElementById("accountsList");
-    accountsEmptyElement = document.getElementById("accounts-empty");
-
-    const modalElement = document.getElementById("account-modal");
-    modalAccountIdInput = document.getElementById("modal-account-id");
-    modalAccountNameInput = document.getElementById("modal-account-name");
-    modalAccountDescriptionInput = document.getElementById("modal-account-description");
-    modalAccountColorInput = document.getElementById("modal-account-color-input");
-    modalAccountColorButton = document.getElementById("modal-account-color-button");
-    modalAccountColorValueElement = document.getElementById("modal-account-color-value");
-    modalAccountErrorElement = document.getElementById("modal-account-error");
-    const modalSaveButton = document.getElementById("modal-save-btn");
-    modalShareButton = document.getElementById("modal-share-btn");
-
-    const shareModalElement = document.getElementById("account-share-modal");
-    shareAccountIdInput = document.getElementById("share-account-id");
-    shareAccountTitleElement = document.getElementById("accountShareModalLabel");
-    shareUsersContainer = document.getElementById("account-share-users");
-    shareEmptyElement = document.getElementById("account-share-empty");
-    shareErrorElement = document.getElementById("account-share-error");
-    shareSaveButton = document.getElementById("account-share-save-btn");
-
+    pageElements = requireUserSettingsPageElements();
     antiForgeryToken = getRequestVerificationToken();
 
-    if (modalElement && window.bootstrap && window.bootstrap.Modal) {
-        modalInstance = window.bootstrap.Modal.getOrCreateInstance(modalElement);
-    }
-    if (shareModalElement && window.bootstrap && window.bootstrap.Modal) {
-        shareModalInstance = window.bootstrap.Modal.getOrCreateInstance(shareModalElement);
-    }
+    modalInstance = getOrCreateBootstrapModal(pageElements.modalElement);
+    shareModalInstance = getOrCreateBootstrapModal(pageElements.shareModalElement);
 
-    if (newAccountForm) newAccountForm.addEventListener("submit", onCreateAccountFormSubmit);
-    if (showHiddenCheckbox) showHiddenCheckbox.addEventListener("change", loadAccountsAsync);
-    if (modalSaveButton) modalSaveButton.addEventListener("click", onModalSaveClick);
-    if (modalShareButton) modalShareButton.addEventListener("click", onShareButtonClick);
-    if (shareSaveButton) shareSaveButton.addEventListener("click", onShareSaveClick);
-    initAccountColorPicker(accountColorButton, accountColorInput, accountColorValueElement);
-    initAccountColorPicker(modalAccountColorButton, modalAccountColorInput, modalAccountColorValueElement);
+    pageElements.newAccountForm.addEventListener("submit", onCreateAccountFormSubmit);
+    pageElements.showHiddenCheckbox.addEventListener("change", loadAccountsAsync);
+    pageElements.modalSaveButton.addEventListener("click", onModalSaveClick);
+    pageElements.modalShareButton.addEventListener("click", onShareButtonClick);
+    pageElements.shareSaveButton.addEventListener("click", onShareSaveClick);
+    initAccountColorPicker(pageElements.accountColorButton, pageElements.accountColorInput, pageElements.accountColorValueElement);
+    initAccountColorPicker(pageElements.modalAccountColorButton, pageElements.modalAccountColorInput, pageElements.modalAccountColorValueElement);
 
     loadAccountsAsync();
 }
 
+function requireUserSettingsPageElements(): UserSettingsPageElements {
+    return {
+        newAccountForm: requireElementById<HTMLFormElement>("new-account-form"),
+        accountNameInput: requireInputById("account-name"),
+        accountDescriptionInput: requireInputById("account-description"),
+        accountColorInput: requireInputById("account-color-input"),
+        accountColorButton: requireElementById<HTMLButtonElement>("account-color-button"),
+        accountColorValueElement: requireElementById<HTMLElement>("account-color-value"),
+        newAccountErrorElement: requireElementById<HTMLElement>("new-account-error"),
+        accountNameErrorElement: requireElementById<HTMLElement>("account-name-error"),
+        showHiddenCheckbox: requireInputById("show-hidden-accounts"),
+        accountsListElement: requireElementById<HTMLElement>("accountsList"),
+        accountsEmptyElement: requireElementById<HTMLElement>("accounts-empty"),
+        modalElement: requireElementById<HTMLElement>("account-modal"),
+        modalAccountIdInput: requireInputById("modal-account-id"),
+        modalAccountNameInput: requireInputById("modal-account-name"),
+        modalAccountDescriptionInput: requireInputById("modal-account-description"),
+        modalAccountColorInput: requireInputById("modal-account-color-input"),
+        modalAccountColorButton: requireElementById<HTMLButtonElement>("modal-account-color-button"),
+        modalAccountColorValueElement: requireElementById<HTMLElement>("modal-account-color-value"),
+        modalAccountErrorElement: requireElementById<HTMLElement>("modal-account-error"),
+        modalSaveButton: requireElementById<HTMLButtonElement>("modal-save-btn"),
+        modalShareButton: requireElementById<HTMLButtonElement>("modal-share-btn"),
+        shareModalElement: requireElementById<HTMLElement>("account-share-modal"),
+        shareAccountIdInput: requireInputById("share-account-id"),
+        shareAccountTitleElement: requireElementById<HTMLElement>("accountShareModalLabel"),
+        shareUsersContainer: requireElementById<HTMLElement>("account-share-users"),
+        shareEmptyElement: requireElementById<HTMLElement>("account-share-empty"),
+        shareErrorElement: requireElementById<HTMLElement>("account-share-error"),
+        shareSaveButton: requireElementById<HTMLButtonElement>("account-share-save-btn")
+    };
+}
+
+function requirePageElements(): UserSettingsPageElements {
+    if (pageElements === null) {
+        throw new Error("Страница настроек пользователя не инициализирована.");
+    }
+
+    return pageElements;
+}
+
+function requireModalInstance(): BootstrapModal {
+    if (modalInstance === null) {
+        throw new Error("Модальное окно счёта не инициализировано.");
+    }
+
+    return modalInstance;
+}
+
+function requireShareModalInstance(): BootstrapModal {
+    if (shareModalInstance === null) {
+        throw new Error("Модальное окно доступа не инициализировано.");
+    }
+
+    return shareModalInstance;
+}
+
 async function loadAccountsAsync() {
-    let includeInactive = showHiddenCheckbox && showHiddenCheckbox.checked;
-    let url = "?handler=Accounts&includeInactive=" + (includeInactive ? "true" : "false");
+    const elements = requirePageElements();
 
     try {
-        let data = await sendJsonRequest(url, "GET", { "Accept": "application/json" });
-        let accountItems = Array.isArray(data.data) ? data.data : [];
-        accounts = accountItems.map(normalizeAccountDto).filter(x => x);
+        accounts = (await loadAccountsRequestAsync(elements.showHiddenCheckbox.checked)).map(normalizeAccountDto);
         renderAccountsList();
     } catch (err) {
         console.error("Error loading acounts.", err);
     }
 }
 
-async function onCreateAccountFormSubmit(e) {
+async function loadAccountsRequestAsync(includeInactive: boolean): Promise<AccountDto[]> {
+    const url = "?handler=Accounts&includeInactive=" + (includeInactive ? "true" : "false");
+    const response = await sendJsonRequest<AccountsResponse>(url, "GET", { "Accept": "application/json" });
+    return unwrapServiceResult(response);
+}
+
+async function createAccountAsync(payload: AccountPayload): Promise<AccountDto> {
+    const response = await sendJsonRequest<AccountResponse>("?handler=CreateAccount", "POST", buildJsonHeaders(antiForgeryToken), payload);
+    return unwrapServiceResult(response);
+}
+
+async function updateAccountAsync(payload: AccountUpdatePayload): Promise<AccountDto> {
+    const response = await sendJsonRequest<AccountResponse>("?handler=UpdateAccount", "POST", buildJsonHeaders(antiForgeryToken), payload);
+    return unwrapServiceResult(response);
+}
+
+async function loadShareCandidatesRequestAsync(accountId: string): Promise<ShareCandidateDto[]> {
+    const response = await sendJsonRequest<ShareCandidatesResponse>("?handler=ShareCandidates&accountId=" + encodeURIComponent(accountId), "GET", buildJsonHeaders(antiForgeryToken));
+    return unwrapServiceResult(response);
+}
+
+async function updateMembersAsync(payload: ShareMembersPayload): Promise<void> {
+    const response = await sendJsonRequest<UpdateMembersResponse>("?handler=UpdateMembers", "POST", buildJsonHeaders(antiForgeryToken), payload);
+    unwrapServiceResult(response);
+}
+
+async function onCreateAccountFormSubmit(e: SubmitEvent): Promise<void> {
     e.preventDefault();
 
+    const elements = requirePageElements();
     clearCreateAccountErrors();
 
-    let name = accountNameInput ? accountNameInput.value.trim() : "";
-    let description = accountDescriptionInput ? accountDescriptionInput.value.trim() : "";
-    let colorHex = getColorPickerValue(accountColorInput);
+    let name = elements.accountNameInput.value.trim();
+    let description = elements.accountDescriptionInput.value.trim();
+    let colorHex = getColorPickerValue(elements.accountColorInput);
 
-    let payload = { name: name, description: description, colorHex: colorHex };
+    let payload: AccountPayload = { name: name, description: description, colorHex: colorHex };
 
     try {
-        let data = await sendJsonRequest("?handler=CreateAccount", "POST", buildJsonHeaders(antiForgeryToken), payload);
-        if (data.data) {
-            let created = normalizeAccountDto(data.data);
-            if (created) {
-                accounts.push(created);
-            }
-            renderAccountsList();
-        }
+        let created = normalizeAccountDto(await createAccountAsync(payload));
+        accounts.push(created);
+        renderAccountsList();
 
-        if (accountNameInput) accountNameInput.value = "";
-        if (accountDescriptionInput) accountDescriptionInput.value = "";
-        setColorPickerValue(accountColorInput, accountColorButton, accountColorValueElement, DEFAULT_ACCOUNT_COLOR_HEX);
+        elements.accountNameInput.value = "";
+        elements.accountDescriptionInput.value = "";
+        setColorPickerValue(elements.accountColorInput, elements.accountColorButton, elements.accountColorValueElement, DEFAULT_ACCOUNT_COLOR_HEX);
     } catch (err) {
         console.error("Error creating invoice.", err);
-        if (newAccountErrorElement)
-            newAccountErrorElement.textContent = err && err.message ? err.message : "Ошибка при создании счёта.";
+        elements.newAccountErrorElement.textContent = getErrorMessage(err, "Ошибка при создании счёта.");
     }
 }
 
-function renderAccountsList() {
-    if (!accountsListElement || !accountsEmptyElement) return;
+function renderAccountsList(): void {
+    const elements = requirePageElements();
 
-    clearElement(accountsListElement);
+    clearElement(elements.accountsListElement);
 
     if (!accounts.length) {
-        accountsEmptyElement.classList.remove("d-none");
+        elements.accountsEmptyElement.classList.remove("d-none");
         return;
     }
 
-    accountsEmptyElement.classList.add("d-none");
+    elements.accountsEmptyElement.classList.add("d-none");
 
     accounts.forEach(acc => {
         let li = document.createElement("li");
@@ -216,118 +315,103 @@ function renderAccountsList() {
             li.appendChild(actions);
         }
 
-        accountsListElement.appendChild(li);
+        elements.accountsListElement.appendChild(li);
     });
 }
 
-function openEditModal(id) {
+function openEditModal(id: string): void {
+    const elements = requirePageElements();
     let account = accounts.find(a => a.id === id);
-    if (!account || !modalInstance)
-        return;
-
-    if (!modalAccountIdInput || !modalAccountNameInput || !modalAccountDescriptionInput || !modalAccountColorInput || !modalAccountErrorElement)
-        return;
-
-    modalAccountIdInput.value = account.id;
-    modalAccountNameInput.value = account.name;
-    modalAccountDescriptionInput.value = account.description;
-    setColorPickerValue(modalAccountColorInput, modalAccountColorButton, modalAccountColorValueElement, account.colorHex);
-    modalAccountErrorElement.textContent = "";
-    if (modalShareButton) {
-        modalShareButton.disabled = !account.canManage;
+    if (!account) {
+        throw new Error("Счёт не найден в локальном списке.");
     }
 
-    modalInstance.show();
+    elements.modalAccountIdInput.value = account.id;
+    elements.modalAccountNameInput.value = account.name;
+    elements.modalAccountDescriptionInput.value = account.description ?? "";
+    setColorPickerValue(elements.modalAccountColorInput, elements.modalAccountColorButton, elements.modalAccountColorValueElement, account.colorHex);
+    elements.modalAccountErrorElement.textContent = "";
+    elements.modalShareButton.disabled = !account.canManage;
+
+    requireModalInstance().show();
 }
 
-async function onModalSaveClick() {
-    if (!modalAccountIdInput || !modalAccountNameInput || !modalAccountDescriptionInput || !modalAccountColorInput || !modalAccountErrorElement) return;
+async function onModalSaveClick(): Promise<void> {
+    const elements = requirePageElements();
 
-    let accountId = modalAccountIdInput.value;
-    let name = modalAccountNameInput.value.trim();
-    let description = modalAccountDescriptionInput.value.trim();
-    let colorHex = getColorPickerValue(modalAccountColorInput);
+    let accountId = elements.modalAccountIdInput.value;
+    let name = elements.modalAccountNameInput.value.trim();
+    let description = elements.modalAccountDescriptionInput.value.trim();
+    let colorHex = getColorPickerValue(elements.modalAccountColorInput);
 
     if (!name) {
-        modalAccountErrorElement.textContent = "Название счёта обязательно.";
+        elements.modalAccountErrorElement.textContent = "Название счёта обязательно.";
         return;
     }
 
     let existing = accounts.find(a => a.id === accountId);
-    let isActive = existing ? existing.isActive : true;
+    if (!existing) {
+        throw new Error("Счёт не найден в локальном списке.");
+    }
 
-    let payload = { accountId: accountId, name: name, description: description, colorHex: colorHex, isActive: isActive };
+    let payload: AccountUpdatePayload = { accountId: accountId, name: name, description: description, colorHex: colorHex, isActive: existing.isActive };
 
     try {
-        let data = await sendJsonRequest("?handler=UpdateAccount", "POST", buildJsonHeaders(antiForgeryToken), payload);
-        if (data.data) {
-            let updated = normalizeAccountDto(data.data);
-            let idx = accounts.findIndex(a => a.id === updated.id);
-            if (idx >= 0)
-                accounts[idx] = updated;
-            renderAccountsList();
-        }
+        let updated = normalizeAccountDto(await updateAccountAsync(payload));
+        replaceAccount(updated);
+        renderAccountsList();
 
-        if (modalInstance) modalInstance.hide();
+        requireModalInstance().hide();
     } catch (err) {
-        modalAccountErrorElement.textContent = err && err.message ? err.message : "Ошибка при сохранении счёта.";
+        elements.modalAccountErrorElement.textContent = getErrorMessage(err, "Ошибка при сохранении счёта.");
     }
 }
 
-async function onShareButtonClick() {
-    if (!modalAccountIdInput || !shareModalInstance || !shareAccountIdInput || !shareAccountTitleElement) {
-        return;
-    }
+async function onShareButtonClick(): Promise<void> {
+    const elements = requirePageElements();
 
-    let accountId = modalAccountIdInput.value;
+    let accountId = elements.modalAccountIdInput.value;
     let account = accounts.find(a => a.id === accountId);
     if (!account || !account.canManage) {
-        return;
+        throw new Error("Счёт недоступен для управления доступом.");
     }
 
-    shareAccountIdInput.value = account.id;
-    shareAccountTitleElement.textContent = `Доступ к счёту "${account.name}"`;
+    elements.shareAccountIdInput.value = account.id;
+    elements.shareAccountTitleElement.textContent = `Доступ к счёту "${account.name}"`;
 
     await loadShareCandidatesAsync(account.id);
 
-    if (modalInstance) {
-        modalInstance.hide();
-    }
+    requireModalInstance().hide();
 
-    shareModalInstance.show();
+    requireShareModalInstance().show();
 }
 
-async function loadShareCandidatesAsync(accountId) {
-    if (!shareUsersContainer || !shareEmptyElement || !shareErrorElement) {
-        return;
-    }
+async function loadShareCandidatesAsync(accountId: string): Promise<void> {
+    const elements = requirePageElements();
 
-    shareErrorElement.textContent = "";
-    shareUsersContainer.replaceChildren();
-    shareEmptyElement.classList.add("d-none");
+    elements.shareErrorElement.textContent = "";
+    elements.shareUsersContainer.replaceChildren();
+    elements.shareEmptyElement.classList.add("d-none");
 
     try {
-        let response = await sendJsonRequest("?handler=ShareCandidates&accountId=" + encodeURIComponent(accountId), "GET", buildJsonHeaders(antiForgeryToken));
-        let users = Array.isArray(response.data) ? response.data : [];
+        let users = await loadShareCandidatesRequestAsync(accountId);
         renderShareCandidates(users);
     } catch (err) {
-        shareErrorElement.textContent = err && err.message ? err.message : "Ошибка при загрузке списка пользователей.";
+        elements.shareErrorElement.textContent = getErrorMessage(err, "Ошибка при загрузке списка пользователей.");
     }
 }
 
-function renderShareCandidates(users) {
-    if (!shareUsersContainer || !shareEmptyElement) {
-        return;
-    }
+function renderShareCandidates(users: ShareCandidateDto[]): void {
+    const elements = requirePageElements();
 
-    shareUsersContainer.replaceChildren();
+    elements.shareUsersContainer.replaceChildren();
 
     if (!users.length) {
-        shareEmptyElement.classList.remove("d-none");
+        elements.shareEmptyElement.classList.remove("d-none");
         return;
     }
 
-    shareEmptyElement.classList.add("d-none");
+    elements.shareEmptyElement.classList.add("d-none");
 
     users.forEach(user => {
         let row = document.createElement("div");
@@ -366,7 +450,7 @@ function renderShareCandidates(users) {
 
         roleSelect.appendChild(viewerOption);
         roleSelect.appendChild(editorOption);
-        roleSelect.value = String(normalizeShareRole(user.role ?? user.Role));
+        roleSelect.value = String(normalizeShareRole(user.role));
 
         input.addEventListener("change", function () {
             roleSelect.disabled = !input.checked;
@@ -376,50 +460,40 @@ function renderShareCandidates(users) {
         row.appendChild(label);
         row.appendChild(roleSelect);
 
-        shareUsersContainer.appendChild(row);
+        elements.shareUsersContainer.appendChild(row);
     });
 }
 
-async function onShareSaveClick() {
-    if (!shareAccountIdInput || !shareUsersContainer || !shareErrorElement) {
-        return;
-    }
+async function onShareSaveClick(): Promise<void> {
+    const elements = requirePageElements();
 
-    let payload = {
-        accountId: shareAccountIdInput.value,
+    let payload: ShareMembersPayload = {
+        accountId: elements.shareAccountIdInput.value,
         members: getSelectedSharedMembers()
     };
 
-    shareErrorElement.textContent = "";
+    elements.shareErrorElement.textContent = "";
 
     try {
-        let data = await sendJsonRequest("?handler=UpdateMembers", "POST", buildJsonHeaders(antiForgeryToken), payload);
-        if (!data.success) {
-            shareErrorElement.textContent = data.message || "Не удалось сохранить доступ.";
-            return;
-        }
+        await updateMembersAsync(payload);
 
-        if (shareModalInstance) {
-            shareModalInstance.hide();
-        }
+        requireShareModalInstance().hide();
     } catch (err) {
-        shareErrorElement.textContent = err && err.message ? err.message : "Ошибка при сохранении доступа.";
+        elements.shareErrorElement.textContent = getErrorMessage(err, "Ошибка при сохранении доступа.");
     }
 }
 
-function getSelectedSharedMembers() {
-    if (!shareUsersContainer) {
-        return [];
-    }
+function getSelectedSharedMembers(): ShareMemberPayload[] {
+    const elements = requirePageElements();
 
-    let selected = shareUsersContainer.querySelectorAll('input[name="sharedUserIds"]:checked');
-    let members = [];
+    let selected = Array.from(elements.shareUsersContainer.querySelectorAll<HTMLInputElement>('input[name="sharedUserIds"]:checked'));
+    let members: ShareMemberPayload[] = [];
     selected.forEach(input => {
         if (input.value) {
-            let roleSelect = document.getElementById("share-role-" + input.value);
+            let roleSelect = requireElementById<HTMLSelectElement>("share-role-" + input.value);
             members.push({
                 userId: input.value,
-                role: normalizeShareRole(roleSelect ? roleSelect.value : ACCOUNT_ACCESS_ROLE_VIEWER)
+                role: normalizeShareRole(roleSelect.value)
             });
         }
     });
@@ -427,62 +501,57 @@ function getSelectedSharedMembers() {
     return members;
 }
 
-async function toggleAccountActiveAsync(accountId, newIsActive) {
+async function toggleAccountActiveAsync(accountId: string, newIsActive: boolean): Promise<void> {
     let existing = accounts.find(a => a.id === accountId);
     if (!existing) {
-        console.error("Счёт не найден в локальном списке");
-        return;
+        throw new Error("Счёт не найден в локальном списке.");
     }
 
-    let payload = {
+    let payload: AccountUpdatePayload = {
         accountId: existing.id,
         name: existing.name,
-        description: existing.description,
+        description: existing.description ?? "",
         colorHex: existing.colorHex,
         isActive: newIsActive
     };
 
     try {
-        let data = await sendJsonRequest("?handler=UpdateAccount", "POST", buildJsonHeaders(antiForgeryToken), payload);
-        if (data.data) {
-            let updated = normalizeAccountDto(data.data);
-            let idx = accounts.findIndex(a => a.id === updated.id);
-            if (idx >= 0) {
-                accounts[idx] = updated;
-            }
-        }
-
+        let updated = normalizeAccountDto(await updateAccountAsync(payload));
+        replaceAccount(updated);
         renderAccountsList();
     } catch (err) {
         console.error("Failed to change account status.", err);
     }
 }
 
-function normalizeAccountDto(dto) {
-    if (!dto) return null;
+function replaceAccount(account: AccountDto): void {
+    let idx = accounts.findIndex(a => a.id === account.id);
+    if (idx < 0) {
+        throw new Error("Счёт не найден в локальном списке.");
+    }
 
-    return {
-        id: dto.id || dto.Id || "",
-        name: dto.name || dto.Name || "",
-        description: dto.description || dto.Description || "",
-        colorHex: normalizeColorHex(dto.colorHex ?? dto.ColorHex),
-        isActive: dto.isActive ?? dto.IsActive ?? true,
-        canManage: dto.canManage ?? dto.CanManage ?? false,
-        ownerName: dto.ownerName || dto.OwnerName || "",
-        accessRole: dto.accessRole ?? dto.AccessRole ?? 0
+    accounts[idx] = {
+        ...account,
+        colorHex: normalizeColorHex(account.colorHex),
+        description: account.description ?? ""
     };
 }
 
-function clearCreateAccountErrors() {
-    if (newAccountErrorElement) newAccountErrorElement.textContent = "";
-    if (accountNameErrorElement) accountNameErrorElement.textContent = "";
+function normalizeAccountDto(dto: AccountDto): AccountDto {
+    return {
+        ...dto,
+        description: dto.description ?? "",
+        colorHex: normalizeColorHex(dto.colorHex)
+    };
 }
 
-function initAccountColorPicker(button, input, valueElement) {
-    if (!button || !input) {
-        return;
-    }
+function clearCreateAccountErrors(): void {
+    const elements = requirePageElements();
+    elements.newAccountErrorElement.textContent = "";
+    elements.accountNameErrorElement.textContent = "";
+}
 
+function initAccountColorPicker(button: HTMLButtonElement, input: HTMLInputElement, valueElement: HTMLElement): void {
     button.addEventListener("click", function () {
         input.click();
     });
@@ -494,36 +563,48 @@ function initAccountColorPicker(button, input, valueElement) {
     setColorPickerValue(input, button, valueElement, input.value || DEFAULT_ACCOUNT_COLOR_HEX);
 }
 
-function setColorPickerValue(input, button, valueElement, colorHex) {
+function setColorPickerValue(input: HTMLInputElement, button: HTMLButtonElement, valueElement: HTMLElement, colorHex: string): void {
     let normalizedColorHex = normalizeColorHex(colorHex);
 
-    if (input) {
-        input.value = normalizedColorHex;
-    }
-
-    if (button) {
-        button.style.backgroundColor = normalizedColorHex;
-    }
-
-    if (valueElement) {
-        valueElement.textContent = normalizedColorHex;
-    }
+    input.value = normalizedColorHex;
+    button.style.backgroundColor = normalizedColorHex;
+    valueElement.textContent = normalizedColorHex;
 }
 
-function getColorPickerValue(input) {
-    return normalizeColorHex(input ? input.value : DEFAULT_ACCOUNT_COLOR_HEX);
+function getColorPickerValue(input: HTMLInputElement): string {
+    return normalizeColorHex(input.value);
 }
 
-function normalizeColorHex(colorHex) {
+function normalizeColorHex(colorHex: string | null | undefined): string {
     let value = (colorHex || "").trim().toUpperCase();
-    return /^#[0-9A-F]{6}$/.test(value) ? value : DEFAULT_ACCOUNT_COLOR_HEX;
+    if (!/^#[0-9A-F]{6}$/.test(value)) {
+        throw new Error("Некорректный HEX-цвет счёта.");
+    }
+
+    return value;
 }
 
-function normalizeShareRole(role) {
+function normalizeShareRole(role: string | number | AccountAccessRole | null): ShareAssignableRole {
+    if (role === null) {
+        return ACCOUNT_ACCESS_ROLE_VIEWER;
+    }
+
     let numericRole = Number(role);
+    if (numericRole === ACCOUNT_ACCESS_ROLE_VIEWER) {
+        return ACCOUNT_ACCESS_ROLE_VIEWER;
+    }
+
     if (numericRole === ACCOUNT_ACCESS_ROLE_EDITOR) {
         return ACCOUNT_ACCESS_ROLE_EDITOR;
     }
 
-    return ACCOUNT_ACCESS_ROLE_VIEWER;
+    throw new Error("Некорректная роль доступа к счёту.");
+}
+
+function getErrorMessage(error: unknown, defaultMessage: string): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    return defaultMessage;
 }
