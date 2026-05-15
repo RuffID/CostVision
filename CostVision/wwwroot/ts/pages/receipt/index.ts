@@ -1,5 +1,5 @@
-import { getRequestVerificationToken } from "../shared/verificationToken.js";
-import { clearElement, requireElementById, requireInputById, requireSelectById } from "../shared/dom.js";
+import { getRequestVerificationToken } from "../../shared/verificationToken.js";
+import { clearElement, requireElementById, requireInputById, requireSelectById } from "../../shared/dom.js";
 import { loadReceiptAccountsAsync } from "./accountsApi.js";
 import { setCameraButtonState } from "./cameraUi.js";
 import { getFilesFromFileList } from "./fileScanner.js";
@@ -7,7 +7,7 @@ import { isImageFile } from "./imageProcessing.js";
 import { submitManualReceiptAsync } from "./manualReceipt.js";
 import { getStatusClassName } from "./receiptStatusRender.js";
 import { submitQrScanAsync } from "./qrScanner.js";
-import { DecodedQrFileResult, ImageDebugInfo, ImageSize, ManualReceiptPayload, QrScanPayload, QrScanResult } from "./receiptTypes.js";
+import { DecodedQrFileResult, ImageDebugInfo, ImageSize, ManualReceiptPayload, QrScanPayload, QrScanResult } from "./types.js";
 
 let qrScanForm;
 let qrScanResultsContainer;

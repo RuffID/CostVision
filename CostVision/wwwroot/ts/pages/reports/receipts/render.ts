@@ -1,4 +1,4 @@
-import { ReceiptDto } from "./receiptsTypes.js";
+import { ReceiptDto } from "./types.js";
 
 export function updateReceiptsSummary(countElement: HTMLElement, sumElement: HTMLElement, receipts: ReceiptDto[], formatCurrency: (value: number) => string): void {
     countElement.textContent = "Чеков: " + receipts.length;

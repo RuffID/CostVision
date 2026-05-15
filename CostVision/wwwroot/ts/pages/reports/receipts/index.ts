@@ -1,12 +1,12 @@
-import { getRequestVerificationToken } from "../shared/verificationToken.js";
-import { clearElement, requireElementById, requireInputById, requireSelectById } from "../shared/dom.js";
-import { formatMoneyRub, formatRuNumber, normalizeSingleLineTextValue } from "../shared/formatters.js";
-import { deleteReceiptApi, loadAvailableAccountsApi, loadReceiptsApi, moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi } from "./receiptsApi.js";
-import { applyReceiptFilters as applyReceiptFiltersCore } from "./receiptFilters.js";
-import { canEditAccount } from "./receiptAccountActions.js";
-import { removeReceiptFromCache } from "./receiptsState.js";
-import { updateReceiptsSummary } from "./receiptsRender.js";
-import { AvailableAccountDto, MoveReceiptAccountAction, PendingDeleteAction, ReceiptAccountDto, ReceiptDateRange, ReceiptDto, MoveReceiptTargetAccount } from "./receiptsTypes.js";
+import { getRequestVerificationToken } from "../../../shared/verificationToken.js";
+import { clearElement, requireElementById, requireInputById, requireSelectById } from "../../../shared/dom.js";
+import { formatMoneyRub, formatRuNumber, normalizeSingleLineTextValue } from "../../../shared/formatters.js";
+import { deleteReceiptApi, loadAvailableAccountsApi, loadReceiptsApi, moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi } from "./api.js";
+import { applyReceiptFilters as applyReceiptFiltersCore } from "./filters.js";
+import { canEditAccount } from "./accountActions.js";
+import { removeReceiptFromCache } from "./state.js";
+import { updateReceiptsSummary } from "./render.js";
+import { AvailableAccountDto, MoveReceiptAccountAction, PendingDeleteAction, ReceiptAccountDto, ReceiptDateRange, ReceiptDto, MoveReceiptTargetAccount } from "./types.js";
 
 // Глобальные переменные для страницы списка чеков
 let listContainer;

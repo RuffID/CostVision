@@ -1,7 +1,7 @@
-import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../shared/http.js";
-import { getRequestVerificationToken } from "../shared/verificationToken.js";
-import { clearElement, requireElementById, requireInputById } from "../shared/dom.js";
-import { BootstrapModal, getOrCreateBootstrapModal } from "../shared/bootstrap.js";
+import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../../../shared/http.js";
+import { getRequestVerificationToken } from "../../../shared/verificationToken.js";
+import { clearElement, requireElementById, requireInputById } from "../../../shared/dom.js";
+import { BootstrapModal, getOrCreateBootstrapModal } from "../../../shared/bootstrap.js";
 
 interface AccountDto {
     id: string;

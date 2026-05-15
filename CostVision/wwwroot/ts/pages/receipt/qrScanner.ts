@@ -1,5 +1,5 @@
-import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../shared/http.js";
-import { QrScanPayload, QrScanServerResponse } from "./receiptTypes.js";
+import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../../shared/http.js";
+import { QrScanPayload, QrScanServerResponse } from "./types.js";
 
 type QrScanServiceResponse = ServiceResultWithData<QrScanServerResponse>;
 

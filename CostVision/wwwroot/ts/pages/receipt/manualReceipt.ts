@@ -1,5 +1,5 @@
-import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../shared/http.js";
-import { ManualReceiptPayload, ManualReceiptResponse } from "./receiptTypes.js";
+import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../../shared/http.js";
+import { ManualReceiptPayload, ManualReceiptResponse } from "./types.js";
 
 type ManualReceiptServiceResponse = ServiceResultWithData<ManualReceiptResponse>;
 

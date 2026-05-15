@@ -1,5 +1,5 @@
-import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../shared/http.js";
-import { ReceiptAccountDto } from "./receiptTypes.js";
+import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../../shared/http.js";
+import { ReceiptAccountDto } from "./types.js";
 
 type AccountsResponse = ServiceResultWithData<ReceiptAccountDto[]>;
 

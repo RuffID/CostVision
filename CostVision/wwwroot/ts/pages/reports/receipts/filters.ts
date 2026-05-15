@@ -1,5 +1,5 @@
-import { normalizeSingleLineTextValue } from "../shared/formatters.js";
-import { ReceiptDto } from "./receiptsTypes.js";
+import { normalizeSingleLineTextValue } from "../../../shared/formatters.js";
+import { ReceiptDto } from "./types.js";
 
 export function applyReceiptFilters(list: ReceiptDto[], query: string, mode: string, selectedAccountId: string): ReceiptDto[] {
     let result = list.slice();
