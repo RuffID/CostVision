@@ -1,7 +1,13 @@
-// @ts-nocheck
-import { buildJsonHeaders, sendJsonRequest } from "../shared/http.js";
 import { getRequestVerificationToken } from "../shared/verificationToken.js";
-import { clearElement } from "../shared/dom.js";
+import { clearElement, requireElementById, requireInputById, requireSelectById } from "../shared/dom.js";
+import { loadReceiptAccountsAsync } from "./accountsApi.js";
+import { setCameraButtonState } from "./cameraUi.js";
+import { getFilesFromFileList } from "./fileScanner.js";
+import { isImageFile } from "./imageProcessing.js";
+import { submitManualReceiptAsync } from "./manualReceipt.js";
+import { getStatusClassName } from "./receiptStatusRender.js";
+import { submitQrScanAsync } from "./qrScanner.js";
+import { DecodedQrFileResult, ImageDebugInfo, ImageSize, ManualReceiptPayload, QrScanPayload, QrScanResult } from "./receiptTypes.js";
 
 let qrScanForm;
 let qrScanResultsContainer;
@@ -39,24 +45,18 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 async function initQrScan() {
-    qrScanForm = document.getElementById("qrForm");
-    qrScanResultsContainer = document.getElementById("decoded-inputs");
-    qrScanFileInput = document.getElementById("multiFileInput");
-    qrScanDropzone = document.getElementById("qr-dropzone");
+    qrScanForm = requireElementById<HTMLFormElement>("qrForm");
+    qrScanResultsContainer = requireElementById<HTMLElement>("decoded-inputs");
+    qrScanFileInput = requireInputById("multiFileInput");
+    qrScanDropzone = requireElementById<HTMLElement>("qr-dropzone");
 
-    const qrReaderElement = document.getElementById("qr-reader");
-    const fileScanRootElement = document.getElementById("file-scan-root");
-    accountSelect = document.getElementById("accountSelect");
-    accountSelectError = document.getElementById("accountSelectError");
+    const qrReaderElement = requireElementById<HTMLElement>("qr-reader");
+    const fileScanRootElement = requireElementById<HTMLElement>("file-scan-root");
+    accountSelect = requireSelectById("accountSelect");
+    accountSelectError = requireElementById<HTMLElement>("accountSelectError");
     antiForgeryToken = getRequestVerificationToken();
 
     const mobile = isMobileDevice();
-
-    if (!qrScanForm || !qrScanResultsContainer || !qrScanFileInput ||
-        !qrReaderElement || !fileScanRootElement) {
-        console.warn("QR scan: необходимые элементы не найдены в DOM");
-        return;
-    }
 
     if (accountSelect) {
         // при смене — сохранять выбор
@@ -114,10 +114,7 @@ async function loadAvailableAccountsAsync() {
     renderAvailableAccounts([]);
 
     try {
-        const response = await sendJsonRequest("?handler=Accounts", "GET", buildJsonHeaders(antiForgeryToken));
-        const accountItems = Array.isArray(response.data)
-            ? response.data.map(normalizeReceiptAccountDto).filter(function (item) { return item !== null; })
-            : [];
+        const accountItems = (await loadReceiptAccountsAsync(antiForgeryToken)).map(normalizeReceiptAccountDto);
 
         if (accountItems.length === 0) {
             throw new Error("Нет доступных счетов для сохранения чека.");
@@ -173,14 +170,14 @@ function restoreSelectedAccount(accounts) {
 
 function normalizeReceiptAccountDto(dto) {
     if (!dto) {
-        return null;
+        throw new Error("Счёт недоступен.");
     }
 
-    const id = dto.id || dto.Id || "";
-    const name = dto.name || dto.Name || "";
+    const id = dto.id || "";
+    const name = dto.name || "";
 
     if (!id || !name) {
-        return null;
+        throw new Error("Счёт получен без обязательных полей.");
     }
 
     return {
@@ -256,12 +253,12 @@ async function qrScanSubmitFormAjax() {
     const url = qrScanForm.getAttribute("action") || window.location.href;
 
     try {
-        const payload = {
+        const payload: QrScanPayload = {
             accountId: getSelectedAccountId(),
             results: qrScanResults
         };
 
-        const data = await sendJsonRequest(url, "POST", buildJsonHeaders(antiForgeryToken), payload);
+        const data = await submitQrScanAsync(url, payload, antiForgeryToken);
         qrScanApplyServerResponse(data);
     } catch (err) {
         console.error("QR scan: ошибка AJAX-запроса", err);
@@ -273,12 +270,7 @@ async function qrScanSubmitFormAjax() {
     }
 }
 
-function qrScanApplyServerResponse(data) {
-    if (!data || !data.data) {
-        return;
-    }
-
-    const responseData = data.data;
+function qrScanApplyServerResponse(responseData) {
     const scannedCount = typeof responseData.scannedCount === "number" ? responseData.scannedCount : 0;
     const addedToDbCount = typeof responseData.addedToDbCount === "number" ? responseData.addedToDbCount : 0;
     const errorCount = typeof responseData.errorCount === "number" ? responseData.errorCount : 0;
@@ -418,14 +410,7 @@ function qrScanRenderManualStatus(message, statusType) {
 }
 
 function qrScanGetStatusClassName(statusType) {
-    switch (statusType) {
-        case "success":
-            return "alert-success";
-        case "warning":
-            return "alert-warning";
-        default:
-            return "alert-danger";
-    }
+    return getStatusClassName(statusType);
 }
 
 function qrScanRenderResults(results) {
@@ -650,11 +635,11 @@ function qrScanOnScanError(errorMessage) {
 }
 
 // ===================== Файлы (множественный выбор и DnD) =====================
-async function qrScanScanFilesAndSubmit(fileList) {
+async function qrScanScanFilesAndSubmit(fileList: FileList | File[]) {
     qrScanClearResults();
     qrScanLastSubmitSource = "files";
 
-    const files = Array.from(fileList);
+    const files = Array.isArray(fileList) ? fileList : getFilesFromFileList(fileList);
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -767,7 +752,7 @@ function qrScanHandleDrop(event) {
 }
 
 function qrScanHandlePaste(event) {
-    const clipboardData = event.clipboardData || window.clipboardData;
+    const clipboardData = event.clipboardData;
     if (!clipboardData || !clipboardData.items) {
         return;
     }
@@ -819,9 +804,17 @@ function qrScanEnsureOverlay() {
     overlay.className = "qr-overlay position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center flex-column gap-3";
     overlay.style.backgroundColor = "rgba(15, 23, 42, 0.55)";
     overlay.style.zIndex = "1080";
-    overlay.innerHTML =
-        "<div class='spinner-border text-light' role='status' aria-hidden='true'></div>" +
-        "<div class='qr-overlay__text text-white fw-semibold'>Обработка данных...</div>";
+
+    const spinner = document.createElement("div");
+    spinner.className = "spinner-border text-light";
+    spinner.setAttribute("role", "status");
+    spinner.setAttribute("aria-hidden", "true");
+
+    const text = document.createElement("div");
+    text.className = "qr-overlay__text text-white fw-semibold";
+    text.textContent = "Обработка данных...";
+
+    overlay.append(spinner, text);
 
     document.body.appendChild(overlay);
     qrScanOverlay = overlay;
@@ -848,20 +841,16 @@ function qrScanHideOverlay() {
 // ===================== Ручной ввод: валидация полей =====================
 
 function initManualCheckValidation() {
-    const root = document.getElementById("manual-request-root");
-    const btn = document.getElementById("manual-check-btn");
-    const resultMessage = document.getElementById("manual-result-message");
+    const root = requireElementById<HTMLElement>("manual-request-root");
+    const btn = requireElementById<HTMLButtonElement>("manual-check-btn");
+    const resultMessage = requireElementById<HTMLElement>("manual-result-message");
 
-    if (!root || !btn) {
-        return;
-    }
-
-    const fnInput = document.getElementById("manual-fn");
-    const fdInput = document.getElementById("manual-fd");
-    const fpInput = document.getElementById("manual-fp");
-    const sumInput = document.getElementById("manual-sum");
-    const dateInput = document.getElementById("manual-date");
-    const typeSelect = document.getElementById("manual-type");
+    const fnInput = requireInputById("manual-fn");
+    const fdInput = requireInputById("manual-fd");
+    const fpInput = requireInputById("manual-fp");
+    const sumInput = requireInputById("manual-sum");
+    const dateInput = requireInputById("manual-date");
+    const typeSelect = requireSelectById("manual-type");
 
     qrScanRestoreManualDraft(fnInput, fdInput, fpInput, sumInput, dateInput, typeSelect);
     qrScanBindManualDraftPersistence(fnInput, fdInput, fpInput, sumInput, dateInput, typeSelect);
@@ -899,7 +888,7 @@ function initManualCheckValidation() {
 
         qrScanShowOverlay();
         try {
-            const payload = {
+            const payload: ManualReceiptPayload = {
                 receipt: {
                     fiscalDriveNumber: fnDigits,
                     fiscalDocumentNumber: fdDigits,
@@ -911,9 +900,8 @@ function initManualCheckValidation() {
                 accountId: getSelectedAccountId()
             };
 
-            const data = await sendJsonRequest("?handler=Manual", "POST", buildJsonHeaders(antiForgeryToken), payload);
-            const responseData = data && data.data ? data.data : null;
-            if (responseData && responseData.isCreated) {
+            const responseData = await submitManualReceiptAsync(payload, antiForgeryToken);
+            if (responseData.isCreated) {
                 qrScanClearManualDraft(fnInput, fdInput, fpInput, sumInput, dateInput, typeSelect);
                 qrScanRenderManualStatus("Чек добавлен в систему", "success");
                 if (resultMessage) {
@@ -921,7 +909,7 @@ function initManualCheckValidation() {
                     resultMessage.classList.remove("text-danger");
                     resultMessage.classList.add("text-success");
                 }
-            } else if (responseData && responseData.isCreated === false) {
+            } else if (responseData.isCreated === false) {
                 // Ошибка создания: выводит текст из message, если он есть
                 const msg =
                     (typeof responseData.message === "string" && responseData.message.trim().length > 0)
@@ -946,7 +934,7 @@ function initManualCheckValidation() {
             }
         } catch (e) {
             console.error("QR scan: ошибка ручного запроса", e);
-            const errorMessage = e && e.message ? e.message : "Указаны некорректные данные чека";
+            const errorMessage = e instanceof Error ? e.message : "Указаны некорректные данные чека";
             qrScanRenderManualStatus(errorMessage, "error");
             if (resultMessage) {
                 resultMessage.textContent = errorMessage;
@@ -1294,24 +1282,55 @@ function qrScanEnsureCameraModal() {
     modal.className = "qr-camera-modal modal fade";
     modal.tabIndex = -1;
     modal.setAttribute("aria-hidden", "true");
-    modal.innerHTML =
-        "<div class='modal-dialog modal-dialog-centered modal-dialog-scrollable'>" +
-        "<div class='modal-content border-0 shadow'>" +
-        "<div class='modal-header'>" +
-        "<div>" +
-        "<div id='qr-camera-modal-title' class='qr-camera-modal__title h4 mb-1'></div>" +
-        "<div class='qr-camera-modal__subtitle text-body-secondary'></div>" +
-        "</div>" +
-        "<button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Закрыть'></button>" +
-        "</div>" +
-        "<div class='modal-body'>" +
-        "<div class='qr-camera-modal__details d-grid gap-2'></div>" +
-        "</div>" +
-        "<div class='modal-footer'>" +
-        "<button type='button' class='btn btn-primary' data-bs-dismiss='modal'>Продолжить сканирование</button>" +
-        "</div>" +
-        "</div>" +
-        "</div>";
+
+    const dialog = document.createElement("div");
+    dialog.className = "modal-dialog modal-dialog-centered modal-dialog-scrollable";
+
+    const content = document.createElement("div");
+    content.className = "modal-content border-0 shadow";
+
+    const header = document.createElement("div");
+    header.className = "modal-header";
+
+    const headingContainer = document.createElement("div");
+
+    const title = document.createElement("div");
+    title.id = "qr-camera-modal-title";
+    title.className = "qr-camera-modal__title h4 mb-1";
+
+    const subtitle = document.createElement("div");
+    subtitle.className = "qr-camera-modal__subtitle text-body-secondary";
+
+    headingContainer.append(title, subtitle);
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "btn-close";
+    closeButton.dataset.bsDismiss = "modal";
+    closeButton.setAttribute("aria-label", "Закрыть");
+
+    header.append(headingContainer, closeButton);
+
+    const body = document.createElement("div");
+    body.className = "modal-body";
+
+    const details = document.createElement("div");
+    details.className = "qr-camera-modal__details d-grid gap-2";
+    body.appendChild(details);
+
+    const footer = document.createElement("div");
+    footer.className = "modal-footer";
+
+    const continueButton = document.createElement("button");
+    continueButton.type = "button";
+    continueButton.className = "btn btn-primary";
+    continueButton.dataset.bsDismiss = "modal";
+    continueButton.textContent = "Продолжить сканирование";
+    footer.appendChild(continueButton);
+
+    content.append(header, body, footer);
+    dialog.appendChild(content);
+    modal.appendChild(dialog);
 
     modal.addEventListener("hidden.bs.modal", function () {
         qrScanResumeCameraAfterFeedback();
@@ -1745,8 +1764,8 @@ function qrScanGetMobileCameraElements() {
 
     return {
         statusElement: statusElementId ? document.getElementById(statusElementId) : null,
-        startButton: startButtonId ? document.getElementById(startButtonId) : null,
-        stopButton: stopButtonId ? document.getElementById(stopButtonId) : null
+        startButton: startButtonId ? document.getElementById(startButtonId) as HTMLButtonElement | null : null,
+        stopButton: stopButtonId ? document.getElementById(stopButtonId) as HTMLButtonElement | null : null
     };
 }
 
@@ -1764,13 +1783,8 @@ function qrScanUpdateCameraStatus(message, isError) {
 
 function qrScanSetCameraButtonsState(isRunning) {
     const elements = qrScanGetMobileCameraElements();
-    if (elements.startButton) {
-        elements.startButton.disabled = !!isRunning;
-    }
-
-    if (elements.stopButton) {
-        elements.stopButton.disabled = !isRunning;
-    }
+    setCameraButtonState(elements.startButton, !!isRunning);
+    setCameraButtonState(elements.stopButton, !isRunning);
 }
 
 function qrScanBuildCameraConfig() {
@@ -2322,6 +2336,10 @@ function initGlobalPasteHandler() {
 // ===================== Сворачиваемые секции (ручной ввод / результаты) =====================
 function initCollapseSections() {
     document.addEventListener("click", function (e) {
+        if (!(e.target instanceof Element)) {
+            return;
+        }
+
         const btn = e.target.closest(".qr-section__header");
         if (!btn) return;
 
