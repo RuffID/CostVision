@@ -4,6 +4,7 @@
     "watch:ts": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "devDependencies": {
+    "eslint": "^10.3.0",
     "typescript": "6.0.3"
   }
 }

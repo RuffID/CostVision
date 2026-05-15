@@ -1,8 +1,12 @@
-// @ts-nocheck
-import { buildJsonHeaders, sendJsonRequest } from "../shared/http.js";
 import { getRequestVerificationToken } from "../shared/verificationToken.js";
-import { clearElement } from "../shared/dom.js";
+import { clearElement, requireElementById, requireInputById, requireSelectById } from "../shared/dom.js";
 import { formatMoneyRub, formatRuNumber, normalizeSingleLineTextValue } from "../shared/formatters.js";
+import { deleteReceiptApi, loadAvailableAccountsApi, loadReceiptsApi, moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi } from "./receiptsApi.js";
+import { applyReceiptFilters as applyReceiptFiltersCore } from "./receiptFilters.js";
+import { canEditAccount } from "./receiptAccountActions.js";
+import { removeReceiptFromCache } from "./receiptsState.js";
+import { updateReceiptsSummary } from "./receiptsRender.js";
+import { AvailableAccountDto, MoveReceiptAccountAction, PendingDeleteAction, ReceiptAccountDto, ReceiptDateRange, ReceiptDto, MoveReceiptTargetAccount } from "./receiptsTypes.js";
 
 // Глобальные переменные для страницы списка чеков
 let listContainer;
@@ -62,32 +66,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Инициализировать страницу списка чеков
 async function initListOfChecksPage() {
-    listContainer = document.getElementById('receipt-list');
-    if (!listContainer) {
-        return;
-    }
-
-    modalElement = document.getElementById('receiptDetailsModal');
-    detailsList = document.getElementById('receipt-details-list');
-    modalHeader = document.getElementById('receipt-details-header');
-    modalTotal = document.getElementById('receipt-details-total');
-    moveReceiptAccountModalElement = document.getElementById('moveReceiptAccountModal');
-    moveReceiptSourceAccountElement = document.getElementById('moveReceiptSourceAccount');
-    moveReceiptTargetAccountSelect = document.getElementById('moveReceiptTargetAccount');
-    moveReceiptAccountAlertElement = document.getElementById('moveReceiptAccountAlert');
-    confirmMoveReceiptAccountButton = document.getElementById('confirmMoveReceiptAccountBtn');
-    removeReceiptFromAccountButton = document.getElementById('removeReceiptFromAccountBtn');
-    deleteModalElement = document.getElementById('deleteReceiptModal');
-    deleteConfirmButton = document.getElementById('confirmDeleteReceiptBtn');
-    deleteModalTitleElement = document.getElementById('deleteReceiptModalTitle');
-    deleteModalMessageElement = document.getElementById('deleteReceiptModalMessage');
-    deleteModalReceiptInfoElement = document.getElementById('deleteReceiptModalReceiptInfo');
-    applyFilterButton = document.getElementById('applyFilter');
-    dateFromInput = document.getElementById('dateFrom');
-    dateToInput = document.getElementById('dateTo');
-    receiptPeriodPresetSelect = document.getElementById('receiptPeriodPreset');
-    receiptsCountElement = document.getElementById('receiptsCount');
-    receiptsSumElement = document.getElementById('receiptsSum');
+    listContainer = requireElementById<HTMLElement>('receipt-list');
+    modalElement = requireElementById<HTMLElement>('receiptDetailsModal');
+    detailsList = requireElementById<HTMLElement>('receipt-details-list');
+    modalHeader = requireElementById<HTMLElement>('receipt-details-header');
+    modalTotal = requireElementById<HTMLElement>('receipt-details-total');
+    moveReceiptAccountModalElement = requireElementById<HTMLElement>('moveReceiptAccountModal');
+    moveReceiptSourceAccountElement = requireElementById<HTMLElement>('moveReceiptSourceAccount');
+    moveReceiptTargetAccountSelect = requireSelectById('moveReceiptTargetAccount');
+    moveReceiptAccountAlertElement = requireElementById<HTMLElement>('moveReceiptAccountAlert');
+    confirmMoveReceiptAccountButton = requireElementById<HTMLButtonElement>('confirmMoveReceiptAccountBtn');
+    removeReceiptFromAccountButton = requireElementById<HTMLButtonElement>('removeReceiptFromAccountBtn');
+    deleteModalElement = requireElementById<HTMLElement>('deleteReceiptModal');
+    deleteConfirmButton = requireElementById<HTMLButtonElement>('confirmDeleteReceiptBtn');
+    deleteModalTitleElement = requireElementById<HTMLElement>('deleteReceiptModalTitle');
+    deleteModalMessageElement = requireElementById<HTMLElement>('deleteReceiptModalMessage');
+    deleteModalReceiptInfoElement = requireElementById<HTMLElement>('deleteReceiptModalReceiptInfo');
+    applyFilterButton = requireElementById<HTMLButtonElement>('applyFilter');
+    dateFromInput = requireInputById('dateFrom');
+    dateToInput = requireInputById('dateTo');
+    receiptPeriodPresetSelect = requireSelectById('receiptPeriodPreset');
+    receiptsCountElement = requireElementById<HTMLElement>('receiptsCount');
+    receiptsSumElement = requireElementById<HTMLElement>('receiptsSum');
     forgeryToken = getRequestVerificationToken();
 
     if (modalElement) {
@@ -95,7 +95,7 @@ async function initListOfChecksPage() {
 
         // Убирать фокус из модалки при закрытии, чтобы избежать предупреждения aria-hidden
         modalElement.addEventListener('hide.bs.modal', function () {
-            if (document.activeElement && modalElement.contains(document.activeElement)) {
+            if (document.activeElement instanceof HTMLElement && modalElement.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
         });
@@ -111,7 +111,7 @@ async function initListOfChecksPage() {
         moveReceiptAccountBootstrapModal = new bootstrap.Modal(moveReceiptAccountModalElement);
 
         moveReceiptAccountModalElement.addEventListener('hide.bs.modal', function () {
-            if (document.activeElement && moveReceiptAccountModalElement.contains(document.activeElement)) {
+            if (document.activeElement instanceof HTMLElement && moveReceiptAccountModalElement.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
         });
@@ -145,7 +145,7 @@ async function initListOfChecksPage() {
 
         // Убирать фокус из модалки при закрытии, чтобы избежать предупреждения aria-hidden
         deleteModalElement.addEventListener('hide.bs.modal', function () {
-            if (document.activeElement && deleteModalElement.contains(document.activeElement)) {
+            if (document.activeElement instanceof HTMLElement && deleteModalElement.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
         });
@@ -176,10 +176,10 @@ async function initListOfChecksPage() {
         removeReceiptFromAccountButton.addEventListener('click', openRemoveReceiptFromAccountConfirmation);
     }
 
-    receiptSearchInput = document.getElementById('receiptSearch');
-    receiptSearchModeSelect = document.getElementById('receiptSearchMode');
-    receiptAccountFilterSelect = document.getElementById('receiptAccountFilter');
-    receiptAccountFilterError = document.getElementById('receiptAccountFilterError');
+    receiptSearchInput = requireInputById('receiptSearch');
+    receiptSearchModeSelect = requireSelectById('receiptSearchMode');
+    receiptAccountFilterSelect = requireSelectById('receiptAccountFilter');
+    receiptAccountFilterError = requireElementById<HTMLElement>('receiptAccountFilterError');
 
     if (receiptSearchInput) {
         receiptSearchInput.addEventListener('input', onSearchChanged);
@@ -364,12 +364,7 @@ function buildDateRangeQuery() {
 async function loadReceiptList() {
     try {
         const rangeQuery = buildDateRangeQuery();
-        const url = rangeQuery
-            ? '?handler=ReceiptList&' + rangeQuery
-            : '?handler=ReceiptList';
-
-        const response = await sendJsonRequest(url, 'GET', buildJsonHeaders(forgeryToken), null);
-        receiptsCache = Array.isArray(response.data) ? response.data : [];
+        receiptsCache = await loadReceiptsApi(rangeQuery, forgeryToken);
         renderReceiptList(applyReceiptFilters(receiptsCache));
     } catch (error) {
         console.error(error);
@@ -386,10 +381,7 @@ async function loadAvailableAccountsAsync() {
     renderReceiptAccountFilterLoading();
 
     try {
-        const response = await sendJsonRequest('?handler=Accounts', 'GET', buildJsonHeaders(forgeryToken), null);
-        availableAccountsCache = Array.isArray(response.data)
-            ? response.data.map(normalizeAvailableAccount).filter(function (account) { return account !== null; })
-            : [];
+        availableAccountsCache = (await loadAvailableAccountsApi(forgeryToken)).map(normalizeAvailableAccount);
 
         renderReceiptAccountFilterOptions(availableAccountsCache);
         hideReceiptAccountFilterError();
@@ -402,17 +394,17 @@ async function loadAvailableAccountsAsync() {
 
 function normalizeAvailableAccount(dto) {
     if (!dto) {
-        return null;
+        throw new Error('Счёт недоступен.');
     }
 
-    const id = dto.id || dto.Id || '';
-    const name = dto.name || dto.Name || '';
-    const colorHex = normalizeReceiptAccountColorHex(dto.colorHex ?? dto.ColorHex);
-    const accessRole = dto.accessRole ?? dto.AccessRole ?? 0;
-    const canManage = dto.canManage === true || dto.CanManage === true;
+    const id = dto.id || '';
+    const name = dto.name || '';
+    const colorHex = normalizeReceiptAccountColorHex(dto.colorHex);
+    const accessRole = dto.accessRole ?? 0;
+    const canManage = dto.canManage === true;
 
     if (!id || !name) {
-        return null;
+        throw new Error('Счёт получен без обязательных полей.');
     }
 
     return {
@@ -491,18 +483,8 @@ function hideReceiptAccountFilterError() {
 // Открыть чек (ожидается один ReceiptDto с Items)
 async function openReceipt(receiptId) {
     try {
-        const data = await sendJsonRequest(
-            '?handler=OpenReceipt',
-            'POST',
-            buildJsonHeaders(forgeryToken),
-            { receiptId: receiptId }
-        );
-
-        if (!data || !data.data) {
-            return;
-        }
-
-        renderReceiptDetails(data.data);
+        const data = await openReceiptApi(receiptId, forgeryToken);
+        renderReceiptDetails(data);
     } catch (error) {
         console.error(error);
         alert('Ошибка при получении деталей чека.');
@@ -513,8 +495,7 @@ function renderReceiptList(list) {
     if (!listContainer) return;
 
     clearElement(listContainer);
-    updateReceiptsCount(list.length);
-    updateReceiptsSum(list);
+    updateReceiptSummary(list);
 
     for (const r of list) {
         const card = buildReceiptCard(r);
@@ -522,24 +503,12 @@ function renderReceiptList(list) {
     }
 }
 
-function updateReceiptsCount(count) {
-    if (!receiptsCountElement) {
-        return;
+function updateReceiptSummary(list) {
+    if (!receiptsCountElement || !receiptsSumElement) {
+        throw new Error('Элементы сводки чеков не найдены.');
     }
 
-    receiptsCountElement.textContent = 'Чеков: ' + count;
-}
-
-function updateReceiptsSum(list) {
-    if (!receiptsSumElement) {
-        return;
-    }
-
-    const totalSum = list.reduce(function (sum, receipt) {
-        return sum + (typeof receipt.totalSum === 'number' ? receipt.totalSum : 0);
-    }, 0);
-
-    receiptsSumElement.textContent = 'Сумма: ' + formatCurrency(totalSum);
+    updateReceiptsSummary(receiptsCountElement, receiptsSumElement, list, formatCurrency);
 }
 
 // Обновить чек (ожидается один ReceiptDto без Items)
@@ -549,16 +518,8 @@ async function refreshReceipt(receiptId, cardElement, buttonElement) {
     buttonElement.textContent = 'Обновление...';
 
     try {
-        const data = await sendJsonRequest(
-            '?handler=RefreshReceipt',
-            'POST',
-            buildJsonHeaders(forgeryToken),
-            { receiptId: receiptId }
-        );
-
-        if (data && data.data && cardElement) {
-            updateCardFromDto(cardElement, data.data);
-        }
+        const data = await refreshReceiptApi(receiptId, forgeryToken);
+        updateCardFromDto(cardElement, data);
     } catch (error) {
         console.error(error);
         alert(error?.message ?? error);
@@ -840,7 +801,7 @@ function renderReceiptDetails(data) {
         modalTotal.textContent = '';
     }
 
-    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
     }
     bootstrapModal.show();
@@ -968,12 +929,8 @@ function formatDeleteReceiptDateTime(date) {
 }
 
 async function deleteReceiptAsync(receiptId) {
-    const payload = { receiptId: receiptId };
-
-    await sendJsonRequest('?handler=DeleteReceipt', 'POST', buildJsonHeaders(forgeryToken), payload);
-    receiptsCache = receiptsCache.filter(function (receipt) {
-        return receipt && receipt.id !== receiptId;
-    });
+    await deleteReceiptApi(receiptId, forgeryToken);
+    receiptsCache = removeReceiptFromCache(receiptsCache, receiptId);
 
     if (pendingDeleteCardElement && pendingDeleteCardElement.parentNode) {
         pendingDeleteCardElement.parentNode.removeChild(pendingDeleteCardElement);
@@ -1037,31 +994,7 @@ function applyReceiptFilters(list) {
     const query = getSearchQuery();
     const mode = getSearchMode();
     const accountId = getSelectedReceiptAccountId();
-
-    let filteredByAccount = list;
-    if (accountId) {
-        filteredByAccount = [];
-        for (const receipt of list) {
-            if (receiptHasAccount(receipt, accountId)) {
-                filteredByAccount.push(receipt);
-            }
-        }
-    }
-
-    if (!query) {
-        return filteredByAccount;
-    }
-
-    const lowered = query.toLowerCase();
-
-    const filtered = [];
-    for (const r of filteredByAccount) {
-        if (receiptMatchesQuery(r, lowered, mode)) {
-            filtered.push(r);
-        }
-    }
-
-    return filtered;
+    return applyReceiptFiltersCore(list, query, mode, accountId);
 }
 
 function getSearchQuery() {
@@ -1080,56 +1013,22 @@ function getSelectedReceiptAccountId() {
     return receiptAccountFilterSelect.value || '';
 }
 
-function receiptMatchesQuery(r, loweredQuery, mode) {
-    const fn = (r.fiscalDriveNumber || '').toString();
-    const fd = (r.fiscalDocumentNumber || '').toString();
-    const fp = (r.fiscalSign || '').toString();
-    const shop = (r.retailPlace || '').toString().toLowerCase();
-    const account = getReceiptAccountNamesText(r).toLowerCase();
-
-    if (mode === 'shop') return shop.includes(loweredQuery);
-    if (mode === 'fn') return fn.toLowerCase().includes(loweredQuery);
-    if (mode === 'fd') return fd.toLowerCase().includes(loweredQuery);
-    if (mode === 'fp') return fp.toLowerCase().includes(loweredQuery);
-
-    if (mode === 'sum') {
-        return sumMatchesQuery(r.totalSum, loweredQuery);
-    }
-
-    // mode === 'all'
-    const place = (r.retailPlace || '').toString().toLowerCase();
-    const addr = (r.retailPlaceAddress || '').toString().toLowerCase();
-
-    const sumText = (typeof r.totalSum === 'number')
-        ? r.totalSum.toString()
-        : (r.totalSum || '').toString();
-
-    // “all”: место/адрес/фискальные поля/сумма
-    return place.includes(loweredQuery)
-        || addr.includes(loweredQuery)
-        || account.includes(loweredQuery)
-        || fn.toLowerCase().includes(loweredQuery)
-        || fd.toLowerCase().includes(loweredQuery)
-        || fp.toLowerCase().includes(loweredQuery)
-        || sumText.toLowerCase().includes(loweredQuery);
-}
-
 function getReceiptAccounts(receipt) {
     if (receipt && Array.isArray(receipt.accounts)) {
         return receipt.accounts
             .map(function (account) {
                 if (!account) {
-                    return null;
+                    throw new Error('Счёт чека недоступен.');
                 }
 
-                const id = account.id || account.Id || '';
-                const receiptId = account.receiptId || account.ReceiptId || '';
-                const name = account.name || account.Name || '';
-                const colorHex = normalizeReceiptAccountColorHex(account.colorHex ?? account.ColorHex);
-                const accessRole = account.accessRole ?? account.AccessRole ?? null;
-                const canEditReceipt = account.canEditReceipt === true || account.CanEditReceipt === true;
+                const id = account.id || '';
+                const receiptId = account.receiptId || '';
+                const name = account.name || '';
+                const colorHex = normalizeReceiptAccountColorHex(account.colorHex);
+                const accessRole = account.accessRole ?? null;
+                const canEditReceipt = account.canEditReceipt === true;
                 if (!id || !name || !receiptId) {
-                    return null;
+                    throw new Error('Счёт чека получен без обязательных полей.');
                 }
 
                 return {
@@ -1144,20 +1043,7 @@ function getReceiptAccounts(receipt) {
             .filter(function (account) { return account !== null; });
     }
 
-    if (receipt && receipt.accountId && receipt.accountName) {
-        const availableAccount = findAvailableAccountById(receipt.accountId);
-
-        return [{
-            id: receipt.accountId,
-            receiptId: receipt.id,
-            name: receipt.accountName,
-            colorHex: availableAccount ? availableAccount.colorHex : normalizeReceiptAccountColorHex(null),
-            accessRole: availableAccount ? availableAccount.accessRole : null,
-            canEditReceipt: availableAccount ? canEditAccount(availableAccount) : false
-        }];
-    }
-
-    return [];
+    throw new Error('Чек получен без списка счетов.');
 }
 
 function getReceiptAccountNamesText(receipt) {
@@ -1307,13 +1193,13 @@ function renderMoveReceiptTargetOptions(receipt, sourceAccountId) {
     }
 
     if (selectedValue) {
-        const matchingOption = Array.from(moveReceiptTargetAccountSelect.options).find(function (option) {
+        const matchingOption = Array.from<HTMLOptionElement>(moveReceiptTargetAccountSelect.options).find(function (option) {
             return option.value === selectedValue && option.disabled === false;
         });
 
         moveReceiptTargetAccountSelect.value = matchingOption ? selectedValue : '';
     } else {
-        const firstEnabledOption = Array.from(moveReceiptTargetAccountSelect.options).find(function (option) {
+        const firstEnabledOption = Array.from<HTMLOptionElement>(moveReceiptTargetAccountSelect.options).find(function (option) {
             return option.value && option.disabled === false;
         });
 
@@ -1376,7 +1262,7 @@ function getUnavailableMoveReceiptReason() {
         return '';
     }
 
-    const enabledOption = Array.from(moveReceiptTargetAccountSelect.options).find(function (option) {
+    const enabledOption = Array.from<HTMLOptionElement>(moveReceiptTargetAccountSelect.options).find(function (option) {
         return option.value && option.disabled === false;
     });
 
@@ -1384,7 +1270,7 @@ function getUnavailableMoveReceiptReason() {
         return '';
     }
 
-    const disabledOption = Array.from(moveReceiptTargetAccountSelect.options).find(function (option) {
+    const disabledOption = Array.from<HTMLOptionElement>(moveReceiptTargetAccountSelect.options).find(function (option) {
         return option.value && option.disabled === true && option.getAttribute('data-reason');
     });
 
@@ -1411,16 +1297,7 @@ async function onConfirmMoveReceiptToAccount() {
     }
 
     try {
-        await sendJsonRequest(
-            '?handler=MoveReceiptToAccount',
-            'POST',
-            buildJsonHeaders(forgeryToken),
-            {
-                receiptId: pendingReceiptAccountAction.receiptId,
-                sourceAccountId: pendingReceiptAccountAction.sourceAccountId,
-                targetAccountId: selectedOption.value
-            }
-        );
+        await moveReceiptToAccountApi(pendingReceiptAccountAction.receiptId, pendingReceiptAccountAction.sourceAccountId, selectedOption.value, forgeryToken);
 
         replaceReceiptAccountLink(
             pendingReceiptAccountAction.receiptId,
@@ -1440,15 +1317,7 @@ async function onConfirmMoveReceiptToAccount() {
 }
 
 async function removeReceiptFromAccountAsync(receiptId, accountId) {
-    await sendJsonRequest(
-        '?handler=RemoveReceiptFromAccount',
-        'POST',
-        buildJsonHeaders(forgeryToken),
-        {
-            receiptId: receiptId,
-            accountId: accountId
-        }
-    );
+    await removeReceiptFromAccountApi(receiptId, accountId, forgeryToken);
 
     removeReceiptAccountLink(receiptId, accountId);
 }
@@ -1567,14 +1436,6 @@ function canRemoveReceiptFromSelectedAccount() {
     return sourceAccount.canEditReceipt === true;
 }
 
-function canEditAccount(account) {
-    if (!account) {
-        return false;
-    }
-
-    return account.canManage === true || account.accessRole === 1 || account.accessRole === 2;
-}
-
 function replaceReceiptAccountLink(receiptId, sourceAccountId, targetAccountId) {
     const receipt = findReceiptByAccountReceiptId(receiptId, sourceAccountId);
     if (!receipt) {
@@ -1670,7 +1531,11 @@ function hideMoveReceiptAccountAlert() {
 
 function normalizeReceiptAccountColorHex(colorHex) {
     const value = (colorHex || '').toString().trim().toUpperCase();
-    return /^#[0-9A-F]{6}$/.test(value) ? value : '#0D6EFD';
+    if (!/^#[0-9A-F]{6}$/.test(value)) {
+        throw new Error('Некорректный HEX-цвет счёта.');
+    }
+
+    return value;
 }
 
 function receiptHasAccount(receipt, accountId) {
@@ -1681,21 +1546,4 @@ function receiptHasAccount(receipt, accountId) {
     return getReceiptAccounts(receipt).some(function (account) {
         return account.id === accountId;
     });
-}
-
-function sumMatchesQuery(totalSum, loweredQuery) {
-    if (typeof totalSum !== 'number') return false;
-
-    // допускаем ввод "1234", "1234.56", "1234,56"
-    const normalized = loweredQuery.replace(',', '.').replace(/\s+/g, '');
-
-    const parsed = Number(normalized);
-    if (!Number.isFinite(parsed)) {
-        // если не число — fallback: поиск по строке
-        return totalSum.toString().includes(normalized);
-    }
-
-    // сравнение по значению (рубли/копейки) с допуском
-    const diff = Math.abs(totalSum - parsed);
-    return diff < 0.01;
 }
