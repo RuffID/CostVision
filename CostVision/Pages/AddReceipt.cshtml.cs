@@ -1,5 +1,6 @@
 using CostVision.Web.Abstractions.Entity;
-using CostVision.Application.UseCases.Receipts;
+using CostVision.Application.UseCases.Receipts.Accounts;
+using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Application.Models.Dtos.Mappers;
 using CostVision.Application.Models.Dtos.Receipts;

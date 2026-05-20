@@ -1,6 +1,9 @@
-using CostVision.Application.Abstractions.Service.Receipts;
-using CostVision.Application.UseCases.Authorize;
-using CostVision.Application.UseCases.Receipts;
+using CostVision.Application.UseCases.Authorize.Authentication;
+using CostVision.Application.UseCases.Authorize.Roles;
+using CostVision.Application.UseCases.Authorize.Users;
+using CostVision.Application.UseCases.Receipts.Accounts;
+using CostVision.Application.UseCases.Receipts.Receipts;
+using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CostVision.Application.Extensions

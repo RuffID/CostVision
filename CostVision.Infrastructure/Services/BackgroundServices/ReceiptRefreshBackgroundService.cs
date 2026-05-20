@@ -1,4 +1,4 @@
-using CostVision.Application.UseCases.Receipts;
+using CostVision.Application.UseCases.Receipts.Receipts;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

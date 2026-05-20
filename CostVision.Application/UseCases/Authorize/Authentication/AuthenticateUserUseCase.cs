@@ -4,13 +4,8 @@ using CostVision.Domain.Models.Authorization;
 using CostVision.Application.Models.Requests.Authorize;
 using CostVision.Application.Models.Responses.Results;
 
-namespace CostVision.Application.UseCases.Authorize
+namespace CostVision.Application.UseCases.Authorize.Authentication
 {
-    public interface IAuthenticateUserUseCase
-    {
-        Task<ServiceResult<User>> ExecuteAsync(LoginRequest request, CancellationToken ct);
-    }
-
     public class AuthenticateUserUseCase(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher) : IAuthenticateUserUseCase
     {
         public async Task<ServiceResult<User>> ExecuteAsync(LoginRequest request, CancellationToken ct)
