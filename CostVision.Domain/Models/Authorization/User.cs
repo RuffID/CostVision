@@ -52,7 +52,15 @@ namespace CostVision.Domain.Models.Authorization
         /// </summary>
         public void MarkLogin(DateTime loginAtUtc)
         {
-            LastLoginAtUtc = loginAtUtc;
+            MarkActivity(loginAtUtc);
+        }
+
+        /// <summary>
+        /// Обновляет время последней активности пользователя.
+        /// </summary>
+        public void MarkActivity(DateTime activityAtUtc)
+        {
+            LastLoginAtUtc = activityAtUtc;
         }
     }
 }

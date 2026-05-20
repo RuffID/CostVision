@@ -157,6 +157,7 @@ namespace CostVision.Application.UseCases.Receipts
 
             if (addedCount > 0)
             {
+                await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
                 await unitOfWork.SaveChangesAsync(ct);
                 await receiptRefreshWorkflow.TryRefreshCreatedReceiptsAsync(createdReceipts, ct);
             }
@@ -247,6 +248,7 @@ namespace CostVision.Application.UseCases.Receipts
                         ReceiptId = existingReceipt.Id
                     });
 
+                    await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
                     await unitOfWork.SaveChangesAsync(ct);
 
                     Receipt linkedReceipt = await LoadReceiptWithAccountsAsync(existingReceipt.Id, ct);
@@ -286,6 +288,7 @@ namespace CostVision.Application.UseCases.Receipts
             }
 
             unitOfWork.Receipt.Create(receipt);
+            await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
             await unitOfWork.SaveChangesAsync(ct);
             Receipt refreshedReceipt = await receiptRefreshWorkflow.TryRefreshCreatedReceiptAsync(receipt, ct);
 
@@ -415,9 +418,22 @@ namespace CostVision.Application.UseCases.Receipts
                 return ServiceResult<bool>.Fail(403, "Можно удалять только собственный чек.");
 
             unitOfWork.Receipt.Delete(receipt);
+            await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUser.Id, ct);
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);
+        }
+    }
+
+    internal static class UserActivityUpdater
+    {
+        public static async Task MarkReceiptActivityAsync(IUnitOfWork unitOfWork, Guid userId, CancellationToken ct)
+        {
+            User? user = await unitOfWork.User.GetItemByIdAsync(userId, asNoTracking: false, ct: ct);
+            if (user == null)
+                throw new InvalidOperationException("Не удалось обновить последнюю активность пользователя: пользователь не найден.");
+
+            user.MarkActivity(DateTime.UtcNow);
         }
     }
 

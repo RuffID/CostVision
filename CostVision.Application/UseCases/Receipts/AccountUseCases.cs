@@ -390,11 +390,13 @@ namespace CostVision.Application.UseCases.Receipts
             if (receipt.Accounts.Count < 2)
             {
                 unitOfWork.Receipt.Delete(receipt);
+                await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
                 await unitOfWork.SaveChangesAsync(ct);
                 return ServiceResult<bool>.Ok(true);
             }
 
             unitOfWork.ReceiptAccount.Delete(link);
+            await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);
