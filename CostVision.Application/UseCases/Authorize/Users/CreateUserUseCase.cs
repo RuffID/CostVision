@@ -16,7 +16,10 @@ namespace CostVision.Application.UseCases.Authorize.Users
                 return ServiceResult.Fail(validationResult.Error!.StatusCode, validationResult.Error.Message);
 
             string normalizedLogin = request.Login.Trim().ToUpperInvariant();
-            User? existingUser = await unitOfWork.User.GetByNormalizedLoginAsync(normalizedLogin, asNoTracking: true, ct);
+            User? existingUser = await unitOfWork.User.GetItemByPredicateAsync(
+                user => user.Login.ToUpper() == normalizedLogin,
+                asNoTracking: true,
+                ct: ct);
             if (existingUser != null)
                 return ServiceResult.Fail(409, "Пользователь с таким логином уже существует");
 

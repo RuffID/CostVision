@@ -2,6 +2,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Application.Models.Dtos.Authorization;
 using CostVision.Application.Models.Responses.Results;
+using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Authorize.Users
 {
@@ -9,7 +10,11 @@ namespace CostVision.Application.UseCases.Authorize.Users
     {
         public async Task<ServiceResult<List<UserListItemDto>>> ExecuteAsync(bool includeInactive, CancellationToken ct)
         {
-            List<User> users = await unitOfWork.User.GetListWithRolesAsync(includeInactive, ct);
+            List<User> users = await unitOfWork.User.GetItemsByPredicateAsync(
+                user => includeInactive || user.IsActive,
+                asNoTracking: true,
+                include: query => query.Include(user => user.UserRoles),
+                ct: ct);
 
             List<UserListItemDto> items = users
                 .OrderBy(user => user.Name)

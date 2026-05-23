@@ -10,6 +10,5 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories.Receipts
         IGetItemByIdRepository<Receipt, Guid, AppDbContextBase>,
         IGetItemByPredicateRepository<Receipt, AppDbContextBase>
     {
-        Task<List<Receipt>> GetWithoutItemsAsync(CancellationToken ct = default);
     }
 }

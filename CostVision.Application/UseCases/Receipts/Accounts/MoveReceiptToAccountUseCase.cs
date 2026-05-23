@@ -49,7 +49,11 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             if (!sourceAccessResult.Success)
                 return ServiceResult<bool>.Fail(sourceAccessResult.Error!.StatusCode, sourceAccessResult.Error.Message);
 
-            Account? targetAccount = await unitOfWork.Account.GetByIdWithMembersAsync(targetAccountId, asNoTracking: false, ct: ct);
+            Account? targetAccount = await unitOfWork.Account.GetItemByPredicateAsync(
+                account => account.Id == targetAccountId,
+                asNoTracking: false,
+                include: query => query.Include(account => account.Members),
+                ct: ct);
             if (targetAccount == null)
                 return ServiceResult<bool>.Fail(404, "Счёт назначения не найден.");
 

@@ -9,6 +9,5 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories.Authorizatio
         IGetItemByIdRepository<Role, Guid, AppDbContextBase>,
         IGetItemByPredicateRepository<Role, AppDbContextBase>
     {
-        Task<List<Role>> GetItemsByCollection(IEnumerable<Role> items, bool asNoTracking = false, CancellationToken ct = default);
     }
 }

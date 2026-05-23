@@ -4,6 +4,7 @@ using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
+using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
@@ -14,7 +15,11 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             if (accountId == Guid.Empty)
                 return ServiceResult<List<AccountShareUserDto>>.Fail(400, "Некорректный идентификатор счёта.");
 
-            Account? account = await unitOfWork.Account.GetOwnedByIdWithMembersAsync(accountId, ownerUserId, asNoTracking: true, ct: ct);
+            Account? account = await unitOfWork.Account.GetItemByPredicateAsync(
+                account => account.Id == accountId && account.CreatedByUserId == ownerUserId,
+                asNoTracking: true,
+                include: query => query.Include(account => account.Members),
+                ct: ct);
             if (account == null)
                 return ServiceResult<List<AccountShareUserDto>>.Fail(404, "Счёт не найден.");
 

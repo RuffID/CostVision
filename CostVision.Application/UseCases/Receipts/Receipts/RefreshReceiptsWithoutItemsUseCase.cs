@@ -2,6 +2,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Receipts;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
@@ -10,7 +11,10 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
     {
         public async Task ExecuteAsync(CancellationToken ct)
         {
-            List<Receipt> receipts = await unitOfWork.Receipt.GetWithoutItemsAsync(ct);
+            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
+                receipt => !receipt.Items.Any(),
+                include: query => query.Include(receipt => receipt.Items),
+                ct: ct);
 
             int countUpdatedReceipts = 0;
             foreach (Receipt receipt in receipts)

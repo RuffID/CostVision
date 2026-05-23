@@ -2,6 +2,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
+using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
@@ -14,7 +15,12 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             if (accountIds.Count == 0)
                 return new List<UserAccountViewModel>();
 
-            List<Account> accounts = await unitOfWork.Account.GetAccessibleByUserAsync(userId, includeArchived, ct);
+            List<Account> accounts = await unitOfWork.Account.GetItemsByPredicateAsync(
+                account => (includeArchived || !account.IsArchived) &&
+                           (account.CreatedByUserId == userId || account.Members.Any(member => member.UserId == userId)),
+                asNoTracking: true,
+                include: query => query.Include(account => account.CreatedByUser),
+                ct: ct);
             Dictionary<Guid, AccountAccessRole> rolesByAccountId = memberships
                 .GroupBy(membership => membership.AccountId)
                 .ToDictionary(group => group.Key, group => group.Select(membership => membership.Role).First());

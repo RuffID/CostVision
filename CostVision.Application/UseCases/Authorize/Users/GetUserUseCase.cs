@@ -2,6 +2,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Application.Models.Dtos.Authorization;
 using CostVision.Application.Models.Responses.Results;
+using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Authorize.Users
 {
@@ -9,7 +10,11 @@ namespace CostVision.Application.UseCases.Authorize.Users
     {
         public async Task<ServiceResult<UserEditDto>> ExecuteAsync(Guid id, CancellationToken ct)
         {
-            User? user = await unitOfWork.User.GetByIdWithRolesAsync(id, asNoTracking: true, ct);
+            User? user = await unitOfWork.User.GetItemByPredicateAsync(
+                user => user.Id == id,
+                asNoTracking: true,
+                include: query => query.Include(user => user.UserRoles),
+                ct: ct);
             if (user == null)
                 return ServiceResult<UserEditDto>.Fail(404, "Пользователь не найден");
 

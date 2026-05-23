@@ -9,10 +9,5 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories.Receipts
         IGetItemByIdRepository<Account, Guid, AppDbContextBase>,
         IGetItemByPredicateRepository<Account, AppDbContextBase>
     {
-        Task<Account?> GetByIdWithMembersAsync(Guid id, bool asNoTracking = false, CancellationToken ct = default);
-
-        Task<Account?> GetOwnedByIdWithMembersAsync(Guid id, Guid ownerUserId, bool asNoTracking = false, CancellationToken ct = default);
-
-        Task<List<Account>> GetAccessibleByUserAsync(Guid userId, bool includeArchived, CancellationToken ct = default);
     }
 }
