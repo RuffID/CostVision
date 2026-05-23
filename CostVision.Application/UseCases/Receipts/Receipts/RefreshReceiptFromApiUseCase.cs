@@ -4,6 +4,7 @@ using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
+using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
@@ -14,7 +15,17 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
             if (receiptId == Guid.Empty)
                 return ServiceResult<Receipt>.Fail(400, "Некорректный идентификатор чека.");
 
-            Receipt? receipt = await unitOfWork.Receipt.GetByIdWithItemsAndAccountsAsync(receiptId, asNoTracking: false, ct: ct);
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
+                receipt => receipt.Id == receiptId,
+                asNoTracking: false,
+                include: query => query
+                    .Include(receipt => receipt.Items)
+                        .ThenInclude(item => item.Product)
+                    .Include(receipt => receipt.Accounts)
+                        .ThenInclude(link => link.Account)
+                            .ThenInclude(account => account!.Members)
+                    .AsSplitQuery(),
+                ct: ct);
 
             if (receipt == null)
                 return ServiceResult<Receipt>.Fail(404, "Чек не найден.");

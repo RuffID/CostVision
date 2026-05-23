@@ -5,6 +5,7 @@ using CostVision.Application.UseCases.Receipts.Receipts.Helpers;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
+using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
@@ -135,7 +136,14 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 
         private async Task<Receipt> LoadReceiptWithAccountsAsync(Guid receiptId, CancellationToken ct)
         {
-            Receipt? receipt = await unitOfWork.Receipt.GetByIdWithAccountsAsync(receiptId, asNoTracking: true, ct: ct);
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
+                receipt => receipt.Id == receiptId,
+                asNoTracking: true,
+                include: query => query
+                    .Include(receipt => receipt.Accounts)
+                        .ThenInclude(link => link.Account)
+                    .AsSplitQuery(),
+                ct: ct);
 
             return receipt ?? throw new InvalidOperationException("Не удалось загрузить чек после сохранения.");
         }

@@ -2,6 +2,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Accounts.Helpers;
 using CostVision.Domain.Models.Receipts;
+using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
@@ -18,7 +19,15 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             if (sourceAccountId == targetAccountId)
                 return ServiceResult<bool>.Fail(400, "Счёт назначения должен отличаться от исходного счёта.");
 
-            Receipt? receipt = await unitOfWork.Receipt.GetByIdWithAccountsAndMembersAsync(receiptId, asNoTracking: false, ct: ct);
+            Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
+                receipt => receipt.Id == receiptId,
+                asNoTracking: false,
+                include: query => query
+                    .Include(receipt => receipt.Accounts)
+                        .ThenInclude(link => link.Account)
+                            .ThenInclude(account => account!.Members)
+                    .AsSplitQuery(),
+                ct: ct);
             if (receipt == null)
                 return ServiceResult<bool>.Fail(404, "Чек не найден.");
 
