@@ -17,6 +17,15 @@ export interface MoneyMovementsUi {
     count: HTMLElement;
     incomeSum: HTMLElement;
     expenseSum: HTMLElement;
+    moveAccountModal: HTMLElement;
+    moveAccountAlert: HTMLElement;
+    moveSourceAccount: HTMLElement;
+    moveTargetAccountSelect: HTMLSelectElement;
+    confirmMoveAccountButton: HTMLButtonElement;
+    removeFromAccountButton: HTMLButtonElement;
+    deleteModal: HTMLElement;
+    deleteInfo: HTMLElement;
+    confirmDeleteButton: HTMLButtonElement;
 }
 
 export function getMoneyMovementsUi(): MoneyMovementsUi {
@@ -36,6 +45,15 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         list: requireElementById("moneyMovementList"),
         count: requireElementById("moneyMovementCount"),
         incomeSum: requireElementById("moneyMovementIncomeSum"),
-        expenseSum: requireElementById("moneyMovementExpenseSum")
+        expenseSum: requireElementById("moneyMovementExpenseSum"),
+        moveAccountModal: requireElementById("moveMoneyMovementAccountModal"),
+        moveAccountAlert: requireElementById("moveMoneyMovementAccountAlert"),
+        moveSourceAccount: requireElementById("moveMoneyMovementSourceAccount"),
+        moveTargetAccountSelect: requireSelectById("moveMoneyMovementTargetAccount"),
+        confirmMoveAccountButton: requireElementById<HTMLButtonElement>("confirmMoveMoneyMovementAccountButton"),
+        removeFromAccountButton: requireElementById<HTMLButtonElement>("removeMoneyMovementFromAccountButton"),
+        deleteModal: requireElementById("deleteMoneyMovementModal"),
+        deleteInfo: requireElementById("deleteMoneyMovementInfo"),
+        confirmDeleteButton: requireElementById<HTMLButtonElement>("confirmDeleteMoneyMovementButton")
     };
 }

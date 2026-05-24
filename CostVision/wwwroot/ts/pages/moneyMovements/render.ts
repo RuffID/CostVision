@@ -22,7 +22,7 @@ export function renderAccountOptions(select: HTMLSelectElement, accounts: UserAc
     select.disabled = accounts.length === 0;
 }
 
-export function renderMoneyMovementList(container: HTMLElement, movements: MoneyMovementDto[]): void {
+export function renderMoneyMovementList(container: HTMLElement, movements: MoneyMovementDto[], accounts: UserAccountViewModel[]): void {
     clearElement(container);
 
     if (movements.length === 0) {
@@ -34,7 +34,7 @@ export function renderMoneyMovementList(container: HTMLElement, movements: Money
     }
 
     for (const movement of movements) {
-        container.append(createMoneyMovementCard(movement));
+        container.append(createMoneyMovementCard(movement, accounts));
     }
 }
 
@@ -52,33 +52,67 @@ export function renderSummary(countElement: HTMLElement, incomeElement: HTMLElem
     expenseElement.textContent = `Расход: ${formatMoneyRub(expenseSum)}`;
 }
 
-function createMoneyMovementCard(movement: MoneyMovementDto): HTMLElement {
+function createMoneyMovementCard(movement: MoneyMovementDto, accounts: UserAccountViewModel[]): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.classList.add("border", "rounded-3", "p-3", "d-flex", "flex-column", "gap-2");
+    wrapper.setAttribute("data-money-movement-id", movement.id);
 
     const header = document.createElement("div");
     header.classList.add("d-flex", "flex-wrap", "justify-content-between", "gap-2", "align-items-start");
 
-    const title = document.createElement("div");
-    title.classList.add("fw-semibold");
-    title.textContent = movement.accountName || "Счёт";
+    const left = document.createElement("div");
+    left.classList.add("d-flex", "flex-column", "gap-1");
+
+    const comment = document.createElement("div");
+    comment.classList.add("fw-semibold");
+    comment.textContent = movement.comment || "Без комментария";
+
+    const meta = document.createElement("div");
+    meta.classList.add("text-muted", "small");
+    meta.textContent = formatDateTime(movement.occurredAt);
+
+    const accountBadge = createAccountBadge(movement, accounts);
+
+    left.append(comment, meta, accountBadge);
 
     const amount = document.createElement("div");
     amount.classList.add("fw-semibold");
     amount.classList.add(movement.type === MONEY_MOVEMENT_TYPE_EXPENSE ? "text-danger" : "text-success");
     amount.textContent = `${movement.type === MONEY_MOVEMENT_TYPE_EXPENSE ? "-" : "+"}${formatMoneyRub(movement.amount)}`;
 
-    header.append(title, amount);
+    header.append(left, amount);
 
-    const meta = document.createElement("div");
-    meta.classList.add("text-muted", "small");
-    meta.textContent = formatDateTime(movement.occurredAt);
-
-    const comment = document.createElement("div");
-    comment.textContent = movement.comment || "Без комментария";
-
-    wrapper.append(header, meta, comment);
+    wrapper.append(header);
     return wrapper;
+}
+
+function createAccountBadge(movement: MoneyMovementDto, accounts: UserAccountViewModel[]): HTMLButtonElement {
+    const account = accounts.find(item => item.id === movement.accountId);
+    const canEdit = account ? canEditAccount(account) : true;
+
+    const badge = document.createElement("button");
+    badge.type = "button";
+    badge.className = "btn btn-sm px-2 py-1 rounded-pill align-self-start";
+    badge.setAttribute("data-action", "edit-account-link");
+    badge.setAttribute("data-money-movement-id", movement.id);
+    badge.setAttribute("data-account-id", movement.accountId);
+    badge.textContent = movement.accountName || "Счёт";
+    badge.style.backgroundColor = "transparent";
+    badge.style.color = "#212529";
+    badge.style.border = "2px solid " + movement.accountColorHex;
+    badge.disabled = !canEdit;
+
+    if (!canEdit) {
+        badge.title = "Недостаточно прав для изменения операции в этом счёте.";
+        badge.style.opacity = "0.65";
+        badge.style.cursor = "not-allowed";
+    }
+
+    return badge;
+}
+
+function canEditAccount(account: UserAccountViewModel): boolean {
+    return account.canManage === true || account.accessRole === 1 || account.accessRole === 2;
 }
 
 function formatDateTime(value: string): string {

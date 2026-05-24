@@ -1,4 +1,4 @@
-﻿@page
+﻿@page "/money-movements"
 @model CostVision.Web.Pages.MoneyMovementsModel
 
 @{
@@ -8,85 +8,151 @@
 <div class="container py-3">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <h2 class="mb-0">Операции</h2>
-        <div class="d-flex flex-wrap gap-2">
-            <span id="moneyMovementCount" class="input-group-text">Операций: 0</span>
-            <span id="moneyMovementIncomeSum" class="input-group-text">Приход: 0 ₽</span>
-            <span id="moneyMovementExpenseSum" class="input-group-text">Расход: 0 ₽</span>
-        </div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#moneyMovementCreateModal">Добавить</button>
     </div>
 
     <div id="moneyMovementAlert" class="alert alert-warning d-none" role="alert"></div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-lg-5">
-            <form id="moneyMovementCreateForm" class="border rounded-3 p-3">
-                <h5 class="mb-3">Новая операция</h5>
-
-                <div class="mb-3">
-                    <label for="moneyMovementAccount" class="form-label">Счёт</label>
-                    <select id="moneyMovementAccount" name="moneyMovementAccount" class="form-select" required></select>
-                </div>
-
-                <div class="row g-2">
-                    <div class="col-12 col-md-6">
-                        <label for="moneyMovementAmount" class="form-label">Сумма</label>
-                        <input type="number" step="0.01" id="moneyMovementAmount" name="moneyMovementAmount" class="form-control" required autocomplete="off">
-                    </div>
-
-                    <div class="col-12 col-md-6">
-                        <label for="moneyMovementType" class="form-label">Тип</label>
-                        <select id="moneyMovementType" name="moneyMovementType" class="form-select">
-                            <option value="">По знаку суммы</option>
-                            <option value="Expense">Расход</option>
-                            <option value="Income">Приход</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="mt-3">
-                    <label for="moneyMovementOccurredAt" class="form-label">Дата и время</label>
-                    <input type="datetime-local" id="moneyMovementOccurredAt" name="moneyMovementOccurredAt" class="form-control" required autocomplete="off">
-                </div>
-
-                <div class="mt-3">
-                    <label for="moneyMovementComment" class="form-label">Комментарий</label>
-                    <textarea id="moneyMovementComment" name="moneyMovementComment" class="form-control" rows="3" maxlength="1024"></textarea>
-                </div>
-
-                <div class="d-flex justify-content-end mt-3">
-                    <button type="submit" id="moneyMovementCreateButton" class="btn btn-primary">Добавить</button>
-                </div>
-            </form>
+    <div class="border rounded-3 p-3 mb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <h5 class="mb-0">Фильтр</h5>
+            <div class="d-flex flex-wrap justify-content-end gap-2">
+                <span id="moneyMovementCount" class="input-group-text">Операций: 0</span>
+                <span id="moneyMovementIncomeSum" class="input-group-text">Приход: 0 ₽</span>
+                <span id="moneyMovementExpenseSum" class="input-group-text">Расход: 0 ₽</span>
+            </div>
         </div>
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-5">
+                <label for="moneyMovementFilterAccount" class="form-label">Счёт</label>
+                <select id="moneyMovementFilterAccount" name="moneyMovementFilterAccount" class="form-select"></select>
+            </div>
 
-        <div class="col-12 col-lg-7">
-            <div class="border rounded-3 p-3 h-100">
-                <h5 class="mb-3">Фильтр</h5>
-                <div class="row g-2 align-items-end">
-                    <div class="col-12 col-md-5">
-                        <label for="moneyMovementFilterAccount" class="form-label">Счёт</label>
-                        <select id="moneyMovementFilterAccount" name="moneyMovementFilterAccount" class="form-select"></select>
-                    </div>
+            <div class="col-6 col-md-3">
+                <label for="moneyMovementDateFrom" class="form-label">с</label>
+                <input type="date" id="moneyMovementDateFrom" name="moneyMovementDateFrom" class="form-control" autocomplete="off">
+            </div>
 
-                    <div class="col-6 col-md-3">
-                        <label for="moneyMovementDateFrom" class="form-label">с</label>
-                        <input type="date" id="moneyMovementDateFrom" name="moneyMovementDateFrom" class="form-control" autocomplete="off">
-                    </div>
+            <div class="col-6 col-md-3">
+                <label for="moneyMovementDateTo" class="form-label">по</label>
+                <input type="date" id="moneyMovementDateTo" name="moneyMovementDateTo" class="form-control" autocomplete="off">
+            </div>
 
-                    <div class="col-6 col-md-3">
-                        <label for="moneyMovementDateTo" class="form-label">по</label>
-                        <input type="date" id="moneyMovementDateTo" name="moneyMovementDateTo" class="form-control" autocomplete="off">
-                    </div>
-
-                    <div class="col-12 col-md-auto">
-                        <button type="button" id="moneyMovementApplyFilter" class="btn btn-outline-primary w-100">Показать</button>
-                    </div>
-                </div>
+            <div class="col-12 col-md-auto">
+                <button type="button" id="moneyMovementApplyFilter" class="btn btn-outline-primary w-100">Показать</button>
             </div>
         </div>
     </div>
 
     <div id="moneyMovementList" class="d-flex flex-column gap-2"></div>
+</div>
+
+<div class="modal fade" id="moveMoneyMovementAccountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменение счёта операции</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div id="moveMoneyMovementAccountAlert" class="alert alert-warning d-none mb-3" role="alert"></div>
+                <div class="row g-3 align-items-center">
+                    <div class="col-12 col-md-5">
+                        <div class="border rounded-3 p-3 h-100">
+                            <div class="form-label d-block mb-2">Откуда переносим</div>
+                            <div id="moveMoneyMovementSourceAccount" class="px-3 py-2 rounded-pill d-inline-flex align-items-center fw-semibold"></div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-2 text-center">
+                        <div class="display-6 fw-semibold text-primary" aria-hidden="true">→</div>
+                    </div>
+                    <div class="col-12 col-md-5">
+                        <div class="border rounded-3 p-3 h-100">
+                            <label for="moveMoneyMovementTargetAccount" class="form-label d-block mb-2">Куда переносим</label>
+                            <select id="moveMoneyMovementTargetAccount" name="moveMoneyMovementTargetAccount" class="form-select"></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="small text-muted mt-3">
+                    Перенос недоступен, если у Вас нет прав на изменение исходного или выбранного счёта.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="removeMoneyMovementFromAccountButton" class="btn btn-outline-danger">Удалить из счёта</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" id="confirmMoveMoneyMovementAccountButton" class="btn btn-primary">Перенести операцию</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteMoneyMovementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удаление операции</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Вы уверены, что хотите удалить эту операцию из счёта?</p>
+                <div id="deleteMoneyMovementInfo" class="text-muted"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteMoneyMovementButton">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="moneyMovementCreateModal" tabindex="-1" aria-labelledby="moneyMovementCreateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form id="moneyMovementCreateForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="moneyMovementCreateModalLabel">Новая операция</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="moneyMovementAccount" class="form-label">Счёт</label>
+                        <select id="moneyMovementAccount" name="moneyMovementAccount" class="form-select" required></select>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-12 col-md-5">
+                            <label for="moneyMovementAmount" class="form-label">Сумма</label>
+                            <input type="number" step="0.01" id="moneyMovementAmount" name="moneyMovementAmount" class="form-control" required autocomplete="off">
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label for="moneyMovementOccurredAt" class="form-label">Дата и время</label>
+                            <input type="datetime-local" id="moneyMovementOccurredAt" name="moneyMovementOccurredAt" class="form-control" required autocomplete="off">
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label for="moneyMovementType" class="form-label">Тип</label>
+                            <select id="moneyMovementType" name="moneyMovementType" class="form-select">
+                                <option value="Expense">Расход</option>
+                                <option value="Income">Приход</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="moneyMovementComment" class="form-label">Комментарий (максимум 1024 символа)</label>
+                        <textarea id="moneyMovementComment" name="moneyMovementComment" class="form-control" rows="3" maxlength="1024"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" id="moneyMovementCreateButton" class="btn btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script type="module" src="~/dist/pages/moneyMovements/index.js" asp-append-version="true"></script>

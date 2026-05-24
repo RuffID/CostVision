@@ -6,6 +6,7 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovemen
 {
     public interface IMoneyMovementRepository :
         ICreateItemRepository<MoneyMovement, AppDbContextBase>,
+        IDeleteItemRepository<MoneyMovement, AppDbContextBase>,
         IGetItemByIdRepository<MoneyMovement, Guid, AppDbContextBase>,
         IGetItemByPredicateRepository<MoneyMovement, AppDbContextBase>
     {

@@ -8,6 +8,7 @@ namespace CostVision.Infrastructure.DataBase.Repositories.MoneyMovements
 {
     public class MoneyMovementRepository(
         ICreateItemRepository<MoneyMovement, AppDbContextBase> createRepository,
+        IDeleteItemRepository<MoneyMovement, AppDbContextBase> deleteRepository,
         IGetItemByIdRepository<MoneyMovement, Guid, AppDbContextBase> getItemByIdRepository,
         IGetItemByPredicateRepository<MoneyMovement, AppDbContextBase> getItemByPredicateRepository) : IMoneyMovementRepository
     {
@@ -23,5 +24,9 @@ namespace CostVision.Infrastructure.DataBase.Repositories.MoneyMovements
         public void Create(MoneyMovement item) => createRepository.Create(item);
 
         public void CreateRange(IEnumerable<MoneyMovement> entities) => createRepository.CreateRange(entities);
+
+        public void Delete(MoneyMovement item) => deleteRepository.Delete(item);
+
+        public void DeleteRange(IEnumerable<MoneyMovement> entities) => deleteRepository.DeleteRange(entities);
     }
 }

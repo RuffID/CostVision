@@ -35,3 +35,19 @@ export interface CreateMoneyMovementRequest {
     occurredAt: string;
     comment: string | null;
 }
+
+export interface MoveMoneyMovementToAccountRequest {
+    moneyMovementId: string;
+    sourceAccountId: string;
+    targetAccountId: string;
+}
+
+export interface DeleteMoneyMovementRequest {
+    moneyMovementId: string;
+    accountId: string;
+}
+
+export interface PendingMoneyMovementAccountAction {
+    moneyMovementId: string;
+    sourceAccountId: string;
+}

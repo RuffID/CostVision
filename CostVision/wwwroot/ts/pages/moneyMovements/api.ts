@@ -1,9 +1,10 @@
 import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, type ServiceResultWithData } from "../../shared/http.js";
-import type { CreateMoneyMovementRequest, MoneyMovementDto, UserAccountViewModel } from "./types.js";
+import type { CreateMoneyMovementRequest, DeleteMoneyMovementRequest, MoneyMovementDto, MoveMoneyMovementToAccountRequest, UserAccountViewModel } from "./types.js";
 
 type AccountListResponse = ServiceResultWithData<UserAccountViewModel[]>;
 type MoneyMovementListResponse = ServiceResultWithData<MoneyMovementDto[]>;
 type MoneyMovementResponse = ServiceResultWithData<MoneyMovementDto>;
+type BooleanResponse = ServiceResultWithData<boolean>;
 
 export async function loadAccounts(forgeryToken: string | null): Promise<UserAccountViewModel[]> {
     const response = await sendJsonRequest<AccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken));
@@ -26,4 +27,14 @@ export async function loadMoneyMovements(forgeryToken: string | null, dateFrom: 
 export async function createMoneyMovement(forgeryToken: string | null, request: CreateMoneyMovementRequest): Promise<MoneyMovementDto> {
     const response = await sendJsonRequest<MoneyMovementResponse>("?handler=Create", "POST", buildJsonHeaders(forgeryToken), request);
     return unwrapServiceResult<MoneyMovementDto>(response);
+}
+
+export async function moveMoneyMovementToAccount(forgeryToken: string | null, request: MoveMoneyMovementToAccountRequest): Promise<boolean> {
+    const response = await sendJsonRequest<BooleanResponse>("?handler=MoveToAccount", "POST", buildJsonHeaders(forgeryToken), request);
+    return unwrapServiceResult<boolean>(response);
+}
+
+export async function deleteMoneyMovement(forgeryToken: string | null, request: DeleteMoneyMovementRequest): Promise<boolean> {
+    const response = await sendJsonRequest<BooleanResponse>("?handler=Delete", "POST", buildJsonHeaders(forgeryToken), request);
+    return unwrapServiceResult<boolean>(response);
 }

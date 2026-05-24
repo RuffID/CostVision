@@ -17,7 +17,9 @@ namespace CostVision.Web.Pages
     public class MoneyMovementsModel(
         IGetMoneyMovementAccountsUseCase getMoneyMovementAccountsUseCase,
         IGetMoneyMovementListUseCase getMoneyMovementListUseCase,
-        ICreateMoneyMovementUseCase createMoneyMovementUseCase) : PageModel, IHasCurrentUser
+        ICreateMoneyMovementUseCase createMoneyMovementUseCase,
+        IMoveMoneyMovementToAccountUseCase moveMoneyMovementToAccountUseCase,
+        IDeleteMoneyMovementUseCase deleteMoneyMovementUseCase) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
 
@@ -37,6 +39,18 @@ namespace CostVision.Web.Pages
         public async Task<JsonResult> OnPostCreateAsync([FromBody] CreateMoneyMovementRequest request, CancellationToken ct)
         {
             ServiceResult<MoneyMovementDto> result = await createMoneyMovementUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<JsonResult> OnPostMoveToAccountAsync([FromBody] MoveMoneyMovementToAccountRequest request, CancellationToken ct)
+        {
+            ServiceResult<bool> result = await moveMoneyMovementToAccountUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<JsonResult> OnPostDeleteAsync([FromBody] DeleteMoneyMovementRequest request, CancellationToken ct)
+        {
+            ServiceResult<bool> result = await deleteMoneyMovementUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
     }
