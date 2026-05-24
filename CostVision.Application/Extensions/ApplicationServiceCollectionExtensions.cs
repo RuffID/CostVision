@@ -1,7 +1,11 @@
-﻿using CostVision.Application.UseCases.Authorize.Authentication;
+using CostVision.Application.UseCases.Authorize.Authentication;
 using CostVision.Application.UseCases.Authorize.Roles;
 using CostVision.Application.UseCases.Authorize.Users;
 using CostVision.Application.UseCases.MoneyMovements;
+using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsers.Alfa;
+using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsers.Sber;
+using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsers.TBank;
+using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsing;
 using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
@@ -43,6 +47,10 @@ namespace CostVision.Application.Extensions
             services.AddScoped<IMoveMoneyMovementToAccountUseCase, MoveMoneyMovementToAccountUseCase>();
             services.AddScoped<IDeleteMoneyMovementUseCase, DeleteMoneyMovementUseCase>();
             services.AddScoped<IUpdateMoneyMovementCommentUseCase, UpdateMoneyMovementCommentUseCase>();
+            services.AddScoped<IBankStatementParser, TBankPdfStatementParser>();
+            services.AddScoped<IBankStatementParser, SberBankPdfStatementParser>();
+            services.AddScoped<IBankStatementParser, AlfaBankPdfStatementParser>();
+            services.AddScoped<IBankStatementParserRegistry, BankStatementParserRegistry>();
             services.AddScoped<IGetBankStatementImportBanksUseCase, GetBankStatementImportBanksUseCase>();
             services.AddScoped<IPreviewBankStatementImportUseCase, PreviewBankStatementImportUseCase>();
             services.AddScoped<IImportMoneyMovementsUseCase, ImportMoneyMovementsUseCase>();

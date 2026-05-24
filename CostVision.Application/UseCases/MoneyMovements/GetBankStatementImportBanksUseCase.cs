@@ -1,20 +1,20 @@
 using CostVision.Application.Models.Dtos.MoneyMovements;
+using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsing;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class GetBankStatementImportBanksUseCase : IGetBankStatementImportBanksUseCase
+    public class GetBankStatementImportBanksUseCase(IBankStatementParserRegistry parserRegistry) : IGetBankStatementImportBanksUseCase
     {
         public Task<List<BankStatementImportBankDto>> ExecuteAsync(CancellationToken ct)
         {
-            List<BankStatementImportBankDto> banks =
-            [
-                new BankStatementImportBankDto
+            List<BankStatementImportBankDto> banks = parserRegistry.GetParsers()
+                .Select(parser => new BankStatementImportBankDto
                 {
-                    Id = BankStatementImportConstants.T_BANK_PDF_BANK_ID,
-                    Name = "Т-Банк",
-                    Description = "PDF-выписка"
-                }
-            ];
+                    Id = parser.BankId,
+                    Name = parser.BankName,
+                    Description = parser.Description
+                })
+                .ToList();
 
             return Task.FromResult(banks);
         }

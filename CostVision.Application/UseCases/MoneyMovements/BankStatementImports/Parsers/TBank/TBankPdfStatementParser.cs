@@ -1,11 +1,13 @@
-﻿using CostVision.Application.Models.Dtos.MoneyMovements;
+using CostVision.Application.Models.Dtos.MoneyMovements;
+using CostVision.Application.UseCases.MoneyMovements;
+using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsing;
 using CostVision.Domain.Models.Enums.MoneyMovements;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace CostVision.Application.UseCases.MoneyMovements
+namespace CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsers.TBank
 {
-    internal class BankStatementImportParser
+    internal class TBankPdfStatementParser : IBankStatementParser
     {
         private static readonly Regex OperationDateRegex = new(@"^\d{2}\.\d{2}\.\d{2}( \d{2}:\d{2})?$", RegexOptions.Compiled);
         private static readonly Regex ProcessingDateRegex = new(@"^\d{2}\.\d{2}\.\d{2}$", RegexOptions.Compiled);
@@ -15,11 +17,24 @@ namespace CostVision.Application.UseCases.MoneyMovements
             RegexOptions.Compiled);
         private static readonly CultureInfo RuCulture = new("ru-RU");
 
-        public BankStatementImportPreviewDto Parse(string bankId, Guid accountId, IReadOnlyList<string> pages)
+        public string BankId => BankStatementImportConstants.T_BANK_PDF_BANK_ID;
+
+        public string BankName => "Т-Банк";
+
+        public string Description => "PDF-выписка";
+
+        public bool IsConfigured => true;
+
+        public bool CanParseFile(string fileName)
+        {
+            return fileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+        }
+
+        public BankStatementImportPreviewDto Parse(Guid accountId, IReadOnlyList<string> pages)
         {
             List<BankStatementImportPreviewRowDto> rows = new();
             List<BankStatementImportLineErrorDto> errors = new();
-            List<ParsedLine> lines = NormalizePages(pages);
+            List<ParsedLine> lines = BankStatementTextNormalizer.NormalizePages(pages);
             bool cardBlockStarted = false;
 
             for (int index = 0; index < lines.Count; index++)
@@ -46,38 +61,11 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             return new BankStatementImportPreviewDto
             {
-                BankId = bankId,
+                BankId = BankId,
                 AccountId = accountId,
                 Rows = rows,
                 Errors = errors
             };
-        }
-
-        private static List<ParsedLine> NormalizePages(IReadOnlyList<string> pages)
-        {
-            List<ParsedLine> lines = new();
-            int lineNumber = 1;
-
-            foreach (string page in pages)
-            {
-                string[] pageLines = page.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-                foreach (string rawLine in pageLines)
-                {
-                    string normalized = Regex.Replace(rawLine.Trim(), @"\s+", " ");
-                    if (!string.IsNullOrWhiteSpace(normalized))
-                    {
-                        lines.Add(new ParsedLine
-                        {
-                            Number = lineNumber,
-                            Text = normalized
-                        });
-                    }
-
-                    lineNumber++;
-                }
-            }
-
-            return lines;
         }
 
         private static void ParseOperation(List<ParsedLine> lines, ref int index, List<BankStatementImportPreviewRowDto> rows, List<BankStatementImportLineErrorDto> errors)

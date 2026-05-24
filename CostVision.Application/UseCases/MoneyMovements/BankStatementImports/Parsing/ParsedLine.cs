@@ -1,4 +1,4 @@
-namespace CostVision.Application.UseCases.MoneyMovements
+namespace CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsing
 {
     internal class ParsedLine
     {

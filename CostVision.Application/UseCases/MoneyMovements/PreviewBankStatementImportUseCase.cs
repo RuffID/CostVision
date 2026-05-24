@@ -1,7 +1,8 @@
-﻿using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.Service.MoneyMovements;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
+using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsing;
 using CostVision.Domain.Models.Enums.MoneyMovements;
 using CostVision.Domain.Models.MoneyMovements;
 
@@ -9,17 +10,17 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class PreviewBankStatementImportUseCase(
         IUnitOfWork unitOfWork,
+        IBankStatementParserRegistry parserRegistry,
         IBankStatementPdfTextExtractor pdfTextExtractor) : IPreviewBankStatementImportUseCase
     {
-        private readonly BankStatementImportParser parser = new();
-
         public async Task<ServiceResult<BankStatementImportPreviewDto>> ExecuteAsync(string bankId, Guid accountId, string fileName, Stream fileStream, Guid currentUserId, CancellationToken ct)
         {
-            if (bankId != BankStatementImportConstants.T_BANK_PDF_BANK_ID)
+            IBankStatementParser? parser = parserRegistry.FindByBankId(bankId);
+            if (parser == null || !parser.IsConfigured)
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(400, "Для выбранного банка импорт пока не настроен.");
 
-            if (!fileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                return ServiceResult<BankStatementImportPreviewDto>.Fail(400, "Загрузите PDF-выписку.");
+            if (!parser.CanParseFile(fileName))
+                return ServiceResult<BankStatementImportPreviewDto>.Fail(400, $"Загрузите файл выписки в формате: {parser.Description}.");
 
             ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, accountId, currentUserId, ct);
             if (!accountAccess.Success)
@@ -29,7 +30,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (pages.Count == 0 || pages.All(string.IsNullOrWhiteSpace))
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(400, "В PDF не найден текстовый слой. Загрузите выписку с распознаваемым текстом.");
 
-            BankStatementImportPreviewDto preview = parser.Parse(bankId, accountId, pages);
+            BankStatementImportPreviewDto preview = parser.Parse(accountId, pages);
             if (preview.Rows.Count == 0 && preview.Errors.Count == 0)
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(400, BuildEmptyPreviewMessage(pages));
 
