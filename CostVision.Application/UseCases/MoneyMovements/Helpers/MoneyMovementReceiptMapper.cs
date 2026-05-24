@@ -26,10 +26,14 @@ namespace CostVision.Application.UseCases.MoneyMovements.Helpers
 
         public static MoneyMovementReceiptDto MapReceiptLinkDto(this MoneyMovementReceipt link)
         {
-            return link.Receipt?.MapReceiptLinkDto() ?? new MoneyMovementReceiptDto
+            MoneyMovementReceiptDto dto = link.Receipt?.MapReceiptLinkDto() ?? new MoneyMovementReceiptDto
             {
                 ReceiptId = link.ReceiptId
             };
+
+            dto.IsLinkedToOtherMoneyMovement = true;
+
+            return dto;
         }
     }
 }

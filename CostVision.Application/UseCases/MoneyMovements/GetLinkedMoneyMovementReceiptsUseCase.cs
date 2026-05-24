@@ -34,8 +34,6 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     .Include(link => link.Receipt)
                         .ThenInclude(receipt => receipt!.Accounts)
                             .ThenInclude(link => link.Account)
-                    .Include(link => link.Receipt)
-                        .ThenInclude(receipt => receipt!.MoneyMovementLinks)
                     .AsSplitQuery(),
                 ct: ct);
 
