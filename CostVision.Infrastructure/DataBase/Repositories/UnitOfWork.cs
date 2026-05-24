@@ -1,5 +1,6 @@
-using CostVision.Application.Abstractions.DataBase.Repositories;
+﻿using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Infrastructure.DataBase;
 using EFCoreLibrary.Abstractions.Database;
@@ -15,7 +16,8 @@ namespace CostVision.Infrastructure.DataBase.Repositories
         IReceiptItemRepository receiptItem,
         IProductRepository product,
         IReceiptAccountRepository receiptAccount,
-        IAccountMemberRepository accountMember) : IUnitOfWork
+        IAccountMemberRepository accountMember,
+        IMoneyMovementRepository moneyMovement) : IUnitOfWork
     {
         public IUserRepository User { get; } = user;
         public IRoleRepository Role { get; } = role;
@@ -25,6 +27,7 @@ namespace CostVision.Infrastructure.DataBase.Repositories
         public IProductRepository Product { get; set; } = product;
         public IReceiptAccountRepository ReceiptAccount { get; set; } = receiptAccount;
         public IAccountMemberRepository AccountMember { get; set; } = accountMember;
+        public IMoneyMovementRepository MoneyMovement { get; set; } = moneyMovement;
 
         public Task SaveChangesAsync(CancellationToken ct = default) => context.SaveChanges(ct);
 

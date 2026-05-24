@@ -1,4 +1,4 @@
-@using CostVision.Domain.Models.Enums.Authorization
+﻿@using CostVision.Domain.Models.Enums.Authorization
 @using Microsoft.AspNetCore.Antiforgery
 @inject IAntiforgery Antiforgery
 <!DOCTYPE html>
@@ -37,6 +37,9 @@
                                 }
                                 <li class="nav-item">
                                     <a class="nav-link text-dark" asp-area="" asp-page="/Receipts">Чеки</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-page="/MoneyMovements">Операции</a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link text-dark" asp-area="" asp-page="/AddReceipt">Добавить чек</a>

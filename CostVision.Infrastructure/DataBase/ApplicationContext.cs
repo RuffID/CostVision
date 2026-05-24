@@ -1,5 +1,6 @@
-using CostVision.Application.Abstractions.DataBase;
+﻿using CostVision.Application.Abstractions.DataBase;
 using CostVision.Infrastructure.DataBase.ModelsConfigure.Authorization;
+using CostVision.Infrastructure.DataBase.ModelsConfigure.MoneyMovements;
 using CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,8 @@ namespace CostVision.Infrastructure.DataBase
                 .ApplyConfiguration(new ExpenseCategoryConfigure())
                 .ApplyConfiguration(new ReceiptConfigure())
                 .ApplyConfiguration(new ReceiptItemConfigure())
-                .ApplyConfiguration(new ProductConfigure());
+                .ApplyConfiguration(new ProductConfigure())
+                .ApplyConfiguration(new MoneyMovementConfigure());
 
             OnModelCreatingPartial(modelBuilder);
         }

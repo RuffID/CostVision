@@ -1,4 +1,5 @@
 ﻿﻿﻿using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 
 namespace CostVision.Application.Abstractions.DataBase.Repositories
@@ -13,6 +14,7 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories
         IProductRepository Product { get; }
         IReceiptAccountRepository ReceiptAccount { get; }
         IAccountMemberRepository AccountMember { get; }
+        IMoneyMovementRepository MoneyMovement { get; }
 
         Task SaveChangesAsync(CancellationToken ct = default);
         Task ExecuteInTransaction(Func<Task> action, CancellationToken ct = default);

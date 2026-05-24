@@ -1,6 +1,7 @@
-using CostVision.Application.UseCases.Authorize.Authentication;
+﻿using CostVision.Application.UseCases.Authorize.Authentication;
 using CostVision.Application.UseCases.Authorize.Roles;
 using CostVision.Application.UseCases.Authorize.Users;
+using CostVision.Application.UseCases.MoneyMovements;
 using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
@@ -36,6 +37,9 @@ namespace CostVision.Application.Extensions
             services.AddScoped<IToggleUserActiveUseCase, ToggleUserActiveUseCase>();
             services.AddScoped<IGetRoleListUseCase, GetRoleListUseCase>();
             services.AddScoped<IAuthenticateUserUseCase, AuthenticateUserUseCase>();
+            services.AddScoped<ICreateMoneyMovementUseCase, CreateMoneyMovementUseCase>();
+            services.AddScoped<IGetMoneyMovementListUseCase, GetMoneyMovementListUseCase>();
+            services.AddScoped<IGetMoneyMovementAccountsUseCase, GetMoneyMovementAccountsUseCase>();
 
             return services;
         }

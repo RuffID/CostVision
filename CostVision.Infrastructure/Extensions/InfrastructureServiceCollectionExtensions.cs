@@ -1,12 +1,14 @@
-using CostVision.Application.Abstractions.DataBase;
+﻿using CostVision.Application.Abstractions.DataBase;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.Service.Authorize;
 using CostVision.Application.Abstractions.Service.Receipts;
 using CostVision.Infrastructure.DataBase;
 using CostVision.Infrastructure.DataBase.Repositories;
 using CostVision.Infrastructure.DataBase.Repositories.Authorization;
+using CostVision.Infrastructure.DataBase.Repositories.MoneyMovements;
 using CostVision.Infrastructure.DataBase.Repositories.Receipts;
 using CostVision.Infrastructure.Abstractions.Api;
 using CostVision.Infrastructure.Models.ConfigClass;
@@ -73,6 +75,7 @@ namespace CostVision.Infrastructure.Extensions
             services.AddScoped<IReceiptRepository, ReceiptRepository>();
             services.AddScoped<IReceiptItemRepository, ReceiptItemRepository>();
             services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped<IMoneyMovementRepository, MoneyMovementRepository>();
 
             return services;
         }

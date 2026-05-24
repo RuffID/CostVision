@@ -1,3 +1,4 @@
+﻿using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using EFCoreLibrary.Abstractions.Entity;
 
@@ -30,6 +31,10 @@ namespace CostVision.Domain.Models.Authorization
         public List<ExpenseCategory> Categories { get; set; } = new List<ExpenseCategory>();
 
         public List<Account> Accounts { get; set; } = new List<Account>();
+
+        public List<MoneyMovement> CreatedMoneyMovements { get; set; } = new List<MoneyMovement>();
+
+        public List<MoneyMovement> PerformedMoneyMovements { get; set; } = new List<MoneyMovement>();
 
         /// <summary>
         /// Активирует пользователя.

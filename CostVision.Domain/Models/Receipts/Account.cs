@@ -1,4 +1,5 @@
-using CostVision.Domain.Models.Authorization;
+﻿using CostVision.Domain.Models.Authorization;
+using CostVision.Domain.Models.MoneyMovements;
 using EFCoreLibrary.Abstractions.Entity;
 
 namespace CostVision.Domain.Models.Receipts
@@ -32,6 +33,8 @@ namespace CostVision.Domain.Models.Receipts
         public List<AccountMember> Members { get; set; } = new();
 
         public List<ReceiptAccount> ReceiptLinks { get; set; } = new();
+
+        public List<MoneyMovement> MoneyMovements { get; set; } = new();
 
         /// <summary>
         /// Архивирует счёт.

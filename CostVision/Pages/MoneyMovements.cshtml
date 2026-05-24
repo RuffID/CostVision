@@ -1,0 +1,92 @@
+﻿@page
+@model CostVision.Web.Pages.MoneyMovementsModel
+
+@{
+    ViewData["Title"] = "Операции";
+}
+
+<div class="container py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 class="mb-0">Операции</h2>
+        <div class="d-flex flex-wrap gap-2">
+            <span id="moneyMovementCount" class="input-group-text">Операций: 0</span>
+            <span id="moneyMovementIncomeSum" class="input-group-text">Приход: 0 ₽</span>
+            <span id="moneyMovementExpenseSum" class="input-group-text">Расход: 0 ₽</span>
+        </div>
+    </div>
+
+    <div id="moneyMovementAlert" class="alert alert-warning d-none" role="alert"></div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-5">
+            <form id="moneyMovementCreateForm" class="border rounded-3 p-3">
+                <h5 class="mb-3">Новая операция</h5>
+
+                <div class="mb-3">
+                    <label for="moneyMovementAccount" class="form-label">Счёт</label>
+                    <select id="moneyMovementAccount" name="moneyMovementAccount" class="form-select" required></select>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                        <label for="moneyMovementAmount" class="form-label">Сумма</label>
+                        <input type="number" step="0.01" id="moneyMovementAmount" name="moneyMovementAmount" class="form-control" required autocomplete="off">
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label for="moneyMovementType" class="form-label">Тип</label>
+                        <select id="moneyMovementType" name="moneyMovementType" class="form-select">
+                            <option value="">По знаку суммы</option>
+                            <option value="Expense">Расход</option>
+                            <option value="Income">Приход</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label for="moneyMovementOccurredAt" class="form-label">Дата и время</label>
+                    <input type="datetime-local" id="moneyMovementOccurredAt" name="moneyMovementOccurredAt" class="form-control" required autocomplete="off">
+                </div>
+
+                <div class="mt-3">
+                    <label for="moneyMovementComment" class="form-label">Комментарий</label>
+                    <textarea id="moneyMovementComment" name="moneyMovementComment" class="form-control" rows="3" maxlength="1024"></textarea>
+                </div>
+
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" id="moneyMovementCreateButton" class="btn btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-12 col-lg-7">
+            <div class="border rounded-3 p-3 h-100">
+                <h5 class="mb-3">Фильтр</h5>
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-5">
+                        <label for="moneyMovementFilterAccount" class="form-label">Счёт</label>
+                        <select id="moneyMovementFilterAccount" name="moneyMovementFilterAccount" class="form-select"></select>
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                        <label for="moneyMovementDateFrom" class="form-label">с</label>
+                        <input type="date" id="moneyMovementDateFrom" name="moneyMovementDateFrom" class="form-control" autocomplete="off">
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                        <label for="moneyMovementDateTo" class="form-label">по</label>
+                        <input type="date" id="moneyMovementDateTo" name="moneyMovementDateTo" class="form-control" autocomplete="off">
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+                        <button type="button" id="moneyMovementApplyFilter" class="btn btn-outline-primary w-100">Показать</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="moneyMovementList" class="d-flex flex-column gap-2"></div>
+</div>
+
+<script type="module" src="~/dist/pages/moneyMovements/index.js" asp-append-version="true"></script>
