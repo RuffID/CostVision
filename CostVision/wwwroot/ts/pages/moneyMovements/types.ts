@@ -27,6 +27,8 @@ export interface MoneyMovementDto {
     performedByUserId: string;
     performedByUserName: string;
     source: number;
+    linkedReceiptCount: number;
+    linkedReceiptsTotalSum: number;
 }
 
 export interface CreateMoneyMovementRequest {
@@ -52,6 +54,35 @@ export interface UpdateMoneyMovementCommentRequest {
     moneyMovementId: string;
     accountId: string;
     comment: string | null;
+}
+
+export interface MoneyMovementReceiptDto {
+    receiptId: string;
+    dateTime: string;
+    retailPlace: string;
+    totalSum: number;
+    accountName: string;
+    isLinkedToOtherMoneyMovement: boolean;
+}
+
+export interface GetMoneyMovementReceiptCandidatesRequest {
+    moneyMovementId: string;
+    useTimeWindow: boolean;
+    dateFrom: string | null;
+    dateTo: string | null;
+    useAmountFilter: boolean;
+    amountTolerance: number | null;
+    excludeLinkedReceipts: boolean;
+}
+
+export interface LinkMoneyMovementReceiptRequest {
+    moneyMovementId: string;
+    receiptId: string;
+}
+
+export interface UnlinkMoneyMovementReceiptRequest {
+    moneyMovementId: string;
+    receiptId: string;
 }
 
 export interface PendingMoneyMovementAccountAction {

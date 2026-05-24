@@ -53,6 +53,7 @@ let receiptSearchInput: HTMLInputElement;
 let receiptSearchModeSelect: HTMLSelectElement;
 let receiptAccountFilterSelect: HTMLSelectElement;
 let receiptAccountFilterError: HTMLElement;
+let receiptOperationFilterSelect: HTMLSelectElement;
 
 let receiptsCache: ReceiptDto[] = [];
 let availableAccountsCache: AvailableAccountDto[] = [];
@@ -186,6 +187,7 @@ async function initListOfChecksPage(): Promise<void> {
     receiptSearchModeSelect = requireSelectById('receiptSearchMode');
     receiptAccountFilterSelect = requireSelectById('receiptAccountFilter');
     receiptAccountFilterError = requireElementById<HTMLElement>('receiptAccountFilterError');
+    receiptOperationFilterSelect = requireSelectById('receiptOperationFilter');
 
     if (receiptSearchInput) {
         receiptSearchInput.addEventListener('input', onSearchChanged);
@@ -197,6 +199,10 @@ async function initListOfChecksPage(): Promise<void> {
 
     if (receiptAccountFilterSelect) {
         receiptAccountFilterSelect.addEventListener('change', onSearchChanged);
+    }
+
+    if (receiptOperationFilterSelect) {
+        receiptOperationFilterSelect.addEventListener('change', onSearchChanged);
     }
     if (receiptPeriodPresetSelect) {
         receiptPeriodPresetSelect.addEventListener('change', onReceiptPeriodPresetChanged);
@@ -574,7 +580,8 @@ function applyReceiptFilters(list: ReceiptDto[]): ReceiptDto[] {
     const query = getSearchQuery();
     const mode = getSearchMode();
     const accountId = getSelectedReceiptAccountId();
-    return applyReceiptFiltersCore(list, query, mode, accountId);
+    const operationFilter = getReceiptOperationFilter();
+    return applyReceiptFiltersCore(list, query, mode, accountId, operationFilter);
 }
 
 function getSearchQuery(): string {
@@ -591,6 +598,11 @@ function getSearchMode(): string {
 function getSelectedReceiptAccountId(): string {
     if (!receiptAccountFilterSelect) return '';
     return receiptAccountFilterSelect.value || '';
+}
+
+function getReceiptOperationFilter(): string {
+    if (!receiptOperationFilterSelect) return 'all';
+    return receiptOperationFilterSelect.value || 'all';
 }
 
 function openMoveReceiptAccountModal(receiptId: string, sourceAccountId: string): void {

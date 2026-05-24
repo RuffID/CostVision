@@ -54,6 +54,16 @@
                 <input type="text" id="moneyMovementSearch" name="moneyMovementSearch" class="form-control" placeholder="Введите запрос..." autocomplete="off">
             </div>
 
+            <div class="col-12 col-sm-5 col-lg-3">
+                <label for="moneyMovementReceiptFilter" class="form-label mb-1">Связь с чеками</label>
+                <select id="moneyMovementReceiptFilter" name="moneyMovementReceiptFilter" class="form-select">
+                    <option value="all" selected>Все операции</option>
+                    <option value="withoutReceipts">Без чеков</option>
+                    <option value="withReceipts">С чеками</option>
+                    <option value="amountMismatch">Расхождение суммы</option>
+                </select>
+            </div>
+
             <div class="col-12 col-lg-auto">
                 <div class="d-flex flex-wrap gap-2">
                     <span id="moneyMovementCount" class="input-group-text">Операций: 0</span>
@@ -176,6 +186,71 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
                 <button type="button" class="btn btn-danger" id="confirmDeleteMoneyMovementButton">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="moneyMovementReceiptsModal" tabindex="-1" aria-labelledby="moneyMovementReceiptsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="moneyMovementReceiptsModalLabel">Чеки операции</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div id="moneyMovementReceiptsAlert" class="alert alert-warning d-none mb-3" role="alert"></div>
+                <div id="moneyMovementReceiptsInfo" class="mb-3"></div>
+
+                <div class="border rounded-3 p-3 mb-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-3">
+                            <label for="moneyMovementReceiptsDateFrom" class="form-label mb-1">с</label>
+                            <input type="date" id="moneyMovementReceiptsDateFrom" name="moneyMovementReceiptsDateFrom" class="form-control" autocomplete="off">
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label for="moneyMovementReceiptsDateTo" class="form-label mb-1">по</label>
+                            <input type="date" id="moneyMovementReceiptsDateTo" name="moneyMovementReceiptsDateTo" class="form-control" autocomplete="off">
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label for="moneyMovementReceiptsAmountTolerance" class="form-label mb-1">Допуск</label>
+                            <input type="number" step="0.01" min="0" id="moneyMovementReceiptsAmountTolerance" name="moneyMovementReceiptsAmountTolerance" class="form-control" value="1" autocomplete="off">
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input type="checkbox" id="moneyMovementReceiptsUseTimeWindow" name="moneyMovementReceiptsUseTimeWindow" class="form-check-input" checked>
+                                    <label for="moneyMovementReceiptsUseTimeWindow" class="form-check-label">Окно 1 час</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" id="moneyMovementReceiptsUseAmountFilter" name="moneyMovementReceiptsUseAmountFilter" class="form-check-input" checked>
+                                    <label for="moneyMovementReceiptsUseAmountFilter" class="form-check-label">По сумме</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" id="moneyMovementReceiptsExcludeLinked" name="moneyMovementReceiptsExcludeLinked" class="form-check-input" checked>
+                                    <label for="moneyMovementReceiptsExcludeLinked" class="form-check-label">Без привязанных</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="button" id="moneyMovementReceiptsReloadCandidatesButton" class="btn btn-outline-primary">Найти чеки</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-12 col-lg-5">
+                        <h6>Привязанные чеки</h6>
+                        <div id="moneyMovementLinkedReceipts" class="d-flex flex-column gap-2"></div>
+                    </div>
+                    <div class="col-12 col-lg-7">
+                        <h6>Кандидаты</h6>
+                        <div id="moneyMovementReceiptCandidates" class="d-flex flex-column gap-2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
             </div>
         </div>
     </div>

@@ -1,4 +1,4 @@
-import type { BankStatementImportBankDto, BankStatementImportLineErrorDto, BankStatementImportPreviewRowDto, MoneyMovementDto, UserAccountViewModel } from "./types.js";
+import type { BankStatementImportBankDto, BankStatementImportLineErrorDto, BankStatementImportPreviewRowDto, MoneyMovementDto, MoneyMovementReceiptDto, UserAccountViewModel } from "./types.js";
 
 export interface MoneyMovementsState {
     accounts: UserAccountViewModel[];
@@ -11,6 +11,8 @@ export interface MoneyMovementsState {
     importRows: BankStatementImportPreviewRowDto[];
     importErrors: BankStatementImportLineErrorDto[];
     hideDuplicateImportRows: boolean;
+    linkedReceipts: MoneyMovementReceiptDto[];
+    receiptCandidates: MoneyMovementReceiptDto[];
 }
 
 export const state: MoneyMovementsState = {
@@ -23,5 +25,7 @@ export const state: MoneyMovementsState = {
     importBanks: [],
     importRows: [],
     importErrors: [],
-    hideDuplicateImportRows: false
+    hideDuplicateImportRows: false,
+    linkedReceipts: [],
+    receiptCandidates: []
 };

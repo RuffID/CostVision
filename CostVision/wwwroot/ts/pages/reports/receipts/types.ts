@@ -25,6 +25,8 @@ export interface ReceiptDto {
     fiscalSign: string;
     accountId: string | null;
     accountName: string;
+    moneyMovementCount: number;
+    moneyMovementsTotalSum: number;
     accounts: ReceiptAccountDto[];
     items: ReceiptItemDto[];
 }

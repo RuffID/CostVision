@@ -14,6 +14,7 @@ export interface MoneyMovementsUi {
     dateFromInput: HTMLInputElement;
     dateToInput: HTMLInputElement;
     searchInput: HTMLInputElement;
+    receiptFilterSelect: HTMLSelectElement;
     applyFilterButton: HTMLButtonElement;
     list: HTMLElement;
     count: HTMLElement;
@@ -28,6 +29,18 @@ export interface MoneyMovementsUi {
     deleteModal: HTMLElement;
     deleteInfo: HTMLElement;
     confirmDeleteButton: HTMLButtonElement;
+    receiptsModal: HTMLElement;
+    receiptsAlert: HTMLElement;
+    receiptsInfo: HTMLElement;
+    linkedReceipts: HTMLElement;
+    receiptCandidates: HTMLElement;
+    receiptsDateFromInput: HTMLInputElement;
+    receiptsDateToInput: HTMLInputElement;
+    receiptsUseTimeWindowInput: HTMLInputElement;
+    receiptsUseAmountFilterInput: HTMLInputElement;
+    receiptsAmountToleranceInput: HTMLInputElement;
+    receiptsExcludeLinkedInput: HTMLInputElement;
+    receiptsReloadCandidatesButton: HTMLButtonElement;
     importModal: HTMLElement;
     importAlert: HTMLElement;
     importBankSelect: HTMLSelectElement;
@@ -60,6 +73,7 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         dateFromInput: requireInputById("moneyMovementDateFrom"),
         dateToInput: requireInputById("moneyMovementDateTo"),
         searchInput: requireInputById("moneyMovementSearch"),
+        receiptFilterSelect: requireSelectById("moneyMovementReceiptFilter"),
         applyFilterButton: requireElementById<HTMLButtonElement>("moneyMovementApplyFilter"),
         list: requireElementById("moneyMovementList"),
         count: requireElementById("moneyMovementCount"),
@@ -74,6 +88,18 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         deleteModal: requireElementById("deleteMoneyMovementModal"),
         deleteInfo: requireElementById("deleteMoneyMovementInfo"),
         confirmDeleteButton: requireElementById<HTMLButtonElement>("confirmDeleteMoneyMovementButton"),
+        receiptsModal: requireElementById("moneyMovementReceiptsModal"),
+        receiptsAlert: requireElementById("moneyMovementReceiptsAlert"),
+        receiptsInfo: requireElementById("moneyMovementReceiptsInfo"),
+        linkedReceipts: requireElementById("moneyMovementLinkedReceipts"),
+        receiptCandidates: requireElementById("moneyMovementReceiptCandidates"),
+        receiptsDateFromInput: requireInputById("moneyMovementReceiptsDateFrom"),
+        receiptsDateToInput: requireInputById("moneyMovementReceiptsDateTo"),
+        receiptsUseTimeWindowInput: requireInputById("moneyMovementReceiptsUseTimeWindow"),
+        receiptsUseAmountFilterInput: requireInputById("moneyMovementReceiptsUseAmountFilter"),
+        receiptsAmountToleranceInput: requireInputById("moneyMovementReceiptsAmountTolerance"),
+        receiptsExcludeLinkedInput: requireInputById("moneyMovementReceiptsExcludeLinked"),
+        receiptsReloadCandidatesButton: requireElementById<HTMLButtonElement>("moneyMovementReceiptsReloadCandidatesButton"),
         importModal: requireElementById("moneyMovementImportModal"),
         importAlert: requireElementById("moneyMovementImportAlert"),
         importBankSelect: requireSelectById("moneyMovementImportBank"),

@@ -1,4 +1,4 @@
-using CostVision.Application.Models.Dtos.Receipts;
+﻿using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.Models.Dtos.Mappers
@@ -32,6 +32,8 @@ namespace CostVision.Application.Models.Dtos.Mappers
             representativeReceipt.Id = primaryEditableAccount?.ReceiptId ?? primaryAccount?.ReceiptId ?? representativeReceipt.Id;
             representativeReceipt.AccountId = primaryAccount?.Id;
             representativeReceipt.AccountName = primaryAccount?.Name ?? string.Empty;
+            representativeReceipt.MoneyMovementCount = groupedReceipts.Sum(receipt => receipt.MoneyMovementCount);
+            representativeReceipt.MoneyMovementsTotalSum = groupedReceipts.Sum(receipt => receipt.MoneyMovementsTotalSum);
 
             return representativeReceipt;
         }

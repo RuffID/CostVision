@@ -12,6 +12,8 @@
         public string FiscalSign { get; set; } = string.Empty;
         public Guid? AccountId { get; set; }
         public string AccountName { get; set; } = string.Empty;
+        public int MoneyMovementCount { get; set; }
+        public decimal MoneyMovementsTotalSum { get; set; }
         public ICollection<ReceiptAccountDto> Accounts { get; set; } = new List<ReceiptAccountDto>();
         public ICollection<ReceiptItemDto> Items { get; set; } = new List<ReceiptItemDto>();
     }

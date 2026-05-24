@@ -1,4 +1,4 @@
-using CostVision.Application.Abstractions.DataBase.Repositories;
+﻿using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
@@ -21,6 +21,8 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                     .Include(receipt => receipt.Accounts)
                         .ThenInclude(link => link.Account)
                             .ThenInclude(account => account!.Members)
+                    .Include(receipt => receipt.MoneyMovementLinks)
+                        .ThenInclude(link => link.MoneyMovement)
                     .AsSplitQuery(),
                 ct: ct);
 

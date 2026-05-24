@@ -17,7 +17,8 @@ namespace CostVision.Infrastructure.DataBase.Repositories
         IProductRepository product,
         IReceiptAccountRepository receiptAccount,
         IAccountMemberRepository accountMember,
-        IMoneyMovementRepository moneyMovement) : IUnitOfWork
+        IMoneyMovementRepository moneyMovement,
+        IMoneyMovementReceiptRepository moneyMovementReceipt) : IUnitOfWork
     {
         public IUserRepository User { get; } = user;
         public IRoleRepository Role { get; } = role;
@@ -28,6 +29,7 @@ namespace CostVision.Infrastructure.DataBase.Repositories
         public IReceiptAccountRepository ReceiptAccount { get; set; } = receiptAccount;
         public IAccountMemberRepository AccountMember { get; set; } = accountMember;
         public IMoneyMovementRepository MoneyMovement { get; set; } = moneyMovement;
+        public IMoneyMovementReceiptRepository MoneyMovementReceipt { get; set; } = moneyMovementReceipt;
 
         public Task SaveChangesAsync(CancellationToken ct = default) => context.SaveChanges(ct);
 

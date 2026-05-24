@@ -27,5 +27,9 @@ namespace CostVision.Application.Models.Dtos.MoneyMovements
         public string PerformedByUserName { get; set; } = string.Empty;
 
         public MoneyMovementSource Source { get; set; }
+
+        public int LinkedReceiptCount { get; set; }
+
+        public decimal LinkedReceiptsTotalSum { get; set; }
     }
 }

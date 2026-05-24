@@ -40,6 +40,8 @@ namespace CostVision.Domain.Models.MoneyMovements
 
         public MoneyMovementSource Source { get; set; }
 
+        public List<MoneyMovementReceipt> ReceiptLinks { get; set; } = new();
+
         /// <summary>
         /// Обновляет время последнего изменения операции.
         /// </summary>

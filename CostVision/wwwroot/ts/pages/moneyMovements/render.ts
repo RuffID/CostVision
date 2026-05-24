@@ -1,6 +1,6 @@
 import { clearElement } from "../../shared/dom.js";
 import { formatMoneyRub } from "../../shared/formatters.js";
-import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportBankDto, type BankStatementImportLineErrorDto, type BankStatementImportPreviewRowDto, type MoneyMovementDto, type UserAccountViewModel } from "./types.js";
+import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportBankDto, type BankStatementImportLineErrorDto, type BankStatementImportPreviewRowDto, type MoneyMovementDto, type MoneyMovementReceiptDto, type UserAccountViewModel } from "./types.js";
 
 export function renderAccountOptions(select: HTMLSelectElement, accounts: UserAccountViewModel[], includeAllOption: boolean): void {
     clearElement(select);
@@ -120,6 +120,14 @@ export function renderImportSummary(element: HTMLElement, rows: BankStatementImp
     element.textContent = `Строк: ${rows.length}. Повторы: ${duplicateCount}.`;
 }
 
+export function renderLinkedReceipts(container: HTMLElement, receipts: MoneyMovementReceiptDto[]): void {
+    renderReceiptList(container, receipts, "unlink-receipt", "Отвязать", "Привязанных чеков нет.");
+}
+
+export function renderReceiptCandidates(container: HTMLElement, receipts: MoneyMovementReceiptDto[]): void {
+    renderReceiptList(container, receipts, "link-receipt", "Привязать", "Подходящие чеки не найдены.");
+}
+
 function createMoneyMovementCard(movement: MoneyMovementDto, accounts: UserAccountViewModel[], isEditingComment: boolean): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.classList.add("border", "rounded-3", "p-3", "d-flex", "flex-column", "gap-2", "shadow-sm");
@@ -142,7 +150,11 @@ function createMoneyMovementCard(movement: MoneyMovementDto, accounts: UserAccou
 
     const accountBadge = createAccountBadge(movement, accounts);
 
-    left.append(commentBlock, meta, accountBadge);
+    const actions = document.createElement("div");
+    actions.classList.add("d-flex", "flex-wrap", "gap-2", "align-items-center");
+    actions.append(accountBadge, createReceiptsButton(movement));
+
+    left.append(commentBlock, meta, actions);
 
     const amount = document.createElement("div");
     amount.classList.add("fw-semibold", "fs-5");
@@ -153,6 +165,16 @@ function createMoneyMovementCard(movement: MoneyMovementDto, accounts: UserAccou
 
     wrapper.append(header);
     return wrapper;
+}
+
+function createReceiptsButton(movement: MoneyMovementDto): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.classList.add("btn", "btn-sm", "btn-outline-secondary", "align-self-start");
+    button.setAttribute("data-action", "open-receipts");
+    button.setAttribute("data-money-movement-id", movement.id);
+    button.textContent = "Чеки";
+    return button;
 }
 
 function createReadonlyCommentBlock(movement: MoneyMovementDto, canEditMovement: boolean): HTMLElement {
@@ -371,6 +393,66 @@ function createAccountBadge(movement: MoneyMovementDto, accounts: UserAccountVie
     }
 
     return badge;
+}
+
+function renderReceiptList(container: HTMLElement, receipts: MoneyMovementReceiptDto[], action: string, actionText: string, emptyText: string): void {
+    clearElement(container);
+
+    if (receipts.length === 0) {
+        const empty = document.createElement("div");
+        empty.classList.add("text-muted", "py-2");
+        empty.textContent = emptyText;
+        container.append(empty);
+        return;
+    }
+
+    for (const receipt of receipts) {
+        container.append(createReceiptCard(receipt, action, actionText));
+    }
+}
+
+function createReceiptCard(receipt: MoneyMovementReceiptDto, action: string, actionText: string): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("border", "rounded-3", "p-2", "d-flex", "flex-wrap", "justify-content-between", "gap-2", "align-items-start");
+
+    if (receipt.isLinkedToOtherMoneyMovement && action === "link-receipt") {
+        wrapper.classList.add("border-warning");
+    }
+
+    const left = document.createElement("div");
+    left.classList.add("d-flex", "flex-column", "gap-1");
+
+    const title = document.createElement("div");
+    title.classList.add("fw-semibold");
+    title.textContent = receipt.retailPlace || "Без названия";
+
+    const meta = document.createElement("div");
+    meta.classList.add("small", "text-muted");
+    const accountText = receipt.accountName ? ` · ${receipt.accountName}` : "";
+    meta.textContent = `${formatDateTime(receipt.dateTime)}${accountText}`;
+
+    const amount = document.createElement("div");
+    amount.classList.add("small");
+    amount.textContent = formatMoneyRub(receipt.totalSum);
+
+    left.append(title, meta, amount);
+
+    if (receipt.isLinkedToOtherMoneyMovement && action === "link-receipt") {
+        const warning = document.createElement("div");
+        warning.classList.add("small", "text-warning");
+        warning.textContent = "Уже связан с операцией";
+        left.append(warning);
+    }
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.classList.add("btn", "btn-sm", action === "link-receipt" ? "btn-outline-primary" : "btn-outline-danger");
+    button.setAttribute("data-action", action);
+    button.setAttribute("data-receipt-id", receipt.receiptId);
+    button.textContent = actionText;
+
+    wrapper.append(left, button);
+    return wrapper;
 }
 
 function canEditAccount(account: UserAccountViewModel): boolean {

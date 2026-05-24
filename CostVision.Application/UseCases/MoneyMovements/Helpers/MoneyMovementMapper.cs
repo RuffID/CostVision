@@ -20,7 +20,11 @@ namespace CostVision.Application.UseCases.MoneyMovements.Helpers
                 ImportComment = movement.ImportComment,
                 PerformedByUserId = movement.PerformedByUserId,
                 PerformedByUserName = movement.PerformedByUser?.Name ?? string.Empty,
-                Source = movement.Source
+                Source = movement.Source,
+                LinkedReceiptCount = movement.ReceiptLinks.Count,
+                LinkedReceiptsTotalSum = movement.ReceiptLinks
+                    .Where(link => link.Receipt != null)
+                    .Sum(link => link.Receipt!.TotalSum)
             };
         }
     }

@@ -23,7 +23,11 @@ namespace CostVision.Web.Pages
         IUpdateMoneyMovementCommentUseCase updateMoneyMovementCommentUseCase,
         IGetBankStatementImportBanksUseCase getBankStatementImportBanksUseCase,
         IPreviewBankStatementImportUseCase previewBankStatementImportUseCase,
-        IImportMoneyMovementsUseCase importMoneyMovementsUseCase) : PageModel, IHasCurrentUser
+        IImportMoneyMovementsUseCase importMoneyMovementsUseCase,
+        IGetLinkedMoneyMovementReceiptsUseCase getLinkedMoneyMovementReceiptsUseCase,
+        IGetMoneyMovementReceiptCandidatesUseCase getMoneyMovementReceiptCandidatesUseCase,
+        ILinkMoneyMovementReceiptUseCase linkMoneyMovementReceiptUseCase,
+        IUnlinkMoneyMovementReceiptUseCase unlinkMoneyMovementReceiptUseCase) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
 
@@ -43,6 +47,18 @@ namespace CostVision.Web.Pages
         {
             Guid? normalizedAccountId = accountId == Guid.Empty ? null : accountId;
             ServiceResult<List<MoneyMovementDto>> result = await getMoneyMovementListUseCase.ExecuteAsync(CurrentUser.Id, dateFrom, dateTo, normalizedAccountId, ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<JsonResult> OnGetLinkedReceiptsAsync([FromQuery] Guid moneyMovementId, CancellationToken ct)
+        {
+            ServiceResult<List<MoneyMovementReceiptDto>> result = await getLinkedMoneyMovementReceiptsUseCase.ExecuteAsync(moneyMovementId, CurrentUser.Id, ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<JsonResult> OnGetReceiptCandidatesAsync([FromQuery] GetMoneyMovementReceiptCandidatesRequest request, CancellationToken ct)
+        {
+            ServiceResult<List<MoneyMovementReceiptDto>> result = await getMoneyMovementReceiptCandidatesUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
@@ -67,6 +83,18 @@ namespace CostVision.Web.Pages
         public async Task<JsonResult> OnPostUpdateCommentAsync([FromBody] UpdateMoneyMovementCommentRequest request, CancellationToken ct)
         {
             ServiceResult<bool> result = await updateMoneyMovementCommentUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<JsonResult> OnPostLinkReceiptAsync([FromBody] LinkMoneyMovementReceiptRequest request, CancellationToken ct)
+        {
+            ServiceResult<bool> result = await linkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<JsonResult> OnPostUnlinkReceiptAsync([FromBody] UnlinkMoneyMovementReceiptRequest request, CancellationToken ct)
+        {
+            ServiceResult<bool> result = await unlinkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 

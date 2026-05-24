@@ -1,7 +1,7 @@
 import { normalizeSingleLineTextValue } from "../../../shared/formatters.js";
 import { ReceiptDto } from "./types.js";
 
-export function applyReceiptFilters(list: ReceiptDto[], query: string, mode: string, selectedAccountId: string): ReceiptDto[] {
+export function applyReceiptFilters(list: ReceiptDto[], query: string, mode: string, selectedAccountId: string, operationFilter: string): ReceiptDto[] {
     let result = list.slice();
 
     if (selectedAccountId) {
@@ -16,6 +16,20 @@ export function applyReceiptFilters(list: ReceiptDto[], query: string, mode: str
     if (lowered) {
         result = result.filter(function (receipt) {
             return receiptMatchesQuery(receipt, lowered, mode);
+        });
+    }
+
+    if (operationFilter === "withoutOperations") {
+        result = result.filter(function (receipt) {
+            return receipt.moneyMovementCount === 0;
+        });
+    } else if (operationFilter === "withOperations") {
+        result = result.filter(function (receipt) {
+            return receipt.moneyMovementCount > 0;
+        });
+    } else if (operationFilter === "amountMismatch") {
+        result = result.filter(function (receipt) {
+            return receipt.moneyMovementCount > 0 && Math.abs(receipt.totalSum - receipt.moneyMovementsTotalSum) >= 0.01;
         });
     }
 

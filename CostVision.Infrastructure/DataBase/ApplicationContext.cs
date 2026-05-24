@@ -21,7 +21,8 @@ namespace CostVision.Infrastructure.DataBase
                 .ApplyConfiguration(new ReceiptConfigure())
                 .ApplyConfiguration(new ReceiptItemConfigure())
                 .ApplyConfiguration(new ProductConfigure())
-                .ApplyConfiguration(new MoneyMovementConfigure());
+                .ApplyConfiguration(new MoneyMovementConfigure())
+                .ApplyConfiguration(new MoneyMovementReceiptConfigure());
 
             OnModelCreatingPartial(modelBuilder);
         }

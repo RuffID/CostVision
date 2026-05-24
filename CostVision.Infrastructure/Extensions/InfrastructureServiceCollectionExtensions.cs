@@ -79,6 +79,7 @@ namespace CostVision.Infrastructure.Extensions
             services.AddScoped<IReceiptItemRepository, ReceiptItemRepository>();
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IMoneyMovementRepository, MoneyMovementRepository>();
+            services.AddScoped<IMoneyMovementReceiptRepository, MoneyMovementReceiptRepository>();
 
             return services;
         }

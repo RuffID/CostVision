@@ -36,6 +36,8 @@ namespace CostVision.Domain.Models.Authorization
 
         public List<MoneyMovement> PerformedMoneyMovements { get; set; } = new List<MoneyMovement>();
 
+        public List<MoneyMovementReceipt> CreatedMoneyMovementReceiptLinks { get; set; } = new List<MoneyMovementReceipt>();
+
         /// <summary>
         /// Активирует пользователя.
         /// </summary>

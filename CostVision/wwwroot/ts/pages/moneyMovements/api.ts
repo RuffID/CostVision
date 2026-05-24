@@ -1,11 +1,12 @@
 import { buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, type ServiceResultWithData } from "../../shared/http.js";
-import type { BankStatementImportBankDto, BankStatementImportPreviewDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, MoneyMovementDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel } from "./types.js";
+import type { BankStatementImportBankDto, BankStatementImportPreviewDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, GetMoneyMovementReceiptCandidatesRequest, LinkMoneyMovementReceiptRequest, MoneyMovementDto, MoneyMovementReceiptDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UnlinkMoneyMovementReceiptRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel } from "./types.js";
 
 type AccountListResponse = ServiceResultWithData<UserAccountViewModel[]>;
 type ImportBankListResponse = ServiceResultWithData<BankStatementImportBankDto[]>;
 type ImportPreviewResponse = ServiceResultWithData<BankStatementImportPreviewDto>;
 type MoneyMovementListResponse = ServiceResultWithData<MoneyMovementDto[]>;
 type MoneyMovementResponse = ServiceResultWithData<MoneyMovementDto>;
+type MoneyMovementReceiptListResponse = ServiceResultWithData<MoneyMovementReceiptDto[]>;
 type BooleanResponse = ServiceResultWithData<boolean>;
 
 export async function loadAccounts(forgeryToken: string | null): Promise<UserAccountViewModel[]> {
@@ -48,6 +49,47 @@ export async function deleteMoneyMovement(forgeryToken: string | null, request: 
 
 export async function updateMoneyMovementComment(forgeryToken: string | null, request: UpdateMoneyMovementCommentRequest): Promise<boolean> {
     const response = await sendJsonRequest<BooleanResponse>("?handler=UpdateComment", "POST", buildJsonHeaders(forgeryToken), request);
+    return unwrapServiceResult<boolean>(response);
+}
+
+export async function loadLinkedReceipts(forgeryToken: string | null, moneyMovementId: string): Promise<MoneyMovementReceiptDto[]> {
+    const params = new URLSearchParams();
+    params.set("moneyMovementId", moneyMovementId);
+
+    const response = await sendJsonRequest<MoneyMovementReceiptListResponse>(`?handler=LinkedReceipts&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
+    return unwrapServiceResult<MoneyMovementReceiptDto[]>(response);
+}
+
+export async function loadReceiptCandidates(forgeryToken: string | null, request: GetMoneyMovementReceiptCandidatesRequest): Promise<MoneyMovementReceiptDto[]> {
+    const params = new URLSearchParams();
+    params.set("moneyMovementId", request.moneyMovementId);
+    params.set("useTimeWindow", String(request.useTimeWindow));
+    params.set("useAmountFilter", String(request.useAmountFilter));
+    params.set("excludeLinkedReceipts", String(request.excludeLinkedReceipts));
+
+    if (request.dateFrom) {
+        params.set("dateFrom", request.dateFrom);
+    }
+
+    if (request.dateTo) {
+        params.set("dateTo", request.dateTo);
+    }
+
+    if (request.amountTolerance !== null) {
+        params.set("amountTolerance", String(request.amountTolerance));
+    }
+
+    const response = await sendJsonRequest<MoneyMovementReceiptListResponse>(`?handler=ReceiptCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
+    return unwrapServiceResult<MoneyMovementReceiptDto[]>(response);
+}
+
+export async function linkMoneyMovementReceipt(forgeryToken: string | null, request: LinkMoneyMovementReceiptRequest): Promise<boolean> {
+    const response = await sendJsonRequest<BooleanResponse>("?handler=LinkReceipt", "POST", buildJsonHeaders(forgeryToken), request);
+    return unwrapServiceResult<boolean>(response);
+}
+
+export async function unlinkMoneyMovementReceipt(forgeryToken: string | null, request: UnlinkMoneyMovementReceiptRequest): Promise<boolean> {
+    const response = await sendJsonRequest<BooleanResponse>("?handler=UnlinkReceipt", "POST", buildJsonHeaders(forgeryToken), request);
     return unwrapServiceResult<boolean>(response);
 }
 

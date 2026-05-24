@@ -15,6 +15,7 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories
         IReceiptAccountRepository ReceiptAccount { get; }
         IAccountMemberRepository AccountMember { get; }
         IMoneyMovementRepository MoneyMovement { get; }
+        IMoneyMovementReceiptRepository MoneyMovementReceipt { get; }
 
         Task SaveChangesAsync(CancellationToken ct = default);
         Task ExecuteInTransaction(Func<Task> action, CancellationToken ct = default);

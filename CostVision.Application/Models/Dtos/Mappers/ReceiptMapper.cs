@@ -1,4 +1,4 @@
-using CostVision.Domain.Models.Enums.Authorization;
+﻿using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Application.Models.Dtos.Receipts;
 
@@ -47,6 +47,10 @@ namespace CostVision.Application.Models.Dtos.Mappers
                 TotalSum = receipt.TotalSum,
                 AccountId = receiptAccount?.Id,
                 AccountName = receiptAccount?.Name ?? string.Empty,
+                MoneyMovementCount = receipt.MoneyMovementLinks.Count,
+                MoneyMovementsTotalSum = receipt.MoneyMovementLinks
+                    .Where(link => link.MoneyMovement != null)
+                    .Sum(link => link.MoneyMovement!.Amount),
                 Accounts = accounts
             };
         }

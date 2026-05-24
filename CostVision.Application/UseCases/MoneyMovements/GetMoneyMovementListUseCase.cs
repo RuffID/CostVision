@@ -27,6 +27,8 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     .Include(movement => movement.Account)
                         .ThenInclude(account => account!.Members)
                     .Include(movement => movement.PerformedByUser)
+                    .Include(movement => movement.ReceiptLinks)
+                        .ThenInclude(link => link.Receipt)
                     .AsSplitQuery(),
                 ct: ct);
 

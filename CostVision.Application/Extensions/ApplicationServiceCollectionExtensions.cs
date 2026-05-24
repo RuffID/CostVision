@@ -1,4 +1,4 @@
-using CostVision.Application.UseCases.Authorize.Authentication;
+﻿using CostVision.Application.UseCases.Authorize.Authentication;
 using CostVision.Application.UseCases.Authorize.Roles;
 using CostVision.Application.UseCases.Authorize.Users;
 using CostVision.Application.UseCases.MoneyMovements;
@@ -47,6 +47,10 @@ namespace CostVision.Application.Extensions
             services.AddScoped<IMoveMoneyMovementToAccountUseCase, MoveMoneyMovementToAccountUseCase>();
             services.AddScoped<IDeleteMoneyMovementUseCase, DeleteMoneyMovementUseCase>();
             services.AddScoped<IUpdateMoneyMovementCommentUseCase, UpdateMoneyMovementCommentUseCase>();
+            services.AddScoped<IGetLinkedMoneyMovementReceiptsUseCase, GetLinkedMoneyMovementReceiptsUseCase>();
+            services.AddScoped<IGetMoneyMovementReceiptCandidatesUseCase, GetMoneyMovementReceiptCandidatesUseCase>();
+            services.AddScoped<ILinkMoneyMovementReceiptUseCase, LinkMoneyMovementReceiptUseCase>();
+            services.AddScoped<IUnlinkMoneyMovementReceiptUseCase, UnlinkMoneyMovementReceiptUseCase>();
             services.AddScoped<IBankStatementParser, TBankPdfStatementParser>();
             services.AddScoped<IBankStatementParser, SberBankPdfStatementParser>();
             services.AddScoped<IBankStatementParser, AlfaBankPdfStatementParser>();

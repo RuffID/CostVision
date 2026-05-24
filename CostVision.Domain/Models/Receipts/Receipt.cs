@@ -1,5 +1,6 @@
-using CostVision.Domain.Models.Authorization;
+﻿using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Enums.Receipts;
+using CostVision.Domain.Models.MoneyMovements;
 using EFCoreLibrary.Abstractions.Entity;
 
 namespace CostVision.Domain.Models.Receipts
@@ -95,6 +96,11 @@ namespace CostVision.Domain.Models.Receipts
         /// Связи чека со счетами.
         /// </summary>
         public List<ReceiptAccount> Accounts { get; set; } = new();
+
+        /// <summary>
+        /// Связи чека с операциями движения денег.
+        /// </summary>
+        public List<MoneyMovementReceipt> MoneyMovementLinks { get; set; } = new();
 
         /// <summary>
         /// Метка времени создания записи в системе.

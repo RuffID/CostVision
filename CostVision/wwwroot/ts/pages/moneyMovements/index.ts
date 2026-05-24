@@ -3,11 +3,11 @@ import { BootstrapModal, createBootstrapModal } from "../../shared/bootstrap.js"
 import { initFileDropzone } from "../../shared/dropzone.js";
 import { normalizeSingleLineTextValue } from "../../shared/formatters.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { createMoneyMovement, deleteMoneyMovement, importMoneyMovements, loadAccounts, loadImportBanks, loadMoneyMovements, moveMoneyMovementToAccount, previewBankStatementImport, updateMoneyMovementComment } from "./api.js";
+import { createMoneyMovement, deleteMoneyMovement, importMoneyMovements, linkMoneyMovementReceipt, loadAccounts, loadImportBanks, loadLinkedReceipts, loadMoneyMovements, loadReceiptCandidates, moveMoneyMovementToAccount, previewBankStatementImport, unlinkMoneyMovementReceipt, updateMoneyMovementComment } from "./api.js";
 import { formatDateForQuery, getDateRangeByPeriodPreset } from "./dateRange.js";
-import { renderAccountOptions, renderImportBankOptions, renderImportErrors, renderImportPreview, renderImportSummary, renderMoneyMovementList, renderSummary } from "./render.js";
+import { renderAccountOptions, renderImportBankOptions, renderImportErrors, renderImportPreview, renderImportSummary, renderLinkedReceipts, renderMoneyMovementList, renderReceiptCandidates, renderSummary } from "./render.js";
 import { state } from "./state.js";
-import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportPreviewRowDto, type BankStatementImportRowRequest, type CreateMoneyMovementRequest, type MoneyMovementDto, type MoneyMovementType, type PendingMoneyMovementAccountAction, type SaveBankStatementImportRequest, type UserAccountViewModel } from "./types.js";
+import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportPreviewRowDto, type BankStatementImportRowRequest, type CreateMoneyMovementRequest, type GetMoneyMovementReceiptCandidatesRequest, type MoneyMovementDto, type MoneyMovementType, type PendingMoneyMovementAccountAction, type SaveBankStatementImportRequest, type UserAccountViewModel } from "./types.js";
 import { getMoneyMovementsUi, type MoneyMovementsUi } from "./ui.js";
 
 let ui: MoneyMovementsUi;
@@ -15,7 +15,9 @@ let forgeryToken: string | null;
 let moveAccountModal: BootstrapModal;
 let deleteModal: BootstrapModal;
 let importModal: BootstrapModal;
+let receiptsModal: BootstrapModal;
 let pendingAccountAction: PendingMoneyMovementAccountAction | null = null;
+let selectedReceiptsMoneyMovementId: string | null = null;
 let preserveMoveModalPendingOnHide = false;
 let selectedImportFile: File | null = null;
 let editingCommentMovementId: string | null = null;
@@ -31,6 +33,7 @@ async function initMoneyMovementsPage(): Promise<void> {
     moveAccountModal = createBootstrapModal(ui.moveAccountModal);
     deleteModal = createBootstrapModal(ui.deleteModal);
     importModal = createBootstrapModal(ui.importModal);
+    receiptsModal = createBootstrapModal(ui.receiptsModal);
     initDefaultDates();
     bindEvents();
     await loadInitialData();
@@ -42,6 +45,7 @@ function bindEvents(): void {
     ui.applyFilterButton.addEventListener("click", handleApplyFilterClick);
     ui.periodPresetSelect.addEventListener("change", handlePeriodPresetChange);
     ui.searchInput.addEventListener("input", handleSearchInput);
+    ui.receiptFilterSelect.addEventListener("change", renderMovements);
     ui.list.addEventListener("click", handleMoneyMovementListClick);
     ui.moveTargetAccountSelect.addEventListener("change", updateMoveActionState);
     ui.confirmMoveAccountButton.addEventListener("click", handleConfirmMoveAccountClick);
@@ -61,10 +65,15 @@ function bindEvents(): void {
     ui.importPreview.addEventListener("input", handleImportPreviewInput);
     ui.importPreview.addEventListener("change", handleImportPreviewChange);
     ui.importPreview.addEventListener("click", handleImportPreviewContainerClick);
+    ui.receiptsReloadCandidatesButton.addEventListener("click", handleReloadReceiptCandidatesClick);
+    ui.receiptsUseTimeWindowInput.addEventListener("change", updateReceiptFilterState);
+    ui.linkedReceipts.addEventListener("click", handleLinkedReceiptsClick);
+    ui.receiptCandidates.addEventListener("click", handleReceiptCandidatesClick);
 
     ui.moveAccountModal.addEventListener("hidden.bs.modal", resetMoveModal);
     ui.deleteModal.addEventListener("hidden.bs.modal", resetDeleteModal);
     ui.importModal.addEventListener("hidden.bs.modal", resetImportModal);
+    ui.receiptsModal.addEventListener("hidden.bs.modal", resetReceiptsModal);
 }
 
 async function loadInitialData(): Promise<void> {
@@ -338,6 +347,16 @@ function resetImportModal(): void {
     renderImportState();
 }
 
+function resetReceiptsModal(): void {
+    selectedReceiptsMoneyMovementId = null;
+    state.linkedReceipts = [];
+    state.receiptCandidates = [];
+    ui.receiptsInfo.textContent = "";
+    hideReceiptsAlert();
+    renderLinkedReceipts(ui.linkedReceipts, state.linkedReceipts);
+    renderReceiptCandidates(ui.receiptCandidates, state.receiptCandidates);
+}
+
 async function handleCreateSubmit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
 
@@ -386,11 +405,21 @@ function renderMovements(): void {
 
 function applySearchFilter(movements: MoneyMovementDto[]): MoneyMovementDto[] {
     const query = normalizeSearchText(state.searchQuery).toLowerCase();
-    if (!query) {
-        return movements;
+    let result = movements;
+
+    if (ui.receiptFilterSelect.value === "withoutReceipts") {
+        result = result.filter(movement => movement.linkedReceiptCount === 0);
+    } else if (ui.receiptFilterSelect.value === "withReceipts") {
+        result = result.filter(movement => movement.linkedReceiptCount > 0);
+    } else if (ui.receiptFilterSelect.value === "amountMismatch") {
+        result = result.filter(movement => movement.linkedReceiptCount > 0 && Math.abs(movement.amount - movement.linkedReceiptsTotalSum) >= 0.01);
     }
 
-    return movements.filter(movement => {
+    if (!query) {
+        return result;
+    }
+
+    return result.filter(movement => {
         const comment = normalizeSearchText(movement.comment).toLowerCase();
         const importComment = normalizeSearchText(movement.importComment).toLowerCase();
         return comment.includes(query) || importComment.includes(query);
@@ -422,6 +451,12 @@ function handleMoneyMovementListClick(event: MouseEvent): void {
     }
 
     const accountButton = target.closest<HTMLButtonElement>('[data-action="edit-account-link"]');
+    const receiptsButton = target.closest<HTMLButtonElement>('[data-action="open-receipts"]');
+    if (receiptsButton) {
+        handleOpenReceiptsClick(receiptsButton).catch(error => showAlertMessage(ui.alert, getErrorMessage(error)));
+        return;
+    }
+
     if (!accountButton || accountButton.disabled) {
         return;
     }
@@ -433,6 +468,170 @@ function handleMoneyMovementListClick(event: MouseEvent): void {
     }
 
     openMoveAccountModal(moneyMovementId, accountId);
+}
+
+async function handleOpenReceiptsClick(button: HTMLButtonElement): Promise<void> {
+    const moneyMovementId = button.getAttribute("data-money-movement-id");
+    if (!moneyMovementId) {
+        return;
+    }
+
+    const movement = findMovement(moneyMovementId);
+    if (!movement) {
+        showAlertMessage(ui.alert, "Операция не найдена в текущем списке.");
+        return;
+    }
+
+    selectedReceiptsMoneyMovementId = moneyMovementId;
+    ui.receiptsInfo.textContent = getMovementInfoText(movement);
+    initReceiptsFilters(movement);
+    updateReceiptFilterState();
+    hideReceiptsAlert();
+    receiptsModal.show();
+    await reloadReceiptDetails();
+}
+
+async function handleReloadReceiptCandidatesClick(): Promise<void> {
+    try {
+        hideReceiptsAlert();
+        await reloadReceiptCandidates();
+    }
+    catch (error) {
+        showReceiptsAlert(getErrorMessage(error));
+    }
+}
+
+async function handleLinkedReceiptsClick(event: MouseEvent): Promise<void> {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+        return;
+    }
+
+    const button = target.closest<HTMLButtonElement>('[data-action="unlink-receipt"]');
+    if (!button) {
+        return;
+    }
+
+    const receiptId = button.getAttribute("data-receipt-id");
+    if (!selectedReceiptsMoneyMovementId || !receiptId) {
+        return;
+    }
+
+    await runReceiptButtonAction(button, async () => {
+        await unlinkMoneyMovementReceipt(forgeryToken, {
+            moneyMovementId: selectedReceiptsMoneyMovementId!,
+            receiptId: receiptId
+        });
+        await reloadReceiptDetails();
+    });
+}
+
+async function handleReceiptCandidatesClick(event: MouseEvent): Promise<void> {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+        return;
+    }
+
+    const button = target.closest<HTMLButtonElement>('[data-action="link-receipt"]');
+    if (!button) {
+        return;
+    }
+
+    const receiptId = button.getAttribute("data-receipt-id");
+    if (!selectedReceiptsMoneyMovementId || !receiptId) {
+        return;
+    }
+
+    await runReceiptButtonAction(button, async () => {
+        await linkMoneyMovementReceipt(forgeryToken, {
+            moneyMovementId: selectedReceiptsMoneyMovementId!,
+            receiptId: receiptId
+        });
+        await reloadReceiptDetails();
+    });
+}
+
+async function runReceiptButtonAction(button: HTMLButtonElement, action: () => Promise<void>): Promise<void> {
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = "...";
+
+    try {
+        hideReceiptsAlert();
+        await action();
+    }
+    catch (error) {
+        showReceiptsAlert(getErrorMessage(error));
+    }
+    finally {
+        button.disabled = false;
+        button.textContent = originalText;
+    }
+}
+
+async function reloadReceiptDetails(): Promise<void> {
+    if (!selectedReceiptsMoneyMovementId) {
+        return;
+    }
+
+    await Promise.all([
+        reloadLinkedReceipts(),
+        reloadReceiptCandidates()
+    ]);
+}
+
+async function reloadLinkedReceipts(): Promise<void> {
+    if (!selectedReceiptsMoneyMovementId) {
+        return;
+    }
+
+    state.linkedReceipts = await loadLinkedReceipts(forgeryToken, selectedReceiptsMoneyMovementId);
+    renderLinkedReceipts(ui.linkedReceipts, state.linkedReceipts);
+}
+
+async function reloadReceiptCandidates(): Promise<void> {
+    if (!selectedReceiptsMoneyMovementId) {
+        return;
+    }
+
+    state.receiptCandidates = await loadReceiptCandidates(forgeryToken, readReceiptCandidatesRequest(selectedReceiptsMoneyMovementId));
+    renderReceiptCandidates(ui.receiptCandidates, state.receiptCandidates);
+}
+
+function readReceiptCandidatesRequest(moneyMovementId: string): GetMoneyMovementReceiptCandidatesRequest {
+    const amountTolerance = Number(ui.receiptsAmountToleranceInput.value);
+
+    return {
+        moneyMovementId: moneyMovementId,
+        useTimeWindow: ui.receiptsUseTimeWindowInput.checked,
+        dateFrom: ui.receiptsDateFromInput.value || null,
+        dateTo: ui.receiptsDateToInput.value || null,
+        useAmountFilter: ui.receiptsUseAmountFilterInput.checked,
+        amountTolerance: Number.isFinite(amountTolerance) ? amountTolerance : null,
+        excludeLinkedReceipts: ui.receiptsExcludeLinkedInput.checked
+    };
+}
+
+function initReceiptsFilters(movement: MoneyMovementDto): void {
+    const occurredAt = new Date(movement.occurredAt);
+    const date = Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt;
+    const dateFrom = new Date(date);
+    const dateTo = new Date(date);
+    dateFrom.setDate(dateFrom.getDate() - 1);
+    dateTo.setDate(dateTo.getDate() + 1);
+
+    ui.receiptsDateFromInput.value = formatDateInput(dateFrom);
+    ui.receiptsDateToInput.value = formatDateInput(dateTo);
+    ui.receiptsUseTimeWindowInput.checked = true;
+    ui.receiptsUseAmountFilterInput.checked = true;
+    ui.receiptsExcludeLinkedInput.checked = true;
+    ui.receiptsAmountToleranceInput.value = "1";
+}
+
+function updateReceiptFilterState(): void {
+    const useTimeWindow = ui.receiptsUseTimeWindowInput.checked;
+    ui.receiptsDateFromInput.disabled = useTimeWindow;
+    ui.receiptsDateToInput.disabled = useTimeWindow;
 }
 
 function startCommentEdit(moneyMovementId: string | null): void {
@@ -710,6 +909,15 @@ function showImportAlert(message: string): void {
 
 function hideImportAlert(): void {
     showImportAlert("");
+}
+
+function showReceiptsAlert(message: string): void {
+    ui.receiptsAlert.textContent = message;
+    ui.receiptsAlert.classList.toggle("d-none", !message);
+}
+
+function hideReceiptsAlert(): void {
+    showReceiptsAlert("");
 }
 
 function readCreateRequest(): CreateMoneyMovementRequest {
