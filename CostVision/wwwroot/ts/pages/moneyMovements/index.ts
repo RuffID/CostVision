@@ -158,7 +158,7 @@ async function handleImportSaveClick(): Promise<void> {
     try {
         hideImportAlert();
 
-        const unresolvedDuplicate = state.importRows.find(row => row.isDuplicate && row.replaceDuplicate !== true);
+        const unresolvedDuplicate = getRowsForImport().find(row => row.isDuplicate && row.replaceDuplicate !== true);
         if (unresolvedDuplicate) {
             throw new Error("Удалите повторяющиеся операции из импорта или отметьте замену существующих.");
         }
