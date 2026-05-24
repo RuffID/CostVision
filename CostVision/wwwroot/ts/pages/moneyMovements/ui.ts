@@ -26,6 +26,18 @@ export interface MoneyMovementsUi {
     deleteModal: HTMLElement;
     deleteInfo: HTMLElement;
     confirmDeleteButton: HTMLButtonElement;
+    importModal: HTMLElement;
+    importAlert: HTMLElement;
+    importBankSelect: HTMLSelectElement;
+    importAccountSelect: HTMLSelectElement;
+    importDropzone: HTMLElement;
+    importFileInput: HTMLInputElement;
+    importFileName: HTMLElement;
+    importPreview: HTMLElement;
+    importErrors: HTMLElement;
+    importSummary: HTMLElement;
+    importPreviewButton: HTMLButtonElement;
+    importSaveButton: HTMLButtonElement;
 }
 
 export function getMoneyMovementsUi(): MoneyMovementsUi {
@@ -54,6 +66,18 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         removeFromAccountButton: requireElementById<HTMLButtonElement>("removeMoneyMovementFromAccountButton"),
         deleteModal: requireElementById("deleteMoneyMovementModal"),
         deleteInfo: requireElementById("deleteMoneyMovementInfo"),
-        confirmDeleteButton: requireElementById<HTMLButtonElement>("confirmDeleteMoneyMovementButton")
+        confirmDeleteButton: requireElementById<HTMLButtonElement>("confirmDeleteMoneyMovementButton"),
+        importModal: requireElementById("moneyMovementImportModal"),
+        importAlert: requireElementById("moneyMovementImportAlert"),
+        importBankSelect: requireSelectById("moneyMovementImportBank"),
+        importAccountSelect: requireSelectById("moneyMovementImportAccount"),
+        importDropzone: requireElementById("moneyMovementImportDropzone"),
+        importFileInput: requireInputById("moneyMovementImportFile"),
+        importFileName: requireElementById("moneyMovementImportFileName"),
+        importPreview: requireElementById("moneyMovementImportPreview"),
+        importErrors: requireElementById("moneyMovementImportErrors"),
+        importSummary: requireElementById("moneyMovementImportSummary"),
+        importPreviewButton: requireElementById<HTMLButtonElement>("moneyMovementImportPreviewButton"),
+        importSaveButton: requireElementById<HTMLButtonElement>("moneyMovementImportSaveButton")
     };
 }

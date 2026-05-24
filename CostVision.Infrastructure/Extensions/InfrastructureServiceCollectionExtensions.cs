@@ -4,6 +4,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.Service.Authorize;
+using CostVision.Application.Abstractions.Service.MoneyMovements;
 using CostVision.Application.Abstractions.Service.Receipts;
 using CostVision.Infrastructure.DataBase;
 using CostVision.Infrastructure.DataBase.Repositories;
@@ -17,6 +18,7 @@ using CostVision.Infrastructure.Services.BackgroundServices;
 using CostVision.Infrastructure.Services.DataBase;
 using CostVision.Infrastructure.Services.Helpers;
 using CostVision.Infrastructure.Services.Middleware;
+using CostVision.Infrastructure.Services.MoneyMovements;
 using CostVision.Infrastructure.Services.Receipts;
 using EFCoreLibrary.Abstractions.Database;
 using EFCoreLibrary.EfCore;
@@ -63,6 +65,7 @@ namespace CostVision.Infrastructure.Extensions
             services.AddScoped<IReceiptAccessVerificationService, ReceiptAccessVerificationService>();
             services.AddScoped<IReceiptRequest, ReceiptRequest>();
             services.AddScoped<IExternalReceiptProvider, ExternalReceiptProvider>();
+            services.AddScoped<IBankStatementPdfTextExtractor, BankStatementPdfTextExtractor>();
 
             services.AddHostedService<ReceiptRefreshBackgroundService>();
 

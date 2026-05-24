@@ -24,6 +24,8 @@ namespace CostVision.Domain.Models.MoneyMovements
 
         public string? Comment { get; set; }
 
+        public string? ImportComment { get; set; }
+
         public Guid CreatedByUserId { get; set; }
 
         public User? CreatedByUser { get; set; }

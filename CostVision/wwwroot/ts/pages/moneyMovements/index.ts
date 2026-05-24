@@ -1,18 +1,20 @@
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { BootstrapModal, createBootstrapModal } from "../../shared/bootstrap.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { createMoneyMovement, deleteMoneyMovement, loadAccounts, loadMoneyMovements, moveMoneyMovementToAccount } from "./api.js";
-import { renderAccountOptions, renderMoneyMovementList, renderSummary } from "./render.js";
+import { createMoneyMovement, deleteMoneyMovement, importMoneyMovements, loadAccounts, loadImportBanks, loadMoneyMovements, moveMoneyMovementToAccount, previewBankStatementImport } from "./api.js";
+import { renderAccountOptions, renderImportBankOptions, renderImportErrors, renderImportPreview, renderImportSummary, renderMoneyMovementList, renderSummary } from "./render.js";
 import { state } from "./state.js";
-import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type CreateMoneyMovementRequest, type MoneyMovementDto, type MoneyMovementType, type PendingMoneyMovementAccountAction, type UserAccountViewModel } from "./types.js";
+import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportPreviewRowDto, type BankStatementImportRowRequest, type CreateMoneyMovementRequest, type MoneyMovementDto, type MoneyMovementType, type PendingMoneyMovementAccountAction, type SaveBankStatementImportRequest, type UserAccountViewModel } from "./types.js";
 import { getMoneyMovementsUi, type MoneyMovementsUi } from "./ui.js";
 
 let ui: MoneyMovementsUi;
 let forgeryToken: string | null;
 let moveAccountModal: BootstrapModal;
 let deleteModal: BootstrapModal;
+let importModal: BootstrapModal;
 let pendingAccountAction: PendingMoneyMovementAccountAction | null = null;
 let preserveMoveModalPendingOnHide = false;
+let selectedImportFile: File | null = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     initMoneyMovementsPage();
@@ -23,6 +25,7 @@ async function initMoneyMovementsPage(): Promise<void> {
     forgeryToken = getRequestVerificationToken();
     moveAccountModal = createBootstrapModal(ui.moveAccountModal);
     deleteModal = createBootstrapModal(ui.deleteModal);
+    importModal = createBootstrapModal(ui.importModal);
     initDefaultDates();
     bindEvents();
     await loadInitialData();
@@ -37,27 +40,273 @@ function bindEvents(): void {
     ui.confirmMoveAccountButton.addEventListener("click", handleConfirmMoveAccountClick);
     ui.removeFromAccountButton.addEventListener("click", handleRemoveFromAccountClick);
     ui.confirmDeleteButton.addEventListener("click", handleConfirmDeleteClick);
+    ui.importDropzone.addEventListener("click", handleImportDropzoneClick);
+    ui.importDropzone.addEventListener("keydown", handleImportDropzoneKeyDown);
+    ui.importDropzone.addEventListener("dragover", handleImportDragOver);
+    ui.importDropzone.addEventListener("dragleave", handleImportDragLeave);
+    ui.importDropzone.addEventListener("drop", handleImportDrop);
+    ui.importFileInput.addEventListener("change", handleImportFileChange);
+    ui.importPreviewButton.addEventListener("click", handleImportPreviewClick);
+    ui.importSaveButton.addEventListener("click", handleImportSaveClick);
+    ui.importPreview.addEventListener("input", handleImportPreviewInput);
+    ui.importPreview.addEventListener("change", handleImportPreviewChange);
+    ui.importPreview.addEventListener("click", handleImportPreviewContainerClick);
 
     ui.moveAccountModal.addEventListener("hidden.bs.modal", resetMoveModal);
     ui.deleteModal.addEventListener("hidden.bs.modal", resetDeleteModal);
+    ui.importModal.addEventListener("hidden.bs.modal", resetImportModal);
 }
 
 async function loadInitialData(): Promise<void> {
     try {
         hideAlertMessage(ui.alert);
         state.accounts = await loadAccounts(forgeryToken);
+        state.importBanks = await loadImportBanks(forgeryToken);
         renderAccountOptions(ui.accountSelect, state.accounts, false);
         renderAccountOptions(ui.filterAccountSelect, state.accounts, true);
+        renderAccountOptions(ui.importAccountSelect, state.accounts, false);
+        renderImportBankOptions(ui.importBankSelect, state.importBanks);
 
         if (state.accounts.length > 0) {
             ui.accountSelect.value = state.accounts[0].id;
+            ui.importAccountSelect.value = state.accounts[0].id;
         }
 
+        renderImportState();
         await reloadMovements();
     }
     catch (error) {
         showAlertMessage(ui.alert, getErrorMessage(error));
     }
+}
+
+function handleImportDropzoneClick(): void {
+    ui.importFileInput.click();
+}
+
+function handleImportDropzoneKeyDown(event: KeyboardEvent): void {
+    if (event.key !== "Enter" && event.key !== " ") {
+        return;
+    }
+
+    event.preventDefault();
+    ui.importFileInput.click();
+}
+
+function handleImportDragOver(event: DragEvent): void {
+    event.preventDefault();
+    ui.importDropzone.classList.add("border-success", "bg-success", "bg-opacity-10");
+    ui.importDropzone.classList.remove("border-secondary");
+}
+
+function handleImportDragLeave(): void {
+    resetImportDropzoneDragState();
+}
+
+function handleImportDrop(event: DragEvent): void {
+    event.preventDefault();
+    resetImportDropzoneDragState();
+
+    const file = event.dataTransfer?.files.item(0);
+    if (!file) {
+        return;
+    }
+
+    setImportFile(file);
+}
+
+function handleImportFileChange(): void {
+    const file = ui.importFileInput.files?.item(0) || null;
+    if (!file) {
+        return;
+    }
+
+    setImportFile(file);
+}
+
+function setImportFile(file: File): void {
+    selectedImportFile = file;
+    ui.importFileName.textContent = file.name;
+    state.importRows = [];
+    state.importErrors = [];
+    renderImportState();
+    hideImportAlert();
+}
+
+function resetImportDropzoneDragState(): void {
+    ui.importDropzone.classList.remove("border-success", "bg-success", "bg-opacity-10");
+    ui.importDropzone.classList.add("border-secondary");
+}
+
+async function handleImportPreviewClick(): Promise<void> {
+    try {
+        hideImportAlert();
+
+        if (!selectedImportFile) {
+            throw new Error("Выберите файл выписки.");
+        }
+
+        if (!ui.importBankSelect.value) {
+            throw new Error("Выберите банк.");
+        }
+
+        if (!ui.importAccountSelect.value) {
+            throw new Error("Выберите счёт для импорта.");
+        }
+
+        ui.importPreviewButton.disabled = true;
+        ui.importPreviewButton.textContent = "Распознавание...";
+
+        const preview = await previewBankStatementImport(forgeryToken, ui.importBankSelect.value, ui.importAccountSelect.value, selectedImportFile);
+        state.importRows = preview.rows.map(row => ({
+            ...row,
+            replaceDuplicate: false
+        }));
+        state.importErrors = preview.errors;
+        renderImportState();
+    }
+    catch (error) {
+        showImportAlert(getErrorMessage(error));
+    }
+    finally {
+        ui.importPreviewButton.disabled = false;
+        ui.importPreviewButton.textContent = "Предпросмотр";
+    }
+}
+
+async function handleImportSaveClick(): Promise<void> {
+    try {
+        hideImportAlert();
+
+        const unresolvedDuplicate = state.importRows.find(row => row.isDuplicate && row.replaceDuplicate !== true);
+        if (unresolvedDuplicate) {
+            throw new Error("Удалите повторяющиеся операции из импорта или отметьте замену существующих.");
+        }
+
+        const request = readImportRequest();
+        ui.importSaveButton.disabled = true;
+        ui.importSaveButton.textContent = "Импорт...";
+
+        await importMoneyMovements(forgeryToken, request);
+        importModal.hide();
+        await reloadMovements();
+    }
+    catch (error) {
+        showImportAlert(getErrorMessage(error));
+        updateImportSaveState();
+    }
+    finally {
+        ui.importSaveButton.textContent = "Импортировать";
+    }
+}
+
+function handleImportPreviewInput(event: Event): void {
+    const target = event.target;
+    if (!(target instanceof HTMLTextAreaElement)) {
+        return;
+    }
+
+    if (target.getAttribute("data-action") !== "change-import-comment") {
+        return;
+    }
+
+    const row = findImportRow(target.getAttribute("data-import-row-id"));
+    if (!row) {
+        return;
+    }
+
+    row.comment = target.value;
+}
+
+function handleImportPreviewChange(event: Event): void {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) {
+        return;
+    }
+
+    if (target.getAttribute("data-action") !== "toggle-import-replace") {
+        return;
+    }
+
+    const row = findImportRow(target.getAttribute("data-import-row-id"));
+    if (!row) {
+        return;
+    }
+
+    row.replaceDuplicate = target.checked;
+    updateImportSaveState();
+}
+
+function handleImportPreviewContainerClick(event: MouseEvent): void {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+        return;
+    }
+
+    const removeButton = target.closest<HTMLButtonElement>('[data-action="remove-import-row"]');
+    if (!removeButton) {
+        return;
+    }
+
+    const rowId = removeButton.getAttribute("data-import-row-id");
+    state.importRows = state.importRows.filter(row => row.clientRowId !== rowId);
+    renderImportState();
+}
+
+function readImportRequest(): SaveBankStatementImportRequest {
+    if (!ui.importAccountSelect.value) {
+        throw new Error("Выберите счёт для импорта.");
+    }
+
+    if (state.importRows.length === 0) {
+        throw new Error("Нет строк для импорта.");
+    }
+
+    const rows: BankStatementImportRowRequest[] = state.importRows.map(row => ({
+        occurredAt: row.occurredAt,
+        amount: row.amount,
+        type: row.type,
+        comment: row.comment.trim() || null,
+        importComment: row.importComment,
+        duplicateMoneyMovementId: row.duplicateMoneyMovementId || null,
+        replaceDuplicate: row.replaceDuplicate === true
+    }));
+
+    return {
+        accountId: ui.importAccountSelect.value,
+        rows: rows
+    };
+}
+
+function renderImportState(): void {
+    renderImportPreview(ui.importPreview, state.importRows);
+    renderImportErrors(ui.importErrors, state.importErrors);
+    renderImportSummary(ui.importSummary, state.importRows);
+    updateImportSaveState();
+}
+
+function updateImportSaveState(): void {
+    const hasRows = state.importRows.length > 0;
+    const hasUnresolvedDuplicates = state.importRows.some(row => row.isDuplicate && row.replaceDuplicate !== true);
+    ui.importSaveButton.disabled = !hasRows || hasUnresolvedDuplicates;
+}
+
+function findImportRow(rowId: string | null): BankStatementImportPreviewRowDto | undefined {
+    if (!rowId) {
+        return undefined;
+    }
+
+    return state.importRows.find(row => row.clientRowId === rowId);
+}
+
+function resetImportModal(): void {
+    selectedImportFile = null;
+    ui.importFileInput.value = "";
+    ui.importFileName.textContent = "";
+    state.importRows = [];
+    state.importErrors = [];
+    hideImportAlert();
+    renderImportState();
 }
 
 async function handleCreateSubmit(event: SubmitEvent): Promise<void> {
@@ -329,6 +578,15 @@ function showMoveAccountAlert(message: string): void {
 
 function hideMoveAccountAlert(): void {
     showMoveAccountAlert("");
+}
+
+function showImportAlert(message: string): void {
+    ui.importAlert.textContent = message;
+    ui.importAlert.classList.toggle("d-none", !message);
+}
+
+function hideImportAlert(): void {
+    showImportAlert("");
 }
 
 function readCreateRequest(): CreateMoneyMovementRequest {

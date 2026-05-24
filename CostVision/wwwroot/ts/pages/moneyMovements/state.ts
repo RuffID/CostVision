@@ -1,4 +1,4 @@
-import type { MoneyMovementDto, UserAccountViewModel } from "./types.js";
+import type { BankStatementImportBankDto, BankStatementImportLineErrorDto, BankStatementImportPreviewRowDto, MoneyMovementDto, UserAccountViewModel } from "./types.js";
 
 export interface MoneyMovementsState {
     accounts: UserAccountViewModel[];
@@ -6,6 +6,9 @@ export interface MoneyMovementsState {
     selectedAccountId: string;
     dateFrom: string;
     dateTo: string;
+    importBanks: BankStatementImportBankDto[];
+    importRows: BankStatementImportPreviewRowDto[];
+    importErrors: BankStatementImportLineErrorDto[];
 }
 
 export const state: MoneyMovementsState = {
@@ -13,5 +16,8 @@ export const state: MoneyMovementsState = {
     movements: [],
     selectedAccountId: "",
     dateFrom: "",
-    dateTo: ""
+    dateTo: "",
+    importBanks: [],
+    importRows: [],
+    importErrors: []
 };

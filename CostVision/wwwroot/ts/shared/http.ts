@@ -71,6 +71,18 @@ export function buildJsonHeaders(forgeryToken: string | null): JsonHeaders {
     return headers;
 }
 
+export function buildFormHeaders(forgeryToken: string | null): JsonHeaders {
+    const headers: JsonHeaders = {
+        "Accept": "application/json"
+    };
+
+    if (forgeryToken) {
+        headers["RequestVerificationToken"] = forgeryToken;
+    }
+
+    return headers;
+}
+
 export function unwrapServiceResult<TData>(result: ServiceResultWithData<TData>): TData {
     if (!result.success) {
         throw new Error(result.message || "Ошибка выполнения запроса.");

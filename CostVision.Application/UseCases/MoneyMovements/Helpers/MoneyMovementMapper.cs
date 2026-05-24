@@ -17,6 +17,7 @@ namespace CostVision.Application.UseCases.MoneyMovements.Helpers
                 Type = movement.Type,
                 OccurredAt = movement.OccurredAt,
                 Comment = movement.Comment,
+                ImportComment = movement.ImportComment,
                 PerformedByUserId = movement.PerformedByUserId,
                 PerformedByUserName = movement.PerformedByUser?.Name ?? string.Empty,
                 Source = movement.Source

@@ -20,6 +20,8 @@ namespace CostVision.Application.Models.Dtos.MoneyMovements
 
         public string? Comment { get; set; }
 
+        public string? ImportComment { get; set; }
+
         public Guid PerformedByUserId { get; set; }
 
         public string PerformedByUserName { get; set; } = string.Empty;

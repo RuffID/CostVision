@@ -1,7 +1,9 @@
-import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, type ServiceResultWithData } from "../../shared/http.js";
-import type { CreateMoneyMovementRequest, DeleteMoneyMovementRequest, MoneyMovementDto, MoveMoneyMovementToAccountRequest, UserAccountViewModel } from "./types.js";
+import { buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, type ServiceResultWithData } from "../../shared/http.js";
+import type { BankStatementImportBankDto, BankStatementImportPreviewDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, MoneyMovementDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UserAccountViewModel } from "./types.js";
 
 type AccountListResponse = ServiceResultWithData<UserAccountViewModel[]>;
+type ImportBankListResponse = ServiceResultWithData<BankStatementImportBankDto[]>;
+type ImportPreviewResponse = ServiceResultWithData<BankStatementImportPreviewDto>;
 type MoneyMovementListResponse = ServiceResultWithData<MoneyMovementDto[]>;
 type MoneyMovementResponse = ServiceResultWithData<MoneyMovementDto>;
 type BooleanResponse = ServiceResultWithData<boolean>;
@@ -9,6 +11,11 @@ type BooleanResponse = ServiceResultWithData<boolean>;
 export async function loadAccounts(forgeryToken: string | null): Promise<UserAccountViewModel[]> {
     const response = await sendJsonRequest<AccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken));
     return unwrapServiceResult<UserAccountViewModel[]>(response);
+}
+
+export async function loadImportBanks(forgeryToken: string | null): Promise<BankStatementImportBankDto[]> {
+    const response = await sendJsonRequest<ImportBankListResponse>("?handler=ImportBanks", "GET", buildJsonHeaders(forgeryToken));
+    return unwrapServiceResult<BankStatementImportBankDto[]>(response);
 }
 
 export async function loadMoneyMovements(forgeryToken: string | null, dateFrom: string, dateTo: string, accountId: string): Promise<MoneyMovementDto[]> {
@@ -36,5 +43,20 @@ export async function moveMoneyMovementToAccount(forgeryToken: string | null, re
 
 export async function deleteMoneyMovement(forgeryToken: string | null, request: DeleteMoneyMovementRequest): Promise<boolean> {
     const response = await sendJsonRequest<BooleanResponse>("?handler=Delete", "POST", buildJsonHeaders(forgeryToken), request);
+    return unwrapServiceResult<boolean>(response);
+}
+
+export async function previewBankStatementImport(forgeryToken: string | null, bankId: string, accountId: string, file: File): Promise<BankStatementImportPreviewDto> {
+    const formData = new FormData();
+    formData.append("bankId", bankId);
+    formData.append("accountId", accountId);
+    formData.append("file", file);
+
+    const response = await sendJsonRequest<ImportPreviewResponse>("?handler=PreviewImport", "POST", buildFormHeaders(forgeryToken), formData);
+    return unwrapServiceResult<BankStatementImportPreviewDto>(response);
+}
+
+export async function importMoneyMovements(forgeryToken: string | null, request: SaveBankStatementImportRequest): Promise<boolean> {
+    const response = await sendJsonRequest<BooleanResponse>("?handler=Import", "POST", buildJsonHeaders(forgeryToken), request);
     return unwrapServiceResult<boolean>(response);
 }

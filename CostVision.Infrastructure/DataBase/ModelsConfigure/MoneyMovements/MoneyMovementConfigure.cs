@@ -30,6 +30,9 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.MoneyMovements
             builder.Property(e => e.Comment)
                 .HasMaxLength(1024);
 
+            builder.Property(e => e.ImportComment)
+                .HasMaxLength(1024);
+
             builder.Property(e => e.CreatedByUserId)
                 .IsRequired();
 
@@ -58,6 +61,7 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.MoneyMovements
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(e => new { e.AccountId, e.OccurredAt });
+            builder.HasIndex(e => new { e.AccountId, e.OccurredAt, e.Amount, e.Type });
             builder.HasIndex(e => e.CreatedByUserId);
             builder.HasIndex(e => e.PerformedByUserId);
         }
