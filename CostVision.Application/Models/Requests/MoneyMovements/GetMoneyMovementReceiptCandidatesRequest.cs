@@ -4,7 +4,9 @@
     {
         public Guid MoneyMovementId { get; set; }
 
-        public bool UseTimeWindow { get; set; } = true;
+        public bool UseTimeWindow { get; set; }
+
+        public decimal? TimeWindowHours { get; set; }
 
         public DateTime? DateFrom { get; set; }
 

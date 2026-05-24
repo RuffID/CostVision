@@ -30,6 +30,8 @@ namespace CostVision.Application.Models.Dtos.MoneyMovements
 
         public int LinkedReceiptCount { get; set; }
 
+        public int AvailableReceiptCount { get; set; }
+
         public decimal LinkedReceiptsTotalSum { get; set; }
     }
 }

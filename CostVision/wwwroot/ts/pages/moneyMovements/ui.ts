@@ -37,6 +37,7 @@ export interface MoneyMovementsUi {
     receiptsDateFromInput: HTMLInputElement;
     receiptsDateToInput: HTMLInputElement;
     receiptsUseTimeWindowInput: HTMLInputElement;
+    receiptsTimeWindowHoursInput: HTMLInputElement;
     receiptsUseAmountFilterInput: HTMLInputElement;
     receiptsAmountToleranceInput: HTMLInputElement;
     receiptsExcludeLinkedInput: HTMLInputElement;
@@ -96,6 +97,7 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         receiptsDateFromInput: requireInputById("moneyMovementReceiptsDateFrom"),
         receiptsDateToInput: requireInputById("moneyMovementReceiptsDateTo"),
         receiptsUseTimeWindowInput: requireInputById("moneyMovementReceiptsUseTimeWindow"),
+        receiptsTimeWindowHoursInput: requireInputById("moneyMovementReceiptsTimeWindowHours"),
         receiptsUseAmountFilterInput: requireInputById("moneyMovementReceiptsUseAmountFilter"),
         receiptsAmountToleranceInput: requireInputById("moneyMovementReceiptsAmountTolerance"),
         receiptsExcludeLinkedInput: requireInputById("moneyMovementReceiptsExcludeLinked"),

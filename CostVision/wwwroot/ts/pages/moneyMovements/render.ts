@@ -173,7 +173,13 @@ function createReceiptsButton(movement: MoneyMovementDto): HTMLButtonElement {
     button.classList.add("btn", "btn-sm", "btn-outline-secondary", "align-self-start");
     button.setAttribute("data-action", "open-receipts");
     button.setAttribute("data-money-movement-id", movement.id);
-    button.textContent = "Чеки";
+    if (movement.linkedReceiptCount > 0 || movement.availableReceiptCount > 0) {
+        button.textContent = `Чеки: ${movement.linkedReceiptCount} прив. / ${movement.availableReceiptCount} дост.`;
+        button.title = `Привязанные чеки: ${movement.linkedReceiptCount}. Доступные чеки: ${movement.availableReceiptCount}.`;
+    } else {
+        button.textContent = "Чеки";
+        button.title = "Чеки операции";
+    }
     return button;
 }
 

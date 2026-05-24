@@ -28,6 +28,7 @@ export interface MoneyMovementDto {
     performedByUserName: string;
     source: number;
     linkedReceiptCount: number;
+    availableReceiptCount: number;
     linkedReceiptsTotalSum: number;
 }
 
@@ -68,6 +69,7 @@ export interface MoneyMovementReceiptDto {
 export interface GetMoneyMovementReceiptCandidatesRequest {
     moneyMovementId: string;
     useTimeWindow: boolean;
+    timeWindowHours: number | null;
     dateFrom: string | null;
     dateTo: string | null;
     useAmountFilter: boolean;

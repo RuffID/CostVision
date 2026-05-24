@@ -11,7 +11,8 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class GetMoneyMovementReceiptCandidatesUseCase(IUnitOfWork unitOfWork) : IGetMoneyMovementReceiptCandidatesUseCase
     {
-        private const int DEFAULT_TIME_WINDOW_MINUTES = 60;
+        private const decimal DEFAULT_TIME_WINDOW_HOURS = 1m;
+        private const decimal MINUTES_PER_HOUR = 60m;
         private const decimal DEFAULT_AMOUNT_TOLERANCE = 1m;
 
         public async Task<ServiceResult<List<MoneyMovementReceiptDto>>> ExecuteAsync(GetMoneyMovementReceiptCandidatesRequest request, Guid currentUserId, CancellationToken ct)
@@ -37,8 +38,13 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             if (request.UseTimeWindow)
             {
-                dateFrom = movement.OccurredAt.AddMinutes(-DEFAULT_TIME_WINDOW_MINUTES);
-                dateToExclusive = movement.OccurredAt.AddMinutes(DEFAULT_TIME_WINDOW_MINUTES);
+                decimal timeWindowHours = request.TimeWindowHours.GetValueOrDefault(DEFAULT_TIME_WINDOW_HOURS);
+                if (timeWindowHours < 0)
+                    return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(400, "Допуск по времени не может быть отрицательным.");
+
+                double timeWindowMinutes = (double)(timeWindowHours * MINUTES_PER_HOUR);
+                dateFrom = movement.OccurredAt.AddMinutes(-timeWindowMinutes);
+                dateToExclusive = movement.OccurredAt.AddMinutes(timeWindowMinutes);
             }
 
             if (dateFrom.HasValue && dateToExclusive.HasValue && dateToExclusive.Value < dateFrom.Value)

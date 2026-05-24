@@ -67,6 +67,7 @@ function bindEvents(): void {
     ui.importPreview.addEventListener("click", handleImportPreviewContainerClick);
     ui.receiptsReloadCandidatesButton.addEventListener("click", handleReloadReceiptCandidatesClick);
     ui.receiptsUseTimeWindowInput.addEventListener("change", updateReceiptFilterState);
+    ui.receiptsUseAmountFilterInput.addEventListener("change", updateReceiptFilterState);
     ui.linkedReceipts.addEventListener("click", handleLinkedReceiptsClick);
     ui.receiptCandidates.addEventListener("click", handleReceiptCandidatesClick);
 
@@ -600,10 +601,12 @@ async function reloadReceiptCandidates(): Promise<void> {
 
 function readReceiptCandidatesRequest(moneyMovementId: string): GetMoneyMovementReceiptCandidatesRequest {
     const amountTolerance = Number(ui.receiptsAmountToleranceInput.value);
+    const timeWindowHours = Number(ui.receiptsTimeWindowHoursInput.value);
 
     return {
         moneyMovementId: moneyMovementId,
         useTimeWindow: ui.receiptsUseTimeWindowInput.checked,
+        timeWindowHours: Number.isFinite(timeWindowHours) ? timeWindowHours : null,
         dateFrom: ui.receiptsDateFromInput.value || null,
         dateTo: ui.receiptsDateToInput.value || null,
         useAmountFilter: ui.receiptsUseAmountFilterInput.checked,
@@ -622,16 +625,19 @@ function initReceiptsFilters(movement: MoneyMovementDto): void {
 
     ui.receiptsDateFromInput.value = formatDateInput(dateFrom);
     ui.receiptsDateToInput.value = formatDateInput(dateTo);
-    ui.receiptsUseTimeWindowInput.checked = true;
+    ui.receiptsUseTimeWindowInput.checked = false;
     ui.receiptsUseAmountFilterInput.checked = true;
     ui.receiptsExcludeLinkedInput.checked = true;
     ui.receiptsAmountToleranceInput.value = "1";
+    ui.receiptsTimeWindowHoursInput.value = "1";
 }
 
 function updateReceiptFilterState(): void {
     const useTimeWindow = ui.receiptsUseTimeWindowInput.checked;
     ui.receiptsDateFromInput.disabled = useTimeWindow;
     ui.receiptsDateToInput.disabled = useTimeWindow;
+    ui.receiptsTimeWindowHoursInput.disabled = !useTimeWindow;
+    ui.receiptsAmountToleranceInput.disabled = !ui.receiptsUseAmountFilterInput.checked;
 }
 
 function startCommentEdit(moneyMovementId: string | null): void {

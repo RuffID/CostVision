@@ -3,6 +3,7 @@ using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.MoneyMovements.Helpers;
 using CostVision.Domain.Models.MoneyMovements;
+using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.MoneyMovements
@@ -32,12 +33,36 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     .AsSplitQuery(),
                 ct: ct);
 
+            List<Receipt> availableReceipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
+                receipt => receipt.DateTime >= dateFrom.Date &&
+                           receipt.DateTime < periodEnd &&
+                           !receipt.MoneyMovementLinks.Any() &&
+                           (receipt.CreatedByUserId == currentUserId ||
+                            receipt.Accounts.Any(link => link.Account!.CreatedByUserId == currentUserId) ||
+                            receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUserId))),
+                asNoTracking: true,
+                include: query => query
+                    .Include(receipt => receipt.Accounts)
+                        .ThenInclude(link => link.Account)
+                            .ThenInclude(account => account!.Members)
+                    .Include(receipt => receipt.MoneyMovementLinks)
+                    .AsSplitQuery(),
+                ct: ct);
+
             List<MoneyMovementDto> result = movements
                 .OrderByDescending(movement => movement.OccurredAt)
-                .Select(movement => movement.MapDto())
+                .Select(movement => movement.MapDto(GetAvailableReceiptCount(movement, availableReceipts)))
                 .ToList();
 
             return ServiceResult<List<MoneyMovementDto>>.Ok(result);
+        }
+
+        private static int GetAvailableReceiptCount(MoneyMovement movement, List<Receipt> availableReceipts)
+        {
+            return availableReceipts.Count(receipt =>
+                receipt.DateTime.Date == movement.OccurredAt.Date &&
+                receipt.TotalSum == movement.Amount &&
+                receipt.Accounts.Any(link => link.AccountId == movement.AccountId));
         }
     }
 }

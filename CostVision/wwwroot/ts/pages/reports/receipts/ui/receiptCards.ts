@@ -55,7 +55,7 @@ export function buildReceiptCard(receipt: ReceiptDto, formatCurrency: (value: nu
     totalDiv.classList.add("text-start", "text-md-end");
 
     const totalSpan = document.createElement("div");
-    totalSpan.classList.add("fw-bold");
+    totalSpan.classList.add("fw-bold", "fs-5");
     totalSpan.textContent = formatCurrency(receipt.totalSum);
 
     totalDiv.appendChild(totalSpan);

@@ -79,6 +79,10 @@ export async function loadReceiptCandidates(forgeryToken: string | null, request
         params.set("amountTolerance", String(request.amountTolerance));
     }
 
+    if (request.timeWindowHours !== null) {
+        params.set("timeWindowHours", String(request.timeWindowHours));
+    }
+
     const response = await sendJsonRequest<MoneyMovementReceiptListResponse>(`?handler=ReceiptCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
     return unwrapServiceResult<MoneyMovementReceiptDto[]>(response);
 }
