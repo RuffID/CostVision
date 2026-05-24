@@ -1,7 +1,10 @@
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { BootstrapModal, createBootstrapModal } from "../../shared/bootstrap.js";
+import { initFileDropzone } from "../../shared/dropzone.js";
+import { normalizeSingleLineTextValue } from "../../shared/formatters.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { createMoneyMovement, deleteMoneyMovement, importMoneyMovements, loadAccounts, loadImportBanks, loadMoneyMovements, moveMoneyMovementToAccount, previewBankStatementImport } from "./api.js";
+import { createMoneyMovement, deleteMoneyMovement, importMoneyMovements, loadAccounts, loadImportBanks, loadMoneyMovements, moveMoneyMovementToAccount, previewBankStatementImport, updateMoneyMovementComment } from "./api.js";
+import { formatDateForQuery, getDateRangeByPeriodPreset } from "./dateRange.js";
 import { renderAccountOptions, renderImportBankOptions, renderImportErrors, renderImportPreview, renderImportSummary, renderMoneyMovementList, renderSummary } from "./render.js";
 import { state } from "./state.js";
 import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportPreviewRowDto, type BankStatementImportRowRequest, type CreateMoneyMovementRequest, type MoneyMovementDto, type MoneyMovementType, type PendingMoneyMovementAccountAction, type SaveBankStatementImportRequest, type UserAccountViewModel } from "./types.js";
@@ -15,6 +18,8 @@ let importModal: BootstrapModal;
 let pendingAccountAction: PendingMoneyMovementAccountAction | null = null;
 let preserveMoveModalPendingOnHide = false;
 let selectedImportFile: File | null = null;
+let editingCommentMovementId: string | null = null;
+let searchDebounceTimerId: number | null = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     initMoneyMovementsPage();
@@ -35,19 +40,24 @@ function bindEvents(): void {
     ui.createForm.addEventListener("submit", handleCreateSubmit);
     ui.amountInput.addEventListener("input", handleAmountInput);
     ui.applyFilterButton.addEventListener("click", handleApplyFilterClick);
+    ui.periodPresetSelect.addEventListener("change", handlePeriodPresetChange);
+    ui.searchInput.addEventListener("input", handleSearchInput);
     ui.list.addEventListener("click", handleMoneyMovementListClick);
     ui.moveTargetAccountSelect.addEventListener("change", updateMoveActionState);
     ui.confirmMoveAccountButton.addEventListener("click", handleConfirmMoveAccountClick);
     ui.removeFromAccountButton.addEventListener("click", handleRemoveFromAccountClick);
     ui.confirmDeleteButton.addEventListener("click", handleConfirmDeleteClick);
-    ui.importDropzone.addEventListener("click", handleImportDropzoneClick);
-    ui.importDropzone.addEventListener("keydown", handleImportDropzoneKeyDown);
-    ui.importDropzone.addEventListener("dragover", handleImportDragOver);
-    ui.importDropzone.addEventListener("dragleave", handleImportDragLeave);
-    ui.importDropzone.addEventListener("drop", handleImportDrop);
-    ui.importFileInput.addEventListener("change", handleImportFileChange);
+    initFileDropzone({
+        dropzone: ui.importDropzone,
+        fileInput: ui.importFileInput,
+        multiple: false,
+        onFilesSelected: handleImportFilesSelected
+    });
     ui.importPreviewButton.addEventListener("click", handleImportPreviewClick);
     ui.importSaveButton.addEventListener("click", handleImportSaveClick);
+    ui.importToggleDuplicateReplacementsInput.addEventListener("change", handleToggleDuplicateReplacementsChange);
+    ui.importSkipDuplicatesInput.addEventListener("change", handleSkipDuplicatesChange);
+    ui.importToggleDuplicatesButton.addEventListener("click", handleToggleDuplicatesClick);
     ui.importPreview.addEventListener("input", handleImportPreviewInput);
     ui.importPreview.addEventListener("change", handleImportPreviewChange);
     ui.importPreview.addEventListener("click", handleImportPreviewContainerClick);
@@ -80,43 +90,8 @@ async function loadInitialData(): Promise<void> {
     }
 }
 
-function handleImportDropzoneClick(): void {
-    ui.importFileInput.click();
-}
-
-function handleImportDropzoneKeyDown(event: KeyboardEvent): void {
-    if (event.key !== "Enter" && event.key !== " ") {
-        return;
-    }
-
-    event.preventDefault();
-    ui.importFileInput.click();
-}
-
-function handleImportDragOver(event: DragEvent): void {
-    event.preventDefault();
-    ui.importDropzone.classList.add("border-success", "bg-success", "bg-opacity-10");
-    ui.importDropzone.classList.remove("border-secondary");
-}
-
-function handleImportDragLeave(): void {
-    resetImportDropzoneDragState();
-}
-
-function handleImportDrop(event: DragEvent): void {
-    event.preventDefault();
-    resetImportDropzoneDragState();
-
-    const file = event.dataTransfer?.files.item(0);
-    if (!file) {
-        return;
-    }
-
-    setImportFile(file);
-}
-
-function handleImportFileChange(): void {
-    const file = ui.importFileInput.files?.item(0) || null;
+function handleImportFilesSelected(files: File[]): void {
+    const file = files[0];
     if (!file) {
         return;
     }
@@ -131,11 +106,6 @@ function setImportFile(file: File): void {
     state.importErrors = [];
     renderImportState();
     hideImportAlert();
-}
-
-function resetImportDropzoneDragState(): void {
-    ui.importDropzone.classList.remove("border-success", "bg-success", "bg-opacity-10");
-    ui.importDropzone.classList.add("border-secondary");
 }
 
 async function handleImportPreviewClick(): Promise<void> {
@@ -253,16 +223,44 @@ function handleImportPreviewContainerClick(event: MouseEvent): void {
     renderImportState();
 }
 
+function handleToggleDuplicateReplacementsChange(): void {
+    for (const row of state.importRows) {
+        if (row.isDuplicate) {
+            row.replaceDuplicate = ui.importToggleDuplicateReplacementsInput.checked;
+        }
+    }
+
+    renderImportState();
+}
+
+function handleSkipDuplicatesChange(): void {
+    if (ui.importSkipDuplicatesInput.checked) {
+        for (const row of state.importRows) {
+            if (row.isDuplicate) {
+                row.replaceDuplicate = false;
+            }
+        }
+    }
+
+    renderImportState();
+}
+
+function handleToggleDuplicatesClick(): void {
+    state.hideDuplicateImportRows = !state.hideDuplicateImportRows;
+    renderImportState();
+}
+
 function readImportRequest(): SaveBankStatementImportRequest {
     if (!ui.importAccountSelect.value) {
         throw new Error("Выберите счёт для импорта.");
     }
 
-    if (state.importRows.length === 0) {
+    const importRows = getRowsForImport();
+    if (importRows.length === 0) {
         throw new Error("Нет строк для импорта.");
     }
 
-    const rows: BankStatementImportRowRequest[] = state.importRows.map(row => ({
+    const rows: BankStatementImportRowRequest[] = importRows.map(row => ({
         occurredAt: row.occurredAt,
         amount: row.amount,
         type: row.type,
@@ -279,16 +277,43 @@ function readImportRequest(): SaveBankStatementImportRequest {
 }
 
 function renderImportState(): void {
-    renderImportPreview(ui.importPreview, state.importRows);
+    const visibleRows = state.hideDuplicateImportRows
+        ? state.importRows.filter(row => !row.isDuplicate)
+        : state.importRows;
+
+    renderImportPreview(ui.importPreview, visibleRows);
     renderImportErrors(ui.importErrors, state.importErrors);
     renderImportSummary(ui.importSummary, state.importRows);
+    updateImportPreviewControls();
     updateImportSaveState();
 }
 
+function updateImportPreviewControls(): void {
+    const duplicateRows = state.importRows.filter(row => row.isDuplicate);
+    const hasDuplicates = duplicateRows.length > 0;
+    const checkedDuplicateCount = duplicateRows.filter(row => row.replaceDuplicate === true).length;
+
+    ui.importSkipDuplicatesInput.disabled = !hasDuplicates;
+    ui.importToggleDuplicateReplacementsInput.disabled = !hasDuplicates || ui.importSkipDuplicatesInput.checked;
+    ui.importToggleDuplicateReplacementsInput.checked = !ui.importSkipDuplicatesInput.checked && hasDuplicates && checkedDuplicateCount === duplicateRows.length;
+    ui.importToggleDuplicateReplacementsInput.indeterminate = !ui.importSkipDuplicatesInput.checked && hasDuplicates && checkedDuplicateCount > 0 && checkedDuplicateCount < duplicateRows.length;
+    ui.importToggleDuplicatesButton.disabled = !hasDuplicates;
+    ui.importToggleDuplicatesButton.textContent = state.hideDuplicateImportRows ? "Показать повторяющиеся" : "Скрыть повторяющиеся";
+}
+
 function updateImportSaveState(): void {
-    const hasRows = state.importRows.length > 0;
-    const hasUnresolvedDuplicates = state.importRows.some(row => row.isDuplicate && row.replaceDuplicate !== true);
+    const rowsForImport = getRowsForImport();
+    const hasRows = rowsForImport.length > 0;
+    const hasUnresolvedDuplicates = !ui.importSkipDuplicatesInput.checked && rowsForImport.some(row => row.isDuplicate && row.replaceDuplicate !== true);
     ui.importSaveButton.disabled = !hasRows || hasUnresolvedDuplicates;
+}
+
+function getRowsForImport(): BankStatementImportPreviewRowDto[] {
+    if (!ui.importSkipDuplicatesInput.checked) {
+        return state.importRows;
+    }
+
+    return state.importRows.filter(row => !row.isDuplicate);
 }
 
 function findImportRow(rowId: string | null): BankStatementImportPreviewRowDto | undefined {
@@ -302,9 +327,13 @@ function findImportRow(rowId: string | null): BankStatementImportPreviewRowDto |
 function resetImportModal(): void {
     selectedImportFile = null;
     ui.importFileInput.value = "";
+    ui.importSkipDuplicatesInput.checked = false;
+    ui.importToggleDuplicateReplacementsInput.checked = false;
+    ui.importToggleDuplicateReplacementsInput.indeterminate = false;
     ui.importFileName.textContent = "";
     state.importRows = [];
     state.importErrors = [];
+    state.hideDuplicateImportRows = false;
     hideImportAlert();
     renderImportState();
 }
@@ -345,13 +374,50 @@ async function reloadMovements(): Promise<void> {
     state.dateTo = ui.dateToInput.value;
     state.selectedAccountId = ui.filterAccountSelect.value;
     state.movements = await loadMoneyMovements(forgeryToken, state.dateFrom, state.dateTo, state.selectedAccountId);
-    renderMoneyMovementList(ui.list, state.movements, state.accounts);
-    renderSummary(ui.count, ui.incomeSum, ui.expenseSum, state.movements);
+    editingCommentMovementId = null;
+    renderMovements();
+}
+
+function renderMovements(): void {
+    const filteredMovements = applySearchFilter(state.movements);
+    renderMoneyMovementList(ui.list, filteredMovements, state.accounts, editingCommentMovementId);
+    renderSummary(ui.count, ui.incomeSum, ui.expenseSum, filteredMovements);
+}
+
+function applySearchFilter(movements: MoneyMovementDto[]): MoneyMovementDto[] {
+    const query = normalizeSearchText(state.searchQuery).toLowerCase();
+    if (!query) {
+        return movements;
+    }
+
+    return movements.filter(movement => {
+        const comment = normalizeSearchText(movement.comment).toLowerCase();
+        const importComment = normalizeSearchText(movement.importComment).toLowerCase();
+        return comment.includes(query) || importComment.includes(query);
+    });
 }
 
 function handleMoneyMovementListClick(event: MouseEvent): void {
     const target = event.target;
     if (!(target instanceof Element)) {
+        return;
+    }
+
+    const editCommentButton = target.closest<HTMLButtonElement>('[data-action="edit-comment"]');
+    if (editCommentButton) {
+        startCommentEdit(editCommentButton.getAttribute("data-money-movement-id"));
+        return;
+    }
+
+    const cancelCommentButton = target.closest<HTMLButtonElement>('[data-action="cancel-comment"]');
+    if (cancelCommentButton) {
+        cancelCommentEdit();
+        return;
+    }
+
+    const saveCommentButton = target.closest<HTMLButtonElement>('[data-action="save-comment"]');
+    if (saveCommentButton) {
+        handleSaveCommentClick(saveCommentButton).catch(error => showAlertMessage(ui.alert, getErrorMessage(error)));
         return;
     }
 
@@ -367,6 +433,63 @@ function handleMoneyMovementListClick(event: MouseEvent): void {
     }
 
     openMoveAccountModal(moneyMovementId, accountId);
+}
+
+function startCommentEdit(moneyMovementId: string | null): void {
+    if (!moneyMovementId || !findMovement(moneyMovementId)) {
+        return;
+    }
+
+    editingCommentMovementId = moneyMovementId;
+    renderMovements();
+    const input = ui.list.querySelector<HTMLTextAreaElement>(`[data-action="edit-comment-input"][data-money-movement-id="${moneyMovementId}"]`);
+    input?.focus();
+}
+
+function cancelCommentEdit(): void {
+    editingCommentMovementId = null;
+    renderMovements();
+}
+
+async function handleSaveCommentClick(button: HTMLButtonElement): Promise<void> {
+    const moneyMovementId = button.getAttribute("data-money-movement-id");
+    if (!moneyMovementId) {
+        return;
+    }
+
+    const movement = findMovement(moneyMovementId);
+    if (!movement) {
+        showAlertMessage(ui.alert, "Операция не найдена в текущем списке.");
+        return;
+    }
+
+    const input = ui.list.querySelector<HTMLTextAreaElement>(`[data-action="edit-comment-input"][data-money-movement-id="${moneyMovementId}"]`);
+    if (!input) {
+        showAlertMessage(ui.alert, "Поле комментария не найдено.");
+        return;
+    }
+
+    const comment = input.value.trim() || null;
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = "...";
+
+    try {
+        hideAlertMessage(ui.alert);
+        await updateMoneyMovementComment(forgeryToken, {
+            moneyMovementId: movement.id,
+            accountId: movement.accountId,
+            comment: comment
+        });
+
+        movement.comment = comment;
+        editingCommentMovementId = null;
+        renderMovements();
+    }
+    finally {
+        button.disabled = false;
+        button.textContent = originalText;
+    }
 }
 
 function openMoveAccountModal(moneyMovementId: string, sourceAccountId: string): void {
@@ -661,11 +784,33 @@ function getTypeOption(value: string): HTMLOptionElement {
 
 function initDefaultDates(): void {
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    ui.dateFromInput.value = formatDateInput(monthStart);
-    ui.dateToInput.value = formatDateInput(now);
+    ui.periodPresetSelect.value = "currentMonth";
+    applySelectedPeriodPreset(now);
     ui.occurredAtInput.value = formatDateTimeLocalInput(now);
+}
+
+function handlePeriodPresetChange(): void {
+    applySelectedPeriodPreset(new Date());
+}
+
+function applySelectedPeriodPreset(now: Date): void {
+    const range = getDateRangeByPeriodPreset(ui.periodPresetSelect.value || "currentMonth", now);
+    ui.dateFromInput.value = formatDateForQuery(range.dateFrom);
+    ui.dateToInput.value = formatDateForQuery(range.dateTo);
+}
+
+function handleSearchInput(): void {
+    state.searchQuery = ui.searchInput.value.trim();
+
+    if (searchDebounceTimerId) {
+        clearTimeout(searchDebounceTimerId);
+    }
+
+    searchDebounceTimerId = window.setTimeout(renderMovements, 250);
+}
+
+function normalizeSearchText(value: unknown): string {
+    return normalizeSingleLineTextValue(value);
 }
 
 function formatDateInput(date: Date): string {

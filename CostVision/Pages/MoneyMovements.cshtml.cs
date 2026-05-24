@@ -20,6 +20,7 @@ namespace CostVision.Web.Pages
         ICreateMoneyMovementUseCase createMoneyMovementUseCase,
         IMoveMoneyMovementToAccountUseCase moveMoneyMovementToAccountUseCase,
         IDeleteMoneyMovementUseCase deleteMoneyMovementUseCase,
+        IUpdateMoneyMovementCommentUseCase updateMoneyMovementCommentUseCase,
         IGetBankStatementImportBanksUseCase getBankStatementImportBanksUseCase,
         IPreviewBankStatementImportUseCase previewBankStatementImportUseCase,
         IImportMoneyMovementsUseCase importMoneyMovementsUseCase) : PageModel, IHasCurrentUser
@@ -60,6 +61,12 @@ namespace CostVision.Web.Pages
         public async Task<JsonResult> OnPostDeleteAsync([FromBody] DeleteMoneyMovementRequest request, CancellationToken ct)
         {
             ServiceResult<bool> result = await deleteMoneyMovementUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<JsonResult> OnPostUpdateCommentAsync([FromBody] UpdateMoneyMovementCommentRequest request, CancellationToken ct)
+        {
+            ServiceResult<bool> result = await updateMoneyMovementCommentUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 

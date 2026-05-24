@@ -1,5 +1,6 @@
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
 import { clearElement, requireElementById, requireInputById, requireSelectById } from "../../shared/dom.js";
+import { initFileDropzone } from "../../shared/dropzone.js";
 import { loadReceiptAccountsAsync } from "./accountsApi.js";
 import { setCameraButtonState } from "./cameraUi.js";
 import { getFilesFromFileList } from "./fileScanner.js";
@@ -87,18 +88,6 @@ async function initQrScan() {
 
     // ====== Сканер файлов (общий для всех устройств) ======
     qrScanFileScanner = new Html5Qrcode("file-scan-root");
-
-    // Обработка выбора файлов через input
-    qrScanFileInput.addEventListener("change", function (e) {
-        const files = e.target.files;
-        if (!files || files.length === 0) {
-            return;
-        }
-
-        // показать анимацию загрузки и отправить файлы
-        qrScanShowOverlay();
-        qrScanScanFilesAndSubmit(files);
-    });
 
     // Инициализация drag-and-drop холста
     if (qrScanDropzone)
@@ -229,18 +218,6 @@ function qrScanSetCollapseState(button, body, isCollapsed) {
     if (arrow) {
         arrow.textContent = isCollapsed ? "▸" : "▾";
     }
-}
-
-function qrScanSetDropzoneActiveState(isActive) {
-    if (!qrScanDropzone) {
-        return;
-    }
-
-    qrScanDropzone.classList.toggle("border-primary", isActive);
-    qrScanDropzone.classList.toggle("bg-primary-subtle", isActive);
-    qrScanDropzone.classList.toggle("shadow-sm", isActive);
-    qrScanDropzone.style.backgroundColor = isActive ? "#dbeafe" : "#f3f4f6";
-    qrScanDropzone.style.borderColor = isActive ? "#3b82f6" : "#94a3b8";
 }
 
 // ===================== AJAX-отправка формы =====================
@@ -695,60 +672,15 @@ async function qrScanScanFilesAndSubmit(fileList: FileList | File[]) {
 // ===================== Drag-and-drop холст =====================
 
 function initQrScanDropzone() {
-    // сделать dropzone фокусируемой, чтобы можно было вставлять Ctrl+V
-    if (!qrScanDropzone.hasAttribute("tabindex")) {
-        qrScanDropzone.setAttribute("tabindex", "0");
-    }
-
-    qrScanSetDropzoneActiveState(false);
-
-    qrScanDropzone.addEventListener("click", function () {
-        if (qrScanFileInput) {
-            qrScanFileInput.click();
+    initFileDropzone({
+        dropzone: qrScanDropzone,
+        fileInput: qrScanFileInput,
+        multiple: true,
+        onFilesSelected: function (files) {
+            qrScanShowOverlay();
+            qrScanScanFilesAndSubmit(files);
         }
     });
-
-    qrScanDropzone.addEventListener("dragenter", qrScanHandleDragEnterOrOver);
-    qrScanDropzone.addEventListener("dragover", qrScanHandleDragEnterOrOver);
-
-    qrScanDropzone.addEventListener("dragleave", qrScanHandleDragLeaveOrEnd);
-    qrScanDropzone.addEventListener("dragend", qrScanHandleDragLeaveOrEnd);
-
-    qrScanDropzone.addEventListener("drop", qrScanHandleDrop);
-}
-
-function qrScanHandleDragEnterOrOver(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    qrScanSetDropzoneActiveState(true);
-}
-
-function qrScanHandleDragLeaveOrEnd(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    qrScanSetDropzoneActiveState(false);
-}
-
-function qrScanHandleDrop(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    qrScanSetDropzoneActiveState(false);
-
-    const dt = event.dataTransfer;
-    if (!dt) {
-        return;
-    }
-
-    const files = dt.files;
-    if (!files || files.length === 0) {
-        return;
-    }
-
-    qrScanShowOverlay();
-    qrScanScanFilesAndSubmit(files);
 }
 
 function qrScanHandlePaste(event) {

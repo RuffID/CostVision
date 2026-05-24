@@ -6,9 +6,11 @@ export interface MoneyMovementsState {
     selectedAccountId: string;
     dateFrom: string;
     dateTo: string;
+    searchQuery: string;
     importBanks: BankStatementImportBankDto[];
     importRows: BankStatementImportPreviewRowDto[];
     importErrors: BankStatementImportLineErrorDto[];
+    hideDuplicateImportRows: boolean;
 }
 
 export const state: MoneyMovementsState = {
@@ -17,7 +19,9 @@ export const state: MoneyMovementsState = {
     selectedAccountId: "",
     dateFrom: "",
     dateTo: "",
+    searchQuery: "",
     importBanks: [],
     importRows: [],
-    importErrors: []
+    importErrors: [],
+    hideDuplicateImportRows: false
 };

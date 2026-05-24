@@ -35,7 +35,7 @@ export function renderImportBankOptions(select: HTMLSelectElement, banks: BankSt
     select.disabled = banks.length === 0;
 }
 
-export function renderMoneyMovementList(container: HTMLElement, movements: MoneyMovementDto[], accounts: UserAccountViewModel[]): void {
+export function renderMoneyMovementList(container: HTMLElement, movements: MoneyMovementDto[], accounts: UserAccountViewModel[], editingCommentMovementId: string | null = null): void {
     clearElement(container);
 
     if (movements.length === 0) {
@@ -47,7 +47,7 @@ export function renderMoneyMovementList(container: HTMLElement, movements: Money
     }
 
     for (const movement of movements) {
-        container.append(createMoneyMovementCard(movement, accounts));
+        container.append(createMoneyMovementCard(movement, accounts, movement.id === editingCommentMovementId));
     }
 }
 
@@ -120,20 +120,21 @@ export function renderImportSummary(element: HTMLElement, rows: BankStatementImp
     element.textContent = `Строк: ${rows.length}. Повторы: ${duplicateCount}.`;
 }
 
-function createMoneyMovementCard(movement: MoneyMovementDto, accounts: UserAccountViewModel[]): HTMLElement {
+function createMoneyMovementCard(movement: MoneyMovementDto, accounts: UserAccountViewModel[], isEditingComment: boolean): HTMLElement {
     const wrapper = document.createElement("div");
-    wrapper.classList.add("border", "rounded-3", "p-3", "d-flex", "flex-column", "gap-2");
+    wrapper.classList.add("border", "rounded-3", "p-3", "d-flex", "flex-column", "gap-2", "shadow-sm");
+    wrapper.classList.add(movement.type === MONEY_MOVEMENT_TYPE_EXPENSE ? "border-danger" : "border-success");
     wrapper.setAttribute("data-money-movement-id", movement.id);
 
     const header = document.createElement("div");
     header.classList.add("d-flex", "flex-wrap", "justify-content-between", "gap-2", "align-items-start");
 
     const left = document.createElement("div");
-    left.classList.add("d-flex", "flex-column", "gap-1");
+    left.classList.add("d-flex", "flex-column", "gap-1", "flex-grow-1");
 
-    const comment = document.createElement("div");
-    comment.classList.add("fw-semibold");
-    comment.textContent = movement.comment || "Без комментария";
+    const account = accounts.find(item => item.id === movement.accountId);
+    const canEditMovement = account ? canEditAccount(account) : true;
+    const commentBlock = isEditingComment ? createEditableCommentBlock(movement) : createReadonlyCommentBlock(movement, canEditMovement);
 
     const meta = document.createElement("div");
     meta.classList.add("text-muted", "small");
@@ -141,10 +142,10 @@ function createMoneyMovementCard(movement: MoneyMovementDto, accounts: UserAccou
 
     const accountBadge = createAccountBadge(movement, accounts);
 
-    left.append(comment, meta, accountBadge);
+    left.append(commentBlock, meta, accountBadge);
 
     const amount = document.createElement("div");
-    amount.classList.add("fw-semibold");
+    amount.classList.add("fw-semibold", "fs-5");
     amount.classList.add(movement.type === MONEY_MOVEMENT_TYPE_EXPENSE ? "text-danger" : "text-success");
     amount.textContent = `${movement.type === MONEY_MOVEMENT_TYPE_EXPENSE ? "-" : "+"}${formatMoneyRub(movement.amount)}`;
 
@@ -152,6 +153,99 @@ function createMoneyMovementCard(movement: MoneyMovementDto, accounts: UserAccou
 
     wrapper.append(header);
     return wrapper;
+}
+
+function createReadonlyCommentBlock(movement: MoneyMovementDto, canEditMovement: boolean): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("d-flex", "flex-column", "gap-1");
+
+    const top = document.createElement("div");
+    top.classList.add("d-flex", "align-items-start", "gap-2");
+
+    const comment = document.createElement("div");
+    comment.classList.add("fw-semibold");
+    comment.textContent = movement.comment || "Без комментария";
+
+    top.append(comment);
+
+    if (canEditMovement) {
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.classList.add("btn", "btn-sm", "btn-link", "p-0", "text-secondary", "lh-1", "flex-shrink-0");
+        editButton.setAttribute("data-action", "edit-comment");
+        editButton.setAttribute("data-money-movement-id", movement.id);
+        editButton.title = "Редактировать комментарий";
+        editButton.textContent = "✎";
+        top.append(editButton);
+    }
+    wrapper.append(top);
+
+    const importComment = createChangedImportCommentElement(movement);
+    if (importComment) {
+        wrapper.append(importComment);
+    }
+
+    return wrapper;
+}
+
+function createEditableCommentBlock(movement: MoneyMovementDto): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("d-flex", "flex-column", "gap-2");
+
+    const input = document.createElement("textarea");
+    input.id = `moneyMovementEditComment_${movement.id}`;
+    input.name = `moneyMovementEditComment_${movement.id}`;
+    input.classList.add("form-control", "form-control-sm");
+    input.rows = 2;
+    input.maxLength = 1024;
+    input.value = movement.comment || "";
+    input.setAttribute("data-action", "edit-comment-input");
+    input.setAttribute("data-money-movement-id", movement.id);
+
+    const actions = document.createElement("div");
+    actions.classList.add("d-flex", "gap-2");
+
+    const saveButton = document.createElement("button");
+    saveButton.type = "button";
+    saveButton.classList.add("btn", "btn-sm", "btn-primary");
+    saveButton.setAttribute("data-action", "save-comment");
+    saveButton.setAttribute("data-money-movement-id", movement.id);
+    saveButton.title = "Сохранить комментарий";
+    saveButton.textContent = "✓";
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.classList.add("btn", "btn-sm", "btn-outline-secondary");
+    cancelButton.setAttribute("data-action", "cancel-comment");
+    cancelButton.setAttribute("data-money-movement-id", movement.id);
+    cancelButton.title = "Отменить";
+    cancelButton.textContent = "×";
+
+    actions.append(saveButton, cancelButton);
+    wrapper.append(input, actions);
+
+    const importComment = createChangedImportCommentElement(movement);
+    if (importComment) {
+        wrapper.append(importComment);
+    }
+
+    return wrapper;
+}
+
+function createChangedImportCommentElement(movement: MoneyMovementDto): HTMLElement | null {
+    const importComment = normalizeComment(movement.importComment);
+    if (!importComment || normalizeComment(movement.comment) === importComment) {
+        return null;
+    }
+
+    const element = document.createElement("div");
+    element.classList.add("text-muted", "small");
+    element.textContent = `Комментарий из выписки: ${movement.importComment}`;
+    return element;
+}
+
+function normalizeComment(value: string | null | undefined): string {
+    return String(value || "").replace(/\s+/g, " ").trim();
 }
 
 function createImportPreviewRow(row: BankStatementImportPreviewRowDto): HTMLElement {
@@ -255,9 +349,22 @@ function createAccountBadge(movement: MoneyMovementDto, accounts: UserAccountVie
     badge.style.backgroundColor = "transparent";
     badge.style.color = "#212529";
     badge.style.border = "2px solid " + movement.accountColorHex;
+    badge.style.transition = "background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease";
     badge.disabled = !canEdit;
 
-    if (!canEdit) {
+    if (canEdit) {
+        badge.addEventListener("mouseenter", () => {
+            badge.style.backgroundColor = movement.accountColorHex + "14";
+            badge.style.boxShadow = "0 0 0 0.2rem " + movement.accountColorHex + "22";
+            badge.style.transform = "translateY(-1px)";
+        });
+
+        badge.addEventListener("mouseleave", () => {
+            badge.style.backgroundColor = "transparent";
+            badge.style.boxShadow = "none";
+            badge.style.transform = "translateY(0)";
+        });
+    } else {
         badge.title = "Недостаточно прав для изменения операции в этом счёте.";
         badge.style.opacity = "0.65";
         badge.style.cursor = "not-allowed";

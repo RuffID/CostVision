@@ -9,7 +9,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <h2 class="mb-0">Операции</h2>
         <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#moneyMovementImportModal">Импорт</button>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#moneyMovementImportModal">Импорт из банка</button>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#moneyMovementCreateModal">Добавить</button>
         </div>
     </div>
@@ -17,32 +17,49 @@
     <div id="moneyMovementAlert" class="alert alert-warning d-none" role="alert"></div>
 
     <div class="border rounded-3 p-3 mb-3">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-            <h5 class="mb-0">Фильтр</h5>
-            <div class="d-flex flex-wrap justify-content-end gap-2">
-                <span id="moneyMovementCount" class="input-group-text">Операций: 0</span>
-                <span id="moneyMovementIncomeSum" class="input-group-text">Приход: 0 ₽</span>
-                <span id="moneyMovementExpenseSum" class="input-group-text">Расход: 0 ₽</span>
-            </div>
-        </div>
-        <div class="row g-2 align-items-end">
-            <div class="col-12 col-md-5">
-                <label for="moneyMovementFilterAccount" class="form-label">Счёт</label>
-                <select id="moneyMovementFilterAccount" name="moneyMovementFilterAccount" class="form-select"></select>
+        <div class="row g-2 align-items-end mb-3">
+            <div class="col-auto">
+                <label for="moneyMovementPeriodPreset" class="form-label mb-1">Период</label>
+                <select id="moneyMovementPeriodPreset" name="moneyMovementPeriodPreset" class="form-select">
+                    <option value="currentDay">Текущий день</option>
+                    <option value="currentWeek">Текущая неделя</option>
+                    <option value="currentMonth" selected>Текущий месяц</option>
+                    <option value="currentYear">Текущий год</option>
+                </select>
             </div>
 
-            <div class="col-6 col-md-3">
-                <label for="moneyMovementDateFrom" class="form-label">с</label>
+            <div class="col-auto">
+                <label for="moneyMovementDateFrom" class="form-label mb-1">с</label>
                 <input type="date" id="moneyMovementDateFrom" name="moneyMovementDateFrom" class="form-control" autocomplete="off">
             </div>
 
-            <div class="col-6 col-md-3">
-                <label for="moneyMovementDateTo" class="form-label">по</label>
+            <div class="col-auto">
+                <label for="moneyMovementDateTo" class="form-label mb-1">по</label>
                 <input type="date" id="moneyMovementDateTo" name="moneyMovementDateTo" class="form-control" autocomplete="off">
             </div>
 
-            <div class="col-12 col-md-auto">
+            <div class="col-12 col-md-4 col-lg-3">
+                <label for="moneyMovementFilterAccount" class="form-label mb-1">Счёт</label>
+                <select id="moneyMovementFilterAccount" name="moneyMovementFilterAccount" class="form-select"></select>
+            </div>
+
+            <div class="col-auto">
                 <button type="button" id="moneyMovementApplyFilter" class="btn btn-outline-primary w-100">Показать</button>
+            </div>
+        </div>
+
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-lg">
+                <label for="moneyMovementSearch" class="form-label mb-1">Поиск</label>
+                <input type="text" id="moneyMovementSearch" name="moneyMovementSearch" class="form-control" placeholder="Введите запрос..." autocomplete="off">
+            </div>
+
+            <div class="col-12 col-lg-auto">
+                <div class="d-flex flex-wrap gap-2">
+                    <span id="moneyMovementCount" class="input-group-text">Операций: 0</span>
+                    <span id="moneyMovementIncomeSum" class="input-group-text">Приход: 0 ₽</span>
+                    <span id="moneyMovementExpenseSum" class="input-group-text">Расход: 0 ₽</span>
+                </div>
             </div>
         </div>
     </div>
@@ -54,7 +71,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="moneyMovementImportModalLabel">Импорт операций</h5>
+                <h5 class="modal-title" id="moneyMovementImportModalLabel">Импорт операций из банка</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
@@ -71,7 +88,7 @@
                     </div>
                 </div>
 
-                <div id="moneyMovementImportDropzone" class="border border-2 border-secondary border-opacity-50 rounded-3 p-4 text-center mb-3 bg-light" style="border-style: dashed !important;" role="button" tabindex="0">
+                <div id="moneyMovementImportDropzone" class="border border-2 rounded-3 p-4 text-center mb-3 bg-light" style="border-style: dashed !important; border-color: #212529 !important; background-color: #f8f9fa;" role="button" tabindex="0">
                     <div class="fw-semibold mb-1">Перетащите PDF сюда</div>
                     <div class="text-muted small">или нажмите, чтобы выбрать файл вручную</div>
                     <div id="moneyMovementImportFileName" class="small mt-2"></div>
@@ -80,7 +97,18 @@
 
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                     <h6 class="mb-0">Предпросмотр</h6>
-                    <div id="moneyMovementImportSummary" class="small text-muted"></div>
+                    <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+                        <div class="form-check mb-0">
+                            <input type="checkbox" id="moneyMovementImportToggleDuplicateReplacements" name="moneyMovementImportToggleDuplicateReplacements" class="form-check-input">
+                            <label for="moneyMovementImportToggleDuplicateReplacements" class="form-check-label small">Заменить все повторы</label>
+                        </div>
+                        <div class="form-check mb-0">
+                            <input type="checkbox" id="moneyMovementImportSkipDuplicates" name="moneyMovementImportSkipDuplicates" class="form-check-input">
+                            <label for="moneyMovementImportSkipDuplicates" class="form-check-label small">Загрузить без повторов</label>
+                        </div>
+                        <button type="button" id="moneyMovementImportToggleDuplicatesButton" class="btn btn-sm btn-outline-primary">Скрыть повторяющиеся</button>
+                        <div id="moneyMovementImportSummary" class="small text-muted"></div>
+                    </div>
                 </div>
 
                 <div id="moneyMovementImportPreview" class="d-flex flex-column gap-2"></div>

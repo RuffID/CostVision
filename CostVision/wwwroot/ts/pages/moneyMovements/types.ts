@@ -48,6 +48,12 @@ export interface DeleteMoneyMovementRequest {
     accountId: string;
 }
 
+export interface UpdateMoneyMovementCommentRequest {
+    moneyMovementId: string;
+    accountId: string;
+    comment: string | null;
+}
+
 export interface PendingMoneyMovementAccountAction {
     moneyMovementId: string;
     sourceAccountId: string;

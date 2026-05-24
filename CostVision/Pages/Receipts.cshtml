@@ -8,65 +8,63 @@
 <div class="container py-3">
     <h2 class="mb-3">Список чеков</h2>
 
-    <div class="row g-2 mb-3 align-items-end">
-        <div class="col-auto">
-            <label for="receiptPeriodPreset" class="form-label mb-1">Период</label>
-            <select id="receiptPeriodPreset" name="receiptPeriodPreset" class="form-select">
-                <option value="currentDay">Текущий день</option>
-                <option value="currentWeek">Текущая неделя</option>
-                <option value="currentMonth" selected>Текущий месяц</option>
-                <option value="currentYear">Текущий год</option>
-            </select>
+    <div class="border rounded-3 p-3 mb-3">
+        <div class="row g-2 align-items-end mb-3">
+            <div class="col-auto">
+                <label for="receiptPeriodPreset" class="form-label mb-1">Период</label>
+                <select id="receiptPeriodPreset" name="receiptPeriodPreset" class="form-select">
+                    <option value="currentDay">Текущий день</option>
+                    <option value="currentWeek">Текущая неделя</option>
+                    <option value="currentMonth" selected>Текущий месяц</option>
+                    <option value="currentYear">Текущий год</option>
+                </select>
+            </div>
+
+            <div class="col-auto">
+                <label for="dateFrom" class="form-label mb-1">с</label>
+                <input type="date" id="dateFrom" name="dateFrom" class="form-control" autocomplete="off">
+            </div>
+
+            <div class="col-auto">
+                <label for="dateTo" class="form-label mb-1">по</label>
+                <input type="date" id="dateTo" name="dateTo" class="form-control" autocomplete="off">
+            </div>
+
+            <div class="col-12 col-md-4 col-lg-3">
+                <label for="receiptAccountFilter" class="form-label mb-1">Счёт</label>
+                <select id="receiptAccountFilter" name="receiptAccountFilter" class="form-select" disabled>
+                    <option value="">Загрузка счетов...</option>
+                </select>
+                <div id="receiptAccountFilterError" class="text-danger small mt-2 d-none"></div>
+            </div>
+
+            <div class="col-auto">
+                <button type="button" id="applyFilter" class="btn btn-outline-primary w-100">Показать</button>
+            </div>
         </div>
 
-        <div class="col-auto">
-            <label for="dateFrom" class="form-label mb-1">с</label>
-            <input type="date" id="dateFrom" name="dateFrom" class="form-control" autocomplete="off">
-        </div>
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-lg">
+                <label for="receiptSearch" class="form-label mb-1">Поиск</label>
+                <input type="text" id="receiptSearch" name="receiptSearch" class="form-control" placeholder="Введите запрос..." autocomplete="off">
+            </div>
 
-        <div class="col-auto">
-            <label for="dateTo" class="form-label mb-1">по</label>
-            <input type="date" id="dateTo" name="dateTo" class="form-control" autocomplete="off">
-        </div>
+            <div class="col-12 col-sm-5 col-lg-4">
+                <label for="receiptSearchMode" class="form-label mb-1">Искать по</label>
+                <select id="receiptSearchMode" name="receiptSearchMode" class="form-select">
+                    <option value="all" selected>Все</option>
+                    <option value="sum">Сумма</option>
+                    <option value="shop">Магазин</option>
+                    <option value="fn">ФН</option>
+                    <option value="fd">ФД</option>
+                    <option value="fp">ФП</option>
+                </select>
+            </div>
 
-        <div class="col-12 col-md-4 col-lg-3">
-            <label for="receiptAccountFilter" class="form-label mb-1">Счёт</label>
-            <select id="receiptAccountFilter" name="receiptAccountFilter" class="form-select" disabled>
-                <option value="">Загрузка счетов...</option>
-            </select>
-            <div id="receiptAccountFilterError" class="text-danger small mt-2 d-none"></div>
-        </div>
-
-        <div class="col-auto">
-            <button type="button" id="applyFilter" class="btn btn-sm btn-primary">Показать</button>
-        </div>
-
-        <div class="col"></div>
-
-        <div class="col-12 col-xl-7">
-            <div class="row g-2 align-items-end">
-                <div class="col-12 col-lg">
-                    <label for="receiptSearch" class="form-label mb-1">Поиск</label>
-                    <input type="text" id="receiptSearch" name="receiptSearch" class="form-control" placeholder="Введите запрос..." autocomplete="off">
-                </div>
-
-                <div class="col-12 col-sm-5 col-lg-4">
-                    <label for="receiptSearchMode" class="form-label mb-1">Искать по</label>
-                    <select id="receiptSearchMode" name="receiptSearchMode" class="form-select">
-                        <option value="all" selected>Все</option>
-                        <option value="sum">Сумма</option>
-                        <option value="shop">Магазин</option>
-                        <option value="fn">ФН</option>
-                        <option value="fd">ФД</option>
-                        <option value="fp">ФП</option>
-                    </select>
-                </div>
-
-                <div class="col-12 col-lg-auto">
-                    <div class="d-flex flex-wrap gap-2">
-                        <span id="receiptsCount" class="input-group-text">Чеков: 0</span>
-                        <span id="receiptsSum" class="input-group-text">Сумма: 0 ₽</span>
-                    </div>
+            <div class="col-12 col-lg-auto">
+                <div class="d-flex flex-wrap gap-2">
+                    <span id="receiptsCount" class="input-group-text">Чеков: 0</span>
+                    <span id="receiptsSum" class="input-group-text">Сумма: 0 ₽</span>
                 </div>
             </div>
         </div>

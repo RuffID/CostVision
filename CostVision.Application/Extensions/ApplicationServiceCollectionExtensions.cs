@@ -42,6 +42,7 @@ namespace CostVision.Application.Extensions
             services.AddScoped<IGetMoneyMovementAccountsUseCase, GetMoneyMovementAccountsUseCase>();
             services.AddScoped<IMoveMoneyMovementToAccountUseCase, MoveMoneyMovementToAccountUseCase>();
             services.AddScoped<IDeleteMoneyMovementUseCase, DeleteMoneyMovementUseCase>();
+            services.AddScoped<IUpdateMoneyMovementCommentUseCase, UpdateMoneyMovementCommentUseCase>();
             services.AddScoped<IGetBankStatementImportBanksUseCase, GetBankStatementImportBanksUseCase>();
             services.AddScoped<IPreviewBankStatementImportUseCase, PreviewBankStatementImportUseCase>();
             services.AddScoped<IImportMoneyMovementsUseCase, ImportMoneyMovementsUseCase>();

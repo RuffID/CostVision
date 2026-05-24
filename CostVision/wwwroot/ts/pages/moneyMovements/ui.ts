@@ -10,8 +10,10 @@ export interface MoneyMovementsUi {
     occurredAtInput: HTMLInputElement;
     commentInput: HTMLTextAreaElement;
     filterAccountSelect: HTMLSelectElement;
+    periodPresetSelect: HTMLSelectElement;
     dateFromInput: HTMLInputElement;
     dateToInput: HTMLInputElement;
+    searchInput: HTMLInputElement;
     applyFilterButton: HTMLButtonElement;
     list: HTMLElement;
     count: HTMLElement;
@@ -38,6 +40,9 @@ export interface MoneyMovementsUi {
     importSummary: HTMLElement;
     importPreviewButton: HTMLButtonElement;
     importSaveButton: HTMLButtonElement;
+    importToggleDuplicateReplacementsInput: HTMLInputElement;
+    importSkipDuplicatesInput: HTMLInputElement;
+    importToggleDuplicatesButton: HTMLButtonElement;
 }
 
 export function getMoneyMovementsUi(): MoneyMovementsUi {
@@ -51,8 +56,10 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         occurredAtInput: requireInputById("moneyMovementOccurredAt"),
         commentInput: requireTextAreaById("moneyMovementComment"),
         filterAccountSelect: requireSelectById("moneyMovementFilterAccount"),
+        periodPresetSelect: requireSelectById("moneyMovementPeriodPreset"),
         dateFromInput: requireInputById("moneyMovementDateFrom"),
         dateToInput: requireInputById("moneyMovementDateTo"),
+        searchInput: requireInputById("moneyMovementSearch"),
         applyFilterButton: requireElementById<HTMLButtonElement>("moneyMovementApplyFilter"),
         list: requireElementById("moneyMovementList"),
         count: requireElementById("moneyMovementCount"),
@@ -78,6 +85,9 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         importErrors: requireElementById("moneyMovementImportErrors"),
         importSummary: requireElementById("moneyMovementImportSummary"),
         importPreviewButton: requireElementById<HTMLButtonElement>("moneyMovementImportPreviewButton"),
-        importSaveButton: requireElementById<HTMLButtonElement>("moneyMovementImportSaveButton")
+        importSaveButton: requireElementById<HTMLButtonElement>("moneyMovementImportSaveButton"),
+        importToggleDuplicateReplacementsInput: requireInputById("moneyMovementImportToggleDuplicateReplacements"),
+        importSkipDuplicatesInput: requireInputById("moneyMovementImportSkipDuplicates"),
+        importToggleDuplicatesButton: requireElementById<HTMLButtonElement>("moneyMovementImportToggleDuplicatesButton")
     };
 }

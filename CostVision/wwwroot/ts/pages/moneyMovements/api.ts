@@ -1,5 +1,5 @@
 import { buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, type ServiceResultWithData } from "../../shared/http.js";
-import type { BankStatementImportBankDto, BankStatementImportPreviewDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, MoneyMovementDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UserAccountViewModel } from "./types.js";
+import type { BankStatementImportBankDto, BankStatementImportPreviewDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, MoneyMovementDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel } from "./types.js";
 
 type AccountListResponse = ServiceResultWithData<UserAccountViewModel[]>;
 type ImportBankListResponse = ServiceResultWithData<BankStatementImportBankDto[]>;
@@ -43,6 +43,11 @@ export async function moveMoneyMovementToAccount(forgeryToken: string | null, re
 
 export async function deleteMoneyMovement(forgeryToken: string | null, request: DeleteMoneyMovementRequest): Promise<boolean> {
     const response = await sendJsonRequest<BooleanResponse>("?handler=Delete", "POST", buildJsonHeaders(forgeryToken), request);
+    return unwrapServiceResult<boolean>(response);
+}
+
+export async function updateMoneyMovementComment(forgeryToken: string | null, request: UpdateMoneyMovementCommentRequest): Promise<boolean> {
+    const response = await sendJsonRequest<BooleanResponse>("?handler=UpdateComment", "POST", buildJsonHeaders(forgeryToken), request);
     return unwrapServiceResult<boolean>(response);
 }
 
