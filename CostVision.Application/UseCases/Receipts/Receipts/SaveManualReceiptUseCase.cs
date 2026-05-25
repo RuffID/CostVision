@@ -1,7 +1,6 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Services.Receipts;
-using CostVision.Application.UseCases.Receipts.Receipts.Helpers;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
@@ -55,7 +54,6 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                         ReceiptId = existingReceipt.Id
                     });
 
-                    await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
                     await unitOfWork.SaveChangesAsync(ct);
 
                     Receipt linkedReceipt = await LoadReceiptWithAccountsAsync(existingReceipt.Id, ct);
@@ -95,7 +93,6 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
             }
 
             unitOfWork.Receipt.Create(receipt);
-            await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
             await unitOfWork.SaveChangesAsync(ct);
             Receipt refreshedReceipt = await receiptRefreshWorkflow.TryRefreshCreatedReceiptAsync(receipt, ct);
 

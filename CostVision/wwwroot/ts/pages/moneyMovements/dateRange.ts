@@ -13,6 +13,16 @@ export function getDateRangeByPeriodPreset(periodPreset: string, now: Date): Mon
         };
     }
 
+    if (periodPreset === "previousDay") {
+        const previousDay = new Date(currentDate);
+        previousDay.setDate(currentDate.getDate() - 1);
+
+        return {
+            dateFrom: previousDay,
+            dateTo: previousDay
+        };
+    }
+
     if (periodPreset === "currentWeek") {
         const dayOfWeek = currentDate.getDay();
         const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -28,10 +38,32 @@ export function getDateRangeByPeriodPreset(periodPreset: string, now: Date): Mon
         };
     }
 
+    if (periodPreset === "previousWeek") {
+        const dayOfWeek = currentDate.getDay();
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const dateTo = new Date(currentDate);
+        dateTo.setDate(currentDate.getDate() - daysFromMonday - 1);
+
+        const dateFrom = new Date(dateTo);
+        dateFrom.setDate(dateTo.getDate() - 6);
+
+        return {
+            dateFrom: dateFrom,
+            dateTo: dateTo
+        };
+    }
+
     if (periodPreset === "currentYear") {
         return {
             dateFrom: new Date(currentDate.getFullYear(), 0, 1),
             dateTo: new Date(currentDate.getFullYear(), 11, 31)
+        };
+    }
+
+    if (periodPreset === "previousMonth") {
+        return {
+            dateFrom: new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
+            dateTo: new Date(currentDate.getFullYear(), currentDate.getMonth(), 0)
         };
     }
 

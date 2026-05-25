@@ -23,9 +23,6 @@ namespace CostVision.Application.UseCases.Authorize.Authentication
             if (user == null || !passwordHasher.Verify(request.Password, user.PasswordHash))
                 return ServiceResult<User>.Fail(401, "Неверный логин или пароль.");
 
-            user.MarkLogin(DateTime.UtcNow);
-            await unitOfWork.SaveChangesAsync(ct);
-
             return ServiceResult<User>.Ok(user);
         }
     }

@@ -524,6 +524,7 @@ async function handleLinkedReceiptsClick(event: MouseEvent): Promise<void> {
             receiptId: receiptId
         });
         await reloadReceiptDetails();
+        await reloadMovements();
     });
 }
 
@@ -549,6 +550,7 @@ async function handleReceiptCandidatesClick(event: MouseEvent): Promise<void> {
             receiptId: receiptId
         });
         await reloadReceiptDetails();
+        await reloadMovements();
     });
 }
 

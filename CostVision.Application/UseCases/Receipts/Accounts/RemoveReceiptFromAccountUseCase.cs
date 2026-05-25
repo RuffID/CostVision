@@ -1,7 +1,6 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Accounts.Helpers;
-using CostVision.Application.UseCases.Receipts.Receipts.Helpers;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
 
@@ -44,13 +43,11 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             if (receipt.Accounts.Count < 2)
             {
                 unitOfWork.Receipt.Delete(receipt);
-                await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
                 await unitOfWork.SaveChangesAsync(ct);
                 return ServiceResult<bool>.Ok(true);
             }
 
             unitOfWork.ReceiptAccount.Delete(link);
-            await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);

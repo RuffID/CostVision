@@ -39,6 +39,7 @@ namespace CostVision.Application.Extensions
             services.AddScoped<ICreateUserUseCase, CreateUserUseCase>();
             services.AddScoped<IUpdateUserUseCase, UpdateUserUseCase>();
             services.AddScoped<IToggleUserActiveUseCase, ToggleUserActiveUseCase>();
+            services.AddScoped<IMarkUserActivityUseCase, MarkUserActivityUseCase>();
             services.AddScoped<IGetRoleListUseCase, GetRoleListUseCase>();
             services.AddScoped<IAuthenticateUserUseCase, AuthenticateUserUseCase>();
             services.AddScoped<ICreateMoneyMovementUseCase, CreateMoneyMovementUseCase>();
@@ -50,6 +51,8 @@ namespace CostVision.Application.Extensions
             services.AddScoped<IUpdateMoneyMovementCommentUseCase, UpdateMoneyMovementCommentUseCase>();
             services.AddScoped<IGetLinkedMoneyMovementReceiptsUseCase, GetLinkedMoneyMovementReceiptsUseCase>();
             services.AddScoped<IGetMoneyMovementReceiptCandidatesUseCase, GetMoneyMovementReceiptCandidatesUseCase>();
+            services.AddScoped<IGetLinkedReceiptMoneyMovementsUseCase, GetLinkedReceiptMoneyMovementsUseCase>();
+            services.AddScoped<IGetReceiptMoneyMovementCandidatesUseCase, GetReceiptMoneyMovementCandidatesUseCase>();
             services.AddScoped<ILinkMoneyMovementReceiptUseCase, LinkMoneyMovementReceiptUseCase>();
             services.AddScoped<IUnlinkMoneyMovementReceiptUseCase, UnlinkMoneyMovementReceiptUseCase>();
             services.AddScoped<IBankStatementParser, TBankPdfStatementParser>();

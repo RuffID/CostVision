@@ -64,7 +64,13 @@ function createUsersTableHeader(): HTMLTableRowElement {
 
     for (const header of USERS_TABLE_HEADERS) {
         const th = document.createElement("th");
-        th.classList.add("align-middle", "text-center");
+        th.classList.add("align-middle");
+
+        if (header === "Действия") {
+            th.classList.add("text-center");
+        } else {
+            th.classList.add("text-start");
+        }
 
         const span = document.createElement("span");
         span.classList.add("d-block");
@@ -122,7 +128,7 @@ function createTextCell(text: string | number | boolean): HTMLTableCellElement {
 
 function createUserActionsCell(user: UserDto): HTMLTableCellElement {
     const cell = document.createElement("td");
-    cell.classList.add("align-middle");
+    cell.classList.add("align-middle", "text-center");
     cell.style.whiteSpace = "nowrap";
 
     cell.append(

@@ -1,9 +1,10 @@
 import { buildJsonHeaders, ServiceResultWithData, sendJsonRequest, unwrapServiceResult } from "../../../shared/http.js";
-import { AvailableAccountDto, ReceiptDto } from "./types.js";
+import { AvailableAccountDto, GetReceiptMoneyMovementCandidatesRequest, LinkReceiptMoneyMovementRequest, ReceiptDto, ReceiptMoneyMovementDto } from "./types.js";
 
 type ReceiptListResponse = ServiceResultWithData<ReceiptDto[]>;
 type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
 type AvailableAccountsResponse = ServiceResultWithData<AvailableAccountDto[]>;
+type ReceiptMoneyMovementListResponse = ServiceResultWithData<ReceiptMoneyMovementDto[]>;
 type BooleanResponse = ServiceResultWithData<boolean>;
 
 export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string | null): Promise<ReceiptDto[]> {
@@ -79,5 +80,50 @@ export async function removeReceiptFromAccountApi(receiptId: string, accountId: 
         }
     );
 
+    return unwrapServiceResult(response);
+}
+
+export async function loadLinkedMoneyMovementsApi(receiptId: string, forgeryToken: string | null): Promise<ReceiptMoneyMovementDto[]> {
+    const params = new URLSearchParams();
+    params.set("receiptId", receiptId);
+
+    const response = await sendJsonRequest<ReceiptMoneyMovementListResponse>(`?handler=LinkedMoneyMovements&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null);
+    return unwrapServiceResult(response);
+}
+
+export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMovementCandidatesRequest, forgeryToken: string | null): Promise<ReceiptMoneyMovementDto[]> {
+    const params = new URLSearchParams();
+    params.set("receiptId", request.receiptId);
+    params.set("useTimeWindow", String(request.useTimeWindow));
+    params.set("useAmountFilter", String(request.useAmountFilter));
+    params.set("excludeLinkedMoneyMovements", String(request.excludeLinkedMoneyMovements));
+
+    if (request.dateFrom) {
+        params.set("dateFrom", request.dateFrom);
+    }
+
+    if (request.dateTo) {
+        params.set("dateTo", request.dateTo);
+    }
+
+    if (request.amountTolerance !== null) {
+        params.set("amountTolerance", String(request.amountTolerance));
+    }
+
+    if (request.timeWindowHours !== null) {
+        params.set("timeWindowHours", String(request.timeWindowHours));
+    }
+
+    const response = await sendJsonRequest<ReceiptMoneyMovementListResponse>(`?handler=MoneyMovementCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null);
+    return unwrapServiceResult(response);
+}
+
+export async function linkReceiptMoneyMovementApi(request: LinkReceiptMoneyMovementRequest, forgeryToken: string | null): Promise<boolean> {
+    const response = await sendJsonRequest<BooleanResponse>("?handler=LinkMoneyMovement", "POST", buildJsonHeaders(forgeryToken), request);
+    return unwrapServiceResult(response);
+}
+
+export async function unlinkReceiptMoneyMovementApi(request: LinkReceiptMoneyMovementRequest, forgeryToken: string | null): Promise<boolean> {
+    const response = await sendJsonRequest<BooleanResponse>("?handler=UnlinkMoneyMovement", "POST", buildJsonHeaders(forgeryToken), request);
     return unwrapServiceResult(response);
 }

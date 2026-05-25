@@ -1,6 +1,5 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Responses.Results;
-using CostVision.Application.UseCases.Receipts.Receipts.Helpers;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
 
@@ -21,7 +20,6 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 return ServiceResult<bool>.Fail(403, "Можно удалять только собственный чек.");
 
             unitOfWork.Receipt.Delete(receipt);
-            await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUser.Id, ct);
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);

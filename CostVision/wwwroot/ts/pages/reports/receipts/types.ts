@@ -26,9 +26,37 @@ export interface ReceiptDto {
     accountId: string | null;
     accountName: string;
     moneyMovementCount: number;
+    availableMoneyMovementCount: number;
     moneyMovementsTotalSum: number;
     accounts: ReceiptAccountDto[];
     items: ReceiptItemDto[];
+}
+
+export interface ReceiptMoneyMovementDto {
+    moneyMovementId: string;
+    occurredAt: string;
+    amount: number;
+    type: number;
+    comment: string;
+    importComment: string;
+    accountName: string;
+    isLinkedToOtherReceipt: boolean;
+}
+
+export interface GetReceiptMoneyMovementCandidatesRequest {
+    receiptId: string;
+    useTimeWindow: boolean;
+    timeWindowHours: number | null;
+    dateFrom: string | null;
+    dateTo: string | null;
+    useAmountFilter: boolean;
+    amountTolerance: number | null;
+    excludeLinkedMoneyMovements: boolean;
+}
+
+export interface LinkReceiptMoneyMovementRequest {
+    moneyMovementId: string;
+    receiptId: string;
 }
 
 export interface AvailableAccountDto {

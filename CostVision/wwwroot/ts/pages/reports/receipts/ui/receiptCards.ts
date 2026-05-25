@@ -63,6 +63,13 @@ export function buildReceiptCard(receipt: ReceiptDto, formatCurrency: (value: nu
     const btnGroup = document.createElement("div");
     btnGroup.classList.add("d-flex", "gap-1", "flex-wrap", "w-100", "justify-content-start", "justify-content-md-end");
 
+    const moneyMovementsBtn = document.createElement("button");
+    moneyMovementsBtn.type = "button";
+    moneyMovementsBtn.classList.add("btn", "btn-sm", "btn-outline-secondary", "flex-grow-1", "flex-md-grow-0");
+    moneyMovementsBtn.setAttribute("data-action", "open-money-movements");
+    moneyMovementsBtn.setAttribute("data-receipt-id", receipt.id);
+    moneyMovementsBtn.textContent = `Операции: ${receipt.moneyMovementCount} привязано / ${receipt.availableMoneyMovementCount} доступно`;
+
     const openBtn = document.createElement("button");
     openBtn.type = "button";
     openBtn.classList.add("btn", "btn-sm", "btn-outline-primary", "flex-grow-1", "flex-md-grow-0");
@@ -85,6 +92,7 @@ export function buildReceiptCard(receipt: ReceiptDto, formatCurrency: (value: nu
         deleteBtn.textContent = "Удалить";
     }
 
+    btnGroup.appendChild(moneyMovementsBtn);
     btnGroup.appendChild(openBtn);
     btnGroup.appendChild(refreshBtn);
 

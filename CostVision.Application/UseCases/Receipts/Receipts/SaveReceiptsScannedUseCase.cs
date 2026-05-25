@@ -2,7 +2,6 @@ using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.Service.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Services.Receipts;
-using CostVision.Application.UseCases.Receipts.Receipts.Helpers;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
@@ -112,7 +111,6 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 
             if (addedCount > 0)
             {
-                await UserActivityUpdater.MarkReceiptActivityAsync(unitOfWork, currentUserId, ct);
                 await unitOfWork.SaveChangesAsync(ct);
                 await receiptRefreshWorkflow.TryRefreshCreatedReceiptsAsync(createdReceipts, ct);
             }
