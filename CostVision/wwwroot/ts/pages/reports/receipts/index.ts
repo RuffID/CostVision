@@ -14,7 +14,7 @@ import { renderReceiptDetails as renderReceiptDetailsModal } from "./ui/receiptD
 import { findReceiptAccount as findReceiptAccountCore, findReceiptByAccountReceiptId as findReceiptByAccountReceiptIdCore, findReceiptById as findReceiptByIdCore, getAvailableTargetAccounts as getAvailableTargetAccountsCore, normalizeAvailableAccount as normalizeAvailableAccountCore, removeReceiptAccountLink as removeReceiptAccountLinkCore, replaceReceiptAccountLink as replaceReceiptAccountLinkCore } from "./state/accountModel.js";
 import { fillDeleteReceiptModal as fillDeleteReceiptModalUi } from "./modals/deleteReceiptModal.js";
 
-// Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ РґР»СЏ СЃС‚СЂР°РЅРёС†С‹ СЃРїРёСЃРєР° С‡РµРєРѕРІ
+// Глобальные переменные для страницы списка чеков
 let listContainer: HTMLElement;
 let modalElement: HTMLElement;
 let detailsList: HTMLElement;
@@ -36,7 +36,7 @@ let receiptPeriodPresetSelect: HTMLSelectElement;
 let receiptsCountElement: HTMLElement;
 let receiptsSumElement: HTMLElement;
 
-// Р”Р»СЏ СѓРґР°Р»РµРЅРёСЏ
+// Для удаления
 let deleteModalElement: HTMLElement;
 let deleteBootstrapModal: BootstrapModal;
 let deleteConfirmButton: HTMLButtonElement;
@@ -78,15 +78,15 @@ let selectedMoneyMovementsReceiptId: string | null = null;
 const DELETE_ACTION_DELETE_RECEIPT = 'delete-receipt';
 const DELETE_ACTION_REMOVE_FROM_ACCOUNT = 'remove-from-account';
 
-// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РїРѕСЃР»Рµ Р·Р°РіСЂСѓР·РєРё DOM
+// Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function () {
     initListOfChecksPage().catch(function (error) {
         console.error(error);
-        alert(error && error.message ? error.message : 'РћС€РёР±РєР° РїСЂРё РёРЅРёС†РёР°Р»РёР·Р°С†РёРё СЃС‚СЂР°РЅРёС†С‹ С‡РµРєРѕРІ.');
+        alert(error && error.message ? error.message : 'Ошибка при инициализации страницы чеков.');
     });
 });
 
-// РРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°С‚СЊ СЃС‚СЂР°РЅРёС†Сѓ СЃРїРёСЃРєР° С‡РµРєРѕРІ
+// Инициализировать страницу списка чеков
 async function initListOfChecksPage(): Promise<void> {
     listContainer = requireElementById<HTMLElement>('receipt-list');
     modalElement = requireElementById<HTMLElement>('receiptDetailsModal');
@@ -128,7 +128,7 @@ async function initListOfChecksPage(): Promise<void> {
     if (modalElement) {
         bootstrapModal = createBootstrapModal(modalElement);
 
-        // РЈР±РёСЂР°С‚СЊ С„РѕРєСѓСЃ РёР· РјРѕРґР°Р»РєРё РїСЂРё Р·Р°РєСЂС‹С‚РёРё, С‡С‚РѕР±С‹ РёР·Р±РµР¶Р°С‚СЊ РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёСЏ aria-hidden
+        // Убирать фокус из модалки при закрытии, чтобы избежать предупреждения aria-hidden
         modalElement.addEventListener('hide.bs.modal', function () {
             if (document.activeElement instanceof HTMLElement && modalElement.contains(document.activeElement)) {
                 document.activeElement.blur();
@@ -193,7 +193,7 @@ async function initListOfChecksPage(): Promise<void> {
     if (deleteModalElement) {
         deleteBootstrapModal = createBootstrapModal(deleteModalElement);
 
-        // РЈР±РёСЂР°С‚СЊ С„РѕРєСѓСЃ РёР· РјРѕРґР°Р»РєРё РїСЂРё Р·Р°РєСЂС‹С‚РёРё, С‡С‚РѕР±С‹ РёР·Р±РµР¶Р°С‚СЊ РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёСЏ aria-hidden
+        // Убирать фокус из модалки при закрытии, чтобы избежать предупреждения aria-hidden
         deleteModalElement.addEventListener('hide.bs.modal', function () {
             if (document.activeElement instanceof HTMLElement && deleteModalElement.contains(document.activeElement)) {
                 document.activeElement.blur();
@@ -279,7 +279,7 @@ function setReceiptDateRange(dateFrom: Date, dateTo: Date): void {
     dateToInput.value = formatDateForQuery(dateTo);
 }
 
-// РћР±СЂР°Р±РѕС‚С‡РёРє РєР»РёРєР° РїРѕ РєР°СЂС‚РѕС‡РєР°Рј С‡РµРєРѕРІ
+// Обработчик клика по карточкам чеков
 function onReceiptListClick(event: MouseEvent): void {
     const target = event.target;
     if (!(target instanceof Element)) {
@@ -355,7 +355,7 @@ function onReceiptListClick(event: MouseEvent): void {
     }
 }
 
-// РЎРѕР±СЂР°С‚СЊ query-РїР°СЂР°РјРµС‚СЂС‹ РґР»СЏ dateFrom/dateTo
+// Собрать query-параметры для dateFrom/dateTo
 function buildDateRangeQuery(): string {
     const fromVal = dateFromInput.value;
     const toVal = dateToInput.value;
@@ -372,7 +372,7 @@ function buildDateRangeQuery(): string {
     return parts.join('&');
 }
 
-// Р—Р°РіСЂСѓР·РёС‚СЊ СЃРїРёСЃРѕРє С‡РµРєРѕРІ (РѕР¶РёРґР°РµС‚СЃСЏ РјР°СЃСЃРёРІ DTO)
+// Загрузить список чеков (ожидается массив DTO)
 async function loadReceiptList(): Promise<void> {
     try {
         const rangeQuery = buildDateRangeQuery();
@@ -380,13 +380,13 @@ async function loadReceiptList(): Promise<void> {
         renderReceiptList(applyReceiptFilters(receiptsCache));
     } catch (error) {
         console.error(error);
-        alert('РћС€РёР±РєР° РїСЂРё РїРѕР»СѓС‡РµРЅРёРё СЃРїРёСЃРєР° С‡РµРєРѕРІ.');
+        alert('Ошибка при получении списка чеков.');
     }
 }
 
 async function loadAvailableAccountsAsync(): Promise<void> {
     if (!receiptAccountFilterSelect) {
-        throw new Error('РќРµ РЅР°Р№РґРµРЅ С„РёР»СЊС‚СЂ СЃС‡РµС‚РѕРІ.');
+        throw new Error('Не найден фильтр счетов.');
     }
 
     receiptAccountFilterSelect.disabled = true;
@@ -399,12 +399,12 @@ async function loadAvailableAccountsAsync(): Promise<void> {
         hideAccountFilterError(receiptAccountFilterError);
         receiptAccountFilterSelect.disabled = false;
     } catch (error) {
-        renderAccountFilterError({ select: receiptAccountFilterSelect, error: receiptAccountFilterError }, error instanceof Error ? error : new Error("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃРїРёСЃРѕРє СЃС‡РµС‚РѕРІ."));
+        renderAccountFilterError({ select: receiptAccountFilterSelect, error: receiptAccountFilterError }, error instanceof Error ? error : new Error("Не удалось загрузить список счетов."));
         throw error;
     }
 }
 
-// РћС‚РєСЂС‹С‚СЊ С‡РµРє (РѕР¶РёРґР°РµС‚СЃСЏ РѕРґРёРЅ ReceiptDto СЃ Items)
+// Открыть чек (ожидается один ReceiptDto с Items)
 async function openReceipt(receiptId: string): Promise<void> {
     try {
         const data = await openReceiptApi(receiptId, forgeryToken);
@@ -421,7 +421,7 @@ async function openReceipt(receiptId: string): Promise<void> {
         );
     } catch (error) {
         console.error(error);
-        alert('РћС€РёР±РєР° РїСЂРё РїРѕР»СѓС‡РµРЅРёРё РґРµС‚Р°Р»РµР№ С‡РµРєР°.');
+        alert('Ошибка при получении деталей чека.');
     }
 }
 
@@ -437,17 +437,17 @@ function renderReceiptList(list: ReceiptDto[]): void {
 
 function updateReceiptSummary(list: ReceiptDto[]): void {
     if (!receiptsCountElement || !receiptsSumElement) {
-        throw new Error('Р­Р»РµРјРµРЅС‚С‹ СЃРІРѕРґРєРё С‡РµРєРѕРІ РЅРµ РЅР°Р№РґРµРЅС‹.');
+        throw new Error('Элементы сводки чеков не найдены.');
     }
 
     updateReceiptsSummary(receiptsCountElement, receiptsSumElement, list, formatCurrency);
 }
 
-// РћР±РЅРѕРІРёС‚СЊ С‡РµРє (РѕР¶РёРґР°РµС‚СЃСЏ РѕРґРёРЅ ReceiptDto Р±РµР· Items)
+// Обновить чек (ожидается один ReceiptDto без Items)
 async function refreshReceipt(receiptId: string, cardElement: HTMLElement, buttonElement: HTMLButtonElement): Promise<void> {
     const originalText = buttonElement.textContent;
     buttonElement.disabled = true;
-    buttonElement.textContent = 'РћР±РЅРѕРІР»РµРЅРёРµ...';
+    buttonElement.textContent = 'Обновление...';
 
     try {
         const data = await refreshReceiptApi(receiptId, forgeryToken);
@@ -461,11 +461,11 @@ async function refreshReceipt(receiptId: string, cardElement: HTMLElement, butto
     }
 }
 
-// РћС‚РєСЂС‹С‚СЊ РјРѕРґР°Р»СЊРЅРѕРµ РѕРєРЅРѕ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ СѓРґР°Р»РµРЅРёСЏ
+// Открыть модальное окно подтверждения удаления
 function openDeleteReceiptModal(receiptId: string, cardElement: HTMLElement): void {
     const receipt = findReceiptByIdCore(receiptsCache, receiptId);
     if (!receipt) {
-        alert('Р§РµРє РЅРµ РЅР°Р№РґРµРЅ РІ С‚РµРєСѓС‰РµРј СЃРїРёСЃРєРµ.');
+        alert('Чек не найден в текущем списке.');
         return;
     }
 
@@ -478,30 +478,30 @@ function openDeleteReceiptModal(receiptId: string, cardElement: HTMLElement): vo
     };
 
     fillDeleteReceiptModal(
-        'РЈРґР°Р»РµРЅРёРµ С‡РµРєР°',
-        'Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ СЌС‚РѕС‚ С‡РµРє?',
+        'Удаление чека',
+        'Вы уверены, что хотите удалить этот чек?',
         receipt
     );
 
-    // РЎР±СЂР°СЃС‹РІР°С‚СЊ РІРѕР·РјРѕР¶РЅРѕРµ РїСЂРµРґС‹РґСѓС‰РµРµ СЃРѕСЃС‚РѕСЏРЅРёРµ РєРЅРѕРїРєРё
+    // Сбрасывать возможное предыдущее состояние кнопки
     if (deleteConfirmButton) {
         deleteConfirmButton.disabled = false;
-        deleteConfirmButton.textContent = 'РЈРґР°Р»РёС‚СЊ';
+        deleteConfirmButton.textContent = 'Удалить';
     }
 
     deleteBootstrapModal.show();
 }
 
-// РћР±СЂР°Р±РѕС‚Р°С‚СЊ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ СѓРґР°Р»РµРЅРёСЏ
+// Обработать подтверждение удаления
 async function onConfirmDeleteReceipt(): Promise<void> {
     if (!pendingDeleteAction) {
         return;
     }
 
-    // Р‘Р»РѕРєРёСЂРѕРІР°С‚СЊ РєРЅРѕРїРєСѓ Рё РїРѕРєР°Р·Р°С‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ СѓРґР°Р»РµРЅРёСЏ
+    // Блокировать кнопку и показать состояние удаления
     const originalText = deleteConfirmButton.textContent;
     deleteConfirmButton.disabled = true;
-    deleteConfirmButton.textContent = 'РЈРґР°Р»РµРЅРёРµ...';
+    deleteConfirmButton.textContent = 'Удаление...';
 
     try {
         if (pendingDeleteAction.type === DELETE_ACTION_DELETE_RECEIPT) {
@@ -513,7 +513,7 @@ async function onConfirmDeleteReceipt(): Promise<void> {
             closeMoveReceiptAccountModal();
         }
         else {
-            throw new Error('РќРµРёР·РІРµСЃС‚РЅС‹Р№ С‚РёРї СѓРґР°Р»РµРЅРёСЏ С‡РµРєР°.');
+            throw new Error('Неизвестный тип удаления чека.');
         }
 
         renderReceiptList(applyReceiptFilters(receiptsCache));
@@ -525,19 +525,19 @@ async function onConfirmDeleteReceipt(): Promise<void> {
         pendingDeleteCardElement = null;
     } catch (error) {
         console.error(error);
-        alert('РћС€РёР±РєР° РїСЂРё СѓРґР°Р»РµРЅРёРё С‡РµРєР°.');
+        alert('Ошибка при удалении чека.');
     } finally {
-        // Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°С‚СЊ РєРЅРѕРїРєСѓ
+        // Восстанавливать кнопку
         deleteConfirmButton.disabled = false;
         deleteConfirmButton.textContent = originalText;
     }
 }
 
-// РџРѕСЃС‚СЂРѕРёС‚СЊ РєР°СЂС‚РѕС‡РєСѓ С‡РµРєР°
-// РћС‚СЂРёСЃРѕРІР°С‚СЊ РґРµС‚Р°Р»Рё С‡РµРєР° РІ РјРѕРґР°Р»СЊРЅРѕРј РѕРєРЅРµ
-// РћР±РЅРѕРІРёС‚СЊ СЃСѓС‰РµСЃС‚РІСѓСЋС‰СѓСЋ РєР°СЂС‚РѕС‡РєСѓ С‡РµРєР°
-// Р¤РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёРµ РґР°С‚С‹ РґР»СЏ query (YYYY-MM-DD)
-// Р¤РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёРµ С‡РёСЃР»Р°
+// Построить карточку чека
+// Отрисовать детали чека в модальном окне
+// Обновить существующую карточку чека
+// Форматирование даты для query (YYYY-MM-DD)
+// Форматирование числа
 function formatNumber(value: number): string {
     if (typeof value !== 'number') {
         return value;
@@ -545,7 +545,7 @@ function formatNumber(value: number): string {
     return formatRuNumber(value);
 }
 
-// Р¤РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёРµ РІР°Р»СЋС‚С‹
+// Форматирование валюты
 function formatCurrency(value: number): string {
     if (typeof value !== 'number') {
         return value;
@@ -588,7 +588,7 @@ function openRemoveReceiptFromAccountConfirmation(): void {
 
     const receipt = findReceiptByAccountReceiptIdCore(receiptsCache, pendingReceiptAccountAction.receiptId, pendingReceiptAccountAction.sourceAccountId);
     if (!receipt) {
-        alert('Р§РµРє РЅРµ РЅР°Р№РґРµРЅ РІ С‚РµРєСѓС‰РµРј СЃРїРёСЃРєРµ.');
+        alert('Чек не найден в текущем списке.');
         return;
     }
 
@@ -600,14 +600,14 @@ function openRemoveReceiptFromAccountConfirmation(): void {
     };
 
     fillDeleteReceiptModal(
-        'РЈРґР°Р»РµРЅРёРµ С‡РµРєР° РёР· СЃС‡С‘С‚Р°',
-        'Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ СЌС‚РѕС‚ С‡РµРє РёР· СЃС‡С‘С‚Р°?',
+        'Удаление чека из счёта',
+        'Вы уверены, что хотите удалить этот чек из счёта?',
         receipt
     );
 
     if (deleteConfirmButton) {
         deleteConfirmButton.disabled = false;
-        deleteConfirmButton.textContent = 'РЈРґР°Р»РёС‚СЊ';
+        deleteConfirmButton.textContent = 'Удалить';
     }
 
     preserveMoveReceiptAccountModalStateOnHide = true;
@@ -662,18 +662,18 @@ function getReceiptOperationFilter(): string {
 function openMoveReceiptAccountModal(receiptId: string, sourceAccountId: string): void {
     const receipt = findReceiptByAccountReceiptIdCore(receiptsCache, receiptId, sourceAccountId);
     if (!receipt) {
-        alert('Р§РµРє РЅРµ РЅР°Р№РґРµРЅ РІ С‚РµРєСѓС‰РµРј СЃРїРёСЃРєРµ.');
+        alert('Чек не найден в текущем списке.');
         return;
     }
 
     const sourceAccount = findReceiptAccountCore(receipt, sourceAccountId, receiptId);
     if (!sourceAccount) {
-        alert('РЎРІСЏР·СЊ СЃРѕ СЃС‡С‘С‚РѕРј РЅРµ РЅР°Р№РґРµРЅР°.');
+        alert('Связь со счётом не найдена.');
         return;
     }
 
     if (!sourceAccount.canEditReceipt) {
-        alert('РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РёР·РјРµРЅРµРЅРёСЏ С‡РµРєР° РІ РІС‹Р±СЂР°РЅРЅРѕРј СЃС‡С‘С‚Рµ.');
+        alert('Недостаточно прав для изменения чека в выбранном счёте.');
         return;
     }
 
@@ -778,7 +778,7 @@ function getUnavailableMoveReceiptReason(): string {
         return option.value && option.disabled === true && option.getAttribute('data-reason');
     });
 
-    return disabledOption ? disabledOption.getAttribute('data-reason') || '' : 'РќРµС‚ РґРѕСЃС‚СѓРїРЅС‹С… СЃС‡РµС‚РѕРІ РґР»СЏ РїРµСЂРµРЅРѕСЃР° СЌС‚РѕРіРѕ С‡РµРєР°.';
+    return disabledOption ? disabledOption.getAttribute('data-reason') || '' : 'Нет доступных счетов для переноса этого чека.';
 }
 
 async function onConfirmMoveReceiptToAccount(): Promise<void> {
@@ -794,7 +794,7 @@ async function onConfirmMoveReceiptToAccount(): Promise<void> {
 
     const originalText = confirmMoveReceiptAccountButton.textContent;
     confirmMoveReceiptAccountButton.disabled = true;
-    confirmMoveReceiptAccountButton.textContent = 'РџРµСЂРµРЅРѕСЃ...';
+    confirmMoveReceiptAccountButton.textContent = 'Перенос...';
 
     removeReceiptFromAccountButton.disabled = true;
 
@@ -813,7 +813,7 @@ async function onConfirmMoveReceiptToAccount(): Promise<void> {
         renderReceiptList(applyReceiptFilters(receiptsCache));
     } catch (error) {
         console.error(error);
-        showMoveReceiptAccountAlert(error && error.message ? error.message : 'РќРµ СѓРґР°Р»РѕСЃСЊ РїРµСЂРµРЅРµСЃС‚Рё С‡РµРє РІ РґСЂСѓРіРѕР№ СЃС‡С‘С‚.');
+        showMoveReceiptAccountAlert(error && error.message ? error.message : 'Не удалось перенести чек в другой счёт.');
     } finally {
         confirmMoveReceiptAccountButton.textContent = originalText;
         updateMoveReceiptActionState();
@@ -887,7 +887,7 @@ function hideMoveReceiptAccountAlert(): void {
 async function openReceiptMoneyMovementsModal(receiptId: string): Promise<void> {
     const receipt = findReceiptByIdCore(receiptsCache, receiptId);
     if (!receipt) {
-        alert('Р§РµРє РЅРµ РЅР°Р№РґРµРЅ РІ С‚РµРєСѓС‰РµРј СЃРїРёСЃРєРµ.');
+        alert('Чек не найден в текущем списке.');
         return;
     }
 
@@ -917,7 +917,7 @@ async function reloadReceiptLinkedMoneyMovements(): Promise<void> {
     }
 
     const movements = await loadLinkedMoneyMovementsApi(selectedMoneyMovementsReceiptId, forgeryToken);
-    renderReceiptMoneyMovementList(receiptLinkedMoneyMovements, movements, 'unlink-money-movement', 'РћС‚РІСЏР·Р°С‚СЊ', 'РџСЂРёРІСЏР·Р°РЅРЅС‹С… РѕРїРµСЂР°С†РёР№ РЅРµС‚.');
+    renderReceiptMoneyMovementList(receiptLinkedMoneyMovements, movements, 'unlink-money-movement', 'Отвязать', 'Привязанных операций нет.');
 }
 
 async function reloadReceiptMoneyMovementCandidates(): Promise<void> {
@@ -926,7 +926,7 @@ async function reloadReceiptMoneyMovementCandidates(): Promise<void> {
     }
 
     const movements = await loadMoneyMovementCandidatesApi(readReceiptMoneyMovementCandidatesRequest(selectedMoneyMovementsReceiptId), forgeryToken);
-    renderReceiptMoneyMovementList(receiptMoneyMovementCandidates, movements, 'link-money-movement', 'РџСЂРёРІСЏР·Р°С‚СЊ', 'РџРѕРґС…РѕРґСЏС‰РёРµ РѕРїРµСЂР°С†РёРё РЅРµ РЅР°Р№РґРµРЅС‹.');
+    renderReceiptMoneyMovementList(receiptMoneyMovementCandidates, movements, 'link-money-movement', 'Привязать', 'Подходящие операции не найдены.');
 }
 
 function readReceiptMoneyMovementCandidatesRequest(receiptId: string): GetReceiptMoneyMovementCandidatesRequest {
@@ -1067,11 +1067,11 @@ function createReceiptMoneyMovementCard(movement: ReceiptMoneyMovementDto, actio
 
     const title = document.createElement('div');
     title.classList.add('fw-semibold');
-    title.textContent = movement.comment || movement.importComment || 'Р‘РµР· РєРѕРјРјРµРЅС‚Р°СЂРёСЏ';
+    title.textContent = movement.comment || movement.importComment || 'Без комментария';
 
     const meta = document.createElement('div');
     meta.classList.add('small', 'text-muted');
-    const accountText = movement.accountName ? ` В· ${movement.accountName}` : '';
+    const accountText = movement.accountName ? ` · ${movement.accountName}` : '';
     meta.textContent = `${formatDateTime(movement.occurredAt)}${accountText}`;
 
     const amount = document.createElement('div');
@@ -1083,7 +1083,7 @@ function createReceiptMoneyMovementCard(movement: ReceiptMoneyMovementDto, actio
     if (movement.isLinkedToOtherReceipt && action === 'link-money-movement') {
         const warning = document.createElement('div');
         warning.classList.add('small', 'text-warning');
-        warning.textContent = 'РЈР¶Рµ СЃРІСЏР·Р°РЅР° СЃ С‡РµРєРѕРј';
+        warning.textContent = 'Уже связана с чеком';
         left.append(warning);
     }
 
@@ -1099,7 +1099,7 @@ function createReceiptMoneyMovementCard(movement: ReceiptMoneyMovementDto, actio
 }
 
 function buildReceiptMoneyMovementInfoText(receipt: ReceiptDto): string {
-    return `${formatDateTime(receipt.dateTime)} В· ${formatCurrency(receipt.totalSum)} В· ${normalizeSingleLineTextValue(receipt.retailPlace)}`;
+    return `${formatDateTime(receipt.dateTime)} · ${formatCurrency(receipt.totalSum)} · ${normalizeSingleLineTextValue(receipt.retailPlace)}`;
 }
 
 function showReceiptMoneyMovementsAlert(message: string): void {
@@ -1132,5 +1132,5 @@ function getErrorMessage(error: unknown): string {
         return error.message;
     }
 
-    return 'РћС€РёР±РєР° РѕРїРµСЂР°С†РёРё.';
+    return 'Ошибка операции.';
 }
