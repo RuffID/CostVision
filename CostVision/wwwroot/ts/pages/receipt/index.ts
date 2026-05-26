@@ -314,7 +314,14 @@ function qrScanRenderStatus(scannedCount, addedToDbCount, errorCount, errorMessa
 
         const addedText = document.createElement("div");
         addedText.className = "qr-status__text mb-0";
-        addedText.textContent = "Добавлено: " + addedToDbCount;
+        if (addedToDbCount === 1) {
+            const addedReceipt = qrScanFindFirstSuccessfulParsedResult(normalizedResults);
+            addedText.textContent = addedReceipt
+                ? qrScanBuildAddedReceiptStatusText(addedReceipt.parsed)
+                : "Добавлен чек";
+        } else {
+            addedText.textContent = "Добавлено чеков: " + addedToDbCount;
+        }
 
         addedItem.appendChild(addedText);
         container.appendChild(addedItem);
@@ -338,7 +345,14 @@ function qrScanRenderStatus(scannedCount, addedToDbCount, errorCount, errorMessa
 
         const errorText = document.createElement("div");
         errorText.className = "qr-status__text mb-0";
-        errorText.textContent = "Ошибок: " + errorCount;
+        if (errorCount === 1) {
+            const failedReceipt = qrScanFindFirstFailedParsedResult(normalizedResults);
+            errorText.textContent = failedReceipt
+                ? qrScanBuildFailedReceiptStatusText(failedReceipt.parsed)
+                : "Не удалось добавить чек";
+        } else {
+            errorText.textContent = "Ошибок: " + errorCount;
+        }
 
         errorItem.appendChild(errorText);
         container.appendChild(errorItem);
@@ -412,21 +426,22 @@ function qrScanRenderResults(results) {
 
     if (!sectionBody) {
         const wrapper = document.createElement("div");
-        wrapper.className = "qr-section card shadow-sm border-0 mt-4 d-inline-block";
+        wrapper.className = "qr-section mt-4 rounded-4 border overflow-hidden";
         wrapper.style.backgroundColor = "#F9FAFB";
-        wrapper.style.border = "1px solid #d1d5db";
+        wrapper.style.borderColor = "#d1d5db";
         wrapper.style.borderRadius = "1rem";
+        wrapper.style.width = "min(100%, 41rem)";
 
         const headerBtn = document.createElement("button");
         headerBtn.type = "button";
-        headerBtn.className = "qr-section__header qr-section__header--collapsed btn btn-light d-inline-flex align-items-center justify-content-between text-start px-3 py-3 fs-5 fw-semibold gap-3";
+        headerBtn.className = "qr-section__header qr-section__header--collapsed btn w-100 d-flex align-items-center justify-content-between text-start px-4 py-3 border-0 rounded-top-4 bg-transparent fw-bold fs-6";
         headerBtn.setAttribute("data-collapse-target", "#decoded-results-section");
         headerBtn.setAttribute("aria-expanded", "false");
         headerBtn.style.backgroundColor = "transparent";
         headerBtn.style.border = "0";
 
         const headerTextSpan = document.createElement("span");
-        headerTextSpan.textContent = "Результаты сканирования";
+        headerTextSpan.textContent = "Результат обработки";
 
         const headerArrowSpan = document.createElement("span");
         headerArrowSpan.className = "qr-section__arrow text-body-secondary fs-5";
@@ -439,7 +454,8 @@ function qrScanRenderResults(results) {
         sectionBody = document.createElement("div");
         sectionBody.id = "decoded-results-section";
         sectionBody.className = "qr-section__body qr-section__body--collapsed card-body d-none bg-body-tertiary";
-        sectionBody.style.minWidth = "min(100%, 32rem)";
+        sectionBody.style.boxSizing = "border-box";
+        sectionBody.style.width = "100%";
         sectionBody.style.backgroundColor = "#F9FAFB";
         sectionBody.style.borderTop = "1px solid #d1d5db";
 
@@ -504,42 +520,7 @@ function qrScanRenderResults(results) {
         li.appendChild(headerSpan);
         li.appendChild(document.createElement("br"));
 
-        if (r.errorMessage) {
-            const errSpan = document.createElement("span");
-            errSpan.className = "text-danger";
-            errSpan.textContent = r.errorMessage;
-            li.appendChild(errSpan);
-        } else if (r.parsed) {
-            const parsedDiv = document.createElement("div");
-
-            let dtText = "-";
-            if (r.parsed.dateTime) {
-                try {
-                    const dt2 = new Date(r.parsed.dateTime);
-                    if (!Number.isNaN(dt2.getTime())) {
-                        const day = dt2.toLocaleDateString();
-                        const time = dt2.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                        dtText = `${day} ${time}`;
-                    }
-                } catch {
-                    // игнорировать
-                }
-            }
-
-            let sumText = "-";
-            if (typeof r.parsed.sum === "number") {
-                sumText = r.parsed.sum.toFixed(2) + " ₽";
-            }
-
-            parsedDiv.append(
-                document.createTextNode("Чек от: "),
-                createStrongText(dtText),
-                document.createTextNode(", сумма: "),
-                createStrongText(sumText)
-            );
-
-            li.appendChild(parsedDiv);
-        }
+        qrScanAppendProcessingResultDetails(li, r);
 
         ul.appendChild(li);
     }
@@ -549,6 +530,87 @@ function createStrongText(text) {
     const element = document.createElement("strong");
     element.textContent = text;
     return element;
+}
+
+function qrScanFindFirstSuccessfulParsedResult(results) {
+    return results.find(function (result) {
+        return !!result && !result.errorMessage && !!result.parsed;
+    }) || null;
+}
+
+function qrScanFindFirstFailedParsedResult(results) {
+    return results.find(function (result) {
+        return !!result && !!result.errorMessage && !!result.parsed;
+    }) || null;
+}
+
+function qrScanBuildAddedReceiptStatusText(parsed) {
+    return "[" + qrScanFormatReceiptDateForStatus(parsed.dateTime) + "] Добавлен чек на сумму: " + qrScanFormatReceiptSumForStatus(parsed.sum);
+}
+
+function qrScanBuildFailedReceiptStatusText(parsed) {
+    return "Не удалось добавить чек на сумму: " + qrScanFormatReceiptSumForStatus(parsed.sum) + ", от " + qrScanFormatReceiptDateForStatus(parsed.dateTime);
+}
+
+function qrScanAppendProcessingResultDetails(container, result) {
+    const statusDiv = document.createElement("div");
+    statusDiv.className = result.errorMessage ? "fw-semibold text-danger" : "fw-semibold text-success";
+    statusDiv.textContent = result.errorMessage
+        ? "Не загружен: " + result.errorMessage
+        : "Загружен";
+    container.appendChild(statusDiv);
+
+    if (!result.parsed) {
+        return;
+    }
+
+    const parsedDiv = document.createElement("div");
+    parsedDiv.className = "small text-body-secondary mt-1";
+    parsedDiv.append(
+        document.createTextNode("Чек от: "),
+        createStrongText(qrScanFormatReceiptDateForStatus(result.parsed.dateTime)),
+        document.createTextNode(", сумма: "),
+        createStrongText(qrScanFormatReceiptSumForStatus(result.parsed.sum)),
+        document.createTextNode(", ФН: "),
+        createStrongText(result.parsed.fiscalDriveNumber || "не указан"),
+        document.createTextNode(", ФД: "),
+        createStrongText(result.parsed.fiscalDocumentNumber || "не указан"),
+        document.createTextNode(", ФП: "),
+        createStrongText(result.parsed.fiscalSign || "не указан")
+    );
+
+    container.appendChild(parsedDiv);
+}
+
+function qrScanFormatReceiptDateForStatus(value) {
+    if (!value) {
+        return "дата не указана";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${hours}:${minutes} ${day}.${month}.${year}`;
+}
+
+function qrScanFormatReceiptSumForStatus(value) {
+    const numericValue = typeof value === "number" ? value : parseFloat(value);
+    if (Number.isNaN(numericValue)) {
+        return "сумма не указана";
+    }
+
+    return new Intl.NumberFormat("ru-RU", {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 2
+    }).format(numericValue) + " ₽";
 }
 
 // ===================== Работа с результатами (Results) =====================
@@ -1203,7 +1265,9 @@ function qrScanShowCameraReceiptFeedback(results, addedToDbCount, errorCount, er
         subtitle.textContent = receiptResult.errorMessage;
         qrScanAppendParsedReceiptDetails(details, receiptResult.parsed);
     } else {
-        title.textContent = addedToDbCount > 0 ? "Чек добавлен" : "Чек уже есть в системе";
+        title.textContent = addedToDbCount > 0
+            ? qrScanBuildAddedReceiptStatusText(receiptResult.parsed)
+            : "Чек уже есть в системе";
         title.classList.add(addedToDbCount > 0 ? "text-success" : "text-warning");
         subtitle.textContent = addedToDbCount > 0
             ? (source === "files"
