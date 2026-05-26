@@ -1,6 +1,7 @@
 ﻿import { getRequestVerificationToken } from "../../../shared/verificationToken.js";
 import { clearElement, requireElementById, requireInputById, requireSelectById } from "../../../shared/dom.js";
 import { formatMoneyRub, formatRuNumber, normalizeSingleLineTextValue } from "../../../shared/formatters.js";
+import { renderHelpTooltip } from "../../../shared/helpTooltip.js";
 import { BootstrapModal, createBootstrapModal } from "../../../shared/bootstrap.js";
 import { deleteReceiptApi, linkReceiptMoneyMovementApi, loadAvailableAccountsApi, loadLinkedMoneyMovementsApi, loadMoneyMovementCandidatesApi, loadReceiptsApi, moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi, unlinkReceiptMoneyMovementApi } from "./api.js";
 import { applyReceiptFilters as applyReceiptFiltersCore } from "./filters.js";
@@ -68,6 +69,11 @@ let receiptMoneyMovementsUseTimeWindow: HTMLInputElement;
 let receiptMoneyMovementsUseAmountFilter: HTMLInputElement;
 let receiptMoneyMovementsExcludeLinked: HTMLInputElement;
 let receiptMoneyMovementsReloadCandidatesButton: HTMLButtonElement;
+let receiptMoneyMovementsAmountToleranceHelp: HTMLElement;
+let receiptMoneyMovementsTimeWindowHoursHelp: HTMLElement;
+let receiptMoneyMovementsUseTimeWindowHelp: HTMLElement;
+let receiptMoneyMovementsUseAmountFilterHelp: HTMLElement;
+let receiptMoneyMovementsExcludeLinkedHelp: HTMLElement;
 
 let receiptsCache: ReceiptDto[] = [];
 let availableAccountsCache: AvailableAccountDto[] = [];
@@ -123,6 +129,12 @@ async function initListOfChecksPage(): Promise<void> {
     receiptMoneyMovementsUseAmountFilter = requireInputById('receiptMoneyMovementsUseAmountFilter');
     receiptMoneyMovementsExcludeLinked = requireInputById('receiptMoneyMovementsExcludeLinked');
     receiptMoneyMovementsReloadCandidatesButton = requireElementById<HTMLButtonElement>('receiptMoneyMovementsReloadCandidatesButton');
+    receiptMoneyMovementsAmountToleranceHelp = requireElementById<HTMLElement>('receiptMoneyMovementsAmountToleranceHelp');
+    receiptMoneyMovementsTimeWindowHoursHelp = requireElementById<HTMLElement>('receiptMoneyMovementsTimeWindowHoursHelp');
+    receiptMoneyMovementsUseTimeWindowHelp = requireElementById<HTMLElement>('receiptMoneyMovementsUseTimeWindowHelp');
+    receiptMoneyMovementsUseAmountFilterHelp = requireElementById<HTMLElement>('receiptMoneyMovementsUseAmountFilterHelp');
+    receiptMoneyMovementsExcludeLinkedHelp = requireElementById<HTMLElement>('receiptMoneyMovementsExcludeLinkedHelp');
+    initReceiptMoneyMovementHelpTooltips();
     forgeryToken = getRequestVerificationToken();
 
     if (modalElement) {
@@ -255,6 +267,29 @@ async function initListOfChecksPage(): Promise<void> {
 
     await loadAvailableAccountsAsync();
     await loadReceiptList();
+}
+
+function initReceiptMoneyMovementHelpTooltips(): void {
+    renderHelpTooltip(receiptMoneyMovementsAmountToleranceHelp, {
+        title: "Допуск суммы",
+        text: "Разрешённая разница между суммой чека и суммой операции при поиске кандидатов."
+    });
+    renderHelpTooltip(receiptMoneyMovementsTimeWindowHoursHelp, {
+        title: "Допуск времени",
+        text: "Размер окна поиска по времени в часах до и после времени чека. Используется только при включённом окне времени."
+    });
+    renderHelpTooltip(receiptMoneyMovementsUseTimeWindowHelp, {
+        title: "Окно времени",
+        text: "Искать операции в пределах указанного допуска времени до и после времени чека. При включении ручной период дат не используется."
+    });
+    renderHelpTooltip(receiptMoneyMovementsUseAmountFilterHelp, {
+        title: "По сумме",
+        text: "Показывать только операции, сумма которых близка к сумме чека с учётом допуска."
+    });
+    renderHelpTooltip(receiptMoneyMovementsExcludeLinkedHelp, {
+        title: "Без привязанных",
+        text: "Скрывать операции, которые уже связаны с любым чеком. Отключите, если операцию можно привязать повторно."
+    });
 }
 
 function onReceiptPeriodPresetChanged(): void {

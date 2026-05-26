@@ -1,6 +1,6 @@
 export interface HelpTooltipOptions {
     title: string;
-    text: string;
+    text: string | string[];
 }
 
 interface ActiveHelpTooltip {
@@ -9,7 +9,10 @@ interface ActiveHelpTooltip {
     pinned: boolean;
 }
 
+const HOVER_OPEN_DELAY_MS = 500;
+
 let activeHelpTooltip: ActiveHelpTooltip | null = null;
+let hoverOpenTimerId: number | null = null;
 
 export function renderHelpTooltip(host: HTMLElement, options: HelpTooltipOptions): HTMLButtonElement {
     host.replaceChildren();
@@ -30,13 +33,35 @@ export function renderHelpTooltip(host: HTMLElement, options: HelpTooltipOptions
 }
 
 function bindHelpTooltip(trigger: HTMLElement, options: HelpTooltipOptions): void {
-    trigger.addEventListener("mouseenter", () => showHelpTooltip(trigger, options, false));
-    trigger.addEventListener("mouseleave", () => hideHoverHelpTooltip(trigger));
+    trigger.addEventListener("mouseenter", () => scheduleHoverHelpTooltip(trigger, options));
+    trigger.addEventListener("mouseleave", () => {
+        clearHoverOpenTimer();
+        hideHoverHelpTooltip(trigger);
+    });
     trigger.addEventListener("click", event => {
         event.preventDefault();
         event.stopPropagation();
+        clearHoverOpenTimer();
         showHelpTooltip(trigger, options, true);
     });
+}
+
+function scheduleHoverHelpTooltip(trigger: HTMLElement, options: HelpTooltipOptions): void {
+    clearHoverOpenTimer();
+
+    hoverOpenTimerId = window.setTimeout(() => {
+        hoverOpenTimerId = null;
+        showHelpTooltip(trigger, options, false);
+    }, HOVER_OPEN_DELAY_MS);
+}
+
+function clearHoverOpenTimer(): void {
+    if (hoverOpenTimerId === null) {
+        return;
+    }
+
+    window.clearTimeout(hoverOpenTimerId);
+    hoverOpenTimerId = null;
 }
 
 function showHelpTooltip(trigger: HTMLElement, options: HelpTooltipOptions, pinned: boolean): void {
@@ -82,11 +107,26 @@ function createHelpTooltipPopup(options: HelpTooltipOptions): HTMLElement {
 
     let body = document.createElement("div");
     body.classList.add("text-black", "px-3", "py-2");
-    body.textContent = options.text;
+    appendHelpTooltipBodyText(body, options.text);
 
     popup.append(header, body);
 
     return popup;
+}
+
+function appendHelpTooltipBodyText(body: HTMLElement, text: string | string[]): void {
+    if (typeof text === "string") {
+        body.textContent = text;
+        return;
+    }
+
+    body.classList.add("d-flex", "flex-column", "gap-2");
+
+    for (let lineText of text) {
+        let line = document.createElement("div");
+        line.textContent = lineText;
+        body.append(line);
+    }
 }
 
 function positionHelpTooltip(trigger: HTMLElement, popup: HTMLElement): void {
@@ -146,6 +186,7 @@ function closeActiveHelpTooltip(): void {
         return;
     }
 
+    clearHoverOpenTimer();
     activeHelpTooltip.popup.remove();
     activeHelpTooltip = null;
     window.removeEventListener("resize", handleWindowResize);
