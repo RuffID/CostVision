@@ -17,8 +17,8 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
             builder.Property(x => x.Name)
                 .HasMaxLength(500);
 
-            builder.Property(x => x.ProductCode)
-                .HasMaxLength(150);
+            builder.Property(x => x.AdaptiveName)
+                .HasMaxLength(500);
 
             builder.Property(x => x.NormalizedName)
                 .HasMaxLength(500);

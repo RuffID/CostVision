@@ -58,7 +58,7 @@ namespace CostVision.Infrastructure.Services.Receipts
                 {
                     string normalizedName = NameNormalizedHelper.GetNormalizedName(item.Name);
                     Product product = new();
-                    product.UpdateDetails(item.Name, normalizedName, item.ProductCode?.RawProductCode);
+                    product.UpdateDetails(item.Name, normalizedName);
 
                     ReceiptItem receiptItem = item.MapToReceiptItem(receipt.Id, Guid.Empty);
                     receiptItem.Product = product;

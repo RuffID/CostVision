@@ -7,6 +7,7 @@ using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parser
 using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsers.TBank;
 using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsing;
 using CostVision.Application.UseCases.Receipts.Accounts;
+using CostVision.Application.UseCases.Receipts.Products;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +35,8 @@ namespace CostVision.Application.Extensions
             services.AddScoped<IUpdateAccountMembersUseCase, UpdateAccountMembersUseCase>();
             services.AddScoped<IMoveReceiptToAccountUseCase, MoveReceiptToAccountUseCase>();
             services.AddScoped<IRemoveReceiptFromAccountUseCase, RemoveReceiptFromAccountUseCase>();
+            services.AddScoped<IGetProductListUseCase, GetProductListUseCase>();
+            services.AddScoped<IUpdateProductAdaptiveNameUseCase, UpdateProductAdaptiveNameUseCase>();
             services.AddScoped<IGetUserListUseCase, GetUserListUseCase>();
             services.AddScoped<IGetUserUseCase, GetUserUseCase>();
             services.AddScoped<ICreateUserUseCase, CreateUserUseCase>();

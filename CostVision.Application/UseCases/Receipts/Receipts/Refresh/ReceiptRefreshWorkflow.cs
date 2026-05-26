@@ -70,7 +70,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
             string normalizedName = sourceProduct.NormalizedName;
             if (productCache.TryGetValue(normalizedName, out Product? cached))
             {
-                cached.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName, sourceProduct.ProductCode);
+                cached.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName);
                 return cached;
             }
 
@@ -78,13 +78,13 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
             if (productFromDb == null)
             {
                 Product createdProduct = new();
-                createdProduct.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName, sourceProduct.ProductCode);
+                createdProduct.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName);
                 unitOfWork.Product.Create(createdProduct);
                 productCache[normalizedName] = createdProduct;
                 return createdProduct;
             }
 
-            productFromDb.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName, sourceProduct.ProductCode);
+            productFromDb.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName);
             productCache[normalizedName] = productFromDb;
             return productFromDb;
         }

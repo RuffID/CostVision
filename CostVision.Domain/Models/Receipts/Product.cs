@@ -10,18 +10,25 @@ namespace CostVision.Domain.Models.Receipts
 
         public string NormalizedName { get; set; } = string.Empty;
 
-        public string? ProductCode { get; set; }
+        public string? AdaptiveName { get; set; }
 
         public ICollection<ReceiptItem> ReceiptItems { get; set; } = new List<ReceiptItem>();
 
         /// <summary>
         /// Обновляет отображаемые данные товара.
         /// </summary>
-        public void UpdateDetails(string name, string normalizedName, string? productCode)
+        public void UpdateDetails(string name, string normalizedName)
         {
             Name = name;
             NormalizedName = normalizedName;
-            ProductCode = productCode;
+        }
+
+        /// <summary>
+        /// Обновляет адаптивное название товара.
+        /// </summary>
+        public void UpdateAdaptiveName(string? adaptiveName)
+        {
+            AdaptiveName = string.IsNullOrWhiteSpace(adaptiveName) ? null : adaptiveName.Trim();
         }
     }
 }
