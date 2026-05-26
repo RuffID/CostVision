@@ -177,7 +177,7 @@ async function initListOfChecksPage(): Promise<void> {
 
     receiptMoneyMovementsBootstrapModal = createBootstrapModal(receiptMoneyMovementsModalElement);
     receiptMoneyMovementsReloadCandidatesButton.addEventListener('click', function () {
-        reloadReceiptMoneyMovementCandidates().catch(function (error) {
+        reloadReceiptMoneyMovementDetails().catch(function (error) {
             showReceiptMoneyMovementsAlert(getErrorMessage(error));
         });
     });

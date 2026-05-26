@@ -495,7 +495,7 @@ async function handleOpenReceiptsClick(button: HTMLButtonElement): Promise<void>
 async function handleReloadReceiptCandidatesClick(): Promise<void> {
     try {
         hideReceiptsAlert();
-        await reloadReceiptCandidates();
+        await reloadReceiptDetails();
     }
     catch (error) {
         showReceiptsAlert(getErrorMessage(error));

@@ -2,6 +2,8 @@ import { normalizeSingleLineTextValue } from "../../../../shared/formatters.js";
 import { getReceiptAccounts } from "../state/accountModel.js";
 import { ReceiptDto } from "../types.js";
 
+const RETAIL_PLACE_DISPLAY_LIMIT = 100;
+
 export function buildReceiptCard(receipt: ReceiptDto, formatCurrency: (value: number) => string): HTMLElement {
     const card = document.createElement("div");
     card.classList.add("card", "shadow-sm");
@@ -68,7 +70,7 @@ export function buildReceiptCard(receipt: ReceiptDto, formatCurrency: (value: nu
     moneyMovementsBtn.classList.add("btn", "btn-sm", "btn-outline-secondary", "flex-grow-1", "flex-md-grow-0");
     moneyMovementsBtn.setAttribute("data-action", "open-money-movements");
     moneyMovementsBtn.setAttribute("data-receipt-id", receipt.id);
-    moneyMovementsBtn.textContent = `Операции: ${receipt.moneyMovementCount} привязано / ${receipt.availableMoneyMovementCount} доступно`;
+    moneyMovementsBtn.textContent = buildMoneyMovementsButtonText(receipt);
 
     const openBtn = document.createElement("button");
     openBtn.type = "button";
@@ -124,6 +126,7 @@ export function updateCardFromDto(cardElement: HTMLElement, receipt: ReceiptDto,
     const addressElement = bodyElement.querySelector<HTMLElement>(".text-muted.small");
     const accountElement = bodyElement.querySelector<HTMLElement>('[data-role="receipt-accounts"]');
     const totalElement = bodyElement.querySelector<HTMLElement>(".fw-bold");
+    const moneyMovementsButton = bodyElement.querySelector<HTMLButtonElement>('[data-action="open-money-movements"]');
 
     if (datePlaceElement && receipt.dateTime) {
         datePlaceElement.textContent = buildReceiptTitleText(receipt);
@@ -153,6 +156,10 @@ export function updateCardFromDto(cardElement: HTMLElement, receipt: ReceiptDto,
 
     if (totalElement && typeof receipt.totalSum === "number") {
         totalElement.textContent = formatCurrency(receipt.totalSum);
+    }
+
+    if (moneyMovementsButton) {
+        moneyMovementsButton.textContent = buildMoneyMovementsButtonText(receipt);
     }
 }
 
@@ -205,6 +212,20 @@ function buildReceiptTitleText(receipt: ReceiptDto): string {
             date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
     }
 
-    const place = normalizeSingleLineTextValue(receipt.retailPlace);
+    const place = truncateTextForDisplay(normalizeSingleLineTextValue(receipt.retailPlace), RETAIL_PLACE_DISPLAY_LIMIT);
     return dateText + " — " + place;
+}
+
+function buildMoneyMovementsButtonText(receipt: ReceiptDto): string {
+    const totalCount = Number(receipt.moneyMovementCount || 0) + Number(receipt.availableMoneyMovementCount || 0);
+    return totalCount > 0 ? `Операций: ${totalCount}` : "Операции";
+}
+
+function truncateTextForDisplay(value: string, maxLength: number): string {
+    const chars = Array.from(value);
+    if (chars.length <= maxLength) {
+        return value;
+    }
+
+    return chars.slice(0, maxLength).join("") + "...";
 }

@@ -173,14 +173,14 @@ function createReceiptsButton(movement: MoneyMovementDto): HTMLButtonElement {
     button.classList.add("btn", "btn-sm", "btn-outline-secondary", "align-self-start");
     button.setAttribute("data-action", "open-receipts");
     button.setAttribute("data-money-movement-id", movement.id);
-    if (movement.linkedReceiptCount > 0 || movement.availableReceiptCount > 0) {
-        button.textContent = `Чеки: ${movement.linkedReceiptCount} привязано / ${movement.availableReceiptCount} доступно`;
-        button.title = `Привязанные чеки: ${movement.linkedReceiptCount}. Доступные чеки: ${movement.availableReceiptCount}.`;
-    } else {
-        button.textContent = "Чеки";
-        button.title = "Чеки операции";
-    }
+    button.textContent = buildReceiptsButtonText(movement);
+    button.title = "Чеки операции";
     return button;
+}
+
+function buildReceiptsButtonText(movement: MoneyMovementDto): string {
+    const totalCount = Number(movement.linkedReceiptCount || 0) + Number(movement.availableReceiptCount || 0);
+    return totalCount > 0 ? `Чеков: ${totalCount}` : "Чеки";
 }
 
 function createReadonlyCommentBlock(movement: MoneyMovementDto, canEditMovement: boolean): HTMLElement {

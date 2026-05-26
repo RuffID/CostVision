@@ -1,24 +1,17 @@
 ﻿using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Responses.Results;
-using CostVision.Application.UseCases.MoneyMovements;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
-    public class GetReceiptListUseCase(
-        IUnitOfWork unitOfWork,
-        IAutoLinkExactMoneyMovementReceiptsUseCase autoLinkExactMoneyMovementReceiptsUseCase) : IGetReceiptListUseCase
+    public class GetReceiptListUseCase(IUnitOfWork unitOfWork) : IGetReceiptListUseCase
     {
         public async Task<ServiceResult<List<Receipt>>> ExecuteAsync(User currentUser, DateTime dateFrom, DateTime dateTo, CancellationToken ct)
         {
             if (dateTo.Date < dateFrom.Date)
                 return ServiceResult<List<Receipt>>.Fail(400, "Дата окончания периода не может быть меньше даты начала.");
-
-            ServiceResult<int> autoLinkResult = await autoLinkExactMoneyMovementReceiptsUseCase.ExecuteAsync(currentUser.Id, dateFrom, dateTo, accountId: null, ct);
-            if (!autoLinkResult.Success)
-                return ServiceResult<List<Receipt>>.Fail(autoLinkResult.Error!.StatusCode, autoLinkResult.Error.Message);
 
             DateTime periodStart = dateFrom.Date;
             DateTime periodEnd = dateTo.Date.AddDays(1);
