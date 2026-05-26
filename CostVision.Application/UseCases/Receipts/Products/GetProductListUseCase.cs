@@ -13,15 +13,26 @@ namespace CostVision.Application.UseCases.Receipts.Products
         private const int MIN_PAGE_SIZE = 1;
         private const int MAX_PAGE_SIZE = 100;
 
-        public async Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, CancellationToken ct)
+        public async Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, Guid currentUserId, CancellationToken ct)
         {
             int page = Math.Max(request.Page, MIN_PAGE);
             int pageSize = Math.Clamp(request.PageSize, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
             string? search = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim();
             Expression<Func<Product, bool>> predicate = product =>
-                search == null ||
-                product.Name.Contains(search) ||
-                (product.AdaptiveName != null && product.AdaptiveName.Contains(search));
+                product.ReceiptItems.Any(item =>
+                    item.Receipt != null &&
+                    (
+                        item.Receipt.CreatedByUserId == currentUserId ||
+                        item.Receipt.Accounts.Any(link =>
+                            link.Account != null &&
+                            (
+                                link.Account.CreatedByUserId == currentUserId ||
+                                link.Account.Members.Any(member => member.UserId == currentUserId)
+                            ))
+                    )) &&
+                (search == null ||
+                 product.Name.Contains(search) ||
+                 (product.AdaptiveName != null && product.AdaptiveName.Contains(search)));
             int totalCount = await unitOfWork.Product.CountByPredicateAsync(predicate, ct);
             int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
             page = Math.Min(page, totalPages);

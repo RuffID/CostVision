@@ -21,7 +21,7 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetListAsync([FromQuery] GetProductListRequest request, CancellationToken ct)
         {
-            ServiceResult<ProductListDto> result = await getProductListUseCase.ExecuteAsync(request, ct);
+            ServiceResult<ProductListDto> result = await getProductListUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 

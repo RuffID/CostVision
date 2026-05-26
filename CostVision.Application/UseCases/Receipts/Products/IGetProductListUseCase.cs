@@ -6,6 +6,6 @@ namespace CostVision.Application.UseCases.Receipts.Products
 {
     public interface IGetProductListUseCase
     {
-        Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, CancellationToken ct);
+        Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, Guid currentUserId, CancellationToken ct);
     }
 }
