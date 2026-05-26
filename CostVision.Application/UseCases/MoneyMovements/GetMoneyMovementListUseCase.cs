@@ -8,18 +8,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class GetMoneyMovementListUseCase(
-        IUnitOfWork unitOfWork,
-        IAutoLinkExactMoneyMovementReceiptsUseCase autoLinkExactMoneyMovementReceiptsUseCase) : IGetMoneyMovementListUseCase
+    public class GetMoneyMovementListUseCase(IUnitOfWork unitOfWork) : IGetMoneyMovementListUseCase
     {
         public async Task<ServiceResult<List<MoneyMovementDto>>> ExecuteAsync(Guid currentUserId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct)
         {
             if (dateTo < dateFrom)
                 return ServiceResult<List<MoneyMovementDto>>.Fail(400, "Дата окончания периода не может быть меньше даты начала.");
-
-            ServiceResult<int> autoLinkResult = await autoLinkExactMoneyMovementReceiptsUseCase.ExecuteAsync(currentUserId, dateFrom, dateTo, accountId, ct);
-            if (!autoLinkResult.Success)
-                return ServiceResult<List<MoneyMovementDto>>.Fail(autoLinkResult.Error!.StatusCode, autoLinkResult.Error.Message);
 
             DateTime periodEnd = dateTo.Date.AddDays(1);
 
