@@ -391,6 +391,7 @@ function resetReceiptsModal(): void {
     state.linkedReceipts = [];
     state.receiptCandidates = [];
     ui.receiptsInfo.textContent = "";
+    setReceiptsModalDimmed(false);
     hideReceiptsAlert();
     renderLinkedReceipts(ui.linkedReceipts, state.linkedReceipts);
     renderReceiptCandidates(ui.receiptCandidates, state.receiptCandidates);
@@ -612,6 +613,7 @@ async function handleOpenReceiptDetailsClick(button: HTMLButtonElement): Promise
 
     await runReceiptButtonAction(button, async () => {
         const receipt = await openReceipt(forgeryToken, receiptId);
+        setReceiptsModalDimmed(true);
         renderReceiptDetailsModal(
             receipt,
             {
@@ -627,9 +629,20 @@ async function handleOpenReceiptDetailsClick(button: HTMLButtonElement): Promise
 }
 
 function handleReceiptDetailsHidden(): void {
+    setReceiptsModalDimmed(false);
+
     if (ui.receiptsModal.classList.contains("show")) {
         document.body.classList.add("modal-open");
     }
+}
+
+function setReceiptsModalDimmed(isDimmed: boolean): void {
+    const modalContent = ui.receiptsModal.querySelector<HTMLElement>(".modal-content");
+    if (!modalContent) {
+        throw new Error("Money movement receipts modal content was not found.");
+    }
+
+    modalContent.style.filter = isDimmed ? "brightness(0.55)" : "";
 }
 
 async function runReceiptButtonAction(button: HTMLButtonElement, action: () => Promise<void>): Promise<void> {
