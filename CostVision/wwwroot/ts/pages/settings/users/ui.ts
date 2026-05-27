@@ -180,10 +180,18 @@ function formatNullableUtcDate(utcString: string | null): string {
 }
 
 function formatUtcDate(utcString: string): string {
-    const date = new Date(utcString);
+    const date = new Date(normalizeUtcDateString(utcString));
     if (Number.isNaN(date.getTime())) {
         throw new Error("Некорректная дата пользователя.");
     }
 
     return date.toLocaleString("ru-RU");
+}
+
+function normalizeUtcDateString(utcString: string): string {
+    if (/[zZ]|[+-]\d{2}:\d{2}$/.test(utcString)) {
+        return utcString;
+    }
+
+    return `${utcString}Z`;
 }
