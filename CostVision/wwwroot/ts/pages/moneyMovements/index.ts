@@ -1,15 +1,16 @@
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { BootstrapModal, createBootstrapModal } from "../../shared/bootstrap.js";
 import { initFileDropzone } from "../../shared/dropzone.js";
-import { normalizeSingleLineTextValue } from "../../shared/formatters.js";
+import { formatMoneyRub, formatRuNumber, normalizeSingleLineTextValue } from "../../shared/formatters.js";
 import { renderHelpTooltip } from "../../shared/helpTooltip.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { createMoneyMovement, deleteMoneyMovement, importMoneyMovements, linkMoneyMovementReceipt, loadAccounts, loadImportBanks, loadLinkedReceipts, loadMoneyMovements, loadReceiptCandidates, moveMoneyMovementToAccount, previewBankStatementImport, unlinkMoneyMovementReceipt, updateMoneyMovementComment } from "./api.js";
+import { createMoneyMovement, deleteMoneyMovement, importMoneyMovements, linkMoneyMovementReceipt, loadAccounts, loadImportBanks, loadLinkedReceipts, loadMoneyMovements, loadReceiptCandidates, moveMoneyMovementToAccount, openReceipt, previewBankStatementImport, unlinkMoneyMovementReceipt, updateMoneyMovementComment } from "./api.js";
 import { formatDateForQuery, getDateRangeByPeriodPreset } from "./dateRange.js";
 import { renderAccountOptions, renderImportBankOptions, renderImportErrors, renderImportPreview, renderImportSummary, renderLinkedReceipts, renderMoneyMovementList, renderReceiptCandidates, renderSummary } from "./render.js";
 import { state } from "./state.js";
 import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportPreviewRowDto, type BankStatementImportRowRequest, type CreateMoneyMovementRequest, type GetMoneyMovementReceiptCandidatesRequest, type MoneyMovementDto, type MoneyMovementType, type PendingMoneyMovementAccountAction, type SaveBankStatementImportRequest, type UserAccountViewModel } from "./types.js";
 import { getMoneyMovementsUi, type MoneyMovementsUi } from "./ui.js";
+import { renderReceiptDetails as renderReceiptDetailsModal } from "../reports/receipts/ui/receiptDetailsModal.js";
 
 let ui: MoneyMovementsUi;
 let forgeryToken: string | null;
@@ -17,6 +18,7 @@ let moveAccountModal: BootstrapModal;
 let deleteModal: BootstrapModal;
 let importModal: BootstrapModal;
 let receiptsModal: BootstrapModal;
+let receiptDetailsModal: BootstrapModal;
 let pendingAccountAction: PendingMoneyMovementAccountAction | null = null;
 let selectedReceiptsMoneyMovementId: string | null = null;
 let preserveMoveModalPendingOnHide = false;
@@ -35,6 +37,7 @@ async function initMoneyMovementsPage(): Promise<void> {
     deleteModal = createBootstrapModal(ui.deleteModal);
     importModal = createBootstrapModal(ui.importModal);
     receiptsModal = createBootstrapModal(ui.receiptsModal);
+    receiptDetailsModal = createBootstrapModal(ui.receiptDetailsModal);
     initHelpTooltips();
     initDefaultDates();
     bindEvents();
@@ -61,7 +64,7 @@ function initHelpTooltips(): void {
     });
     renderHelpTooltip(ui.receiptsUseTimeWindowHelp, {
         title: "Окно времени",
-        text: "Искать чеки в пределах указанного допуска времени до и после времени операции. При включении ручной период дат не используется."
+        text: "Искать чеки в пределах указанного допуска времени до и после времени операции. По умолчанию выключено: банковская операция может пройти совсем в другое время, чем чек, и включённое окно времени может скрыть подходящий чек."
     });
     renderHelpTooltip(ui.receiptsUseAmountFilterHelp, {
         title: "По сумме",
@@ -109,6 +112,7 @@ function bindEvents(): void {
     ui.deleteModal.addEventListener("hidden.bs.modal", resetDeleteModal);
     ui.importModal.addEventListener("hidden.bs.modal", resetImportModal);
     ui.receiptsModal.addEventListener("hidden.bs.modal", resetReceiptsModal);
+    ui.receiptDetailsModal.addEventListener("hidden.bs.modal", handleReceiptDetailsHidden);
 }
 
 async function loadInitialData(): Promise<void> {
@@ -542,6 +546,12 @@ async function handleLinkedReceiptsClick(event: MouseEvent): Promise<void> {
         return;
     }
 
+    const openButton = target.closest<HTMLButtonElement>('[data-action="open-receipt"]');
+    if (openButton) {
+        await handleOpenReceiptDetailsClick(openButton);
+        return;
+    }
+
     const button = target.closest<HTMLButtonElement>('[data-action="unlink-receipt"]');
     if (!button) {
         return;
@@ -568,6 +578,12 @@ async function handleReceiptCandidatesClick(event: MouseEvent): Promise<void> {
         return;
     }
 
+    const openButton = target.closest<HTMLButtonElement>('[data-action="open-receipt"]');
+    if (openButton) {
+        await handleOpenReceiptDetailsClick(openButton);
+        return;
+    }
+
     const button = target.closest<HTMLButtonElement>('[data-action="link-receipt"]');
     if (!button) {
         return;
@@ -586,6 +602,34 @@ async function handleReceiptCandidatesClick(event: MouseEvent): Promise<void> {
         await reloadReceiptDetails();
         await reloadMovements();
     });
+}
+
+async function handleOpenReceiptDetailsClick(button: HTMLButtonElement): Promise<void> {
+    const receiptId = button.getAttribute("data-receipt-id");
+    if (!receiptId) {
+        return;
+    }
+
+    await runReceiptButtonAction(button, async () => {
+        const receipt = await openReceipt(forgeryToken, receiptId);
+        renderReceiptDetailsModal(
+            receipt,
+            {
+                detailsList: ui.receiptDetailsList,
+                modalHeader: ui.receiptDetailsHeader,
+                modalTotal: ui.receiptDetailsTotal,
+                bootstrapModal: receiptDetailsModal
+            },
+            formatRuNumber,
+            formatMoneyRub
+        );
+    });
+}
+
+function handleReceiptDetailsHidden(): void {
+    if (ui.receiptsModal.classList.contains("show")) {
+        document.body.classList.add("modal-open");
+    }
 }
 
 async function runReceiptButtonAction(button: HTMLButtonElement, action: () => Promise<void>): Promise<void> {

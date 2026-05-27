@@ -3,6 +3,7 @@ using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Receipts;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.Receipts.Products
@@ -12,6 +13,9 @@ namespace CostVision.Application.UseCases.Receipts.Products
         private const int MIN_PAGE = 1;
         private const int MIN_PAGE_SIZE = 1;
         private const int MAX_PAGE_SIZE = 100;
+        private const string SORT_BY_NAME = "name";
+        private const string SORT_BY_RECEIPT_COUNT = "receiptCount";
+        private const string SORT_DIRECTION_DESC = "desc";
 
         public async Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, Guid currentUserId, CancellationToken ct)
         {
@@ -40,13 +44,17 @@ namespace CostVision.Application.UseCases.Receipts.Products
 
             List<Product> products = await unitOfWork.Product.GetItemsByPredicateAsync(
                 predicate,
-                skip: skip,
-                take: pageSize,
                 asNoTracking: true,
-                include: query => query.OrderBy(product => product.Name),
+                include: query => query
+                    .Include(product => product.ReceiptItems)
+                    .ThenInclude(item => item.Receipt)
+                    .ThenInclude(receipt => receipt!.Accounts)
+                    .ThenInclude(link => link.Account)
+                    .ThenInclude(account => account!.Members)
+                    .AsSplitQuery(),
                 ct: ct);
 
-            List<ProductListItemDto> items = products
+            List<ProductListItemDto> allItems = products
                 .Select(product => new ProductListItemDto
                 {
                     Id = product.Id,
@@ -54,8 +62,14 @@ namespace CostVision.Application.UseCases.Receipts.Products
                     AdaptiveName = product.AdaptiveName,
                     DisplayName = request.UseAdaptiveNames && !string.IsNullOrWhiteSpace(product.AdaptiveName)
                         ? product.AdaptiveName
-                        : product.Name
+                        : product.Name,
+                    ReceiptCount = CountAccessibleReceipts(product, currentUserId)
                 })
+                .ToList();
+
+            List<ProductListItemDto> items = SortItems(allItems, request.SortBy, request.SortDirection)
+                .Skip(skip)
+                .Take(pageSize)
                 .ToList();
 
             ProductListDto result = new()
@@ -71,5 +85,46 @@ namespace CostVision.Application.UseCases.Receipts.Products
 
             return ServiceResult<ProductListDto>.Ok(result);
         }
+
+        private static List<ProductListItemDto> SortItems(List<ProductListItemDto> items, string? sortBy, string? sortDirection)
+        {
+            bool isDescending = string.Equals(sortDirection, SORT_DIRECTION_DESC, StringComparison.OrdinalIgnoreCase);
+            string normalizedSortBy = string.IsNullOrWhiteSpace(sortBy) ? SORT_BY_NAME : sortBy.Trim();
+
+            IOrderedEnumerable<ProductListItemDto> orderedItems = normalizedSortBy switch
+            {
+                SORT_BY_RECEIPT_COUNT => isDescending
+                    ? items.OrderByDescending(item => item.ReceiptCount).ThenBy(item => item.Name)
+                    : items.OrderBy(item => item.ReceiptCount).ThenBy(item => item.Name),
+                _ => isDescending
+                    ? items.OrderByDescending(item => item.Name).ThenByDescending(item => item.ReceiptCount)
+                    : items.OrderBy(item => item.Name).ThenByDescending(item => item.ReceiptCount)
+            };
+
+            return orderedItems.ToList();
+        }
+
+        private static int CountAccessibleReceipts(Product product, Guid currentUserId)
+        {
+            return product.ReceiptItems
+                .Where(item => item.Receipt != null && IsReceiptAccessible(item.Receipt, currentUserId))
+                .Select(item => item.ReceiptId)
+                .Distinct()
+                .Count();
+        }
+
+        private static bool IsReceiptAccessible(Receipt receipt, Guid currentUserId)
+        {
+            if (receipt.CreatedByUserId == currentUserId)
+                return true;
+
+            return receipt.Accounts.Any(link =>
+                link.Account != null &&
+                (
+                    link.Account.CreatedByUserId == currentUserId ||
+                    link.Account.Members.Any(member => member.UserId == currentUserId)
+                ));
+        }
+
     }
 }

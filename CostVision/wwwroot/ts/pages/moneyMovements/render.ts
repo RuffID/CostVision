@@ -450,6 +450,16 @@ function createReceiptCard(receipt: MoneyMovementReceiptDto, action: string, act
         left.append(warning);
     }
 
+    const actions = document.createElement("div");
+    actions.classList.add("d-flex", "flex-wrap", "gap-2");
+
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.classList.add("btn", "btn-sm", "btn-outline-primary");
+    openButton.setAttribute("data-action", "open-receipt");
+    openButton.setAttribute("data-receipt-id", receipt.receiptId);
+    openButton.textContent = "Открыть";
+
     const button = document.createElement("button");
     button.type = "button";
     button.classList.add("btn", "btn-sm", action === "link-receipt" ? "btn-outline-primary" : "btn-outline-danger");
@@ -457,7 +467,8 @@ function createReceiptCard(receipt: MoneyMovementReceiptDto, action: string, act
     button.setAttribute("data-receipt-id", receipt.receiptId);
     button.textContent = actionText;
 
-    wrapper.append(left, button);
+    actions.append(openButton, button);
+    wrapper.append(left, actions);
     return wrapper;
 }
 

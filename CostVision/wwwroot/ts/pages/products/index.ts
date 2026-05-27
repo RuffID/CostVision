@@ -1,9 +1,10 @@
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { requireElementById, requireInputById } from "../../shared/dom.js";
+import { renderHelpTooltip } from "../../shared/helpTooltip.js";
 import { getProducts, updateProductAdaptiveName } from "./api.js";
 import { renderProducts, updateSaveButtonVisibility, type ProductsUi } from "./render.js";
 import { productsState } from "./state.js";
-import type { ProductListItem } from "./types.js";
+import type { ProductListItem, ProductSortBy } from "./types.js";
 
 let searchInput: HTMLInputElement;
 let useAdaptiveNamesInput: HTMLInputElement;
@@ -27,18 +28,39 @@ function initProductsPage(): void {
         pageInfoElements: Array.from(document.querySelectorAll<HTMLElement>("[data-products-page-info]")),
         paginationElements: Array.from(document.querySelectorAll<HTMLElement>("[data-products-pagination]")),
         adaptiveNameHeader: requireElementById<HTMLElement>("productsAdaptiveNameHeader"),
-        actionsHeader: requireElementById<HTMLElement>("productsActionsHeader")
+        actionsHeader: requireElementById<HTMLElement>("productsActionsHeader"),
+        nameSortButton: requireElementById<HTMLButtonElement>("productsNameSortButton"),
+        receiptCountSortButton: requireElementById<HTMLButtonElement>("productsReceiptCountSortButton")
     };
+
+    renderHelpTooltip(requireElementById<HTMLElement>("productsReceiptCountHelp"), {
+        title: "Количество",
+        text: "Сколько чеков текущего пользователя содержат этот товар."
+    });
 
     requireElementById<HTMLButtonElement>("productsApplyFilter").addEventListener("click", () => reloadFromFirstPage());
     searchInput.addEventListener("keydown", handleSearchKeyDown);
     useAdaptiveNamesInput.addEventListener("change", () => reloadFromFirstPage());
+    ui.nameSortButton.addEventListener("click", () => handleSortClick("name"));
+    ui.receiptCountSortButton.addEventListener("click", () => handleSortClick("receiptCount"));
     for (const pageSizeInput of pageSizeInputs) {
         pageSizeInput.addEventListener("change", () => reloadFromFirstPage(pageSizeInput));
     }
     ui.tableBody.addEventListener("input", handleTableInput);
     ui.tableBody.addEventListener("click", handleTableClick);
 
+    void loadPage(1);
+}
+
+function handleSortClick(sortBy: ProductSortBy): void {
+    if (productsState.sortBy === sortBy) {
+        productsState.sortDirection = productsState.sortDirection === "asc" ? "desc" : "asc";
+    } else {
+        productsState.sortBy = sortBy;
+        productsState.sortDirection = "asc";
+    }
+
+    productsState.editedAdaptiveNames.clear();
     void loadPage(1);
 }
 
@@ -66,7 +88,7 @@ async function loadPage(page: number): Promise<void> {
     try {
         hideAlertMessage(alertElement);
 
-        const result = await getProducts(productsState.search, productsState.useAdaptiveNames, page, productsState.pageSize);
+        const result = await getProducts(productsState.search, productsState.useAdaptiveNames, page, productsState.pageSize, productsState.sortBy, productsState.sortDirection);
         productsState.products = result.items;
         productsState.page = result.page;
         productsState.pageSize = result.pageSize;

@@ -8,6 +8,10 @@ namespace CostVision.Application.Models.Requests.Receipts
 
         public int Page { get; set; } = 1;
 
-        public int PageSize { get; set; } = 50;
+        public int PageSize { get; set; } = 20;
+
+        public string? SortBy { get; set; }
+
+        public string? SortDirection { get; set; }
     }
 }

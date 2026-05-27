@@ -48,6 +48,10 @@ export interface MoneyMovementsUi {
     receiptsUseTimeWindowHelp: HTMLElement;
     receiptsUseAmountFilterHelp: HTMLElement;
     receiptsExcludeLinkedHelp: HTMLElement;
+    receiptDetailsModal: HTMLElement;
+    receiptDetailsHeader: HTMLElement;
+    receiptDetailsList: HTMLElement;
+    receiptDetailsTotal: HTMLElement;
     importModal: HTMLElement;
     importAlert: HTMLElement;
     importBankSelect: HTMLSelectElement;
@@ -114,6 +118,10 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         receiptsUseTimeWindowHelp: requireElementById("moneyMovementReceiptsUseTimeWindowHelp"),
         receiptsUseAmountFilterHelp: requireElementById("moneyMovementReceiptsUseAmountFilterHelp"),
         receiptsExcludeLinkedHelp: requireElementById("moneyMovementReceiptsExcludeLinkedHelp"),
+        receiptDetailsModal: requireElementById("moneyMovementReceiptDetailsModal"),
+        receiptDetailsHeader: requireElementById("moneyMovementReceiptDetailsHeader"),
+        receiptDetailsList: requireElementById("moneyMovementReceiptDetailsList"),
+        receiptDetailsTotal: requireElementById("moneyMovementReceiptDetailsTotal"),
         importModal: requireElementById("moneyMovementImportModal"),
         importAlert: requireElementById("moneyMovementImportAlert"),
         importBankSelect: requireSelectById("moneyMovementImportBank"),

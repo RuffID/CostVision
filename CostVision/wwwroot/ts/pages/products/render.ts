@@ -7,17 +7,20 @@ export interface ProductsUi {
     paginationElements: HTMLElement[];
     adaptiveNameHeader: HTMLElement;
     actionsHeader: HTMLElement;
+    nameSortButton: HTMLButtonElement;
+    receiptCountSortButton: HTMLButtonElement;
 }
 
 export function renderProducts(ui: ProductsUi, state: ProductListState, onPageClick: (page: number) => void): void {
     clearElement(ui.tableBody);
     ui.adaptiveNameHeader.classList.toggle("d-none", !state.useAdaptiveNames);
     ui.actionsHeader.classList.toggle("d-none", !state.useAdaptiveNames);
+    updateSortButtons(ui, state);
 
     if (state.products.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = state.useAdaptiveNames ? 3 : 1;
+        cell.colSpan = state.useAdaptiveNames ? 4 : 2;
         cell.className = "text-muted text-center py-4";
         cell.textContent = "Товары не найдены.";
         row.append(cell);
@@ -38,6 +41,23 @@ export function renderProducts(ui: ProductsUi, state: ProductListState, onPageCl
     }
 }
 
+function updateSortButtons(ui: ProductsUi, state: ProductListState): void {
+    ui.nameSortButton.textContent = buildSortButtonText("Наименование", state.sortBy === "name" ? state.sortDirection : null);
+    ui.receiptCountSortButton.textContent = buildSortButtonText("Количество", state.sortBy === "receiptCount" ? state.sortDirection : null);
+}
+
+function buildSortButtonText(text: string, direction: string | null): string {
+    if (direction === "asc") {
+        return `${text} ↑`;
+    }
+
+    if (direction === "desc") {
+        return `${text} ↓`;
+    }
+
+    return text;
+}
+
 function createProductRow(product: ProductListItem, state: ProductListState): HTMLTableRowElement {
     const row = document.createElement("tr");
     row.dataset.productId = product.id;
@@ -48,6 +68,11 @@ function createProductRow(product: ProductListItem, state: ProductListState): HT
     nameText.textContent = product.name;
     nameCell.append(nameText);
     row.append(nameCell);
+
+    const receiptCountCell = document.createElement("td");
+    receiptCountCell.className = "text-end text-nowrap";
+    receiptCountCell.textContent = String(product.receiptCount);
+    row.append(receiptCountCell);
 
     if (!state.useAdaptiveNames) {
         return row;

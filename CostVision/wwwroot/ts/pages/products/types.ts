@@ -3,6 +3,7 @@ export interface ProductListItem {
     name: string;
     adaptiveName: string | null;
     displayName: string;
+    receiptCount: number;
 }
 
 export interface ProductList {
@@ -26,4 +27,9 @@ export interface ProductListState {
     search: string;
     useAdaptiveNames: boolean;
     editedAdaptiveNames: Map<string, string>;
+    sortBy: ProductSortBy;
+    sortDirection: ProductSortDirection;
 }
+
+export type ProductSortBy = "name" | "receiptCount";
+export type ProductSortDirection = "asc" | "desc";

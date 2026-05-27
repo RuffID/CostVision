@@ -1,5 +1,5 @@
 import { buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, type ServiceResultWithData } from "../../shared/http.js";
-import type { BankStatementImportBankDto, BankStatementImportPreviewDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, GetMoneyMovementReceiptCandidatesRequest, LinkMoneyMovementReceiptRequest, MoneyMovementDto, MoneyMovementReceiptDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UnlinkMoneyMovementReceiptRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel } from "./types.js";
+import type { BankStatementImportBankDto, BankStatementImportPreviewDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, GetMoneyMovementReceiptCandidatesRequest, LinkMoneyMovementReceiptRequest, MoneyMovementDto, MoneyMovementReceiptDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UnlinkMoneyMovementReceiptRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel, ReceiptDto } from "./types.js";
 
 type AccountListResponse = ServiceResultWithData<UserAccountViewModel[]>;
 type ImportBankListResponse = ServiceResultWithData<BankStatementImportBankDto[]>;
@@ -7,6 +7,7 @@ type ImportPreviewResponse = ServiceResultWithData<BankStatementImportPreviewDto
 type MoneyMovementListResponse = ServiceResultWithData<MoneyMovementDto[]>;
 type MoneyMovementResponse = ServiceResultWithData<MoneyMovementDto>;
 type MoneyMovementReceiptListResponse = ServiceResultWithData<MoneyMovementReceiptDto[]>;
+type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
 type BooleanResponse = ServiceResultWithData<boolean>;
 
 export async function loadAccounts(forgeryToken: string | null): Promise<UserAccountViewModel[]> {
@@ -85,6 +86,17 @@ export async function loadReceiptCandidates(forgeryToken: string | null, request
 
     const response = await sendJsonRequest<MoneyMovementReceiptListResponse>(`?handler=ReceiptCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
     return unwrapServiceResult<MoneyMovementReceiptDto[]>(response);
+}
+
+export async function openReceipt(forgeryToken: string | null, receiptId: string): Promise<ReceiptDto> {
+    const response = await sendJsonRequest<ReceiptResponse>(
+        "?handler=OpenReceipt",
+        "POST",
+        buildJsonHeaders(forgeryToken),
+        { receiptId: receiptId }
+    );
+
+    return unwrapServiceResult<ReceiptDto>(response);
 }
 
 export async function linkMoneyMovementReceipt(forgeryToken: string | null, request: LinkMoneyMovementReceiptRequest): Promise<boolean> {

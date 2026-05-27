@@ -1,13 +1,15 @@
 import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import type { ProductList } from "./types.js";
+import type { ProductList, ProductSortBy, ProductSortDirection } from "./types.js";
 
-export async function getProducts(search: string, useAdaptiveNames: boolean, page: number, pageSize: number): Promise<ProductList> {
+export async function getProducts(search: string, useAdaptiveNames: boolean, page: number, pageSize: number, sortBy: ProductSortBy, sortDirection: ProductSortDirection): Promise<ProductList> {
     const params = new URLSearchParams({
         search: search,
         useAdaptiveNames: String(useAdaptiveNames),
         page: String(page),
-        pageSize: String(pageSize)
+        pageSize: String(pageSize),
+        sortBy: sortBy,
+        sortDirection: sortDirection
     });
 
     const result = await sendJsonRequest<ServiceResultWithData<ProductList>>(`/products?handler=List&${params.toString()}`);
