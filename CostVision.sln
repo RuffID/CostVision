@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Application.Unit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Infrastructure.UnitTests", "CostVision.Infrastructure.UnitTests\CostVision.Infrastructure.UnitTests.csproj", "{3F07F289-E6C9-485D-9174-26EC3DE7C432}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Infrastructure.IntegrationTests", "CostVision.Infrastructure.IntegrationTests\CostVision.Infrastructure.IntegrationTests.csproj", "{A48145F4-59DA-4D09-9D47-571C5D7BD8EA}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Web.UnitTests", "CostVision.Web.UnitTests\CostVision.Web.UnitTests.csproj", "{9013C67C-45CB-4F42-B1C0-E55EB8D3F3CE}"
 EndProject
 Global
@@ -55,6 +57,10 @@ Global
 		{3F07F289-E6C9-485D-9174-26EC3DE7C432}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F07F289-E6C9-485D-9174-26EC3DE7C432}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F07F289-E6C9-485D-9174-26EC3DE7C432}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A48145F4-59DA-4D09-9D47-571C5D7BD8EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A48145F4-59DA-4D09-9D47-571C5D7BD8EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A48145F4-59DA-4D09-9D47-571C5D7BD8EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A48145F4-59DA-4D09-9D47-571C5D7BD8EA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9013C67C-45CB-4F42-B1C0-E55EB8D3F3CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9013C67C-45CB-4F42-B1C0-E55EB8D3F3CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9013C67C-45CB-4F42-B1C0-E55EB8D3F3CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
