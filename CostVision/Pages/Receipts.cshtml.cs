@@ -1,4 +1,3 @@
-using CostVision.Web.Abstractions.Entity;
 using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Domain.Models.Authorization;
@@ -13,6 +12,7 @@ using CostVision.Application.UseCases.MoneyMovements;
 using CostVision.Web.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using CostVision.Web.Abstractions.Entity;
 
 namespace CostVision.Web.Pages
 {

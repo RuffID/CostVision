@@ -1,4 +1,3 @@
-using CostVision.Web.Abstractions.Entity;
 using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Domain.Models.Authorization;
@@ -7,9 +6,10 @@ using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.Models.Services.Receipts;
-using CostVision.Web.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using CostVision.Web.Abstractions.Entity;
+using CostVision.Web.Authorize.Attributes;
 
 namespace CostVision.Web.Pages
 {

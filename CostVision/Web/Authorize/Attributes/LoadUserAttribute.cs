@@ -1,7 +1,7 @@
-using CostVision.Web.Abstractions.Entity;
 using CostVision.Domain.Models.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using CostVision.Web.Abstractions.Entity;
 
 namespace CostVision.Web.Authorize.Attributes
 {

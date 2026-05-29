@@ -8,8 +8,8 @@ using CostVision.Application.UseCases.MoneyMovements;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
-using CostVision.Web.Abstractions.Entity;
 using CostVision.Web.Authorize.Attributes;
+using CostVision.Web.Abstractions.Entity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 

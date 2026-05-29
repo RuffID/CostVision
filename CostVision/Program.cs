@@ -1,8 +1,8 @@
 ﻿using CostVision.Infrastructure.DataBase;
 using CostVision.Infrastructure.Services.DataBase;
-using CostVision.Web.Extensions;
 using CostVision.Infrastructure.Services.Middleware;
 using Serilog;
+using CostVision.Web.Extensions;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 

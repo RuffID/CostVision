@@ -1,4 +1,3 @@
-using CostVision.Web.Abstractions.Entity;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Application.Models.Dtos.Authorization;
 using CostVision.Application.Models.Dtos.Mappers;
@@ -9,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CostVision.Application.UseCases.Authorize.Roles;
 using CostVision.Application.UseCases.Authorize.Users;
+using CostVision.Web.Abstractions.Entity;
 
 namespace CostVision.Web.Pages.Settings
 {

@@ -4,8 +4,8 @@ using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Products;
 using CostVision.Domain.Models.Authorization;
-using CostVision.Web.Abstractions.Entity;
 using CostVision.Web.Authorize.Attributes;
+using CostVision.Web.Abstractions.Entity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
