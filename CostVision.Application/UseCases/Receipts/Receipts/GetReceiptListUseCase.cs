@@ -1,4 +1,6 @@
 ﻿using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Models.Dtos.Mappers;
+using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
@@ -8,10 +10,10 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 {
     public class GetReceiptListUseCase(IUnitOfWork unitOfWork) : IGetReceiptListUseCase
     {
-        public async Task<ServiceResult<List<Receipt>>> ExecuteAsync(User currentUser, DateTime dateFrom, DateTime dateTo, CancellationToken ct)
+        public async Task<ServiceResult<List<ReceiptDto>>> ExecuteAsync(User currentUser, DateTime dateFrom, DateTime dateTo, CancellationToken ct)
         {
             if (dateTo.Date < dateFrom.Date)
-                return ServiceResult<List<Receipt>>.Fail(400, "Дата окончания периода не может быть меньше даты начала.");
+                return ServiceResult<List<ReceiptDto>>.Fail(400, "Дата окончания периода не может быть меньше даты начала.");
 
             DateTime periodStart = dateFrom.Date;
             DateTime periodEnd = dateTo.Date.AddDays(1);
@@ -32,7 +34,13 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                     .AsSplitQuery(),
                 ct: ct);
 
-            return ServiceResult<List<Receipt>>.Ok(receipts);
+            List<ReceiptDto> receiptDtos = receipts
+                .GroupBy(receipt => receipt.GetIdentityKey())
+                .Select(receiptGroup => receiptGroup.MapReceiptGroupDto(currentUser.Id))
+                .OrderByDescending(receipt => receipt.DateTime)
+                .ToList();
+
+            return ServiceResult<List<ReceiptDto>>.Ok(receiptDtos);
         }
     }
 }

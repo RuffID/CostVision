@@ -41,16 +41,12 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetReceiptListAsync([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, CancellationToken ct)
         {
-            ServiceResult<List<Receipt>> result = await getReceiptListUseCase.ExecuteAsync(CurrentUser, dateFrom, dateTo, ct);
+            ServiceResult<List<ReceiptDto>> result = await getReceiptListUseCase.ExecuteAsync(CurrentUser, dateFrom, dateTo, ct);
 
             if (!result.Success || result.Data == null)
                 return JsonResultMapper.ToJsonResult(result);
 
-            List<ReceiptDto> items = result.Data
-                .GroupBy(receipt => receipt.GetIdentityKey())
-                .Select(receiptGroup => receiptGroup.MapReceiptGroupDto(CurrentUser.Id))
-                .OrderByDescending(r => r.DateTime)
-                .ToList();
+            List<ReceiptDto> items = result.Data;
 
             foreach (ReceiptDto item in items)
             {

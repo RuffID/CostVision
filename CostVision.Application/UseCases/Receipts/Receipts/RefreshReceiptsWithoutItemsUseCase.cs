@@ -22,7 +22,17 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 await Task.Delay(1000, ct);
                 ServiceResult<Receipt> result = await receiptRefreshWorkflow.RefreshAsync(receipt, ct);
                 if (result.Success)
+                {
                     countUpdatedReceipts++;
+                    continue;
+                }
+
+                logger.LogWarning(
+                    "[Method:{MethodName}] Failed to refresh receipt {ReceiptId} without items from external API. StatusCode: {StatusCode}. Error: {ErrorMessage}",
+                    nameof(ExecuteAsync),
+                    receipt.Id,
+                    result.Error?.StatusCode,
+                    result.Error?.Message);
             }
 
             if (countUpdatedReceipts > 0)
