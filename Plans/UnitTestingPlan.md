@@ -278,9 +278,7 @@ Unit-тесты не должны ходить в реальную БД, фай�
 
   - [x] чек не найден;
 
-  - [x] нет доступа;
-
-  - связанные сущности удаляются/сохраняются согласно текущей логике — лучше проверять integration-тестом каскадов EF.
+  - [x] нет доступа.
 
 
 
@@ -562,17 +560,13 @@ Unit-тесты не должны ходить в реальную БД, фай�
   - нет доступа;
   - чек/счёт не найден.
 
-- `CostVision.Infrastructure/Services/MoneyMovements/BankStatementPdfTextExtractor.cs`
-  - это ближе к integration/component test, потому что читает PDF; unit-тестировать только обработку ошибок вокруг extractor, если будет выделена чистая логика.
-
 ## Приоритет 5: PageModel smoke unit-тесты
 
 PageModel не должен содержать бизнес-логику, поэтому здесь нужны только точечные тесты: вызван правильный use case, request собирается корректно, `ServiceResult` мапится в JSON/redirect/page result.
 
 - `CostVision/Pages/Login.cshtml.cs`
   - успешный логин;
-  - неверный логин/пароль;
-  - установка cookie/claims лучше вынести в integration test, если мокать тяжело.
+  - неверный логин/пароль.
 
 - `CostVision/Pages/AddReceipt.cshtml.cs`
   - ручное добавление вызывает `SaveManualReceiptUseCase`;
@@ -608,13 +602,6 @@ PageModel не должен содержать бизнес-логику, поэ
 - `CostVision/Pages/UserActivity.cshtml.cs`
   - mark activity вызывается для текущего пользователя;
   - отсутствие текущего пользователя.
-
-## Что не начинать с unit-тестов
-
-- EF Core repository implementations: `CostVision.Infrastructure/DataBase/Repositories/*`. Их лучше проверять integration-тестами на тестовой БД или SQLite/in-memory provider, потому что ценность unit-тестов над `DbSet`-моками низкая.
-- EF migrations и model configuration: integration/schema tests, не unit tests.
-- `BackupService`, `DataBaseCheckUpService`, `ReceiptRefreshBackgroundService`, `ExceptionHandlingMiddleware`: для них лучше component/integration tests, потому что важны файловая система, hosted service lifecycle и HTTP pipeline.
-- Razor `.cshtml` и TypeScript UI: отдельно frontend/component/e2e тесты, не C# unit tests.
 
 ## Минимальный стартовый набор
 

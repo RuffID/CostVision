@@ -14,6 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plans", "Plans", "{F23D4587
 	ProjectSection(SolutionItems) = preProject
 		Plans\OperationsPlan.md = Plans\OperationsPlan.md
 		Plans\UnitTestingPlan.md = Plans\UnitTestingPlan.md
+		Plans\IntegrationTestingPlan.md = Plans\IntegrationTestingPlan.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Application.UnitTests", "CostVision.Application.UnitTests\CostVision.Application.UnitTests.csproj", "{7D116D94-87D6-4FE9-9F0A-097FA6B26F90}"
