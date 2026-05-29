@@ -10,6 +10,7 @@ using CostVision.Infrastructure.Services.Helpers;
 using CostVision.Infrastructure.Services.Converters;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 
 namespace CostVision.Infrastructure.Services.Receipts
 {
@@ -27,7 +28,7 @@ namespace CostVision.Infrastructure.Services.Receipts
                 Fn = receipt.FiscalDriveNumber,
                 Fp = receipt.FiscalSign,
                 Time = receipt.DateTime.ToString("yyyyMMddTHHmm"),
-                Summ = receipt.TotalSum.ToString(),
+                Summ = receipt.TotalSum.ToString(CultureInfo.InvariantCulture),
                 OperationType = (int)receipt.OperationType
             };
 

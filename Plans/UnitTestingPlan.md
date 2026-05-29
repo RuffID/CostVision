@@ -348,47 +348,47 @@ Unit-тесты не должны ходить в реальную БД, фай�
 ## Приоритет 4: инфраструктура без внешних зависимостей
 
 - `CostVision.Infrastructure/Services/Receipts/QrParser.cs`
-  - QR-строка ФНС с `t`, `s`, `fn`, `i`, `fp`;
-  - параметры в другом порядке;
-  - URL-encoded значения;
-  - отсутствующий обязательный параметр;
-  - мусорная строка.
+  - [x] QR-строка ФНС с `t`, `s`, `fn`, `i`, `fp`;
+  - [x] параметры в другом порядке;
+  - [x] URL-encoded значения;
+  - [x] отсутствующий обязательный параметр;
+  - [x] мусорная строка.
 
 - `CostVision.Infrastructure/Services/Receipts/ExternalReceiptProvider.cs`
-  - успешный ответ API;
-  - ошибка API;
-  - пустой ответ;
-  - ошибка десериализации;
-  - request строится из QR/manual данных корректно. Сеть мокать через `IReceiptRequest`.
+  - [x] успешный ответ API;
+  - [x] ошибка API;
+  - [x] пустой ответ;
+  - [x] ошибка десериализации;
+  - [x] request строится из QR/manual данных корректно. Сеть мокать через `IReceiptRequest`.
 
 - `CostVision.Infrastructure/Services/Converters/ProverkachekaReceiptMapper.cs`
-  - маппинг данных API в доменную модель;
-  - позиции;
-  - налоги/скидки/количество;
-  - nullable-поля.
+  - [x] маппинг данных API в доменную модель;
+  - [x] позиции;
+  - [x] налоги/скидки/количество;
+  - [x] nullable-поля.
 
 - `CostVision.Infrastructure/Services/Converters/ProverkachekaDataConverter.cs`
-  - разные формы поля `data` в ответе API;
-  - null/пустой объект;
-  - некорректный JSON.
+  - [x] разные формы поля `data` в ответе API;
+  - [x] null/пустой объект;
+  - [x] некорректный JSON.
 
 - `CostVision.Infrastructure/Services/Helpers/Hasher.cs`
-  - одинаковый пароль даёт проверяемый хеш;
-  - неверный пароль не проходит;
-  - соль/разные хеши для одного пароля, если реализовано;
-  - пустые значения.
+  - [x] одинаковый пароль даёт проверяемый хеш;
+  - [x] неверный пароль не проходит;
+  - [x] соль/разные хеши для одного пароля, если реализовано;
+  - [x] пустые значения.
 
 - `CostVision.Infrastructure/Services/Helpers/NameNormalizedHelper.cs`
-  - регистр;
-  - лишние пробелы;
-  - русские символы;
-  - пустая строка.
+  - [x] регистр;
+  - [x] лишние пробелы;
+  - [x] русские символы;
+  - [x] пустая строка.
 
 - `CostVision.Infrastructure/Services/Helpers/ReceiptAccessVerificationService.cs`
-  - доступ владельца;
-  - доступ участника;
-  - нет доступа;
-  - чек/счёт не найден.
+  - [x] доступ владельца;
+  - [x] доступ участника;
+  - [x] нет доступа;
+  - [x] чек/счёт не найден.
 
 ## Приоритет 5: PageModel smoke unit-тесты
 
