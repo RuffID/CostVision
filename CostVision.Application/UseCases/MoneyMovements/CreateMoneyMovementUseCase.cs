@@ -5,6 +5,7 @@ using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.MoneyMovements.Helpers;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Enums.MoneyMovements;
+using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,9 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             if (request.Amount == 0)
                 return ServiceResult<MoneyMovementDto>.Fail(400, "Сумма операции не может быть равна нулю.");
+
+            if (request.OccurredAt == default)
+                return ServiceResult<MoneyMovementDto>.Fail(400, "Дата операции не заполнена.");
 
             AccountMember? membership = await unitOfWork.AccountMember.GetItemByPredicateAsync(
                 member => member.AccountId == request.AccountId && member.UserId == currentUserId,
@@ -63,6 +67,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             unitOfWork.MoneyMovement.Create(movement);
             await unitOfWork.SaveChangesAsync(ct);
+            await TryAutoLinkExactReceiptAsync(movement, currentUserId, ct);
 
             MoneyMovement? created = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
                 item => item.Id == movement.Id,
@@ -76,6 +81,61 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return ServiceResult<MoneyMovementDto>.Fail(500, "Не удалось загрузить созданную операцию.");
 
             return ServiceResult<MoneyMovementDto>.Ok(created.MapDto());
+        }
+
+        private async Task TryAutoLinkExactReceiptAsync(MoneyMovement movement, Guid currentUserId, CancellationToken ct)
+        {
+            if (movement.Type != MoneyMovementType.Expense)
+                return;
+
+            DateTime periodStart = movement.OccurredAt.Date;
+            DateTime periodEnd = periodStart.AddDays(1);
+
+            List<Receipt> receiptCandidates = await unitOfWork.Receipt.GetItemsByPredicateAsync(
+                receipt => receipt.DateTime >= periodStart &&
+                           receipt.DateTime < periodEnd &&
+                           receipt.TotalSum == movement.Amount &&
+                           receipt.OperationType == ReceiptOperationType.Income &&
+                           !receipt.MoneyMovementLinks.Any() &&
+                           receipt.Accounts.Any(link => link.AccountId == movement.AccountId) &&
+                           (receipt.CreatedByUserId == currentUserId ||
+                            receipt.Accounts.Any(link => link.Account!.CreatedByUserId == currentUserId) ||
+                            receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUserId))),
+                asNoTracking: true,
+                include: query => query
+                    .Include(receipt => receipt.Accounts)
+                        .ThenInclude(link => link.Account)
+                            .ThenInclude(account => account!.Members)
+                    .Include(receipt => receipt.MoneyMovementLinks)
+                    .AsSplitQuery(),
+                ct: ct);
+
+            if (receiptCandidates.Count != 1)
+                return;
+
+            List<MoneyMovement> movementCandidates = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
+                item => item.AccountId == movement.AccountId &&
+                        item.OccurredAt >= periodStart &&
+                        item.OccurredAt < periodEnd &&
+                        item.Amount == movement.Amount &&
+                        item.Type == MoneyMovementType.Expense &&
+                        !item.ReceiptLinks.Any(),
+                asNoTracking: true,
+                include: query => query.Include(item => item.ReceiptLinks),
+                ct: ct);
+
+            if (movementCandidates.Count != 1 || movementCandidates[0].Id != movement.Id)
+                return;
+
+            unitOfWork.MoneyMovementReceipt.Create(new MoneyMovementReceipt
+            {
+                MoneyMovementId = movement.Id,
+                ReceiptId = receiptCandidates[0].Id,
+                CreatedByUserId = currentUserId,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

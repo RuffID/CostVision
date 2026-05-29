@@ -140,6 +140,13 @@ export interface SaveBankStatementImportRequest {
     rows: BankStatementImportRowRequest[];
 }
 
+export interface BankStatementImportResultDto {
+    createdCount: number;
+    updatedCount: number;
+    errorCount: number;
+    errors: BankStatementImportLineErrorDto[];
+}
+
 export interface ReceiptItemDto {
     name: string;
     quantity: number;

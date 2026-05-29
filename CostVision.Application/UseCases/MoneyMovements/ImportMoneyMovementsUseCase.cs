@@ -9,70 +9,67 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class ImportMoneyMovementsUseCase(IUnitOfWork unitOfWork) : IImportMoneyMovementsUseCase
     {
-        public async Task<ServiceResult<bool>> ExecuteAsync(SaveBankStatementImportRequest request, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult<BankStatementImportResultDto>> ExecuteAsync(SaveBankStatementImportRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.AccountId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Выберите счёт для импорта.");
+                return ServiceResult<BankStatementImportResultDto>.Fail(400, "Выберите счёт для импорта.");
 
             if (request.Rows.Count == 0)
-                return ServiceResult<bool>.Fail(400, "Нет строк для импорта.");
+                return ServiceResult<BankStatementImportResultDto>.Fail(400, "Нет строк для импорта.");
 
             ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId, currentUserId, ct);
             if (!accountAccess.Success)
-                return ServiceResult<bool>.Fail(accountAccess.Error!.StatusCode, accountAccess.Error.Message);
+                return ServiceResult<BankStatementImportResultDto>.Fail(accountAccess.Error!.StatusCode, accountAccess.Error.Message);
 
-            ServiceResult<bool> validationResult = ValidateRows(request.Rows);
-            if (!validationResult.Success)
-                return validationResult;
-
-            ServiceResult<bool> duplicateActionValidationResult = await ValidateDuplicateActionsAsync(request.AccountId, request.Rows, ct);
-            if (!duplicateActionValidationResult.Success)
-                return duplicateActionValidationResult;
+            BankStatementImportResultDto result = new();
+            List<BankStatementImportRowRequest> validRows = ValidateRows(request.Rows, result);
+            if (validRows.Count == 0)
+                return ServiceResult<BankStatementImportResultDto>.Ok(result);
 
             await unitOfWork.ExecuteInTransaction(async () =>
             {
-                foreach (BankStatementImportRowRequest row in request.Rows)
+                foreach (BankStatementImportRowRequest row in validRows)
                 {
                     MoneyMovement? duplicate = await FindDuplicateAsync(request.AccountId, row, ct);
                     if (duplicate != null)
                     {
                         if (!row.ReplaceDuplicate)
-                            throw new InvalidOperationException("В импорте есть повторяющиеся операции. Удалите их из попытки импорта или выберите замену.");
+                        {
+                            AddError(result, request.Rows.IndexOf(row), "В импорте есть повторяющаяся операция. Строка пропущена.", row.ImportComment);
+                            continue;
+                        }
 
                         UpdateDuplicate(duplicate, row);
+                        result.UpdatedCount++;
                         continue;
                     }
 
                     unitOfWork.MoneyMovement.Create(CreateMovement(request.AccountId, row, currentUserId));
+                    result.CreatedCount++;
                 }
             }, ct);
 
-            return ServiceResult<bool>.Ok(true);
+            return ServiceResult<BankStatementImportResultDto>.Ok(result);
         }
 
-        private async Task<ServiceResult<bool>> ValidateDuplicateActionsAsync(Guid accountId, List<BankStatementImportRowRequest> rows, CancellationToken ct)
-        {
-            foreach (BankStatementImportRowRequest row in rows)
-            {
-                MoneyMovement? duplicate = await FindDuplicateAsync(accountId, row, ct);
-                if (duplicate != null && !row.ReplaceDuplicate)
-                    return ServiceResult<bool>.Fail(400, "В импорте есть повторяющиеся операции. Удалите их из попытки импорта или выберите замену.");
-            }
-
-            return ServiceResult<bool>.Ok(true);
-        }
-
-        private static ServiceResult<bool> ValidateRows(List<BankStatementImportRowRequest> rows)
+        private static List<BankStatementImportRowRequest> ValidateRows(List<BankStatementImportRowRequest> rows, BankStatementImportResultDto result)
         {
             HashSet<string> keys = new();
+            List<BankStatementImportRowRequest> validRows = new();
 
-            foreach (BankStatementImportRowRequest row in rows)
+            foreach ((BankStatementImportRowRequest row, int index) in rows.Select((row, index) => (row, index)))
             {
                 if (row.Amount <= 0)
-                    return ServiceResult<bool>.Fail(400, "Сумма импортируемой операции должна быть больше нуля.");
+                {
+                    AddError(result, index, "Сумма импортируемой операции должна быть больше нуля.", row.ImportComment);
+                    continue;
+                }
 
                 if (string.IsNullOrWhiteSpace(row.ImportComment))
-                    return ServiceResult<bool>.Fail(400, "У импортируемой операции отсутствует исходный комментарий.");
+                {
+                    AddError(result, index, "У импортируемой операции отсутствует исходный комментарий.", row.ImportComment);
+                    continue;
+                }
 
                 BankStatementImportPreviewRowDto previewRow = new()
                 {
@@ -84,10 +81,27 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
                 string key = PreviewBankStatementImportUseCase.BuildRowKey(previewRow);
                 if (!keys.Add(key) && !row.ReplaceDuplicate)
-                    return ServiceResult<bool>.Fail(400, "В попытке импорта есть повторяющиеся строки. Удалите повтор или выберите замену.");
+                {
+                    AddError(result, index, "В попытке импорта есть повторяющаяся строка. Строка пропущена.", row.ImportComment);
+                    continue;
+                }
+
+                validRows.Add(row);
             }
 
-            return ServiceResult<bool>.Ok(true);
+            return validRows;
+        }
+
+        private static void AddError(BankStatementImportResultDto result, int rowIndex, string message, string? rawText)
+        {
+            result.Errors.Add(new BankStatementImportLineErrorDto
+            {
+                LineNumber = rowIndex + 1,
+                Message = message,
+                RawText = rawText ?? string.Empty
+            });
+
+            result.ErrorCount = result.Errors.Count;
         }
 
         private async Task<MoneyMovement?> FindDuplicateAsync(Guid accountId, BankStatementImportRowRequest row, CancellationToken ct)

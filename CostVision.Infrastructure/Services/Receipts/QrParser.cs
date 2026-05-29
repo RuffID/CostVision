@@ -1,6 +1,7 @@
 using CostVision.Application.Abstractions.Service.Receipts;
 using CostVision.Application.Models.Services.Receipts;
 using System.Globalization;
+using System.Net;
 
 namespace CostVision.Infrastructure.Services.Receipts
 {
@@ -13,7 +14,12 @@ namespace CostVision.Infrastructure.Services.Receipts
             if (string.IsNullOrWhiteSpace(qrString))
                 return model;
 
-            string[] parts = qrString.Split('&', StringSplitOptions.RemoveEmptyEntries);
+            string queryString = qrString;
+            int queryStartIndex = qrString.IndexOf('?');
+            if (queryStartIndex >= 0)
+                queryString = qrString[(queryStartIndex + 1)..];
+
+            string[] parts = queryString.Split('&', StringSplitOptions.RemoveEmptyEntries);
 
             foreach (string part in parts)
             {
@@ -21,8 +27,8 @@ namespace CostVision.Infrastructure.Services.Receipts
                 if (kv.Length != 2)
                     continue;
 
-                string key = kv[0];
-                string value = kv[1];
+                string key = WebUtility.UrlDecode(kv[0]);
+                string value = WebUtility.UrlDecode(kv[1]);
 
                 switch (key)
                 {

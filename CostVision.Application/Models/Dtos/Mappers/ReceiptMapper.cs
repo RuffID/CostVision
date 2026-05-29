@@ -51,6 +51,15 @@ namespace CostVision.Application.Models.Dtos.Mappers
                 MoneyMovementsTotalSum = receipt.MoneyMovementLinks
                     .Where(link => link.MoneyMovement != null)
                     .Sum(link => link.MoneyMovement!.Amount),
+                Items = receipt.Items
+                    .Select(item => new ReceiptItemDto
+                    {
+                        Name = item.Product?.AdaptiveName ?? item.Product?.Name ?? string.Empty,
+                        Quantity = item.Quantity,
+                        Price = item.Price,
+                        Sum = item.Sum
+                    })
+                    .ToList(),
                 Accounts = accounts
             };
         }
