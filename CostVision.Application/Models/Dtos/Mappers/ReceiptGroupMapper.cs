@@ -11,6 +11,9 @@ namespace CostVision.Application.Models.Dtos.Mappers
                 .Select(receipt => receipt.MapReceiptDto(currentUserId))
                 .ToList();
 
+            if (groupedReceipts.Count == 0)
+                return new ReceiptDto();
+
             ReceiptDto representativeReceipt = groupedReceipts
                 .OrderByDescending(receipt => receipt.Accounts.Any(account => account.CanEditReceipt))
                 .First();

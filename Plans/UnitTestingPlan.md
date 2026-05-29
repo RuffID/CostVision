@@ -281,69 +281,69 @@ Unit-тесты не должны ходить в реальную БД, фай�
 ## Приоритет 3: парсеры и чистые helper-классы
 
 - `CostVision.Application/UseCases/MoneyMovements/BankStatementImports/Parsers/TBank/TBankPdfStatementParser.cs`
-  - валидные строки Т-Банка;
-  - строки с переносами;
-  - отрицательные/положительные суммы;
-  - мусорные строки;
-  - даты в ожидаемом формате.
+  - [x] валидные строки Т-Банка;
+  - [x] строки с переносами;
+  - [x] отрицательные/положительные суммы;
+  - [x] мусорные строки;
+  - [x] даты в ожидаемом формате.
 
 - `CostVision.Application/UseCases/MoneyMovements/BankStatementImports/Parsers/Sber/SberBankPdfStatementParser.cs`
-  - валидные строки Сбера;
-  - комиссии/переводы/покупки;
-  - мусорные строки;
-  - даты и суммы.
+  - [ ] валидные строки Сбера — не выполнено: текущий парсер не настроен (`IsConfigured == false`) и возвращает пустой preview без разбора строк;
+  - [ ] комиссии/переводы/покупки — не выполнено: текущий парсер не содержит логики классификации операций;
+  - [ ] мусорные строки — не выполнено: текущий парсер не обрабатывает содержимое строк;
+  - [ ] даты и суммы — не выполнено: текущий парсер не извлекает даты и суммы.
 
 - `CostVision.Application/UseCases/MoneyMovements/BankStatementImports/Parsers/Alfa/AlfaBankPdfStatementParser.cs`
-  - валидные строки Альфа-Банка;
-  - разные типы операций;
-  - мусорные строки;
-  - даты и суммы.
+  - [ ] валидные строки Альфа-Банка — не выполнено: текущий парсер не настроен (`IsConfigured == false`) и возвращает пустой preview без разбора строк;
+  - [ ] разные типы операций — не выполнено: текущий парсер не содержит логики классификации операций;
+  - [ ] мусорные строки — не выполнено: текущий парсер не обрабатывает содержимое строк;
+  - [ ] даты и суммы — не выполнено: текущий парсер не извлекает даты и суммы.
 
 - `CostVision.Application/UseCases/MoneyMovements/BankStatementImports/Parsing/BankStatementParserRegistry.cs`
-  - выбор парсера по банку;
-  - неизвестный банк;
-  - список поддерживаемых банков.
+  - [x] выбор парсера по банку;
+  - [x] неизвестный банк;
+  - [x] список поддерживаемых банков.
 
 - `CostVision.Application/UseCases/MoneyMovements/BankStatementImports/Parsing/BankStatementTextNormalizer.cs`
-  - нормализация пробелов;
-  - переносы строк;
-  - неразрывные пробелы;
-  - пустой текст.
+  - [x] нормализация пробелов;
+  - [x] переносы строк;
+  - [x] неразрывные пробелы;
+  - [x] пустой текст.
 
 - `CostVision.Application/UseCases/MoneyMovements/Helpers/MoneyMovementMapper.cs`
-  - доменная модель -> DTO;
-  - nullable-поля;
-  - связанные чеки.
+  - [x] доменная модель -> DTO;
+  - [x] nullable-поля;
+  - [x] связанные чеки.
 
 - `CostVision.Application/UseCases/MoneyMovements/Helpers/MoneyMovementReceiptMapper.cs`
-  - связь движение-чек -> DTO;
-  - отсутствующие вложенные данные.
+  - [x] связь движение-чек -> DTO;
+  - [x] отсутствующие вложенные данные.
 
 - `CostVision.Application/UseCases/MoneyMovements/Helpers/ReceiptMoneyMovementMapper.cs`
-  - чек -> связанные движения DTO;
-  - пустые связи.
+  - [x] чек -> связанные движения DTO;
+  - [x] пустые связи.
 
 - `CostVision.Application/Models/Dtos/Mappers/ReceiptMapper.cs`
-  - чек с позициями;
-  - чек без позиций;
-  - связанные счета;
-  - nullable-поля из ФНС/API.
+  - [x] чек с позициями;
+  - [x] чек без позиций;
+  - [x] связанные счета;
+  - [x] nullable-поля из ФНС/API.
 
 - `CostVision.Application/Models/Dtos/Mappers/ReceiptGroupMapper.cs`
-  - группировка чеков;
-  - пустой список;
-  - сортировка групп.
+  - [x] группировка чеков;
+  - [x] пустой список;
+  - [x] сортировка групп.
 
 - `CostVision.Application/Models/Dtos/Mappers/JsonResultMapper.cs`
-  - успешный `ServiceResult`;
-  - ошибка валидации;
-  - not found/forbidden/bad request;
-  - generic/non-generic result.
+  - [x] успешный `ServiceResult`;
+  - [x] ошибка валидации;
+  - [x] not found/forbidden/bad request;
+  - [x] generic/non-generic result.
 
 - `CostVision.Application/Models/Responses/Results/ServiceResult.cs`
-  - success/failure factories;
-  - корректные статусы;
-  - payload в generic-версии.
+  - [x] success/failure factories;
+  - [x] корректные статусы;
+  - [x] payload в generic-версии.
 
 ## Приоритет 4: инфраструктура без внешних зависимостей
 
