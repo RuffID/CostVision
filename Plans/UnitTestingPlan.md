@@ -20,427 +20,263 @@ Unit-тесты не должны ходить в реальную БД, фай�
 
 ### Авторизация и пользователи
 
-
-
 - `CostVision.Application/UseCases/Authorize/Authentication/AuthenticateUserUseCase.cs`
-
   - [x] успешный вход;
-
   - [x] пользователь не найден;
-
   - [x] пользователь заблокирован;
-
   - [x] неверный пароль;
-
   - [x] обновление `LastLoginAtUtc`/сохранение изменений.
 
-
-
 - `CostVision.Application/UseCases/Authorize/Users/CreateUserUseCase.cs`
-
   - [x] валидация обязательных полей;
-
   - [x] конфликт логина/имени, если проверяется;
-
   - [x] хеширование пароля;
-
   - [x] назначение роли;
-
   - [x] возврат `ServiceResult` при ошибках репозитория/валидации.
 
-
-
 - `CostVision.Application/UseCases/Authorize/Users/UpdateUserUseCase.cs`
-
   - [x] пользователь не найден;
-
   - [x] изменение данных без пароля;
-
   - [x] изменение данных с новым паролем;
-
   - [x] конфликт уникального логина;
-
   - [x] сохранение роли.
 
-
-
 - `CostVision.Application/UseCases/Authorize/Users/ToggleUserActiveUseCase.cs`
-
   - [x] запрет/разрешение активации;
-
   - [x] пользователь не найден;
-
   - [x] корректная смена флага активности.
 
-
-
 - `CostVision.Application/UseCases/Authorize/Users/MarkUserActivityUseCase.cs`
-
   - [x] обновление активности существующего пользователя;
-
   - [x] отсутствие пользователя.
 
-
-
 - `CostVision.Application/UseCases/Authorize/Users/Helpers/UserUpsertRequestValidator.cs`
-
   - [x] пустые поля;
-
   - [x] некорректный пароль;
-
   - [x] граничные длины;
-
   - [x] валидный request.
-
-
 
 ### Счета и доступы
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/CreateAccountUseCase.cs`
-
   - [x] создание счёта владельцем;
-
   - [x] нормализация цвета;
-
   - [x] дефолтные участники/права;
-
   - [x] ошибки валидации.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/UpdateAccountUseCase.cs`
-
   - [x] счёт не найден;
-
   - [x] нет доступа — текущая реализация маскирует отсутствие доступа как `404`;
-
   - [x] обновление имени/цвета;
-
   - [x] проверка сохранения.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/UpdateAccountMembersUseCase.cs`
-
   - [x] добавление участника;
-
   - [x] удаление участника;
-
   - [x] изменение прав;
-
   - [x] запрет удаления владельца/самого себя, если это предусмотрено логикой;
-
   - [x] пользователь/счёт не найден.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/GetUserAccountsUseCase.cs`
-
   - [x] пользователь видит только доступные счета;
-
   - [x] корректная проекция DTO;
-
   - [x] сортировка, если есть — не применяется к текущей реализации: явной сортировки сейчас нет.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/GetAccountShareUsersUseCase.cs`
-
   - [x] список доступных пользователей для шаринга;
-
   - [x] исключение уже добавленных участников;
-
   - [x] проверка прав владельца.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/ValidateReceiptCreationAccessUseCase.cs`
-
   - [x] можно создавать чек в счёте;
-
   - [x] нельзя создавать без доступа;
-
   - [x] счёт не найден.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/MoveReceiptToAccountUseCase.cs`
-
   - [x] перенос чека между счетами;
-
   - [x] нет доступа к исходному/целевому счёту;
-
   - [x] чек уже привязан;
-
   - [x] сохранение операции.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/RemoveReceiptFromAccountUseCase.cs`
-
   - [x] удаление связи чека со счётом;
-
   - [x] запрет удаления последней/недоступной связи, если это предусмотрено логикой;
-
   - [x] чек/счёт не найден.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/Helpers/AccountColorHexNormalizer.cs`
-
   - [x] нормальные HEX-значения;
-
   - [x] значения без `#`;
-
   - [x] пустое/некорректное значение;
-
   - [x] регистр символов.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Accounts/Helpers/AccountReceiptAccessValidator.cs`
-
   - [x] владелец имеет доступ;
-
   - [x] участник имеет доступ;
-
   - [x] чужой пользователь не имеет доступа;
-
   - [x] отсутствующие связи.
-
-
 
 ### Чеки
 
-
-
 - `CostVision.Application/UseCases/Receipts/Receipts/SaveManualReceiptUseCase.cs`
-
   - [x] создание ручного чека;
-
   - [x] привязка к счёту;
-
   - [x] вызов refresh workflow при необходимости;
-
   - [x] сохранение.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Receipts/SaveReceiptsScannedUseCase.cs`
-
   - [x] валидный QR;
-
   - [x] невалидный QR;
-
   - [x] дубликат чека;
-
   - [x] передача созданных чеков в refresh workflow;
-
   - [x] привязка к счёту.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Receipts/GetReceiptListUseCase.cs`
-
   - [x] фильтрация по доступным счётам;
-
   - [x] корректная группировка/сортировка;
-
   - [x] пустой результат;
-
   - [x] DTO без лишних данных.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Receipts/GetReceiptWithItemsUseCase.cs`
-
   - [x] чек найден;
-
   - [x] чек не найден;
-
   - [x] нет доступа;
-
   - [x] позиции и счета загружены корректно.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Receipts/DeleteReceiptUseCase.cs`
-
   - [x] удаление доступного чека;
-
   - [x] чек не найден;
-
   - [x] нет доступа.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Receipts/RefreshReceiptFromApiUseCase.cs`
-
   - [x] успешное обновление;
-
   - [x] чек не найден;
-
   - [x] нет доступа;
-
   - [x] внешний провайдер вернул ошибку;
-
   - [x] сохранение обновлённых позиций.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Receipts/RefreshReceiptsWithoutItemsUseCase.cs`
-
   - [x] выбираются только чеки без позиций;
-
   - [x] частичные ошибки не ломают весь процесс, если это заложено логикой;
-
   - [x] логирование ошибок.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Receipts/Refresh/ReceiptRefreshWorkflow.cs`
-
   - [x] внешний чек найден и мапится в доменную модель;
-
   - [x] внешний чек не найден;
-
   - [x] позиции пересоздаются/обновляются правильно;
-
   - [x] продукты связываются или создаются корректно;
-
   - [x] ошибки провайдера возвращаются как `ServiceResult`.
-
-
 
 ### Товары
 
-
-
 - `CostVision.Application/UseCases/Receipts/Products/GetProductListUseCase.cs`
-
   - [x] фильтр по названию;
-
   - [x] пагинация/лимит, если есть;
-
   - [x] нормализация названий;
-
   - [x] сортировка;
-
   - [x] пустой результат.
 
-
-
 - `CostVision.Application/UseCases/Receipts/Products/UpdateProductAdaptiveNameUseCase.cs`
-
   - [x] товар найден;
-
   - [x] товар не найден;
-
   - [x] пустое адаптивное имя;
-
   - [x] нормализация имени;
-
   - [x] сохранение изменений.
-
-
 
 ## Приоритет 2: денежные движения и импорт выписок
 
 - `CostVision.Application/UseCases/MoneyMovements/CreateMoneyMovementUseCase.cs`
-  - создание движения;
-  - недоступный счёт;
-  - некорректная сумма/дата;
-  - автоматическая связь с чеком, если используется.
+  - [x] создание движения;
+  - [x] недоступный счёт;
+  - [x] некорректная сумма;
+  - [x] некорректная дата;
+  - [x] автоматическая связь с чеком, если используется.
 
 - `CostVision.Application/UseCases/MoneyMovements/GetMoneyMovementListUseCase.cs`
-  - фильтрация по пользователю/счёту;
-  - сортировка;
-  - корректная проекция DTO;
-  - пустой список.
+  - [x] фильтрация по пользователю/счёту;
+  - [x] сортировка;
+  - [x] корректная проекция DTO;
+  - [x] пустой список.
 
 - `CostVision.Application/UseCases/MoneyMovements/MoveMoneyMovementToAccountUseCase.cs`
-  - перенос между доступными счетами;
-  - нет доступа;
-  - движение не найдено;
-  - транзакционность.
+  - [x] перенос между доступными счетами;
+  - [x] нет доступа;
+  - [x] движение не найдено.
 
 - `CostVision.Application/UseCases/MoneyMovements/DeleteMoneyMovementUseCase.cs`
-  - удаление движения;
-  - движение не найдено;
-  - нет доступа;
-  - удаление связей с чеками.
+  - [x] удаление движения;
+  - [x] движение не найдено;
+  - [x] нет доступа;
+  - [x] удаление связей с чеками.
 
 - `CostVision.Application/UseCases/MoneyMovements/UpdateMoneyMovementCommentUseCase.cs`
-  - изменение комментария;
-  - пустой комментарий;
-  - движение не найдено;
-  - нет доступа.
+  - [x] изменение комментария;
+  - [x] пустой комментарий;
+  - [x] движение не найдено;
+  - [x] нет доступа.
 
 - `CostVision.Application/UseCases/MoneyMovements/AutoLinkExactMoneyMovementReceiptsUseCase.cs`
-  - точное совпадение суммы/даты;
-  - несколько кандидатов;
-  - уже связанное движение;
-  - отсутствие кандидатов.
+  - [x] точное совпадение суммы/даты;
+  - [x] несколько кандидатов;
+  - [x] уже связанное движение;
+  - [x] отсутствие кандидатов.
 
 - `CostVision.Application/UseCases/MoneyMovements/LinkMoneyMovementReceiptUseCase.cs`
-  - ручная связь движения и чека;
-  - нет доступа к движению/чеку;
-  - дубль связи;
-  - разные счета.
+  - [x] ручная связь движения и чека;
+  - [x] нет доступа к движению/чеку;
+  - [x] дубль связи;
+  - [x] разные счета.
 
 - `CostVision.Application/UseCases/MoneyMovements/UnlinkMoneyMovementReceiptUseCase.cs`
-  - удаление связи;
-  - связь не найдена;
-  - нет доступа.
+  - [x] удаление связи;
+  - [x] связь не найдена;
+  - [x] нет доступа.
 
 - `CostVision.Application/UseCases/MoneyMovements/GetMoneyMovementReceiptCandidatesUseCase.cs`
-  - кандидаты по сумме/дате;
-  - исключение уже связанных чеков;
-  - проверка доступа.
+  - [x] кандидаты по сумме/дате;
+  - [x] исключение уже связанных чеков;
+  - [x] проверка доступа.
 
 - `CostVision.Application/UseCases/MoneyMovements/GetReceiptMoneyMovementCandidatesUseCase.cs`
-  - кандидаты для чека;
-  - исключение уже связанных движений;
-  - проверка доступа.
+  - [x] кандидаты для чека;
+  - [x] исключение уже связанных движений;
+  - [x] проверка доступа.
 
 - `CostVision.Application/UseCases/MoneyMovements/GetLinkedMoneyMovementReceiptsUseCase.cs`
-  - список связанных чеков;
-  - нет доступа;
-  - пустой список.
+  - [x] список связанных чеков;
+  - [x] нет доступа;
+  - [x] пустой список.
 
 - `CostVision.Application/UseCases/MoneyMovements/GetLinkedReceiptMoneyMovementsUseCase.cs`
-  - список связанных движений;
-  - нет доступа;
-  - пустой список.
+  - [x] список связанных движений;
+  - [x] нет доступа;
+  - [x] пустой список.
 
 - `CostVision.Application/UseCases/MoneyMovements/GetMoneyMovementAccountsUseCase.cs`
-  - список счетов пользователя для движений;
-  - фильтр доступности.
+  - [x] список счетов пользователя для движений;
+  - [x] фильтр доступности.
 
 - `CostVision.Application/UseCases/MoneyMovements/PreviewBankStatementImportUseCase.cs`
-  - определение банка;
-  - парсинг строк;
-  - ошибки строк не валят весь preview;
-  - дубликаты;
-  - сопоставление со счетом.
+  - [x] определение банка;
+  - [x] парсинг строк;
+  - [x] ошибки строк не валят весь preview;
+  - [x] дубликаты;
+  - [x] сопоставление со счетом.
 
 - `CostVision.Application/UseCases/MoneyMovements/ImportMoneyMovementsUseCase.cs`
-  - импорт валидных строк;
-  - пропуск невалидных строк;
-  - дубликаты;
-  - транзакционность сохранения;
-  - результат с количеством созданных/ошибочных строк.
+  - [x] импорт валидных строк;
+  - [x] пропуск невалидных строк;
+  - [x] дубликаты;
+  - [x] транзакционность сохранения;
+  - [x] результат с количеством созданных/ошибочных строк.
 
 - `CostVision.Application/UseCases/MoneyMovements/GetBankStatementImportBanksUseCase.cs`
-  - возвращаются зарегистрированные банки;
-  - пустой registry.
+  - [x] возвращаются зарегистрированные банки;
+  - [x] пустой registry.
 
 - `CostVision.Application/UseCases/MoneyMovements/MoneyMovementAccountAccessValidator.cs`
-  - владелец/участник имеет доступ;
-  - чужой пользователь не имеет доступа;
-  - счёт не найден.
+  - [x] владелец/участник имеет доступ;
+  - [x] чужой пользователь не имеет доступа;
+  - [x] счёт не найден.
 
 ## Приоритет 3: парсеры и чистые helper-классы
 
@@ -596,24 +432,3 @@ PageModel не должен содержать бизнес-логику, поэ
 - `CostVision/Pages/UserActivity.cshtml.cs`
   - mark activity вызывается для текущего пользователя;
   - отсутствие текущего пользователя.
-
-## Минимальный стартовый набор
-
-1. Создать `CostVision.Application.UnitTests` на xUnit.
-2. Добавить пакеты: `xunit`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk`, `FluentAssertions`, `Moq` или `NSubstitute`.
-3. Первыми покрыть:
-   - `AuthenticateUserUseCase`;
-   - `SaveManualReceiptUseCase`;
-   - `SaveReceiptsScannedUseCase`;
-   - `ReceiptRefreshWorkflow`;
-   - `CreateMoneyMovementUseCase`;
-   - `LinkMoneyMovementReceiptUseCase`;
-   - `PreviewBankStatementImportUseCase`;
-   - `QrParser`;
-   - парсеры выписок Т-Банк/Сбер/Альфа.
-4. После этого добавить тесты для Account use case и Product use case.
-5. Затем точечно покрыть PageModel, где есть ветвления и JSON-маппинг.
-
-## Критерий готовности первого этапа
-
-Первый этап можно считать готовым, когда есть тесты на успешный сценарий, ошибку доступа, `not found` и ошибку валидации для каждого бизнес-критичного use case из приоритета 1, а также тесты парсинга QR и банковских выписок из приоритета 3.

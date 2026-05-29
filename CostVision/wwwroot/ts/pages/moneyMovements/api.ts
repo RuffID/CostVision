@@ -1,5 +1,5 @@
 import { buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, type ServiceResultWithData } from "../../shared/http.js";
-import type { BankStatementImportBankDto, BankStatementImportPreviewDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, GetMoneyMovementReceiptCandidatesRequest, LinkMoneyMovementReceiptRequest, MoneyMovementDto, MoneyMovementReceiptDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UnlinkMoneyMovementReceiptRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel, ReceiptDto } from "./types.js";
+import type { BankStatementImportBankDto, BankStatementImportPreviewDto, BankStatementImportResultDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, GetMoneyMovementReceiptCandidatesRequest, LinkMoneyMovementReceiptRequest, MoneyMovementDto, MoneyMovementReceiptDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UnlinkMoneyMovementReceiptRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel, ReceiptDto } from "./types.js";
 
 type AccountListResponse = ServiceResultWithData<UserAccountViewModel[]>;
 type ImportBankListResponse = ServiceResultWithData<BankStatementImportBankDto[]>;
@@ -9,6 +9,7 @@ type MoneyMovementResponse = ServiceResultWithData<MoneyMovementDto>;
 type MoneyMovementReceiptListResponse = ServiceResultWithData<MoneyMovementReceiptDto[]>;
 type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
 type BooleanResponse = ServiceResultWithData<boolean>;
+type ImportResultResponse = ServiceResultWithData<BankStatementImportResultDto>;
 
 export async function loadAccounts(forgeryToken: string | null): Promise<UserAccountViewModel[]> {
     const response = await sendJsonRequest<AccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken));
@@ -119,7 +120,7 @@ export async function previewBankStatementImport(forgeryToken: string | null, ba
     return unwrapServiceResult<BankStatementImportPreviewDto>(response);
 }
 
-export async function importMoneyMovements(forgeryToken: string | null, request: SaveBankStatementImportRequest): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>("?handler=Import", "POST", buildJsonHeaders(forgeryToken), request);
-    return unwrapServiceResult<boolean>(response);
+export async function importMoneyMovements(forgeryToken: string | null, request: SaveBankStatementImportRequest): Promise<BankStatementImportResultDto> {
+    const response = await sendJsonRequest<ImportResultResponse>("?handler=Import", "POST", buildJsonHeaders(forgeryToken), request);
+    return unwrapServiceResult<BankStatementImportResultDto>(response);
 }

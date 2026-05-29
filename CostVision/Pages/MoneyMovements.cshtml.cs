@@ -137,7 +137,7 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostImportAsync([FromBody] SaveBankStatementImportRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await importMoneyMovementsUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<BankStatementImportResultDto> result = await importMoneyMovementsUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
     }

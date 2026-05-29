@@ -3,6 +3,7 @@ using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
+using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
@@ -19,13 +20,20 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
                 item => item.Id == request.MoneyMovementId && item.AccountId == request.AccountId,
+                include: query => query.Include(item => item.ReceiptLinks),
                 ct: ct);
 
             if (movement == null)
                 return ServiceResult<bool>.Fail(404, "Операция не найдена в счёте.");
 
-            unitOfWork.MoneyMovement.Delete(movement);
-            await unitOfWork.SaveChangesAsync(ct);
+            await unitOfWork.ExecuteInTransaction(() =>
+            {
+                if (movement.ReceiptLinks.Count > 0)
+                    unitOfWork.MoneyMovementReceipt.DeleteRange(movement.ReceiptLinks);
+
+                unitOfWork.MoneyMovement.Delete(movement);
+                return Task.CompletedTask;
+            }, ct);
 
             return ServiceResult<bool>.Ok(true);
         }
