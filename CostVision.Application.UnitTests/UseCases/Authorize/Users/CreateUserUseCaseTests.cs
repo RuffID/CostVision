@@ -30,7 +30,7 @@ public class CreateUserUseCaseTests
             .Callback<User>(user => createdUser = user);
 
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        passwordHasher.Setup(hasher => hasher.Hash("secret")).Returns("hashed-password");
+        passwordHasher.Setup(hasher => hasher.Hash("Password1!")).Returns("hashed-password");
 
         Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
         CreateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
@@ -39,7 +39,7 @@ public class CreateUserUseCaseTests
         {
             Login = " user ",
             Name = " Test User ",
-            Password = " secret ",
+            Password = " Password1! ",
             RoleIds = [roleId]
         }, CancellationToken.None);
 
@@ -72,7 +72,7 @@ public class CreateUserUseCaseTests
         {
             Login = "user",
             Name = "Test User",
-            Password = "secret",
+            Password = "Password1!",
             RoleIds = [Guid.NewGuid()]
         }, CancellationToken.None);
 
@@ -91,7 +91,7 @@ public class CreateUserUseCaseTests
         {
             Login = "user",
             Name = "Test User",
-            Password = "secret",
+            Password = "Password1!",
             RoleIds = []
         }, CancellationToken.None);
 
