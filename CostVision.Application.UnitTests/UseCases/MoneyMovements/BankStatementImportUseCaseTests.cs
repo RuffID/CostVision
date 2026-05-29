@@ -33,6 +33,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
         };
         MoneyMovement existing = CreateMovement(Guid.NewGuid(), accountId, 100, occurredAt, userId);
         existing.Source = MoneyMovementSource.BankStatementImport;
+        existing.Type = MoneyMovementType.Expense;
         existing.ImportComment = "purchase";
         Mock<IBankStatementParser> parser = CreateParser("test", preview);
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
@@ -258,7 +259,8 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             .ReturnsAsync(duplicate);
         ImportMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
-            moneyMovementRepository: moneyMovementRepository).Object);
+            moneyMovementRepository: moneyMovementRepository,
+            setupTransaction: true).Object);
 
         var result = await useCase.ExecuteAsync(new SaveBankStatementImportRequest
         {

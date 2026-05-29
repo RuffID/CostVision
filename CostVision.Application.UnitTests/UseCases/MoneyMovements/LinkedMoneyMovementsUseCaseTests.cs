@@ -45,7 +45,7 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
         var result = await useCase.ExecuteAsync(movement.Id, userId, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Equal([newLink.ReceiptId, oldLink.ReceiptId], result.Data!.Select(item => item.ReceiptId).ToList());
+        Assert.Equal([newLink.Receipt!.Id, oldLink.Receipt!.Id], result.Data!.Select(item => item.ReceiptId).ToList());
     }
 
     [Fact]
