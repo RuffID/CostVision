@@ -1,0 +1,43 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [ "CI" ]
+    types: [ completed ]
+    branches: [ master ]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: [ self-hosted, linux, ARM64 ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Build Docker image
+        run: docker build -t sonmp.ru:35103/costvision:${{ github.event.workflow_run.head_sha }} -f CostVision/Dockerfile .
+
+      - name: Push Docker image
+        run: docker push sonmp.ru:35103/costvision:${{ github.event.workflow_run.head_sha }}
+
+      - name: Stop old container
+        run: docker stop costvision || true
+
+      - name: Remove old container
+        run: docker rm costvision || true
+
+      - name: Run new container
+        run: |
+          docker run -d \
+            --name costvision \
+            -p 8089:8080 \
+            --restart unless-stopped \
+            -e TZ=Asia/Novosibirsk \
+            -v costVision_Config:/app/Config \
+            -v costVision_Logs:/app/Logs \
+            -v costvision_Keys:/app/keys-linux \
+            --network network \
+            sonmp.ru:35103/costvision:${{ github.event.workflow_run.head_sha }}
