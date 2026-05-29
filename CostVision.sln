@@ -10,11 +10,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Application", "C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Infrastructure", "CostVision.Infrastructure\CostVision.Infrastructure.csproj", "{B81BB55B-DA25-4D86-9AC1-A95B9E29AC21}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documents", "Documents", "{A1D9A5E1-1D8B-4E8C-89E8-8760EDE8A0B6}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plans", "Plans", "{F23D4587-E8B9-44F9-83EA-2F6F312AF503}"
 	ProjectSection(SolutionItems) = preProject
-		Plans\OperationsPlan.md = Plans\OperationsPlan.md
-		Plans\UnitTestingPlan.md = Plans\UnitTestingPlan.md
-		Plans\IntegrationTestingPlan.md = Plans\IntegrationTestingPlan.md
+		Documents\Plans\MoneyMovementsImplementationPlan.md = Documents\Plans\MoneyMovementsImplementationPlan.md
+		Documents\Plans\UnitTestCoveragePlan.md = Documents\Plans\UnitTestCoveragePlan.md
+		Documents\Plans\IntegrationTestCoveragePlan.md = Documents\Plans\IntegrationTestCoveragePlan.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Application.UnitTests", "CostVision.Application.UnitTests\CostVision.Application.UnitTests.csproj", "{7D116D94-87D6-4FE9-9F0A-097FA6B26F90}"
@@ -60,6 +62,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F23D4587-E8B9-44F9-83EA-2F6F312AF503} = {A1D9A5E1-1D8B-4E8C-89E8-8760EDE8A0B6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {415C423E-2942-4E6C-930F-93427DBBD7D1}
