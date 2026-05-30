@@ -5,7 +5,10 @@ using Microsoft.Extensions.Logging;
 
 namespace CostVision.Infrastructure.Services.BackgroundServices
 {
-    public class ReceiptRefreshBackgroundService(IServiceProvider serviceProvider, ILogger<ReceiptRefreshBackgroundService> logger) : BackgroundService
+    public class ReceiptRefreshBackgroundService(
+        IServiceProvider serviceProvider,
+        ILogger<ReceiptRefreshBackgroundService> logger,
+        IReceiptRefreshBackgroundScheduler scheduler) : BackgroundService
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -13,14 +16,7 @@ namespace CostVision.Infrastructure.Services.BackgroundServices
             {
                 try
                 {
-                    DateTime nowLocal = DateTime.Now;
-                    DateTime nextRunLocal = nowLocal.Date.AddDays(1);
-                    TimeSpan delay = nextRunLocal - nowLocal;
-
-                    if (delay < TimeSpan.Zero)
-                        delay = TimeSpan.Zero;
-
-                    await Task.Delay(delay, stoppingToken);
+                    await scheduler.WaitForNextRunAsync(stoppingToken);
 
                     if (stoppingToken.IsCancellationRequested)
                         break;

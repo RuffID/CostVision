@@ -1,12 +1,13 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
 namespace CostVision.Infrastructure.IntegrationTests.Web.Helpers;
 
 public sealed class ListLoggerProvider : ILoggerProvider
 {
-    private readonly List<LogEntry> _entries = [];
+    private readonly ConcurrentQueue<LogEntry> _entries = new();
 
-    public IReadOnlyList<LogEntry> Entries => _entries;
+    public IReadOnlyList<LogEntry> Entries => _entries.ToArray();
 
     public ILogger CreateLogger(string categoryName)
     {
@@ -17,7 +18,7 @@ public sealed class ListLoggerProvider : ILoggerProvider
     {
     }
 
-    private sealed class ListLogger(List<LogEntry> entries) : ILogger
+    private sealed class ListLogger(ConcurrentQueue<LogEntry> entries) : ILogger
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull
         {
@@ -36,7 +37,7 @@ public sealed class ListLoggerProvider : ILoggerProvider
             Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            entries.Add(new LogEntry(logLevel, formatter(state, exception)));
+            entries.Enqueue(new LogEntry(logLevel, formatter(state, exception)));
         }
     }
 

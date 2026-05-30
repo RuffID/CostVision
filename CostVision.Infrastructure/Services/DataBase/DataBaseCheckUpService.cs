@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CostVision.Infrastructure.Services.DataBase
 {
-    public class DataBaseCheckUpService<TContext>(IAppDbContext<TContext> dbContext, ILoggerFactory logger, BackupService<TContext> backupService) where TContext : DbContext
+    public class DataBaseCheckUpService<TContext>(IAppDbContext<TContext> dbContext, ILoggerFactory logger, IBackupService<TContext> backupService) where TContext : DbContext
     {
         private readonly ILogger<DataBaseCheckUpService<TContext>> _logger = logger.CreateLogger<DataBaseCheckUpService<TContext>>();
 

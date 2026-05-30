@@ -1,4 +1,4 @@
-﻿using CostVision.Application.Abstractions.DataBase;
+using CostVision.Application.Abstractions.DataBase;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -51,13 +51,16 @@ namespace CostVision.Infrastructure.Extensions
             });
 
             services.AddScoped<DataBaseCheckUpService<ApplicationContext>>();
+            services.AddSingleton<IBackupFilePathBuilder, BackupFilePathBuilder>();
             services.AddScoped(sp =>
             {
                 ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                IBackupFilePathBuilder backupFilePathBuilder = sp.GetRequiredService<IBackupFilePathBuilder>();
                 string connectionString = configuration.GetConnectionString("MSSql")!;
                 string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
-                return new BackupService<ApplicationContext>(connectionString, backupFolder, loggerFactory);
+                return new BackupService<ApplicationContext>(connectionString, backupFolder, loggerFactory, backupFilePathBuilder);
             });
+            services.AddScoped<IBackupService<ApplicationContext>>(sp => sp.GetRequiredService<BackupService<ApplicationContext>>());
 
             services.AddScoped<Hasher>();
             services.AddScoped<IPasswordHasher>(sp => sp.GetRequiredService<Hasher>());
@@ -67,6 +70,7 @@ namespace CostVision.Infrastructure.Extensions
             services.AddScoped<IExternalReceiptProvider, ExternalReceiptProvider>();
             services.AddScoped<IBankStatementPdfTextExtractor, BankStatementPdfTextExtractor>();
 
+            services.AddSingleton<IReceiptRefreshBackgroundScheduler, MidnightReceiptRefreshBackgroundScheduler>();
             services.AddHostedService<ReceiptRefreshBackgroundService>();
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();

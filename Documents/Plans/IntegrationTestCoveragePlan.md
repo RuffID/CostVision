@@ -42,24 +42,24 @@ Integration-тесты проверяют сценарии, где важны н
 ## Component-тесты инфраструктуры
 
 - `CostVision.Infrastructure/Services/MoneyMovements/BankStatementPdfTextExtractor.cs`
-  - [ ] чтение PDF-файла с тестовой выпиской;
-  - [ ] обработка повреждённого или неподдерживаемого PDF;
-  - [ ] корректная ошибка при пустом файле.
+  - [x] чтение PDF-файла с тестовой выпиской;
+  - [x] обработка повреждённого или неподдерживаемого PDF;
+  - [x] корректная ошибка при пустом файле.
 
 - `CostVision.Infrastructure/Services/DataBase/BackupService.cs`
-  - [ ] построение имени и пути backup-файла;
-  - [ ] обработка ошибок файловой системы;
-  - [ ] поведение при некорректной строке подключения.
+  - [x] построение имени и пути backup-файла;
+  - [x] обработка ошибок файловой системы;
+  - [x] поведение при некорректной строке подключения.
 
 - `CostVision.Infrastructure/Services/DataBase/DataBaseCheckUpService.cs`
-  - [ ] проверка доступности БД;
-  - [ ] применение pending migrations в тестовой среде;
-  - [ ] логирование результата проверки.
+  - [x] проверка доступности БД;
+  - [x] применение pending migrations в тестовой среде;
+  - [x] логирование результата проверки.
 
 - `CostVision.Infrastructure/Services/BackgroundServices/ReceiptRefreshBackgroundService.cs`
-  - [ ] hosted service запускает refresh workflow по расписанию;
-  - [ ] ошибки refresh не завершают lifecycle сервиса;
-  - [ ] отмена через `CancellationToken` корректно останавливает работу.
+  - [x] hosted service запускает refresh workflow по расписанию;
+  - [x] ошибки refresh не завершают lifecycle сервиса;
+  - [x] отмена через `CancellationToken` корректно останавливает работу.
 
 ## Frontend/component/e2e
 
