@@ -5,9 +5,7 @@ using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.MoneyMovements;
-using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Domain.Models.Authorization;
-using CostVision.Domain.Models.Receipts;
 using CostVision.Web.Authorize.Attributes;
 using CostVision.Web.Abstractions.Entity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,126 +16,103 @@ namespace CostVision.Web.Pages
     [CookieAuthorize]
     [LoadUser]
     public class MoneyMovementsModel(
-        IGetMoneyMovementAccountsUseCase getMoneyMovementAccountsUseCase,
-        IGetMoneyMovementListUseCase getMoneyMovementListUseCase,
-        ICreateMoneyMovementUseCase createMoneyMovementUseCase,
-        IMoveMoneyMovementToAccountUseCase moveMoneyMovementToAccountUseCase,
-        IDeleteMoneyMovementUseCase deleteMoneyMovementUseCase,
-        IUpdateMoneyMovementCommentUseCase updateMoneyMovementCommentUseCase,
-        IGetBankStatementImportBanksUseCase getBankStatementImportBanksUseCase,
-        IPreviewBankStatementImportUseCase previewBankStatementImportUseCase,
-        IImportMoneyMovementsUseCase importMoneyMovementsUseCase,
-        IGetLinkedMoneyMovementReceiptsUseCase getLinkedMoneyMovementReceiptsUseCase,
-        IGetMoneyMovementReceiptCandidatesUseCase getMoneyMovementReceiptCandidatesUseCase,
-        ILinkMoneyMovementReceiptUseCase linkMoneyMovementReceiptUseCase,
-        IUnlinkMoneyMovementReceiptUseCase unlinkMoneyMovementReceiptUseCase,
-        IGetReceiptWithItemsUseCase getReceiptWithItemsUseCase) : PageModel, IHasCurrentUser
+        IMoneyMovementsPageUseCase moneyMovementsPageUseCase) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
 
         public async Task<JsonResult> OnGetAccountsAsync(CancellationToken ct)
         {
-            List<UserAccountViewModel> accounts = await getMoneyMovementAccountsUseCase.ExecuteAsync(CurrentUser.Id, ct);
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
+            ServiceResult<List<UserAccountViewModel>> result = await moneyMovementsPageUseCase.GetAccountsAsync(CurrentUser.Id, ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetImportBanksAsync(CancellationToken ct)
         {
-            List<BankStatementImportBankDto> banks = await getBankStatementImportBanksUseCase.ExecuteAsync(ct);
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<BankStatementImportBankDto>>.Ok(banks));
+            ServiceResult<List<BankStatementImportBankDto>> result = await moneyMovementsPageUseCase.GetImportBanksAsync(ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetListAsync([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] Guid? accountId, CancellationToken ct)
         {
-            Guid? normalizedAccountId = accountId == Guid.Empty ? null : accountId;
-            ServiceResult<List<MoneyMovementDto>> result = await getMoneyMovementListUseCase.ExecuteAsync(CurrentUser.Id, dateFrom, dateTo, normalizedAccountId, ct);
+            ServiceResult<List<MoneyMovementDto>> result = await moneyMovementsPageUseCase.GetListAsync(CurrentUser.Id, dateFrom, dateTo, accountId, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetLinkedReceiptsAsync([FromQuery] Guid moneyMovementId, CancellationToken ct)
         {
-            ServiceResult<List<MoneyMovementReceiptDto>> result = await getLinkedMoneyMovementReceiptsUseCase.ExecuteAsync(moneyMovementId, CurrentUser.Id, ct);
+            ServiceResult<List<MoneyMovementReceiptDto>> result = await moneyMovementsPageUseCase.GetLinkedReceiptsAsync(moneyMovementId, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetReceiptCandidatesAsync([FromQuery] GetMoneyMovementReceiptCandidatesRequest request, CancellationToken ct)
         {
-            ServiceResult<List<MoneyMovementReceiptDto>> result = await getMoneyMovementReceiptCandidatesUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<List<MoneyMovementReceiptDto>> result = await moneyMovementsPageUseCase.GetReceiptCandidatesAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostCreateAsync([FromBody] CreateMoneyMovementRequest request, CancellationToken ct)
         {
-            ServiceResult<MoneyMovementDto> result = await createMoneyMovementUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<MoneyMovementDto> result = await moneyMovementsPageUseCase.CreateAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostMoveToAccountAsync([FromBody] MoveMoneyMovementToAccountRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await moveMoneyMovementToAccountUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<bool> result = await moneyMovementsPageUseCase.MoveToAccountAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostDeleteAsync([FromBody] DeleteMoneyMovementRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await deleteMoneyMovementUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<bool> result = await moneyMovementsPageUseCase.DeleteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUpdateCommentAsync([FromBody] UpdateMoneyMovementCommentRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await updateMoneyMovementCommentUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<bool> result = await moneyMovementsPageUseCase.UpdateCommentAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostLinkReceiptAsync([FromBody] LinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await linkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<bool> result = await moneyMovementsPageUseCase.LinkReceiptAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUnlinkReceiptAsync([FromBody] UnlinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await unlinkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<bool> result = await moneyMovementsPageUseCase.UnlinkReceiptAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostOpenReceiptAsync([FromBody] OpenReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<Receipt> result = await getReceiptWithItemsUseCase.ExecuteAsync(request.ReceiptId, CurrentUser, ct);
-
-            if (!result.Success || result.Data == null)
-                return JsonResultMapper.ToJsonResult(result);
-
-            List<ReceiptItemDto> items = result.Data.Items
-                .Select(i => new ReceiptItemDto
-                {
-                    Name = i.Product?.Name ?? "-",
-                    Quantity = i.Quantity,
-                    Price = i.Price,
-                    Sum = i.Sum
-                })
-                .ToList();
-
-            ReceiptDto receiptDto = result.Data.MapReceiptDto(CurrentUser.Id);
-            receiptDto.Items = items;
-
-            return JsonResultMapper.ToJsonResult(ServiceResult<ReceiptDto>.Ok(receiptDto));
+            ServiceResult<ReceiptDto> result = await moneyMovementsPageUseCase.OpenReceiptAsync(request, CurrentUser, ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostPreviewImportAsync([FromForm] string bankId, [FromForm] Guid accountId, [FromForm] IFormFile file, CancellationToken ct)
         {
-            if (file == null || file.Length == 0)
-                return JsonResultMapper.ToJsonResult(ServiceResult<BankStatementImportPreviewDto>.Fail(400, "Выберите файл выписки."));
+            await using Stream? fileStream = file?.OpenReadStream();
+            ServiceResult<BankStatementImportPreviewDto> result = await moneyMovementsPageUseCase.PreviewImportAsync(
+                new PreviewBankStatementImportPageRequest
+                {
+                    BankId = bankId,
+                    AccountId = accountId,
+                    FileName = file?.FileName ?? string.Empty,
+                    FileStream = fileStream,
+                    FileLength = file?.Length ?? 0
+                },
+                CurrentUser.Id,
+                ct);
 
-            await using Stream fileStream = file.OpenReadStream();
-            ServiceResult<BankStatementImportPreviewDto> result = await previewBankStatementImportUseCase.ExecuteAsync(bankId, accountId, file.FileName, fileStream, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostImportAsync([FromBody] SaveBankStatementImportRequest request, CancellationToken ct)
         {
-            ServiceResult<BankStatementImportResultDto> result = await importMoneyMovementsUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<BankStatementImportResultDto> result = await moneyMovementsPageUseCase.ImportAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
     }

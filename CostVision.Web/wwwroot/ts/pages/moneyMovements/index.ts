@@ -1,14 +1,14 @@
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { BootstrapModal, createBootstrapModal } from "../../shared/bootstrap.js";
-import { initFileDropzone } from "../../shared/dropzone.js";
 import { formatMoneyRub, formatRuNumber, normalizeSingleLineTextValue } from "../../shared/formatters.js";
-import { renderHelpTooltip } from "../../shared/helpTooltip.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { createMoneyMovement, deleteMoneyMovement, importMoneyMovements, linkMoneyMovementReceipt, loadAccounts, loadImportBanks, loadLinkedReceipts, loadMoneyMovements, loadReceiptCandidates, moveMoneyMovementToAccount, openReceipt, previewBankStatementImport, unlinkMoneyMovementReceipt, updateMoneyMovementComment } from "./api.js";
+import { createMoneyMovement, deleteMoneyMovement, linkMoneyMovementReceipt, loadAccounts, loadImportBanks, loadLinkedReceipts, loadMoneyMovements, loadReceiptCandidates, moveMoneyMovementToAccount, openReceipt, unlinkMoneyMovementReceipt, updateMoneyMovementComment } from "./api.js";
 import { formatDateForQuery, getDateRangeByPeriodPreset } from "./dateRange.js";
-import { renderAccountOptions, renderImportBankOptions, renderImportErrors, renderImportPreview, renderImportSummary, renderLinkedReceipts, renderMoneyMovementList, renderReceiptCandidates, renderSummary } from "./render.js";
+import { initMoneyMovementHelpTooltips } from "./helpTooltips.js";
+import { initMoneyMovementImportModalController, type MoneyMovementImportModalController } from "./importModal.js";
+import { renderAccountOptions, renderImportBankOptions, renderLinkedReceipts, renderMoneyMovementList, renderReceiptCandidates, renderSummary } from "./render.js";
 import { state } from "./state.js";
-import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportPreviewRowDto, type BankStatementImportRowRequest, type CreateMoneyMovementRequest, type GetMoneyMovementReceiptCandidatesRequest, type MoneyMovementDto, type MoneyMovementType, type PendingMoneyMovementAccountAction, type SaveBankStatementImportRequest, type UserAccountViewModel } from "./types.js";
+import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type CreateMoneyMovementRequest, type GetMoneyMovementReceiptCandidatesRequest, type MoneyMovementDto, type MoneyMovementType, type UserAccountViewModel } from "./types.js";
 import { getMoneyMovementsUi, type MoneyMovementsUi } from "./ui.js";
 import { renderReceiptDetails as renderReceiptDetailsModal } from "../reports/receipts/ui/receiptDetailsModal.js";
 
@@ -19,13 +19,7 @@ let deleteModal: BootstrapModal;
 let importModal: BootstrapModal;
 let receiptsModal: BootstrapModal;
 let receiptDetailsModal: BootstrapModal;
-let pendingAccountAction: PendingMoneyMovementAccountAction | null = null;
-let selectedReceiptsMoneyMovementId: string | null = null;
-let preserveMoveModalPendingOnHide = false;
-let selectedImportFile: File | null = null;
-let editingCommentMovementId: string | null = null;
-let searchDebounceTimerId: number | null = null;
-
+let importController: MoneyMovementImportModalController;
 document.addEventListener("DOMContentLoaded", () => {
     initMoneyMovementsPage();
 });
@@ -38,42 +32,17 @@ async function initMoneyMovementsPage(): Promise<void> {
     importModal = createBootstrapModal(ui.importModal);
     receiptsModal = createBootstrapModal(ui.receiptsModal);
     receiptDetailsModal = createBootstrapModal(ui.receiptDetailsModal);
-    initHelpTooltips();
+    importController = initMoneyMovementImportModalController({
+        ui: ui,
+        state: state,
+        importModal: importModal,
+        getForgeryToken: () => forgeryToken,
+        reloadMovements: reloadMovements
+    });
+    initMoneyMovementHelpTooltips(ui);
     initDefaultDates();
     bindEvents();
     await loadInitialData();
-}
-
-function initHelpTooltips(): void {
-    renderHelpTooltip(ui.receiptFilterHelp, {
-        title: "Связь с чеками",
-        text: [
-            "Все операции — без фильтра.",
-            "Без чеков — операции без привязанных чеков.",
-            "С чеками — операции с одним или несколькими чеками.",
-            "Расхождение суммы — сумма привязанных чеков отличается от суммы операции."
-        ]
-    });
-    renderHelpTooltip(ui.receiptsAmountToleranceHelp, {
-        title: "Допуск суммы",
-        text: "Разрешённая разница между суммой операции и суммой чека при поиске кандидатов."
-    });
-    renderHelpTooltip(ui.receiptsTimeWindowHoursHelp, {
-        title: "Допуск времени",
-        text: "Размер окна поиска по времени в часах до и после времени операции. Используется только при включённом окне времени."
-    });
-    renderHelpTooltip(ui.receiptsUseTimeWindowHelp, {
-        title: "Окно времени",
-        text: "Искать чеки в пределах указанного допуска времени до и после времени операции. По умолчанию выключено: банковская операция может пройти совсем в другое время, чем чек, и включённое окно времени может скрыть подходящий чек."
-    });
-    renderHelpTooltip(ui.receiptsUseAmountFilterHelp, {
-        title: "По сумме",
-        text: "Показывать только чеки, сумма которых близка к сумме операции с учётом допуска."
-    });
-    renderHelpTooltip(ui.receiptsExcludeLinkedHelp, {
-        title: "Без привязанных",
-        text: "Скрывать чеки, которые уже связаны с любой операцией. Отключите, если чек можно привязать повторно."
-    });
 }
 
 function bindEvents(): void {
@@ -88,20 +57,6 @@ function bindEvents(): void {
     ui.confirmMoveAccountButton.addEventListener("click", handleConfirmMoveAccountClick);
     ui.removeFromAccountButton.addEventListener("click", handleRemoveFromAccountClick);
     ui.confirmDeleteButton.addEventListener("click", handleConfirmDeleteClick);
-    initFileDropzone({
-        dropzone: ui.importDropzone,
-        fileInput: ui.importFileInput,
-        multiple: false,
-        onFilesSelected: handleImportFilesSelected
-    });
-    ui.importPreviewButton.addEventListener("click", handleImportPreviewClick);
-    ui.importSaveButton.addEventListener("click", handleImportSaveClick);
-    ui.importToggleDuplicateReplacementsInput.addEventListener("change", handleToggleDuplicateReplacementsChange);
-    ui.importSkipDuplicatesInput.addEventListener("change", handleSkipDuplicatesChange);
-    ui.importToggleDuplicatesButton.addEventListener("click", handleToggleDuplicatesClick);
-    ui.importPreview.addEventListener("input", handleImportPreviewInput);
-    ui.importPreview.addEventListener("change", handleImportPreviewChange);
-    ui.importPreview.addEventListener("click", handleImportPreviewContainerClick);
     ui.receiptsReloadCandidatesButton.addEventListener("click", handleReloadReceiptCandidatesClick);
     ui.receiptsUseTimeWindowInput.addEventListener("change", updateReceiptFilterState);
     ui.receiptsUseAmountFilterInput.addEventListener("change", updateReceiptFilterState);
@@ -110,7 +65,6 @@ function bindEvents(): void {
 
     ui.moveAccountModal.addEventListener("hidden.bs.modal", resetMoveModal);
     ui.deleteModal.addEventListener("hidden.bs.modal", resetDeleteModal);
-    ui.importModal.addEventListener("hidden.bs.modal", resetImportModal);
     ui.receiptsModal.addEventListener("hidden.bs.modal", resetReceiptsModal);
     ui.receiptDetailsModal.addEventListener("hidden.bs.modal", handleReceiptDetailsHidden);
 }
@@ -130,7 +84,7 @@ async function loadInitialData(): Promise<void> {
             ui.importAccountSelect.value = state.accounts[0].id;
         }
 
-        renderImportState();
+        importController.renderState();
         await reloadMovements();
     }
     catch (error) {
@@ -138,256 +92,8 @@ async function loadInitialData(): Promise<void> {
     }
 }
 
-function handleImportFilesSelected(files: File[]): void {
-    const file = files[0];
-    if (!file) {
-        return;
-    }
-
-    setImportFile(file);
-}
-
-function setImportFile(file: File): void {
-    selectedImportFile = file;
-    ui.importFileName.textContent = file.name;
-    state.importRows = [];
-    state.importErrors = [];
-    renderImportState();
-    hideImportAlert();
-}
-
-async function handleImportPreviewClick(): Promise<void> {
-    try {
-        hideImportAlert();
-
-        if (!selectedImportFile) {
-            throw new Error("Выберите файл выписки.");
-        }
-
-        if (!ui.importBankSelect.value) {
-            throw new Error("Выберите банк.");
-        }
-
-        if (!ui.importAccountSelect.value) {
-            throw new Error("Выберите счёт для импорта.");
-        }
-
-        ui.importPreviewButton.disabled = true;
-        ui.importPreviewButton.textContent = "Распознавание...";
-
-        const preview = await previewBankStatementImport(forgeryToken, ui.importBankSelect.value, ui.importAccountSelect.value, selectedImportFile);
-        state.importRows = preview.rows.map(row => ({
-            ...row,
-            replaceDuplicate: false
-        }));
-        state.importErrors = preview.errors;
-        renderImportState();
-    }
-    catch (error) {
-        showImportAlert(getErrorMessage(error));
-    }
-    finally {
-        ui.importPreviewButton.disabled = false;
-        ui.importPreviewButton.textContent = "Предпросмотр";
-    }
-}
-
-async function handleImportSaveClick(): Promise<void> {
-    try {
-        hideImportAlert();
-
-        const unresolvedDuplicate = getRowsForImport().find(row => row.isDuplicate && row.replaceDuplicate !== true);
-        if (unresolvedDuplicate) {
-            throw new Error("Удалите повторяющиеся операции из импорта или отметьте замену существующих.");
-        }
-
-        const request = readImportRequest();
-        ui.importSaveButton.disabled = true;
-        ui.importSaveButton.textContent = "Импорт...";
-
-        await importMoneyMovements(forgeryToken, request);
-        importModal.hide();
-        await reloadMovements();
-    }
-    catch (error) {
-        showImportAlert(getErrorMessage(error));
-        updateImportSaveState();
-    }
-    finally {
-        ui.importSaveButton.textContent = "Импортировать";
-    }
-}
-
-function handleImportPreviewInput(event: Event): void {
-    const target = event.target;
-    if (!(target instanceof HTMLTextAreaElement)) {
-        return;
-    }
-
-    if (target.getAttribute("data-action") !== "change-import-comment") {
-        return;
-    }
-
-    const row = findImportRow(target.getAttribute("data-import-row-id"));
-    if (!row) {
-        return;
-    }
-
-    row.comment = target.value;
-}
-
-function handleImportPreviewChange(event: Event): void {
-    const target = event.target;
-    if (!(target instanceof HTMLInputElement)) {
-        return;
-    }
-
-    if (target.getAttribute("data-action") !== "toggle-import-replace") {
-        return;
-    }
-
-    const row = findImportRow(target.getAttribute("data-import-row-id"));
-    if (!row) {
-        return;
-    }
-
-    row.replaceDuplicate = target.checked;
-    updateImportSaveState();
-}
-
-function handleImportPreviewContainerClick(event: MouseEvent): void {
-    const target = event.target;
-    if (!(target instanceof Element)) {
-        return;
-    }
-
-    const removeButton = target.closest<HTMLButtonElement>('[data-action="remove-import-row"]');
-    if (!removeButton) {
-        return;
-    }
-
-    const rowId = removeButton.getAttribute("data-import-row-id");
-    state.importRows = state.importRows.filter(row => row.clientRowId !== rowId);
-    renderImportState();
-}
-
-function handleToggleDuplicateReplacementsChange(): void {
-    for (const row of state.importRows) {
-        if (row.isDuplicate) {
-            row.replaceDuplicate = ui.importToggleDuplicateReplacementsInput.checked;
-        }
-    }
-
-    renderImportState();
-}
-
-function handleSkipDuplicatesChange(): void {
-    if (ui.importSkipDuplicatesInput.checked) {
-        for (const row of state.importRows) {
-            if (row.isDuplicate) {
-                row.replaceDuplicate = false;
-            }
-        }
-    }
-
-    renderImportState();
-}
-
-function handleToggleDuplicatesClick(): void {
-    state.hideDuplicateImportRows = !state.hideDuplicateImportRows;
-    renderImportState();
-}
-
-function readImportRequest(): SaveBankStatementImportRequest {
-    if (!ui.importAccountSelect.value) {
-        throw new Error("Выберите счёт для импорта.");
-    }
-
-    const importRows = getRowsForImport();
-    if (importRows.length === 0) {
-        throw new Error("Нет строк для импорта.");
-    }
-
-    const rows: BankStatementImportRowRequest[] = importRows.map(row => ({
-        occurredAt: row.occurredAt,
-        amount: row.amount,
-        type: row.type,
-        comment: row.comment.trim() || null,
-        importComment: row.importComment,
-        duplicateMoneyMovementId: row.duplicateMoneyMovementId || null,
-        replaceDuplicate: row.replaceDuplicate === true
-    }));
-
-    return {
-        accountId: ui.importAccountSelect.value,
-        rows: rows
-    };
-}
-
-function renderImportState(): void {
-    const visibleRows = state.hideDuplicateImportRows
-        ? state.importRows.filter(row => !row.isDuplicate)
-        : state.importRows;
-
-    renderImportPreview(ui.importPreview, visibleRows);
-    renderImportErrors(ui.importErrors, state.importErrors);
-    renderImportSummary(ui.importSummary, state.importRows);
-    updateImportPreviewControls();
-    updateImportSaveState();
-}
-
-function updateImportPreviewControls(): void {
-    const duplicateRows = state.importRows.filter(row => row.isDuplicate);
-    const hasDuplicates = duplicateRows.length > 0;
-    const checkedDuplicateCount = duplicateRows.filter(row => row.replaceDuplicate === true).length;
-
-    ui.importSkipDuplicatesInput.disabled = !hasDuplicates;
-    ui.importToggleDuplicateReplacementsInput.disabled = !hasDuplicates || ui.importSkipDuplicatesInput.checked;
-    ui.importToggleDuplicateReplacementsInput.checked = !ui.importSkipDuplicatesInput.checked && hasDuplicates && checkedDuplicateCount === duplicateRows.length;
-    ui.importToggleDuplicateReplacementsInput.indeterminate = !ui.importSkipDuplicatesInput.checked && hasDuplicates && checkedDuplicateCount > 0 && checkedDuplicateCount < duplicateRows.length;
-    ui.importToggleDuplicatesButton.disabled = !hasDuplicates;
-    ui.importToggleDuplicatesButton.textContent = state.hideDuplicateImportRows ? "Показать повторяющиеся" : "Скрыть повторяющиеся";
-}
-
-function updateImportSaveState(): void {
-    const rowsForImport = getRowsForImport();
-    const hasRows = rowsForImport.length > 0;
-    const hasUnresolvedDuplicates = !ui.importSkipDuplicatesInput.checked && rowsForImport.some(row => row.isDuplicate && row.replaceDuplicate !== true);
-    ui.importSaveButton.disabled = !hasRows || hasUnresolvedDuplicates;
-}
-
-function getRowsForImport(): BankStatementImportPreviewRowDto[] {
-    if (!ui.importSkipDuplicatesInput.checked) {
-        return state.importRows;
-    }
-
-    return state.importRows.filter(row => !row.isDuplicate);
-}
-
-function findImportRow(rowId: string | null): BankStatementImportPreviewRowDto | undefined {
-    if (!rowId) {
-        return undefined;
-    }
-
-    return state.importRows.find(row => row.clientRowId === rowId);
-}
-
-function resetImportModal(): void {
-    selectedImportFile = null;
-    ui.importFileInput.value = "";
-    ui.importSkipDuplicatesInput.checked = false;
-    ui.importToggleDuplicateReplacementsInput.checked = false;
-    ui.importToggleDuplicateReplacementsInput.indeterminate = false;
-    ui.importFileName.textContent = "";
-    state.importRows = [];
-    state.importErrors = [];
-    state.hideDuplicateImportRows = false;
-    hideImportAlert();
-    renderImportState();
-}
-
 function resetReceiptsModal(): void {
-    selectedReceiptsMoneyMovementId = null;
+    state.selectedReceiptsMoneyMovementId = null;
     state.linkedReceipts = [];
     state.receiptCandidates = [];
     ui.receiptsInfo.textContent = "";
@@ -433,13 +139,13 @@ async function reloadMovements(): Promise<void> {
     state.dateTo = ui.dateToInput.value;
     state.selectedAccountId = ui.filterAccountSelect.value;
     state.movements = await loadMoneyMovements(forgeryToken, state.dateFrom, state.dateTo, state.selectedAccountId);
-    editingCommentMovementId = null;
+    state.editingCommentMovementId = null;
     renderMovements();
 }
 
 function renderMovements(): void {
     const filteredMovements = applySearchFilter(state.movements);
-    renderMoneyMovementList(ui.list, filteredMovements, state.accounts, editingCommentMovementId);
+    renderMoneyMovementList(ui.list, filteredMovements, state.accounts, state.editingCommentMovementId);
     renderSummary(ui.count, ui.incomeSum, ui.expenseSum, filteredMovements);
 }
 
@@ -522,7 +228,7 @@ async function handleOpenReceiptsClick(button: HTMLButtonElement): Promise<void>
         return;
     }
 
-    selectedReceiptsMoneyMovementId = moneyMovementId;
+    state.selectedReceiptsMoneyMovementId = moneyMovementId;
     ui.receiptsInfo.textContent = getMovementInfoText(movement);
     initReceiptsFilters(movement);
     updateReceiptFilterState();
@@ -559,13 +265,13 @@ async function handleLinkedReceiptsClick(event: MouseEvent): Promise<void> {
     }
 
     const receiptId = button.getAttribute("data-receipt-id");
-    if (!selectedReceiptsMoneyMovementId || !receiptId) {
+    if (!state.selectedReceiptsMoneyMovementId || !receiptId) {
         return;
     }
 
     await runReceiptButtonAction(button, async () => {
         await unlinkMoneyMovementReceipt(forgeryToken, {
-            moneyMovementId: selectedReceiptsMoneyMovementId!,
+            moneyMovementId: state.selectedReceiptsMoneyMovementId!,
             receiptId: receiptId
         });
         await reloadReceiptDetails();
@@ -591,13 +297,13 @@ async function handleReceiptCandidatesClick(event: MouseEvent): Promise<void> {
     }
 
     const receiptId = button.getAttribute("data-receipt-id");
-    if (!selectedReceiptsMoneyMovementId || !receiptId) {
+    if (!state.selectedReceiptsMoneyMovementId || !receiptId) {
         return;
     }
 
     await runReceiptButtonAction(button, async () => {
         await linkMoneyMovementReceipt(forgeryToken, {
-            moneyMovementId: selectedReceiptsMoneyMovementId!,
+            moneyMovementId: state.selectedReceiptsMoneyMovementId!,
             receiptId: receiptId
         });
         await reloadReceiptDetails();
@@ -664,7 +370,7 @@ async function runReceiptButtonAction(button: HTMLButtonElement, action: () => P
 }
 
 async function reloadReceiptDetails(): Promise<void> {
-    if (!selectedReceiptsMoneyMovementId) {
+    if (!state.selectedReceiptsMoneyMovementId) {
         return;
     }
 
@@ -675,20 +381,20 @@ async function reloadReceiptDetails(): Promise<void> {
 }
 
 async function reloadLinkedReceipts(): Promise<void> {
-    if (!selectedReceiptsMoneyMovementId) {
+    if (!state.selectedReceiptsMoneyMovementId) {
         return;
     }
 
-    state.linkedReceipts = await loadLinkedReceipts(forgeryToken, selectedReceiptsMoneyMovementId);
+    state.linkedReceipts = await loadLinkedReceipts(forgeryToken, state.selectedReceiptsMoneyMovementId);
     renderLinkedReceipts(ui.linkedReceipts, state.linkedReceipts);
 }
 
 async function reloadReceiptCandidates(): Promise<void> {
-    if (!selectedReceiptsMoneyMovementId) {
+    if (!state.selectedReceiptsMoneyMovementId) {
         return;
     }
 
-    state.receiptCandidates = await loadReceiptCandidates(forgeryToken, readReceiptCandidatesRequest(selectedReceiptsMoneyMovementId));
+    state.receiptCandidates = await loadReceiptCandidates(forgeryToken, readReceiptCandidatesRequest(state.selectedReceiptsMoneyMovementId));
     renderReceiptCandidates(ui.receiptCandidates, state.receiptCandidates);
 }
 
@@ -738,14 +444,14 @@ function startCommentEdit(moneyMovementId: string | null): void {
         return;
     }
 
-    editingCommentMovementId = moneyMovementId;
+    state.editingCommentMovementId = moneyMovementId;
     renderMovements();
     const input = ui.list.querySelector<HTMLTextAreaElement>(`[data-action="edit-comment-input"][data-money-movement-id="${moneyMovementId}"]`);
     input?.focus();
 }
 
 function cancelCommentEdit(): void {
-    editingCommentMovementId = null;
+    state.editingCommentMovementId = null;
     renderMovements();
 }
 
@@ -781,7 +487,7 @@ async function handleSaveCommentClick(button: HTMLButtonElement): Promise<void> 
         });
 
         movement.comment = comment;
-        editingCommentMovementId = null;
+        state.editingCommentMovementId = null;
         renderMovements();
     }
     finally {
@@ -803,7 +509,7 @@ function openMoveAccountModal(moneyMovementId: string, sourceAccountId: string):
         return;
     }
 
-    pendingAccountAction = {
+    state.pendingAccountAction = {
         moneyMovementId: moneyMovementId,
         sourceAccountId: sourceAccountId
     };
@@ -846,7 +552,7 @@ function updateMoveActionState(): void {
     const canMove = !!selectedOption && !selectedOption.disabled;
 
     ui.confirmMoveAccountButton.disabled = !canMove;
-    ui.removeFromAccountButton.disabled = pendingAccountAction === null;
+    ui.removeFromAccountButton.disabled = state.pendingAccountAction === null;
 
     if (!selectedOption) {
         showMoveAccountAlert(getUnavailableMoveReason());
@@ -882,7 +588,7 @@ function getUnavailableMoveReason(): string {
 }
 
 async function handleConfirmMoveAccountClick(): Promise<void> {
-    if (!pendingAccountAction) {
+    if (!state.pendingAccountAction) {
         return;
     }
 
@@ -898,12 +604,12 @@ async function handleConfirmMoveAccountClick(): Promise<void> {
 
     try {
         await moveMoneyMovementToAccount(forgeryToken, {
-            moneyMovementId: pendingAccountAction.moneyMovementId,
-            sourceAccountId: pendingAccountAction.sourceAccountId,
+            moneyMovementId: state.pendingAccountAction.moneyMovementId,
+            sourceAccountId: state.pendingAccountAction.sourceAccountId,
             targetAccountId: selectedOption.value
         });
 
-        pendingAccountAction = null;
+        state.pendingAccountAction = null;
         moveAccountModal.hide();
         await reloadMovements();
     }
@@ -917,19 +623,19 @@ async function handleConfirmMoveAccountClick(): Promise<void> {
 }
 
 function handleRemoveFromAccountClick(): void {
-    if (!pendingAccountAction) {
+    if (!state.pendingAccountAction) {
         return;
     }
 
-    const movement = findMovement(pendingAccountAction.moneyMovementId);
+    const movement = findMovement(state.pendingAccountAction.moneyMovementId);
     ui.deleteInfo.textContent = movement ? getMovementInfoText(movement) : "";
-    preserveMoveModalPendingOnHide = true;
+    state.preserveMoveModalPendingOnHide = true;
     moveAccountModal.hide();
     deleteModal.show();
 }
 
 async function handleConfirmDeleteClick(): Promise<void> {
-    if (!pendingAccountAction) {
+    if (!state.pendingAccountAction) {
         return;
     }
 
@@ -939,12 +645,12 @@ async function handleConfirmDeleteClick(): Promise<void> {
 
     try {
         await deleteMoneyMovement(forgeryToken, {
-            moneyMovementId: pendingAccountAction.moneyMovementId,
-            accountId: pendingAccountAction.sourceAccountId
+            moneyMovementId: state.pendingAccountAction.moneyMovementId,
+            accountId: state.pendingAccountAction.sourceAccountId
         });
 
         deleteModal.hide();
-        pendingAccountAction = null;
+        state.pendingAccountAction = null;
         await reloadMovements();
     }
     catch (error) {
@@ -957,10 +663,10 @@ async function handleConfirmDeleteClick(): Promise<void> {
 }
 
 function resetMoveModal(): void {
-    if (preserveMoveModalPendingOnHide) {
-        preserveMoveModalPendingOnHide = false;
+    if (state.preserveMoveModalPendingOnHide) {
+        state.preserveMoveModalPendingOnHide = false;
     } else {
-        pendingAccountAction = null;
+        state.pendingAccountAction = null;
     }
 
     ui.moveTargetAccountSelect.replaceChildren();
@@ -1109,11 +815,11 @@ function applySelectedPeriodPreset(now: Date): void {
 function handleSearchInput(): void {
     state.searchQuery = ui.searchInput.value.trim();
 
-    if (searchDebounceTimerId) {
-        clearTimeout(searchDebounceTimerId);
+    if (state.searchDebounceTimerId) {
+        clearTimeout(state.searchDebounceTimerId);
     }
 
-    searchDebounceTimerId = window.setTimeout(renderMovements, 250);
+    state.searchDebounceTimerId = window.setTimeout(renderMovements, 250);
 }
 
 function normalizeSearchText(value: unknown): string {
