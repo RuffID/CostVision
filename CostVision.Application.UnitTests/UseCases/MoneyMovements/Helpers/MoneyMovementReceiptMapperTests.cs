@@ -15,7 +15,7 @@ public class MoneyMovementReceiptMapperTests
         {
             Id = receiptId,
             DateTime = new DateTime(2026, 2, 1),
-            RetailPlace = "Market",
+            Store = new Store { Name = "Market" },
             TotalSum = 77m,
             Accounts =
             [

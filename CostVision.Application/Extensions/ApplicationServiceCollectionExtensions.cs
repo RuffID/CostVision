@@ -11,6 +11,7 @@ using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Products;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
+using CostVision.Application.UseCases.Receipts.Stores;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CostVision.Application.Extensions
@@ -40,6 +41,8 @@ namespace CostVision.Application.Extensions
             services.AddScoped<IRemoveReceiptFromAccountUseCase, RemoveReceiptFromAccountUseCase>();
             services.AddScoped<IGetProductListUseCase, GetProductListUseCase>();
             services.AddScoped<IUpdateProductAdaptiveNameUseCase, UpdateProductAdaptiveNameUseCase>();
+            services.AddScoped<IGetStoreListUseCase, GetStoreListUseCase>();
+            services.AddScoped<IUpdateStoreAdaptiveNameUseCase, UpdateStoreAdaptiveNameUseCase>();
             services.AddScoped<IGetUserListUseCase, GetUserListUseCase>();
             services.AddScoped<IGetUserUseCase, GetUserUseCase>();
             services.AddScoped<ICreateUserUseCase, CreateUserUseCase>();

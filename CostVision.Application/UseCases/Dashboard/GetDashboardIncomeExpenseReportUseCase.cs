@@ -49,6 +49,7 @@ namespace CostVision.Application.UseCases.Dashboard
                             receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUser.Id))),
                 asNoTracking: true,
                 include: query => query
+                    .Include(receipt => receipt.Store)
                     .Include(receipt => receipt.Accounts)
                         .ThenInclude(link => link.Account)
                             .ThenInclude(account => account!.Members)
@@ -69,6 +70,7 @@ namespace CostVision.Application.UseCases.Dashboard
                         .ThenInclude(account => account!.Members)
                     .Include(movement => movement.ReceiptLinks)
                         .ThenInclude(link => link.Receipt)
+                            .ThenInclude(receipt => receipt!.Store)
                     .AsSplitQuery(),
                 ct: ct);
 
@@ -254,9 +256,12 @@ namespace CostVision.Application.UseCases.Dashboard
 
         private static string GetStoreName(Receipt receipt)
         {
-            string? storeName = !string.IsNullOrWhiteSpace(receipt.RetailPlace)
-                ? receipt.RetailPlace
-                : receipt.User;
+            string? storeName = !string.IsNullOrWhiteSpace(receipt.Store?.AdaptiveName)
+                ? receipt.Store.AdaptiveName
+                : receipt.Store?.Name;
+
+            if (string.IsNullOrWhiteSpace(storeName))
+                storeName = receipt.User;
 
             return string.IsNullOrWhiteSpace(storeName)
                 ? UNKNOWN_STORE_NAME

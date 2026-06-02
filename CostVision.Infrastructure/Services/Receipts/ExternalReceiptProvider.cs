@@ -54,6 +54,8 @@ namespace CostVision.Infrastructure.Services.Receipts
                 return ServiceResult<Receipt>.Fail(500, $"Не удалось обновить чек по внешнему API.\nОшибка: {result.Data?.Error ?? "В ответе API отсутствует JSON чека."}");
 
             Receipt mappedReceipt = result.MapToReceipt();
+            Store? store = CreateStore(result.Data.Json.RetailPlace, result.Data.Json.RetailPlaceAddress);
+            mappedReceipt.Store = store;
             mappedReceipt.Items = result.Data?.Json?.Items
                 .Select(item =>
                 {
@@ -69,6 +71,23 @@ namespace CostVision.Infrastructure.Services.Receipts
                 .ToList() ?? new List<ReceiptItem>();
 
             return ServiceResult<Receipt>.Ok(mappedReceipt);
+        }
+
+        private static Store? CreateStore(string? retailPlace, string? retailPlaceAddress)
+        {
+            if (string.IsNullOrWhiteSpace(retailPlace) && string.IsNullOrWhiteSpace(retailPlaceAddress))
+                return null;
+
+            string normalizedName = string.IsNullOrWhiteSpace(retailPlace)
+                ? string.Empty
+                : NameNormalizedHelper.GetNormalizedName(retailPlace);
+            string normalizedAddress = string.IsNullOrWhiteSpace(retailPlaceAddress)
+                ? string.Empty
+                : NameNormalizedHelper.GetNormalizedName(retailPlaceAddress);
+
+            Store store = new();
+            store.UpdateDetails(retailPlace, normalizedName, retailPlaceAddress, normalizedAddress);
+            return store;
         }
     }
 }

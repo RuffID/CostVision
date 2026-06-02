@@ -11,6 +11,7 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories
         IAccountRepository Account { get; }
         IReceiptRepository Receipt { get; }
         IReceiptItemRepository ReceiptItem { get; }
+        IStoreRepository Store { get; }
         IProductRepository Product { get; }
         IReceiptAccountRepository ReceiptAccount { get; }
         IAccountMemberRepository AccountMember { get; }

@@ -18,6 +18,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 receipt => receipt.Id == receiptId,
                 asNoTracking: false,
                 include: query => query
+                    .Include(receipt => receipt.Store)
                     .Include(receipt => receipt.Items)
                         .ThenInclude(item => item.Product)
                     .Include(receipt => receipt.Accounts)

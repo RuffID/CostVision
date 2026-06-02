@@ -30,6 +30,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     .Include(movement => movement.PerformedByUser)
                     .Include(movement => movement.ReceiptLinks)
                         .ThenInclude(link => link.Receipt)
+                            .ThenInclude(receipt => receipt!.Store)
                     .AsSplitQuery(),
                 ct: ct);
 
@@ -42,6 +43,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                             receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUserId))),
                 asNoTracking: true,
                 include: query => query
+                    .Include(receipt => receipt.Store)
                     .Include(receipt => receipt.Accounts)
                         .ThenInclude(link => link.Account)
                             .ThenInclude(account => account!.Members)

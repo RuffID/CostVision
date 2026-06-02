@@ -39,8 +39,8 @@ namespace CostVision.Application.Models.Dtos.Mappers
             {
                 Id = receipt.Id,
                 DateTime = receipt.DateTime,
-                RetailPlace = receipt.RetailPlace ?? receipt.User ?? string.Empty,
-                RetailPlaceAddress = receipt.RetailPlaceAddress ?? string.Empty,
+                RetailPlace = receipt.Store?.AdaptiveName ?? receipt.Store?.Name ?? receipt.User ?? string.Empty,
+                RetailPlaceAddress = receipt.Store?.Address ?? string.Empty,
                 FiscalDocumentNumber = receipt.FiscalDocumentNumber ?? string.Empty,
                 FiscalDriveNumber = receipt.FiscalDriveNumber ?? string.Empty,
                 FiscalSign = receipt.FiscalSign ?? string.Empty,

@@ -26,6 +26,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                             receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUser.Id))),
                 asNoTracking: true,
                 include: query => query
+                    .Include(receipt => receipt.Store)
                     .Include(receipt => receipt.Accounts)
                         .ThenInclude(link => link.Account)
                             .ThenInclude(account => account!.Members)

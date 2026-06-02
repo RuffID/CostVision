@@ -23,12 +23,6 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
             builder.Property(x => x.FiscalSign)
                 .HasMaxLength(32);
 
-            builder.Property(x => x.RetailPlace)
-                .HasMaxLength(256);
-
-            builder.Property(x => x.RetailPlaceAddress)
-                .HasMaxLength(512);
-
             builder.Property(x => x.User)
                 .HasMaxLength(256);
 
@@ -76,6 +70,11 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
                 .HasForeignKey(x => x.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(x => x.Store)
+                .WithMany(x => x.Receipts)
+                .HasForeignKey(x => x.StoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasMany(x => x.Items)
                 .WithOne(x => x.Receipt)
                 .HasForeignKey(x => x.ReceiptId)
@@ -87,6 +86,8 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasIndex(x => new { x.FiscalDriveNumber, x.FiscalDocumentNumber, x.FiscalSign });
+
+            builder.HasIndex(x => x.StoreId);
         }
     }
 }

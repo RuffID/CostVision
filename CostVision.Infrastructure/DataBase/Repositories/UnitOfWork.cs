@@ -14,6 +14,7 @@ namespace CostVision.Infrastructure.DataBase.Repositories
         IAccountRepository account,
         IReceiptRepository receipt,
         IReceiptItemRepository receiptItem,
+        IStoreRepository store,
         IProductRepository product,
         IReceiptAccountRepository receiptAccount,
         IAccountMemberRepository accountMember,
@@ -25,6 +26,7 @@ namespace CostVision.Infrastructure.DataBase.Repositories
         public IAccountRepository Account { get; set; } = account;
         public IReceiptRepository Receipt { get; set; } = receipt;
         public IReceiptItemRepository ReceiptItem { get; set; } = receiptItem;
+        public IStoreRepository Store { get; set; } = store;
         public IProductRepository Product { get; set; } = product;
         public IReceiptAccountRepository ReceiptAccount { get; set; } = receiptAccount;
         public IAccountMemberRepository AccountMember { get; set; } = accountMember;

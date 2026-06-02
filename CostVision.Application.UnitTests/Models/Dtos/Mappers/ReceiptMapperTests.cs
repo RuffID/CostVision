@@ -21,8 +21,7 @@ public class ReceiptMapperTests
             Id = receiptId,
             CreatedByUserId = userId,
             DateTime = new DateTime(2026, 2, 1),
-            RetailPlace = "Store",
-            RetailPlaceAddress = null,
+            Store = new Store { Name = "Store" },
             FiscalDocumentNumber = null!,
             FiscalDriveNumber = null!,
             FiscalSign = null!,
@@ -99,7 +98,7 @@ public class ReceiptMapperTests
     }
 
     [Fact]
-    public void MapReceiptDto_UsesUserNameWhenRetailPlaceIsMissing()
+    public void MapReceiptDto_UsesUserNameWhenStoreIsMissing()
     {
         Receipt receipt = new()
         {

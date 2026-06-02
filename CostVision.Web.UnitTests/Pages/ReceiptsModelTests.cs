@@ -49,7 +49,7 @@ public class ReceiptsModelTests
         {
             Id = receiptId,
             CreatedByUserId = currentUser.Id,
-            RetailPlace = "Shop",
+            Store = new Store { Name = "Shop" },
             DateTime = new DateTime(2026, 5, 1),
             Items =
             [

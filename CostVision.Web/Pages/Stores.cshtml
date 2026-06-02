@@ -1,0 +1,75 @@
+@page "/stores"
+@model CostVision.Web.Pages.StoresModel
+
+@{
+    ViewData["Title"] = "Магазины";
+}
+
+<div class="container py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 class="mb-0">Магазины</h2>
+    </div>
+
+    <div id="storesAlert" class="alert alert-warning d-none" role="alert"></div>
+
+    <div class="border rounded-3 p-3 mb-3">
+        <div class="row g-2">
+            <div class="col-12">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-lg">
+                        <label for="storesSearch" class="form-label mb-1">Поиск</label>
+                        <input type="text" id="storesSearch" name="storesSearch" class="form-control" placeholder="Название, адрес или адаптивное название..." autocomplete="off">
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+                        <button type="button" id="storesApplyFilter" class="btn btn-outline-primary w-100">Найти</button>
+                    </div>
+                </div>
+
+                <div class="form-check mt-2">
+                    <input type="checkbox" id="storesUseAdaptiveNames" name="storesUseAdaptiveNames" class="form-check-input">
+                    <label for="storesUseAdaptiveNames" class="form-check-label">Включить адапт. названия</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 flex-grow-1" data-stores-pagination></div>
+        <div class="ms-auto">
+            <label for="storesTopPageSize" class="form-label mb-1">На странице</label>
+            <select id="storesTopPageSize" name="storesTopPageSize" class="form-select">
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">
+                        <button type="button" id="storesNameSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Наименование ↑</button>
+                    </th>
+                    <th scope="col">Адрес</th>
+                    <th scope="col" class="text-nowrap" style="width: 9rem;">
+                        <button type="button" id="storesReceiptCountSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Количество</button>
+                        <span id="storesReceiptCountHelp" data-help-tooltip-host></span>
+                    </th>
+                    <th scope="col" id="storesAdaptiveNameHeader" class="text-nowrap d-none" style="width: 22rem;">Адаптивное название</th>
+                    <th scope="col" id="storesActionsHeader" class="text-center d-none" style="width: 9rem;">Действия</th>
+                </tr>
+            </thead>
+            <tbody id="storesTableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="d-flex flex-column align-items-center gap-1 mt-2">
+        <div class="fs-5" data-stores-page-info></div>
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" data-stores-pagination></div>
+    </div>
+</div>
+
+<script type="module" src="~/dist/pages/stores/index.js" asp-append-version="true"></script>

@@ -20,6 +20,7 @@ namespace CostVision.Infrastructure.DataBase
                 .ApplyConfiguration(new ExpenseCategoryConfigure())
                 .ApplyConfiguration(new ReceiptConfigure())
                 .ApplyConfiguration(new ReceiptItemConfigure())
+                .ApplyConfiguration(new StoreConfigure())
                 .ApplyConfiguration(new ProductConfigure())
                 .ApplyConfiguration(new MoneyMovementConfigure())
                 .ApplyConfiguration(new MoneyMovementReceiptConfigure());

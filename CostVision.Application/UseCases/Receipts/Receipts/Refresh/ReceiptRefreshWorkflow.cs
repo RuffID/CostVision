@@ -13,7 +13,11 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
             if (!externalReceiptResult.Success || externalReceiptResult.Data == null)
                 return ServiceResult<Receipt>.Fail(externalReceiptResult.Error!.StatusCode, externalReceiptResult.Error.Message);
 
+            Store? store = await ResolveStoreAsync(externalReceiptResult.Data.Store, ct);
+
             receipt.ApplyDetailsFrom(externalReceiptResult.Data);
+            receipt.StoreId = store?.Id == Guid.Empty ? null : store?.Id;
+            receipt.Store = store;
             receipt.MarkUpdated(DateTime.UtcNow);
             receipt.Items.Clear();
 
@@ -87,6 +91,29 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
             productFromDb.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName);
             productCache[normalizedName] = productFromDb;
             return productFromDb;
+        }
+
+        private async Task<Store?> ResolveStoreAsync(Store? sourceStore, CancellationToken ct)
+        {
+            if (sourceStore == null)
+                return null;
+
+            string normalizedName = sourceStore.NormalizedName;
+            string normalizedAddress = sourceStore.NormalizedAddress;
+            Store? storeFromDb = await unitOfWork.Store.GetItemByPredicateAsync(
+                store => store.NormalizedName == normalizedName && store.NormalizedAddress == normalizedAddress,
+                ct: ct);
+
+            if (storeFromDb == null)
+            {
+                Store createdStore = new();
+                createdStore.UpdateDetails(sourceStore.Name, sourceStore.NormalizedName, sourceStore.Address, sourceStore.NormalizedAddress);
+                unitOfWork.Store.Create(createdStore);
+                return createdStore;
+            }
+
+            storeFromDb.UpdateDetails(sourceStore.Name, sourceStore.NormalizedName, sourceStore.Address, sourceStore.NormalizedAddress);
+            return storeFromDb;
         }
     }
 }

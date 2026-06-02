@@ -14,8 +14,6 @@ namespace CostVision.Infrastructure.Services.Converters
                 FiscalDriveNumber = json.FiscalDriveNumber ?? string.Empty,
                 FiscalDocumentNumber = json.FiscalDocumentNumber.ToString(),
                 FiscalSign = json.FiscalSign.ToString(),
-                RetailPlace = json.RetailPlace,
-                RetailPlaceAddress = json.RetailPlaceAddress,
                 User = json.User,
                 UserInn = json.UserInn,
                 Region = json.Region,

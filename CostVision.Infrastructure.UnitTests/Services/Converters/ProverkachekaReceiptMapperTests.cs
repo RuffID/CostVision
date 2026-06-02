@@ -48,8 +48,7 @@ public class ProverkachekaReceiptMapperTests
         Assert.Equal("fn", result.FiscalDriveNumber);
         Assert.Equal("123", result.FiscalDocumentNumber);
         Assert.Equal("456", result.FiscalSign);
-        Assert.Equal("Shop", result.RetailPlace);
-        Assert.Equal("Address", result.RetailPlaceAddress);
+        Assert.Null(result.Store);
         Assert.Equal("Seller", result.User);
         Assert.Equal("1234567890", result.UserInn);
         Assert.Equal("54", result.Region);
@@ -118,7 +117,7 @@ public class ProverkachekaReceiptMapperTests
         Receipt result = response.MapToReceipt();
 
         Assert.Equal(string.Empty, result.FiscalDriveNumber);
-        Assert.Null(result.RetailPlace);
+        Assert.Null(result.Store);
         Assert.Null(result.Nds18);
         Assert.Null(result.Nds10);
         Assert.Null(result.Nds0);

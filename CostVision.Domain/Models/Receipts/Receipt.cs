@@ -24,9 +24,9 @@ namespace CostVision.Domain.Models.Receipts
         /// </summary>
         public string FiscalSign { get; set; } = string.Empty;
 
-        public string? RetailPlace { get; set; }
+        public Guid? StoreId { get; set; }
 
-        public string? RetailPlaceAddress { get; set; }
+        public Store? Store { get; set; }
 
         /// <summary>
         /// Наименование юридического лица.
@@ -131,8 +131,8 @@ namespace CostVision.Domain.Models.Receipts
             FiscalDriveNumber = source.FiscalDriveNumber;
             FiscalDocumentNumber = source.FiscalDocumentNumber;
             FiscalSign = source.FiscalSign;
-            RetailPlace = source.RetailPlace;
-            RetailPlaceAddress = source.RetailPlaceAddress;
+            StoreId = source.StoreId;
+            Store = source.Store;
             User = source.User;
             UserInn = source.UserInn;
             DateTime = source.DateTime;

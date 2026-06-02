@@ -18,16 +18,18 @@ public class ReceiptRefreshWorkflowTests
         Receipt receipt = new()
         {
             Id = Guid.NewGuid(),
-            RetailPlace = "Old",
+            Store = new Store { Name = "Old", NormalizedName = "OLD", Address = "Old address", NormalizedAddress = "OLDADDRESS" },
             Items = [new ReceiptItem { Id = Guid.NewGuid() }]
         };
         Product sourceProduct = new() { Name = "Milk", NormalizedName = "milk" };
+        Store sourceStore = new() { Name = "New", NormalizedName = "NEW", Address = "Address", NormalizedAddress = "ADDRESS" };
         Receipt externalReceipt = new()
         {
-            RetailPlace = "New",
+            Store = sourceStore,
             Items = [new ReceiptItem { Product = sourceProduct, Price = 10, Quantity = 2, Sum = 20 }]
         };
         Product? createdProduct = null;
+        Store? createdStore = null;
         Mock<IExternalReceiptProvider> externalReceiptProvider = new(MockBehavior.Strict);
         externalReceiptProvider.Setup(provider => provider.GetReceiptAsync(receipt, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Receipt>.Ok(externalReceipt));
@@ -41,13 +43,24 @@ public class ReceiptRefreshWorkflowTests
             .ReturnsAsync((Product?)null);
         productRepository.Setup(repository => repository.Create(It.IsAny<Product>()))
             .Callback<Product>(product => createdProduct = product);
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(productRepository);
+        Mock<IStoreRepository> storeRepository = new(MockBehavior.Strict);
+        storeRepository
+            .Setup(repository => repository.GetItemByPredicateAsync(
+                It.IsAny<Expression<Func<Store, bool>>>(),
+                It.IsAny<bool>(),
+                It.IsAny<Func<IQueryable<Store>, IQueryable<Store>>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Store?)null);
+        storeRepository.Setup(repository => repository.Create(It.IsAny<Store>()))
+            .Callback<Store>(store => createdStore = store);
+        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(productRepository, storeRepository);
         ReceiptRefreshWorkflow workflow = new(unitOfWork.Object, externalReceiptProvider.Object);
 
         var result = await workflow.RefreshAsync(receipt, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Equal("New", receipt.RetailPlace);
+        Assert.Equal("New", receipt.Store?.Name);
+        Assert.NotNull(createdStore);
         Assert.NotNull(receipt.UpdatedAtUtc);
         Assert.Single(receipt.Items);
         Assert.Equal(20, receipt.Items.Single().Sum);
@@ -65,7 +78,7 @@ public class ReceiptRefreshWorkflowTests
         externalReceiptProvider.Setup(provider => provider.GetReceiptAsync(receipt, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Receipt>.Fail(502, "Provider error"));
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
-        ReceiptRefreshWorkflow workflow = new(CreateUnitOfWork(productRepository).Object, externalReceiptProvider.Object);
+        ReceiptRefreshWorkflow workflow = new(CreateUnitOfWork(productRepository, null).Object, externalReceiptProvider.Object);
 
         var result = await workflow.RefreshAsync(receipt, CancellationToken.None);
 
@@ -73,10 +86,12 @@ public class ReceiptRefreshWorkflowTests
         Assert.Equal(502, result.Error?.StatusCode);
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IProductRepository> productRepository)
+    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IProductRepository> productRepository, Mock<IStoreRepository>? storeRepository)
     {
         Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Product).Returns(productRepository.Object);
+        if (storeRepository != null)
+            unitOfWork.Setup(unitOfWork => unitOfWork.Store).Returns(storeRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         return unitOfWork;
     }

@@ -62,7 +62,7 @@ public class ReceiptGroupMapperTests
         {
             Id = receiptId,
             CreatedByUserId = createdByUserId,
-            RetailPlace = "Store",
+            Store = new Store { Name = "Store" },
             Accounts = [new ReceiptAccount { ReceiptId = receiptId, AccountId = account.Id, Account = account }],
             MoneyMovementLinks = [new MoneyMovementReceipt { MoneyMovement = new MoneyMovement { Amount = linkedAmount } }]
         };

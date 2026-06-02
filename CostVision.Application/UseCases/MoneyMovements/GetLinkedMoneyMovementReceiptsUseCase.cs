@@ -32,6 +32,8 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 asNoTracking: true,
                 include: query => query
                     .Include(link => link.Receipt)
+                        .ThenInclude(receipt => receipt!.Store)
+                    .Include(link => link.Receipt)
                         .ThenInclude(receipt => receipt!.Accounts)
                             .ThenInclude(link => link.Account)
                     .AsSplitQuery(),

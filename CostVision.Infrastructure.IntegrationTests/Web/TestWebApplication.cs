@@ -4,8 +4,14 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
+using CostVision.Application.Models.Dtos.Dashboard;
+using CostVision.Application.Models.Requests.Dashboard;
+using CostVision.Application.Models.Requests.Receipts;
+using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Authorize.Authentication;
 using CostVision.Application.UseCases.Authorize.Users;
+using CostVision.Application.UseCases.Dashboard;
+using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Infrastructure.IntegrationTests.Web.Fakes;
@@ -174,6 +180,8 @@ public sealed class TestWebApplication : IDisposable
 
         services.AddSingleton<IAuthenticateUserUseCase>(_authenticateUser);
         services.AddSingleton<IMarkUserActivityUseCase>(MarkUserActivity);
+        services.AddSingleton<IGetDashboardIncomeExpenseReportUseCase, FakeDashboardIncomeExpenseReportUseCase>();
+        services.AddSingleton<IGetUserAccountsUseCase, FakeGetUserAccountsUseCase>();
         services.AddSingleton(CreateUnitOfWork());
 
         services.AddRazorPages()
@@ -248,5 +256,21 @@ public sealed class TestWebApplication : IDisposable
         Assert.True(inputTokenMatch.Success);
 
         return WebUtility.HtmlDecode(inputTokenMatch.Groups["token"].Value);
+    }
+
+    private sealed class FakeDashboardIncomeExpenseReportUseCase : IGetDashboardIncomeExpenseReportUseCase
+    {
+        public Task<ServiceResult<DashboardIncomeExpenseReportDto>> ExecuteAsync(User currentUser, DashboardIncomeExpenseReportRequest request, CancellationToken ct)
+        {
+            return Task.FromResult(ServiceResult<DashboardIncomeExpenseReportDto>.Ok(new DashboardIncomeExpenseReportDto()));
+        }
+    }
+
+    private sealed class FakeGetUserAccountsUseCase : IGetUserAccountsUseCase
+    {
+        public Task<List<UserAccountViewModel>> ExecuteAsync(Guid userId, bool includeArchived, CancellationToken ct)
+        {
+            return Task.FromResult(new List<UserAccountViewModel>());
+        }
     }
 }

@@ -29,7 +29,7 @@ public class ExternalReceiptProviderTests
 
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
-        Assert.Equal("shop", result.Data.RetailPlace);
+        Assert.Equal("shop", result.Data.Store?.Name);
         Assert.Equal(123.45m, result.Data.TotalSum);
         ReceiptItem item = Assert.Single(result.Data.Items);
         Assert.Equal(sourceReceipt.Id, item.ReceiptId);
@@ -165,6 +165,7 @@ public class ExternalReceiptProviderTests
                     FiscalDocumentNumber = 123,
                     FiscalSign = 456,
                     RetailPlace = "shop",
+                    RetailPlaceAddress = "address",
                     DateTime = new DateTime(2026, 5, 29, 10, 15, 0),
                     OperationType = ReceiptOperationType.Expense,
                     TotalSum = 12345,

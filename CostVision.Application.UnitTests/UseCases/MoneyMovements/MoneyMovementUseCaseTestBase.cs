@@ -135,7 +135,7 @@ public abstract class MoneyMovementUseCaseTestBase
             FiscalDriveNumber = "fn",
             FiscalDocumentNumber = "fd",
             FiscalSign = "fp",
-            RetailPlace = "Shop"
+            Store = new Store { Name = "Shop", NormalizedName = "SHOP" }
         };
         receipt.Accounts.Add(new ReceiptAccount { ReceiptId = receiptId, Receipt = receipt, AccountId = accountId, Account = account });
         return receipt;

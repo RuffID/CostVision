@@ -17,7 +17,7 @@ namespace CostVision.Application.UseCases.MoneyMovements.Helpers
             {
                 ReceiptId = receipt.Id,
                 DateTime = receipt.DateTime,
-                RetailPlace = receipt.RetailPlace ?? receipt.User ?? "Без названия",
+                RetailPlace = receipt.Store?.AdaptiveName ?? receipt.Store?.Name ?? receipt.User ?? "Без названия",
                 TotalSum = receipt.TotalSum,
                 AccountName = accountLink?.Account?.Name ?? string.Empty,
                 IsLinkedToOtherMoneyMovement = receipt.MoneyMovementLinks.Any()
