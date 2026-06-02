@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.5.11723.231 stable
+VisualStudioVersion = 18.5.11723.231
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Web", "CostVision\CostVision.Web.csproj", "{5933463C-A010-D9E9-1BDA-505F00CB6C13}"
 EndProject
@@ -11,13 +11,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Infrastructure", "CostVision.Infrastructure\CostVision.Infrastructure.csproj", "{B81BB55B-DA25-4D86-9AC1-A95B9E29AC21}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documents", "Documents", "{A1D9A5E1-1D8B-4E8C-89E8-8760EDE8A0B6}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plans", "Plans", "{F23D4587-E8B9-44F9-83EA-2F6F312AF503}"
-	ProjectSection(SolutionItems) = preProject
-		Documents\Plans\MoneyMovementsImplementationPlan.md = Documents\Plans\MoneyMovementsImplementationPlan.md
-		Documents\Plans\UnitTestCoveragePlan.md = Documents\Plans\UnitTestCoveragePlan.md
-		Documents\Plans\IntegrationTestCoveragePlan.md = Documents\Plans\IntegrationTestCoveragePlan.md
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Application.UnitTests", "CostVision.Application.UnitTests\CostVision.Application.UnitTests.csproj", "{7D116D94-87D6-4FE9-9F0A-097FA6B26F90}"
 EndProject
@@ -68,9 +61,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{F23D4587-E8B9-44F9-83EA-2F6F312AF503} = {A1D9A5E1-1D8B-4E8C-89E8-8760EDE8A0B6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {415C423E-2942-4E6C-930F-93427DBBD7D1}
