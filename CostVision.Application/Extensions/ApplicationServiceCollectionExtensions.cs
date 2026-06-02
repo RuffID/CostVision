@@ -1,6 +1,7 @@
 using CostVision.Application.UseCases.Authorize.Authentication;
 using CostVision.Application.UseCases.Authorize.Roles;
 using CostVision.Application.UseCases.Authorize.Users;
+using CostVision.Application.UseCases.Dashboard;
 using CostVision.Application.UseCases.MoneyMovements;
 using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsers.Alfa;
 using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsers.Sber;
@@ -19,6 +20,7 @@ namespace CostVision.Application.Extensions
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
             services.AddScoped<IReceiptRefreshWorkflow, ReceiptRefreshWorkflow>();
+            services.AddScoped<IGetDashboardIncomeExpenseReportUseCase, GetDashboardIncomeExpenseReportUseCase>();
             services.AddScoped<ISaveReceiptsScannedUseCase, SaveReceiptsScannedUseCase>();
             services.AddScoped<ISaveManualReceiptUseCase, SaveManualReceiptUseCase>();
             services.AddScoped<IGetReceiptListUseCase, GetReceiptListUseCase>();

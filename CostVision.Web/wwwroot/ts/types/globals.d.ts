@@ -72,6 +72,8 @@ interface JsQrResult {
 
 declare function jsQR(data: Uint8ClampedArray, width: number, height: number, options?: { inversionAttempts?: string }): JsQrResult | null;
 
+declare const Chart: any;
+
 interface Window {
     bootstrap?: {
         Modal: BootstrapModalConstructor;
