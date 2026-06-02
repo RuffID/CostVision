@@ -10,6 +10,8 @@ interface DashboardDateRange {
     dateTo: Date;
 }
 
+const STORE_NAME_MAX_LENGTH = 70;
+
 let antiForgeryToken: string | null = null;
 let periodPresetSelect: HTMLSelectElement;
 let periodSelect: HTMLSelectElement;
@@ -30,6 +32,7 @@ let dashboardAccounts: DashboardAccountDto[] = [];
 let reportStores: string[] = [];
 let selectedAccountIds = new Set<string>();
 let selectedStores = new Set<string>();
+let shouldShowSelectedStoresFirst = false;
 
 document.addEventListener("DOMContentLoaded", () => {
     initDashboardPage().catch(function (error) {
@@ -73,6 +76,7 @@ function bindEvents(): void {
     accountFilterList.addEventListener("change", onAccountFilterChanged);
     storeSearchInput.addEventListener("input", renderStoreFilter);
     storeFilterList.addEventListener("change", onStoreFilterChanged);
+    storeFilterButton.addEventListener("shown.bs.dropdown", onStoreFilterDropdownShown);
 }
 
 function setDefaultFilters(): void {
@@ -224,6 +228,7 @@ function onStoreFilterChanged(event: Event): void {
         selectedStores.delete(target.value);
     }
 
+    shouldShowSelectedStoresFirst = false;
     updateStoreFilterButtonText();
     loadAndRenderReportAsync();
 }
@@ -233,39 +238,45 @@ function renderStoreFilter(): void {
     const filteredStores = reportStores.filter(function (store) {
         return normalizeSearchText(store).includes(searchText);
     });
+    const sortedStores = shouldShowSelectedStoresFirst ? sortStoresForFilter(filteredStores) : filteredStores;
+    const currentScrollTop = storeFilterList.scrollTop;
 
     storeFilterList.replaceChildren();
 
-    if (filteredStores.length === 0) {
+    if (sortedStores.length === 0) {
         const emptyText = document.createElement("div");
         emptyText.classList.add("text-muted", "small");
         emptyText.textContent = "Магазины не найдены";
         storeFilterList.append(emptyText);
+        storeFilterList.scrollTop = currentScrollTop;
         return;
     }
 
-    for (const store of filteredStores) {
+    for (const store of sortedStores) {
         const id = buildStoreCheckboxId(store);
 
         const wrapper = document.createElement("div");
-        wrapper.classList.add("form-check");
+        wrapper.classList.add("d-flex", "align-items-start", "gap-2");
 
         const input = document.createElement("input");
         input.type = "checkbox";
-        input.classList.add("form-check-input");
+        input.classList.add("form-check-input", "flex-shrink-0", "mt-1");
         input.id = id;
         input.name = "dashboardStoreFilter";
         input.value = store;
         input.checked = selectedStores.has(store);
 
         const label = document.createElement("label");
-        label.classList.add("form-check-label");
+        label.classList.add("d-block", "flex-grow-1", "lh-sm", "text-break");
         label.htmlFor = id;
-        label.textContent = store;
+        label.textContent = truncateStoreName(store);
+        label.title = store;
 
         wrapper.append(input, label);
         storeFilterList.append(wrapper);
     }
+
+    storeFilterList.scrollTop = currentScrollTop;
 }
 
 function renderSummary(report: DashboardIncomeExpenseReportDto): void {
@@ -343,7 +354,7 @@ function renderChart(report: DashboardIncomeExpenseReportDto): void {
 
 function createSummaryBadge(label: string, value: number, className: string): HTMLElement {
     const badge = document.createElement("span");
-    badge.classList.add("badge", className, "fs-6");
+    badge.classList.add("badge", "text-dark", "fw-bold", "fs-6");
     badge.textContent = `${label}: ${formatMoneyRub(value)}`;
     return badge;
 }
@@ -472,6 +483,35 @@ function getDateRangeByPeriodPreset(periodPreset: string, now: Date): DashboardD
 
 function normalizeSearchText(value: string): string {
     return value.trim().toLocaleLowerCase("ru-RU");
+}
+
+function onStoreFilterDropdownShown(): void {
+    shouldShowSelectedStoresFirst = true;
+    renderStoreFilter();
+    storeFilterList.scrollTop = 0;
+}
+
+function sortStoresForFilter(stores: string[]): string[] {
+    return stores.slice().sort(function (left, right) {
+        const leftSelected = selectedStores.has(left);
+        const rightSelected = selectedStores.has(right);
+
+        if (leftSelected === rightSelected) {
+            return 0;
+        }
+
+        return leftSelected ? -1 : 1;
+    });
+}
+
+function truncateStoreName(store: string): string {
+    const characters = Array.from(store);
+
+    if (characters.length <= STORE_NAME_MAX_LENGTH) {
+        return store;
+    }
+
+    return characters.slice(0, STORE_NAME_MAX_LENGTH).join("");
 }
 
 function buildStoreCheckboxId(store: string): string {
