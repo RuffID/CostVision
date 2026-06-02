@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.5.11723.231
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Web", "CostVision\CostVision.Web.csproj", "{5933463C-A010-D9E9-1BDA-505F00CB6C13}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Web", "CostVision.Web\CostVision.Web.csproj", "{5933463C-A010-D9E9-1BDA-505F00CB6C13}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Domain", "CostVision.Domain\CostVision.Domain.csproj", "{8519B3BF-0D2A-47B0-8E81-84CFBA011CC2}"
 EndProject

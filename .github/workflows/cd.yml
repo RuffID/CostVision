@@ -21,7 +21,7 @@ jobs:
         run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login sonmp.ru:35103 -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
 
       - name: Build Docker image
-        run: docker build -t sonmp.ru:35103/costvision:${{ github.event.workflow_run.head_sha }} -f CostVision/Dockerfile .
+        run: docker build -t sonmp.ru:35103/costvision:${{ github.event.workflow_run.head_sha }} -f CostVision.Web/Dockerfile .
 
       - name: Push Docker image
         run: docker push sonmp.ru:35103/costvision:${{ github.event.workflow_run.head_sha }}

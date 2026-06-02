@@ -19,18 +19,18 @@ RUN uname -m
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm && rm -rf /var/lib/apt/lists/*
-COPY ["CostVision/CostVision.Web.csproj", "CostVision/"]
+COPY ["CostVision.Web/CostVision.Web.csproj", "CostVision.Web/"]
 COPY ["CostVision.Domain/CostVision.Domain.csproj", "CostVision.Domain/"]
 COPY ["CostVision.Application/CostVision.Application.csproj", "CostVision.Application/"]
 COPY ["CostVision.Infrastructure/CostVision.Infrastructure.csproj", "CostVision.Infrastructure/"]
-RUN --mount=type=cache,target=/root/.nuget/packages dotnet restore "./CostVision/CostVision.Web.csproj" --disable-parallel
-COPY ["CostVision/package.json", "CostVision/"]
-COPY ["CostVision/package-lock.json", "CostVision/"]
-WORKDIR "/src/CostVision"
+RUN --mount=type=cache,target=/root/.nuget/packages dotnet restore "./CostVision.Web/CostVision.Web.csproj" --disable-parallel
+COPY ["CostVision.Web/package.json", "CostVision.Web/"]
+COPY ["CostVision.Web/package-lock.json", "CostVision.Web/"]
+WORKDIR "/src/CostVision.Web"
 RUN --mount=type=cache,target=/root/.npm npm ci
 WORKDIR /src
 COPY . .
-WORKDIR "/src/CostVision"
+WORKDIR "/src/CostVision.Web"
 RUN npm run build:ts
 
 # Этот этап используется для публикации проекта службы, который будет скопирован на последний этап

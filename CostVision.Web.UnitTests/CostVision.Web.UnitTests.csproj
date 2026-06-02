@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CostVision\CostVision.Web.csproj" />
+    <ProjectReference Include="..\CostVision.Web\CostVision.Web.csproj" />
   </ItemGroup>
 
 </Project>

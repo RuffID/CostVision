@@ -7,7 +7,7 @@ CostVision - веб-приложение для учёта расходов по
 Технический стек:
 
 - ASP.NET Core Razor Pages в проекте `CostVision`.
-- TypeScript для клиентской логики в `CostVision/wwwroot/ts`.
+- TypeScript для клиентской логики в `CostVision.Web/wwwroot/ts`.
 - Слои `Domain`, `Application`, `Infrastructure`, `Web`.
 - Entity Framework Core через `ApplicationContext`.
 - Доступ к данным через `IUnitOfWork` и репозитории.

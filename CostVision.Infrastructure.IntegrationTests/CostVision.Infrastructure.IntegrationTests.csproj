@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CostVision\CostVision.Web.csproj" />
+    <ProjectReference Include="..\CostVision.Web\CostVision.Web.csproj" />
     <ProjectReference Include="..\CostVision.Infrastructure\CostVision.Infrastructure.csproj" />
   </ItemGroup>
 
