@@ -36,11 +36,6 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                  store.Address.Contains(search) ||
                  (store.AdaptiveName != null && store.AdaptiveName.Contains(search)));
 
-            int totalCount = await unitOfWork.Store.CountByPredicateAsync(predicate, ct);
-            int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-            page = Math.Min(page, totalPages);
-            int skip = (page - 1) * pageSize;
-
             List<Store> stores = await unitOfWork.Store.GetItemsByPredicateAsync(
                 predicate,
                 asNoTracking: true,
@@ -52,19 +47,11 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                     .AsSplitQuery(),
                 ct: ct);
 
-            List<StoreListItemDto> allItems = stores
-                .Select(store => new StoreListItemDto
-                {
-                    Id = store.Id,
-                    Name = store.Name,
-                    Address = store.Address,
-                    AdaptiveName = store.AdaptiveName,
-                    DisplayName = request.UseAdaptiveNames && !string.IsNullOrWhiteSpace(store.AdaptiveName)
-                        ? store.AdaptiveName
-                        : store.Name,
-                    ReceiptCount = CountAccessibleReceipts(store, currentUserId)
-                })
-                .ToList();
+            List<StoreListItemDto> allItems = GroupStoreItems(stores, request.UseAdaptiveNames, currentUserId);
+            int totalCount = allItems.Count;
+            int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Min(page, totalPages);
+            int skip = (page - 1) * pageSize;
 
             List<StoreListItemDto> items = SortItems(allItems, request.SortBy, request.SortDirection)
                 .Skip(skip)
@@ -101,6 +88,54 @@ namespace CostVision.Application.UseCases.Receipts.Stores
             };
 
             return orderedItems.ToList();
+        }
+
+        private static List<StoreListItemDto> GroupStoreItems(List<Store> stores, bool useAdaptiveNames, Guid currentUserId)
+        {
+            return stores
+                .Select(store => new
+                {
+                    Store = store,
+                    Item = CreateStoreListItem(store, useAdaptiveNames, currentUserId)
+                })
+                .GroupBy(item => item.Store.NormalizedName)
+                .Select(group =>
+                {
+                    List<StoreListItemDto> children = group.Select(item => item.Item).ToList();
+                    StoreListItemDto firstItem = children.First();
+
+                    if (children.Count == 1)
+                        return firstItem;
+
+                    return new StoreListItemDto
+                    {
+                        Id = firstItem.Id,
+                        Name = firstItem.Name,
+                        Address = firstItem.Address,
+                        AdaptiveName = firstItem.AdaptiveName,
+                        DisplayName = firstItem.DisplayName,
+                        ReceiptCount = children.Sum(item => item.ReceiptCount),
+                        GroupKey = group.Key,
+                        Children = children
+                    };
+                })
+                .ToList();
+        }
+
+        private static StoreListItemDto CreateStoreListItem(Store store, bool useAdaptiveNames, Guid currentUserId)
+        {
+            return new StoreListItemDto
+            {
+                Id = store.Id,
+                Name = store.Name,
+                Address = store.Address,
+                AdaptiveName = store.AdaptiveName,
+                DisplayName = useAdaptiveNames && !string.IsNullOrWhiteSpace(store.AdaptiveName)
+                    ? store.AdaptiveName
+                    : store.Name,
+                ReceiptCount = CountAccessibleReceipts(store, currentUserId),
+                GroupKey = store.NormalizedName
+            };
         }
 
         private static int CountAccessibleReceipts(Store store, Guid currentUserId)

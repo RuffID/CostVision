@@ -63,6 +63,7 @@ function handleSortClick(sortBy: StoreSortBy): void {
     }
 
     storesState.editedAdaptiveNames.clear();
+    storesState.expandedStoreGroups.clear();
     void loadPage(1);
 }
 
@@ -79,6 +80,7 @@ function reloadFromFirstPage(changedPageSizeInput: HTMLSelectElement | null = nu
     storesState.pageSize = Number((changedPageSizeInput ?? pageSizeInputs[0]).value);
     syncPageSizeInputs(storesState.pageSize);
     storesState.editedAdaptiveNames.clear();
+    storesState.expandedStoreGroups.clear();
     void loadPage(1);
 }
 
@@ -133,6 +135,11 @@ function handleTableInput(event: Event): void {
 
 async function handleTableClick(event: MouseEvent): Promise<void> {
     const target = event.target;
+    if (target instanceof HTMLButtonElement && target.dataset.storeGroupToggle === "true") {
+        toggleStoreGroup(target);
+        return;
+    }
+
     if (!(target instanceof HTMLButtonElement) || target.dataset.storeSaveButton !== "true") {
         return;
     }
@@ -161,12 +168,36 @@ async function handleTableClick(event: MouseEvent): Promise<void> {
 }
 
 function getStoreById(storeId: string): StoreListItem {
-    const store = storesState.stores.find(item => item.id === storeId);
+    const store = storesState.stores
+        .flatMap(item => [item, ...item.children])
+        .find(item => item.id === storeId);
     if (!store) {
         throw new Error("Магазин не найден в состоянии страницы.");
     }
 
     return store;
+}
+
+function toggleStoreGroup(button: HTMLButtonElement): void {
+    const row = button.closest("tr");
+    if (!(row instanceof HTMLTableRowElement) || !row.dataset.storeGroupKey) {
+        throw new Error("Не найдена группа магазинов.");
+    }
+
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const storeGroupKey = row.dataset.storeGroupKey;
+
+    if (storesState.expandedStoreGroups.has(storeGroupKey)) {
+        storesState.expandedStoreGroups.delete(storeGroupKey);
+    } else {
+        storesState.expandedStoreGroups.add(storeGroupKey);
+    }
+
+    renderStores(ui, storesState, pageNumber => {
+        void loadPage(pageNumber);
+    });
+    window.scrollTo(scrollX, scrollY);
 }
 
 function getErrorMessage(error: unknown): string {

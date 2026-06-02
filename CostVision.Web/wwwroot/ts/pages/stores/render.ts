@@ -20,7 +20,7 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
     if (state.stores.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = state.useAdaptiveNames ? 5 : 3;
+        cell.colSpan = state.useAdaptiveNames ? 6 : 4;
         cell.className = "text-muted text-center py-4";
         cell.textContent = "Магазины не найдены.";
         row.append(cell);
@@ -28,7 +28,13 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
     }
     else {
         for (const store of state.stores) {
-            ui.tableBody.append(createStoreRow(store, state));
+            ui.tableBody.append(createStoreRow(store, state, false));
+
+            if (isStoreGroupExpanded(store, state)) {
+                for (const child of store.children) {
+                    ui.tableBody.append(createStoreRow(child, state, true));
+                }
+            }
         }
     }
 
@@ -58,13 +64,41 @@ function buildSortButtonText(text: string, direction: string | null): string {
     return text;
 }
 
-function createStoreRow(store: StoreListItem, state: StoreListState): HTMLTableRowElement {
+function createStoreRow(store: StoreListItem, state: StoreListState, isChildRow: boolean): HTMLTableRowElement {
     const row = document.createElement("tr");
     row.dataset.storeId = store.id;
     row.style.height = "43px";
 
+    const isGroupRow = !isChildRow && store.children.length > 0;
+    if (isGroupRow) {
+        row.dataset.storeGroupKey = store.groupKey;
+    }
+
+    const toggleCell = document.createElement("td");
+    toggleCell.className = "border-0 bg-transparent p-0 text-center align-middle";
+    toggleCell.style.width = "2.5rem";
+
+    if (isGroupRow) {
+        const expandButton = document.createElement("button");
+        expandButton.type = "button";
+        expandButton.className = "btn btn-sm btn-outline-secondary";
+        expandButton.style.width = "2rem";
+        expandButton.style.height = "2rem";
+        expandButton.style.lineHeight = "1";
+        expandButton.textContent = state.expandedStoreGroups.has(store.groupKey) ? "⌃" : "⌄";
+        expandButton.ariaLabel = state.expandedStoreGroups.has(store.groupKey) ? "Свернуть группу магазинов" : "Развернуть группу магазинов";
+        expandButton.dataset.storeGroupToggle = "true";
+        toggleCell.append(expandButton);
+    }
+
+    row.append(toggleCell);
+
     const nameCell = document.createElement("td");
+    nameCell.className = "border-start-0";
     const nameText = document.createElement("div");
+    if (isChildRow) {
+        nameText.className = "ps-3";
+    }
     nameText.textContent = store.name || "-";
     nameCell.append(nameText);
     row.append(nameCell);
@@ -79,6 +113,19 @@ function createStoreRow(store: StoreListItem, state: StoreListState): HTMLTableR
     row.append(receiptCountCell);
 
     if (!state.useAdaptiveNames) {
+        return row;
+    }
+
+    if (isGroupRow) {
+        const adaptiveNameCell = document.createElement("td");
+        adaptiveNameCell.className = "text-muted";
+        adaptiveNameCell.textContent = "-";
+
+        const actionsCell = document.createElement("td");
+        actionsCell.className = "text-center text-nowrap";
+        actionsCell.textContent = "-";
+
+        row.append(adaptiveNameCell, actionsCell);
         return row;
     }
 
@@ -118,6 +165,10 @@ function createStoreRow(store: StoreListItem, state: StoreListState): HTMLTableR
     updateSaveButtonVisibility(row, store);
 
     return row;
+}
+
+function isStoreGroupExpanded(store: StoreListItem, state: StoreListState): boolean {
+    return store.children.length > 0 && state.expandedStoreGroups.has(store.groupKey);
 }
 
 function renderStoresPagination(container: HTMLElement, state: StoreListState, onPageClick: (page: number) => void): void {

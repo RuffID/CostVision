@@ -11,6 +11,7 @@ export const storesState: StoreListState = {
     search: "",
     useAdaptiveNames: false,
     editedAdaptiveNames: new Map<string, string>(),
+    expandedStoreGroups: new Set<string>(),
     sortBy: "name",
     sortDirection: "asc"
 };

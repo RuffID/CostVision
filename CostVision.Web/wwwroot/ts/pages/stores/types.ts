@@ -5,6 +5,8 @@ export interface StoreListItem {
     adaptiveName: string | null;
     displayName: string;
     receiptCount: number;
+    groupKey: string;
+    children: StoreListItem[];
 }
 
 export interface StoreList {
@@ -28,6 +30,7 @@ export interface StoreListState {
     search: string;
     useAdaptiveNames: boolean;
     editedAdaptiveNames: Map<string, string>;
+    expandedStoreGroups: Set<string>;
     sortBy: StoreSortBy;
     sortDirection: StoreSortDirection;
 }

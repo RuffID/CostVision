@@ -13,5 +13,9 @@ namespace CostVision.Application.Models.Dtos.Receipts
         public string DisplayName { get; set; } = string.Empty;
 
         public int ReceiptCount { get; set; }
+
+        public string GroupKey { get; set; } = string.Empty;
+
+        public List<StoreListItemDto> Children { get; set; } = new();
     }
 }
