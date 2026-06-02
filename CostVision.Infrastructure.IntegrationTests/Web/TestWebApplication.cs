@@ -229,7 +229,7 @@ public sealed class TestWebApplication : IDisposable
             "..",
             "..",
             "..",
-            "CostVision"));
+            "CostVision.Web"));
     }
 
     private static string ParseRequestVerificationToken(string html)

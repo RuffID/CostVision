@@ -20,7 +20,7 @@ namespace CostVision.Web.Pages
     [LoadUser]
     public class ReceiptsModel(
         IGetUserAccountsUseCase getUserAccountsUseCase,
-        IGetReceiptListUseCase getReceiptListUseCase,
+        IGetReceiptListPageUseCase getReceiptListPageUseCase,
         IGetReceiptWithItemsUseCase getReceiptWithItemsUseCase,
         IRefreshReceiptFromApiUseCase refreshReceiptFromApiUseCase,
         IDeleteReceiptUseCase deleteReceiptUseCase,
@@ -41,33 +41,16 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetReceiptListAsync([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, CancellationToken ct)
         {
-            ServiceResult<List<ReceiptDto>> result = await getReceiptListUseCase.ExecuteAsync(CurrentUser, dateFrom, dateTo, ct);
+            ServiceResult<List<ReceiptDto>> result = await getReceiptListPageUseCase.ExecuteAsync(
+                CurrentUser,
+                new GetReceiptListRequest
+                {
+                    DateFrom = dateFrom,
+                    DateTo = dateTo
+                },
+                ct);
 
-            if (!result.Success || result.Data == null)
-                return JsonResultMapper.ToJsonResult(result);
-
-            List<ReceiptDto> items = result.Data;
-
-            foreach (ReceiptDto item in items)
-            {
-                ServiceResult<List<ReceiptMoneyMovementDto>> candidatesResult = await getReceiptMoneyMovementCandidatesUseCase.ExecuteAsync(
-                    new GetReceiptMoneyMovementCandidatesRequest
-                    {
-                        ReceiptId = item.Id,
-                        DateFrom = item.DateTime.Date,
-                        DateTo = item.DateTime.Date,
-                        UseAmountFilter = true,
-                        AmountTolerance = 0,
-                        ExcludeLinkedMoneyMovements = true
-                    },
-                    CurrentUser.Id,
-                    ct);
-
-                if (candidatesResult.Success && candidatesResult.Data != null)
-                    item.AvailableMoneyMovementCount = candidatesResult.Data.Count;
-            }
-
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<ReceiptDto>>.Ok(items));
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostOpenReceiptAsync([FromBody] OpenReceiptRequest request, CancellationToken ct)

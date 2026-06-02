@@ -1,6 +1,4 @@
-using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Dtos.Receipts;
-using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.MoneyMovements;
@@ -19,22 +17,20 @@ namespace CostVision.Web.UnitTests.Pages;
 public class ReceiptsModelTests
 {
     [Fact]
-    public async Task OnGetReceiptListAsync_CallsReceiptListUseCaseAndCandidateCounter()
+    public async Task OnGetReceiptListAsync_CallsReceiptListPageUseCase()
     {
         User currentUser = TestUsers.Create();
         DateTime date = new(2026, 5, 1);
         ReceiptDto receipt = new() { Id = Guid.NewGuid(), DateTime = date, TotalSum = 100 };
 
         Dependencies dependencies = new();
-        dependencies.GetReceiptListUseCase
-            .Setup(useCase => useCase.ExecuteAsync(currentUser, date, date, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<List<ReceiptDto>>.Ok([receipt]));
-        dependencies.GetReceiptMoneyMovementCandidatesUseCase
+        receipt.AvailableMoneyMovementCount = 2;
+        dependencies.GetReceiptListPageUseCase
             .Setup(useCase => useCase.ExecuteAsync(
-                It.Is<GetReceiptMoneyMovementCandidatesRequest>(request => request.ReceiptId == receipt.Id && request.UseAmountFilter),
-                currentUser.Id,
+                currentUser,
+                It.Is<GetReceiptListRequest>(request => request.DateFrom == date && request.DateTo == date),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<List<ReceiptMoneyMovementDto>>.Ok([new ReceiptMoneyMovementDto(), new ReceiptMoneyMovementDto()]));
+            .ReturnsAsync(ServiceResult<List<ReceiptDto>>.Ok([receipt]));
 
         ReceiptsModel model = dependencies.CreateModel(currentUser);
 
@@ -153,7 +149,7 @@ public class ReceiptsModelTests
     private sealed class Dependencies
     {
         public Mock<IGetUserAccountsUseCase> GetUserAccountsUseCase { get; } = new(MockBehavior.Strict);
-        public Mock<IGetReceiptListUseCase> GetReceiptListUseCase { get; } = new(MockBehavior.Strict);
+        public Mock<IGetReceiptListPageUseCase> GetReceiptListPageUseCase { get; } = new(MockBehavior.Strict);
         public Mock<IGetReceiptWithItemsUseCase> GetReceiptWithItemsUseCase { get; } = new(MockBehavior.Strict);
         public Mock<IRefreshReceiptFromApiUseCase> RefreshReceiptFromApiUseCase { get; } = new(MockBehavior.Strict);
         public Mock<IDeleteReceiptUseCase> DeleteReceiptUseCase { get; } = new(MockBehavior.Strict);
@@ -168,7 +164,7 @@ public class ReceiptsModelTests
         {
             return new ReceiptsModel(
                 GetUserAccountsUseCase.Object,
-                GetReceiptListUseCase.Object,
+                GetReceiptListPageUseCase.Object,
                 GetReceiptWithItemsUseCase.Object,
                 RefreshReceiptFromApiUseCase.Object,
                 DeleteReceiptUseCase.Object,

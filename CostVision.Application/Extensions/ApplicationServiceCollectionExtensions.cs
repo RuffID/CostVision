@@ -22,6 +22,7 @@ namespace CostVision.Application.Extensions
             services.AddScoped<ISaveReceiptsScannedUseCase, SaveReceiptsScannedUseCase>();
             services.AddScoped<ISaveManualReceiptUseCase, SaveManualReceiptUseCase>();
             services.AddScoped<IGetReceiptListUseCase, GetReceiptListUseCase>();
+            services.AddScoped<IGetReceiptListPageUseCase, GetReceiptListPageUseCase>();
             services.AddScoped<IGetReceiptWithItemsUseCase, GetReceiptWithItemsUseCase>();
             services.AddScoped<IRefreshReceiptFromApiUseCase, RefreshReceiptFromApiUseCase>();
             services.AddScoped<IRefreshReceiptsWithoutItemsUseCase, RefreshReceiptsWithoutItemsUseCase>();
