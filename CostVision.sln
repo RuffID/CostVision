@@ -10,8 +10,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Application", "C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Infrastructure", "CostVision.Infrastructure\CostVision.Infrastructure.csproj", "{B81BB55B-DA25-4D86-9AC1-A95B9E29AC21}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documents", "Documents", "{A1D9A5E1-1D8B-4E8C-89E8-8760EDE8A0B6}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Application.UnitTests", "CostVision.Application.UnitTests\CostVision.Application.UnitTests.csproj", "{7D116D94-87D6-4FE9-9F0A-097FA6B26F90}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Infrastructure.UnitTests", "CostVision.Infrastructure.UnitTests\CostVision.Infrastructure.UnitTests.csproj", "{3F07F289-E6C9-485D-9174-26EC3DE7C432}"
