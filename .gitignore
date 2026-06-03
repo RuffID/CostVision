@@ -362,5 +362,15 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# Project-local files
+/CostVision/Config/
+/CostVision/keys-windows/
+/CostVision/keys-linux/
+
+/CostVision.Web/Config/
+/CostVision.Web/keys-windows/
+/CostVision.Web/keys-linux/
+
 # TypeScript build output
-CostVision.Web/wwwroot/dist/
+/CostVision/wwwroot/dist/
+/CostVision.Web/wwwroot/dist/
