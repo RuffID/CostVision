@@ -14,10 +14,14 @@ interface BootstrapApi {
 
 const MODAL_Z_INDEX = 2010;
 const MODAL_STACK_STEP = 30;
+const MODAL_BACKDROP_Z_INDEX_OFFSET = 15;
+const MODAL_BACKDROP_TRANSITION_MS = 150;
 
 let modalStack: HTMLElement[] = [];
 let stackedModalElements = new WeakSet<HTMLElement>();
 let isStackedModalEscapeHandlerBound = false;
+let modalBackdrop: HTMLElement | null = null;
+let modalBackdropHideTimer: number | null = null;
 
 declare global {
     interface Window {
@@ -58,6 +62,8 @@ function bindStackedModal(element: Element): void {
     });
 
     element.addEventListener("shown.bs.modal", () => {
+        modalStack = modalStack.filter(modal => modal !== element);
+        modalStack.push(element);
         scheduleStackedModalUpdate();
         focusTopModal();
     });
@@ -110,9 +116,8 @@ function scheduleStackedModalUpdate(): void {
 }
 
 function updateStackedModals(): void {
-    modalStack = modalStack.filter(modal => modal.classList.contains("show"));
-
-    const backdrops = Array.from(document.querySelectorAll<HTMLElement>(".modal-backdrop"));
+    const backdrops = Array.from(document.querySelectorAll<HTMLElement>(".modal-backdrop"))
+        .filter(backdrop => backdrop !== modalBackdrop);
 
     modalStack.forEach((modal, index) => {
         modal.style.setProperty("z-index", String(MODAL_Z_INDEX + index * MODAL_STACK_STEP), "important");
@@ -121,11 +126,65 @@ function updateStackedModals(): void {
 
     backdrops.forEach(backdrop => {
         backdrop.style.setProperty("display", "none", "important");
+        backdrop.style.removeProperty("z-index");
     });
+
+    updateModalBackdrop();
 
     if (modalStack.length > 0) {
         document.body.classList.add("modal-open");
     }
+}
+
+function updateModalBackdrop(): void {
+    if (modalStack.length === 0) {
+        hideModalBackdrop();
+        modalBackdrop = null;
+        return;
+    }
+
+    if (!modalBackdrop) {
+        modalBackdrop = document.createElement("div");
+        modalBackdrop.classList.add("modal-backdrop", "fade");
+        document.body.append(modalBackdrop);
+        window.requestAnimationFrame(() => {
+            modalBackdrop?.classList.add("show");
+        });
+    }
+    else {
+        clearModalBackdropHideTimer();
+        modalBackdrop.classList.add("show");
+    }
+
+    const backdropZIndex = MODAL_Z_INDEX + (modalStack.length - 1) * MODAL_STACK_STEP - MODAL_BACKDROP_Z_INDEX_OFFSET;
+    modalBackdrop.style.setProperty("display", "block", "important");
+    modalBackdrop.style.setProperty("z-index", String(backdropZIndex), "important");
+}
+
+function hideModalBackdrop(): void {
+    if (!modalBackdrop) {
+        return;
+    }
+
+    const backdrop = modalBackdrop;
+    clearModalBackdropHideTimer();
+    backdrop.classList.remove("show");
+    modalBackdropHideTimer = window.setTimeout(() => {
+        backdrop.remove();
+        if (modalBackdrop === backdrop) {
+            modalBackdrop = null;
+        }
+        modalBackdropHideTimer = null;
+    }, MODAL_BACKDROP_TRANSITION_MS);
+}
+
+function clearModalBackdropHideTimer(): void {
+    if (modalBackdropHideTimer === null) {
+        return;
+    }
+
+    window.clearTimeout(modalBackdropHideTimer);
+    modalBackdropHideTimer = null;
 }
 
 function focusTopModal(): void {
