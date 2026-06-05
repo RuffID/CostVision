@@ -10,7 +10,7 @@ namespace CostVision.Application.UseCases.MoneyMovements.Helpers
             return new MoneyMovementDto
             {
                 Id = movement.Id,
-                AccountId = movement.AccountId,
+                AccountId = movement.AccountId == Guid.Empty ? null : movement.AccountId,
                 AccountName = movement.Account?.Name ?? string.Empty,
                 AccountColorHex = movement.Account?.ColorHex ?? string.Empty,
                 Amount = movement.Amount,

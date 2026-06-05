@@ -9,12 +9,13 @@ export async function loadDashboardAccountsAsync(antiForgeryToken: string | null
     return unwrapServiceResult(response);
 }
 
-export async function loadIncomeExpenseReportAsync(dateFrom: string, dateTo: string, period: string, expenseSource: string, accountIds: string[], storeNames: string[], antiForgeryToken: string | null): Promise<DashboardIncomeExpenseReportDto> {
+export async function loadIncomeExpenseReportAsync(dateFrom: string, dateTo: string, period: string, expenseSource: string, accountIds: string[], includeWithoutAccount: boolean, storeNames: string[], antiForgeryToken: string | null): Promise<DashboardIncomeExpenseReportDto> {
     const parameters = new URLSearchParams();
     parameters.set("dateFrom", dateFrom);
     parameters.set("dateTo", dateTo);
     parameters.set("period", period);
     parameters.set("expenseSource", expenseSource);
+    parameters.set("includeWithoutAccount", String(includeWithoutAccount));
 
     for (const accountId of accountIds) {
         parameters.append("accountIds", accountId);

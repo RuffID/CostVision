@@ -82,7 +82,6 @@
             </div>
             <div class="modal-body">
                 <div id="storeReceiptsAlert" class="alert alert-warning d-none mb-3" role="alert"></div>
-                <div id="storeReceiptsInfo" class="mb-3 fw-semibold"></div>
                 <div id="storeReceiptsList" class="d-flex flex-column gap-2"></div>
                 <div id="storeReceiptsPagination" class="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-3"></div>
             </div>
@@ -192,6 +191,68 @@
             <div class="modal-footer">
                 <span id="receipt-details-total" class="me-auto fw-semibold"></span>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="moveReceiptAccountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменение счёта чека</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div id="moveReceiptAccountAlert" class="alert alert-warning d-none mb-3" role="alert"></div>
+                <div class="row g-3 align-items-center">
+                    <div class="col-12 col-md-5">
+                        <div class="border rounded-3 p-3 h-100">
+                            <div class="form-label d-block mb-2">Откуда переносим</div>
+                            <div id="moveReceiptSourceAccount" class="px-3 py-2 rounded-pill d-inline-flex align-items-center fw-semibold"></div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-2 text-center">
+                        <div class="display-6 fw-semibold text-primary" aria-hidden="true">→</div>
+                    </div>
+                    <div class="col-12 col-md-5">
+                        <div class="border rounded-3 p-3 h-100">
+                            <label for="moveReceiptTargetAccount" class="form-label d-block mb-2">Куда переносим</label>
+                            <select id="moveReceiptTargetAccount" name="moveReceiptTargetAccount" class="form-select"></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="small text-muted mt-3">
+                    Перенос недоступен, если чек уже есть в выбранном счёте назначения или у Вас нет прав на изменение этого счёта.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="removeReceiptFromAccountBtn" class="btn btn-outline-danger">Удалить из счёта</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" id="confirmMoveReceiptAccountBtn" class="btn btn-primary">Перенести чек</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="removeReceiptAccountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="removeReceiptAccountModalTitle">Удаление чека из счёта</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2" id="removeReceiptAccountModalMessage">
+                    Вы уверены, что хотите удалить этот чек из счёта?
+                </p>
+                <div class="text-muted" id="removeReceiptAccountModalReceiptInfo"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmRemoveReceiptAccountBtn">
+                    Удалить
+                </button>
             </div>
         </div>
     </div>

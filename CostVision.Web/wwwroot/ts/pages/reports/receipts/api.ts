@@ -6,6 +6,7 @@ type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
 type AvailableAccountsResponse = ServiceResultWithData<AvailableAccountDto[]>;
 type ReceiptMoneyMovementListResponse = ServiceResultWithData<ReceiptMoneyMovementDto[]>;
 type BooleanResponse = ServiceResultWithData<boolean>;
+const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
 export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string | null): Promise<ReceiptDto[]> {
     const url = rangeQuery
@@ -61,7 +62,7 @@ export async function moveReceiptToAccountApi(receiptId: string, sourceAccountId
         buildJsonHeaders(forgeryToken),
         {
             receiptId: receiptId,
-            sourceAccountId: sourceAccountId,
+            sourceAccountId: sourceAccountId || EMPTY_GUID,
             targetAccountId: targetAccountId
         }
     );

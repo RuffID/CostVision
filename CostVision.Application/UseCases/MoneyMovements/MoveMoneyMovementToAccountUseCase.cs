@@ -13,22 +13,28 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (request.MoneyMovementId == Guid.Empty)
                 return ServiceResult<bool>.Fail(400, "Некорректный идентификатор операции.");
 
-            if (request.SourceAccountId == Guid.Empty || request.TargetAccountId == Guid.Empty)
+            if (request.TargetAccountId == Guid.Empty)
                 return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
 
-            if (request.SourceAccountId == request.TargetAccountId)
+            if (request.SourceAccountId != Guid.Empty && request.SourceAccountId == request.TargetAccountId)
                 return ServiceResult<bool>.Fail(400, "Исходный и целевой счёт совпадают.");
 
-            ServiceResult<AccountMember> sourceAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.SourceAccountId, currentUserId, ct);
-            if (!sourceAccess.Success)
-                return ServiceResult<bool>.Fail(sourceAccess.Error!.StatusCode, sourceAccess.Error.Message);
+            if (request.SourceAccountId != Guid.Empty)
+            {
+                ServiceResult<AccountMember> sourceAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.SourceAccountId, currentUserId, ct);
+                if (!sourceAccess.Success)
+                    return ServiceResult<bool>.Fail(sourceAccess.Error!.StatusCode, sourceAccess.Error.Message);
+            }
 
             ServiceResult<AccountMember> targetAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.TargetAccountId, currentUserId, ct);
             if (!targetAccess.Success)
                 return ServiceResult<bool>.Fail(targetAccess.Error!.StatusCode, targetAccess.Error.Message);
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
-                item => item.Id == request.MoneyMovementId && item.AccountId == request.SourceAccountId,
+                item => item.Id == request.MoneyMovementId &&
+                        (request.SourceAccountId != Guid.Empty
+                            ? item.AccountId == request.SourceAccountId
+                            : item.AccountId == Guid.Empty && item.CreatedByUserId == currentUserId),
                 ct: ct);
 
             if (movement == null)

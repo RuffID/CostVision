@@ -150,7 +150,9 @@ export function getAvailableTargetAccounts(availableAccounts: AvailableAccountDt
 }
 
 export function replaceReceiptAccountLink(receipts: ReceiptDto[], availableAccounts: AvailableAccountDto[], receiptId: string, sourceAccountId: string, targetAccountId: string): void {
-    const receipt = findReceiptByAccountReceiptId(receipts, receiptId, sourceAccountId);
+    const receipt = sourceAccountId
+        ? findReceiptByAccountReceiptId(receipts, receiptId, sourceAccountId)
+        : findReceiptById(receipts, receiptId);
     if (!receipt) {
         throw new Error("Не удалось обновить чек после переноса.");
     }
@@ -162,6 +164,17 @@ export function replaceReceiptAccountLink(receipts: ReceiptDto[], availableAccou
 
     const accounts = getReceiptAccounts(receipt);
     const updatedAccounts: ReceiptAccountDto[] = [];
+
+    if (!sourceAccountId) {
+        updatedAccounts.push({
+            id: targetAccount.id,
+            receiptId: receiptId,
+            name: targetAccount.name,
+            colorHex: targetAccount.colorHex,
+            accessRole: targetAccount.accessRole,
+            canEditReceipt: true
+        });
+    }
 
     for (const account of accounts) {
         if (!account || account.id === targetAccountId) {

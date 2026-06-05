@@ -1,10 +1,15 @@
 import { normalizeSingleLineTextValue } from "../../../shared/formatters.js";
 import { ReceiptDto } from "./types.js";
+import { RECEIPT_ACCOUNT_FILTER_WITHOUT_ACCOUNT } from "./ui/accountFilter.js";
 
 export function applyReceiptFilters(list: ReceiptDto[], query: string, mode: string, selectedAccountId: string, operationFilter: string): ReceiptDto[] {
     let result = list.slice();
 
-    if (selectedAccountId) {
+    if (selectedAccountId === RECEIPT_ACCOUNT_FILTER_WITHOUT_ACCOUNT) {
+        result = result.filter(function (receipt) {
+            return receipt.accounts.length === 0;
+        });
+    } else if (selectedAccountId) {
         result = result.filter(function (receipt) {
             return receipt.accounts.some(function (account) {
                 return account.id === selectedAccountId;

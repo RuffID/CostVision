@@ -269,6 +269,7 @@ function onReceiptListClick(event: MouseEvent): void {
     const refreshButton = target.closest<HTMLButtonElement>('[data-action="refresh"]');
     const deleteButton = target.closest<HTMLButtonElement>('[data-action="delete"]');
     const accountButton = target.closest<HTMLButtonElement>('[data-action="edit-account-link"]');
+    const assignAccountButton = target.closest<HTMLButtonElement>('[data-action="assign-account-link"]');
     const moneyMovementsButton = target.closest<HTMLButtonElement>('[data-action="open-money-movements"]');
 
     if (moneyMovementsButton) {
@@ -331,6 +332,16 @@ function onReceiptListClick(event: MouseEvent): void {
         }
 
         openMoveReceiptAccountModal(receiptId, accountId);
+        return;
+    }
+
+    if (assignAccountButton) {
+        const receiptId = assignAccountButton.closest<HTMLElement>('.card')?.getAttribute('data-receipt-id');
+        if (!receiptId) {
+            return;
+        }
+
+        openMoveReceiptAccountModal(receiptId, '');
     }
 }
 
@@ -635,19 +646,17 @@ function getReceiptOperationFilter(): string {
 }
 
 function openMoveReceiptAccountModal(receiptId: string, sourceAccountId: string): void {
-    const receipt = findReceiptByAccountReceiptIdCore(pageState.receipts, receiptId, sourceAccountId);
+    const receipt = sourceAccountId
+        ? findReceiptByAccountReceiptIdCore(pageState.receipts, receiptId, sourceAccountId)
+        : findReceiptByIdCore(pageState.receipts, receiptId);
     if (!receipt) {
         alert('Чек не найден в текущем списке.');
         return;
     }
 
-    const sourceAccount = findReceiptAccountCore(receipt, sourceAccountId, receiptId);
-    if (!sourceAccount) {
-        alert('Связь со счётом не найдена.');
-        return;
-    }
+    const sourceAccount = sourceAccountId ? findReceiptAccountCore(receipt, sourceAccountId, receiptId) : null;
 
-    if (!sourceAccount.canEditReceipt) {
+    if (sourceAccount && !sourceAccount.canEditReceipt) {
         alert('Недостаточно прав для изменения чека в выбранном счёте.');
         return;
     }
@@ -657,8 +666,8 @@ function openMoveReceiptAccountModal(receiptId: string, sourceAccountId: string)
         sourceAccountId: sourceAccountId
     };
 
-    moveReceiptSourceAccountElement.textContent = sourceAccount.name;
-    moveReceiptSourceAccountElement.style.border = '2px solid ' + sourceAccount.colorHex;
+    moveReceiptSourceAccountElement.textContent = sourceAccount ? sourceAccount.name : 'Без счёта';
+    moveReceiptSourceAccountElement.style.border = '2px solid ' + (sourceAccount ? sourceAccount.colorHex : '#dee2e6');
     hideMoveReceiptAccountAlert();
     renderMoveReceiptTargetOptions(receipt, sourceAccountId);
     updateMoveReceiptActionState();

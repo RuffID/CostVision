@@ -1,5 +1,7 @@
 import { AvailableAccountDto } from "../types.js";
 
+export const RECEIPT_ACCOUNT_FILTER_WITHOUT_ACCOUNT = "__without_account__";
+
 export interface AccountFilterElements {
     select: HTMLSelectElement;
     error: HTMLElement;
@@ -23,6 +25,11 @@ export function renderReceiptAccountFilterOptions(select: HTMLSelectElement, acc
     allOption.textContent = "Все счета";
     select.appendChild(allOption);
 
+    const withoutAccountOption = document.createElement("option");
+    withoutAccountOption.value = RECEIPT_ACCOUNT_FILTER_WITHOUT_ACCOUNT;
+    withoutAccountOption.textContent = "Без счёта";
+    select.appendChild(withoutAccountOption);
+
     for (const account of accounts) {
         const option = document.createElement("option");
         option.value = account.id;
@@ -30,7 +37,7 @@ export function renderReceiptAccountFilterOptions(select: HTMLSelectElement, acc
         select.appendChild(option);
     }
 
-    if (currentValue && accounts.some(function (account) { return account.id === currentValue; })) {
+    if (currentValue === RECEIPT_ACCOUNT_FILTER_WITHOUT_ACCOUNT || accounts.some(function (account) { return account.id === currentValue; })) {
         select.value = currentValue;
     }
 }

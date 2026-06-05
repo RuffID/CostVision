@@ -21,7 +21,8 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 movement => movement.OccurredAt >= dateFrom.Date &&
                             movement.OccurredAt < periodEnd &&
                             (!accountId.HasValue || movement.AccountId == accountId.Value) &&
-                            (movement.Account!.CreatedByUserId == currentUserId ||
+                            (movement.CreatedByUserId == currentUserId ||
+                             movement.Account!.CreatedByUserId == currentUserId ||
                              movement.Account.Members.Any(member => member.UserId == currentUserId)),
                 asNoTracking: true,
                 include: query => query
@@ -64,7 +65,9 @@ namespace CostVision.Application.UseCases.MoneyMovements
             return availableReceipts.Count(receipt =>
                 receipt.DateTime.Date == movement.OccurredAt.Date &&
                 receipt.TotalSum == movement.Amount &&
-                receipt.Accounts.Any(link => link.AccountId == movement.AccountId));
+                (movement.AccountId == Guid.Empty
+                    ? receipt.Accounts.Count == 0
+                    : receipt.Accounts.Any(link => link.AccountId == movement.AccountId)));
         }
     }
 }

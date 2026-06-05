@@ -38,12 +38,14 @@ namespace CostVision.Application.UseCases.Dashboard
             HashSet<Guid> selectedAccountIds = request.AccountIds
                 .Where(accountId => accountId != Guid.Empty)
                 .ToHashSet();
+            bool hasAccountFilter = selectedAccountIds.Count > 0 || request.IncludeWithoutAccount;
 
             List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
                 receipt => receipt.DateTime >= periodStart &&
                            receipt.DateTime < periodEnd &&
-                           (selectedAccountIds.Count == 0 ||
-                            receipt.Accounts.Any(link => selectedAccountIds.Contains(link.AccountId))) &&
+                           (!hasAccountFilter ||
+                            receipt.Accounts.Any(link => selectedAccountIds.Contains(link.AccountId)) ||
+                            (request.IncludeWithoutAccount && !receipt.Accounts.Any())) &&
                            (receipt.CreatedByUserId == currentUser.Id ||
                             receipt.Accounts.Any(link => link.Account!.CreatedByUserId == currentUser.Id) ||
                             receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUser.Id))),
@@ -61,7 +63,7 @@ namespace CostVision.Application.UseCases.Dashboard
             List<MoneyMovement> moneyMovements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
                 movement => movement.OccurredAt >= periodStart &&
                             movement.OccurredAt < periodEnd &&
-                            (selectedAccountIds.Count == 0 || selectedAccountIds.Contains(movement.AccountId)) &&
+                            (!hasAccountFilter || selectedAccountIds.Contains(movement.AccountId)) &&
                             (movement.Account!.CreatedByUserId == currentUser.Id ||
                              movement.Account.Members.Any(member => member.UserId == currentUser.Id)),
                 asNoTracking: true,

@@ -16,7 +16,7 @@ export interface UserAccountViewModel {
 
 export interface MoneyMovementDto {
     id: string;
-    accountId: string;
+    accountId: string | null;
     accountName: string;
     accountColorHex: string;
     amount: number;
@@ -53,7 +53,7 @@ export interface DeleteMoneyMovementRequest {
 
 export interface UpdateMoneyMovementCommentRequest {
     moneyMovementId: string;
-    accountId: string;
+    accountId: string | null;
     comment: string | null;
 }
 

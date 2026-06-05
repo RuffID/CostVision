@@ -1,7 +1,7 @@
 import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { openReceiptApi, refreshReceiptApi } from "../reports/receipts/api.js";
-import type { ReceiptDto } from "../reports/receipts/types.js";
+import { loadAvailableAccountsApi, moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi } from "../reports/receipts/api.js";
+import type { AvailableAccountDto, ReceiptDto } from "../reports/receipts/types.js";
 import type { StoreList, StoreReceiptList, StoreSortBy, StoreSortDirection } from "./types.js";
 
 export async function getStores(search: string, useAdaptiveNames: boolean, page: number, pageSize: number, sortBy: StoreSortBy, sortDirection: StoreSortDirection): Promise<StoreList> {
@@ -55,4 +55,16 @@ export function openStoreReceipt(receiptId: string): Promise<ReceiptDto> {
 
 export function refreshStoreReceipt(receiptId: string): Promise<ReceiptDto> {
     return refreshReceiptApi(receiptId, getRequestVerificationToken());
+}
+
+export function loadStoreAvailableAccounts(): Promise<AvailableAccountDto[]> {
+    return loadAvailableAccountsApi(getRequestVerificationToken());
+}
+
+export function moveStoreReceiptToAccount(receiptId: string, sourceAccountId: string, targetAccountId: string): Promise<boolean> {
+    return moveReceiptToAccountApi(receiptId, sourceAccountId, targetAccountId, getRequestVerificationToken());
+}
+
+export function removeStoreReceiptFromAccount(receiptId: string, accountId: string): Promise<boolean> {
+    return removeReceiptFromAccountApi(receiptId, accountId, getRequestVerificationToken());
 }

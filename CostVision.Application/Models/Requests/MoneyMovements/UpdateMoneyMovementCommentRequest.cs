@@ -4,7 +4,7 @@ namespace CostVision.Application.Models.Requests.MoneyMovements
     {
         public Guid MoneyMovementId { get; set; }
 
-        public Guid AccountId { get; set; }
+        public Guid? AccountId { get; set; }
 
         public string? Comment { get; set; }
     }

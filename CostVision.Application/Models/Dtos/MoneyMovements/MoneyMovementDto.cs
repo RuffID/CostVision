@@ -6,7 +6,7 @@ namespace CostVision.Application.Models.Dtos.MoneyMovements
     {
         public Guid Id { get; set; }
 
-        public Guid AccountId { get; set; }
+        public Guid? AccountId { get; set; }
 
         public string AccountName { get; set; } = string.Empty;
 

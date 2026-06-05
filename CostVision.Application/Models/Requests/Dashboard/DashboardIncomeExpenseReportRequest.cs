@@ -7,6 +7,7 @@ namespace CostVision.Application.Models.Requests.Dashboard
         public string Period { get; set; } = string.Empty;
         public string ExpenseSource { get; set; } = string.Empty;
         public List<Guid> AccountIds { get; set; } = new();
+        public bool IncludeWithoutAccount { get; set; }
         public List<string> StoreNames { get; set; } = new();
     }
 }

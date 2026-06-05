@@ -6,7 +6,7 @@ import { createMoneyMovement, deleteMoneyMovement, linkMoneyMovementReceipt, loa
 import { formatDateForQuery, getDateRangeByPeriodPreset } from "./dateRange.js";
 import { initMoneyMovementHelpTooltips } from "./helpTooltips.js";
 import { initMoneyMovementImportModalController, type MoneyMovementImportModalController } from "./importModal.js";
-import { renderAccountOptions, renderImportBankOptions, renderLinkedReceipts, renderMoneyMovementList, renderReceiptCandidates, renderSummary } from "./render.js";
+import { MONEY_MOVEMENT_ACCOUNT_FILTER_WITHOUT_ACCOUNT, renderAccountOptions, renderImportBankOptions, renderLinkedReceipts, renderMoneyMovementList, renderReceiptCandidates, renderSummary } from "./render.js";
 import { state } from "./state.js";
 import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type CreateMoneyMovementRequest, type GetMoneyMovementReceiptCandidatesRequest, type MoneyMovementDto, type MoneyMovementType, type UserAccountViewModel } from "./types.js";
 import { getMoneyMovementsUi, type MoneyMovementsUi } from "./ui.js";
@@ -136,7 +136,10 @@ async function reloadMovements(): Promise<void> {
     state.dateFrom = ui.dateFromInput.value;
     state.dateTo = ui.dateToInput.value;
     state.selectedAccountId = ui.filterAccountSelect.value;
-    state.movements = await loadMoneyMovements(forgeryToken, state.dateFrom, state.dateTo, state.selectedAccountId);
+    const accountId = state.selectedAccountId === MONEY_MOVEMENT_ACCOUNT_FILTER_WITHOUT_ACCOUNT
+        ? ""
+        : state.selectedAccountId;
+    state.movements = await loadMoneyMovements(forgeryToken, state.dateFrom, state.dateTo, accountId);
     state.editingCommentMovementId = null;
     renderMovements();
 }
@@ -150,6 +153,10 @@ function renderMovements(): void {
 function applySearchFilter(movements: MoneyMovementDto[]): MoneyMovementDto[] {
     const query = normalizeSearchText(state.searchQuery).toLowerCase();
     let result = movements;
+
+    if (state.selectedAccountId === MONEY_MOVEMENT_ACCOUNT_FILTER_WITHOUT_ACCOUNT) {
+        result = result.filter(movement => !movement.accountId);
+    }
 
     if (ui.receiptFilterSelect.value === "withoutReceipts") {
         result = result.filter(movement => movement.linkedReceiptCount === 0);
@@ -207,7 +214,7 @@ function handleMoneyMovementListClick(event: MouseEvent): void {
 
     const moneyMovementId = accountButton.getAttribute("data-money-movement-id");
     const accountId = accountButton.getAttribute("data-account-id");
-    if (!moneyMovementId || !accountId) {
+    if (!moneyMovementId || accountId === null) {
         return;
     }
 
@@ -483,8 +490,23 @@ function openMoveAccountModal(moneyMovementId: string, sourceAccountId: string):
         return;
     }
 
-    const sourceAccount = findAccount(sourceAccountId);
+    const sourceAccount = sourceAccountId ? findAccount(sourceAccountId) : null;
     if (!sourceAccount || !canEditAccount(sourceAccount)) {
+        if (!sourceAccountId) {
+            state.pendingAccountAction = {
+                moneyMovementId: moneyMovementId,
+                sourceAccountId: sourceAccountId
+            };
+
+            ui.moveSourceAccount.textContent = "Без счёта";
+            ui.moveSourceAccount.style.border = "2px solid #dee2e6";
+            hideMoveAccountAlert();
+            renderMoveAccountOptions(sourceAccountId);
+            updateMoveActionState();
+            moveAccountModal.show();
+            return;
+        }
+
         showAlertMessage(ui.alert, "Недостаточно прав для изменения операции в выбранном счёте.");
         return;
     }
@@ -532,7 +554,7 @@ function updateMoveActionState(): void {
     const canMove = !!selectedOption && !selectedOption.disabled;
 
     ui.confirmMoveAccountButton.disabled = !canMove;
-    ui.removeFromAccountButton.disabled = state.pendingAccountAction === null;
+    ui.removeFromAccountButton.disabled = state.pendingAccountAction === null || !state.pendingAccountAction.sourceAccountId;
 
     if (!selectedOption) {
         showMoveAccountAlert(getUnavailableMoveReason());
@@ -675,7 +697,7 @@ function canEditAccount(account: UserAccountViewModel): boolean {
 
 function getMovementInfoText(movement: MoneyMovementDto): string {
     const sign = movement.type === MONEY_MOVEMENT_TYPE_EXPENSE ? "-" : "+";
-    return `${movement.comment || "Без комментария"} · ${movement.accountName || "Счёт"} · ${sign}${movement.amount}`;
+    return `${movement.comment || "Без комментария"} · ${movement.accountName || "Без счёта"} · ${sign}${movement.amount}`;
 }
 
 function showMoveAccountAlert(message: string): void {

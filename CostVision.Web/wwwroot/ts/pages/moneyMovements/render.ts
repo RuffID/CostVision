@@ -2,6 +2,8 @@ import { clearElement } from "../../shared/dom.js";
 import { formatMoneyRub } from "../../shared/formatters.js";
 import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportBankDto, type BankStatementImportLineErrorDto, type BankStatementImportPreviewRowDto, type MoneyMovementDto, type MoneyMovementReceiptDto, type UserAccountViewModel } from "./types.js";
 
+export const MONEY_MOVEMENT_ACCOUNT_FILTER_WITHOUT_ACCOUNT = "__without_account__";
+
 export function renderAccountOptions(select: HTMLSelectElement, accounts: UserAccountViewModel[], includeAllOption: boolean): void {
     clearElement(select);
 
@@ -10,6 +12,11 @@ export function renderAccountOptions(select: HTMLSelectElement, accounts: UserAc
         allOption.value = "";
         allOption.textContent = "Все счета";
         select.append(allOption);
+
+        const withoutAccountOption = document.createElement("option");
+        withoutAccountOption.value = MONEY_MOVEMENT_ACCOUNT_FILTER_WITHOUT_ACCOUNT;
+        withoutAccountOption.textContent = "Без счёта";
+        select.append(withoutAccountOption);
     }
 
     for (const account of accounts) {
@@ -19,7 +26,7 @@ export function renderAccountOptions(select: HTMLSelectElement, accounts: UserAc
         select.append(option);
     }
 
-    select.disabled = accounts.length === 0;
+    select.disabled = accounts.length === 0 && !includeAllOption;
 }
 
 export function renderImportBankOptions(select: HTMLSelectElement, banks: BankStatementImportBankDto[]): void {
@@ -141,7 +148,7 @@ function createMoneyMovementCard(movement: MoneyMovementDto, accounts: UserAccou
     left.classList.add("d-flex", "flex-column", "gap-1", "flex-grow-1");
 
     const account = accounts.find(item => item.id === movement.accountId);
-    const canEditMovement = account ? canEditAccount(account) : true;
+    const canEditMovement = account ? canEditAccount(account) : false;
     const commentBlock = isEditingComment ? createEditableCommentBlock(movement) : createReadonlyCommentBlock(movement, canEditMovement);
 
     const meta = document.createElement("div");
@@ -370,20 +377,40 @@ function createAccountBadge(movement: MoneyMovementDto, accounts: UserAccountVie
     const badge = document.createElement("button");
     badge.type = "button";
     badge.className = "btn btn-sm px-2 py-1 rounded-pill align-self-start";
-    badge.setAttribute("data-action", "edit-account-link");
     badge.setAttribute("data-money-movement-id", movement.id);
-    badge.setAttribute("data-account-id", movement.accountId);
-    badge.textContent = movement.accountName || "Счёт";
+    badge.textContent = movement.accountName || "Без счёта";
     badge.style.backgroundColor = "transparent";
     badge.style.color = "#212529";
-    badge.style.border = "2px solid " + movement.accountColorHex;
+    badge.style.border = "2px solid " + (movement.accountColorHex || "#dee2e6");
     badge.style.transition = "background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease";
+
+    if (!movement.accountId) {
+        badge.setAttribute("data-action", "edit-account-link");
+        badge.setAttribute("data-account-id", "");
+        badge.style.backgroundColor = "#fff";
+        badge.addEventListener("mouseenter", () => {
+            badge.style.backgroundColor = "#dee2e614";
+            badge.style.boxShadow = "0 0 0 0.2rem #dee2e622";
+            badge.style.transform = "translateY(-1px)";
+        });
+
+        badge.addEventListener("mouseleave", () => {
+            badge.style.backgroundColor = "#fff";
+            badge.style.boxShadow = "none";
+            badge.style.transform = "translateY(0)";
+        });
+
+        return badge;
+    }
+
+    badge.setAttribute("data-action", "edit-account-link");
+    badge.setAttribute("data-account-id", movement.accountId);
     badge.disabled = !canEdit;
 
     if (canEdit) {
         badge.addEventListener("mouseenter", () => {
-            badge.style.backgroundColor = movement.accountColorHex + "14";
-            badge.style.boxShadow = "0 0 0 0.2rem " + movement.accountColorHex + "22";
+            badge.style.backgroundColor = (movement.accountColorHex || "#dee2e6") + "14";
+            badge.style.boxShadow = "0 0 0 0.2rem " + (movement.accountColorHex || "#dee2e6") + "22";
             badge.style.transform = "translateY(-1px)";
         });
 

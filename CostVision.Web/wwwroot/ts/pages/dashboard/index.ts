@@ -11,6 +11,7 @@ interface DashboardDateRange {
 }
 
 const STORE_NAME_MAX_LENGTH = 70;
+const ACCOUNT_FILTER_WITHOUT_ACCOUNT = "__without_account__";
 
 let antiForgeryToken: string | null = null;
 let periodPresetSelect: HTMLSelectElement;
@@ -131,7 +132,8 @@ async function loadAndRenderReportAsync(): Promise<void> {
             dateToInput.value,
             periodSelect.value,
             expenseSourceSelect.value,
-            Array.from(selectedAccountIds),
+            getSelectedRealAccountIds(),
+            selectedAccountIds.has(ACCOUNT_FILTER_WITHOUT_ACCOUNT),
             Array.from(selectedStores),
             antiForgeryToken
         );
@@ -183,6 +185,8 @@ function onAccountFilterChanged(event: Event): void {
 function renderAccountFilter(): void {
     accountFilterList.replaceChildren();
 
+    appendWithoutAccountFilterOption();
+
     if (dashboardAccounts.length === 0) {
         const emptyText = document.createElement("div");
         emptyText.classList.add("text-muted", "small");
@@ -213,6 +217,27 @@ function renderAccountFilter(): void {
         wrapper.append(input, label);
         accountFilterList.append(wrapper);
     }
+}
+
+function appendWithoutAccountFilterOption(): void {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("form-check");
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.classList.add("form-check-input");
+    input.id = "dashboardAccountWithoutAccount";
+    input.name = "dashboardAccountFilter";
+    input.value = ACCOUNT_FILTER_WITHOUT_ACCOUNT;
+    input.checked = selectedAccountIds.has(ACCOUNT_FILTER_WITHOUT_ACCOUNT);
+
+    const label = document.createElement("label");
+    label.classList.add("form-check-label");
+    label.htmlFor = input.id;
+    label.textContent = "Без счёта";
+
+    wrapper.append(input, label);
+    accountFilterList.append(wrapper);
 }
 
 function onStoreFilterChanged(event: Event): void {
@@ -392,6 +417,10 @@ function updateAccountFilterButtonText(): void {
     }
 
     accountFilterButton.textContent = `Счета: ${selectedAccountIds.size}`;
+}
+
+function getSelectedRealAccountIds(): string[] {
+    return Array.from(selectedAccountIds).filter(accountId => accountId !== ACCOUNT_FILTER_WITHOUT_ACCOUNT);
 }
 
 function showError(message: string): void {

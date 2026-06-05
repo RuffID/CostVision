@@ -15,16 +15,22 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (request.MoneyMovementId == Guid.Empty)
                 return ServiceResult<bool>.Fail(400, "Некорректный идентификатор операции.");
 
-            ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId, currentUserId, ct);
-            if (!access.Success)
-                return ServiceResult<bool>.Fail(access.Error!.StatusCode, access.Error.Message);
+            if (request.AccountId.HasValue && request.AccountId.Value != Guid.Empty)
+            {
+                ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId.Value, currentUserId, ct);
+                if (!access.Success)
+                    return ServiceResult<bool>.Fail(access.Error!.StatusCode, access.Error.Message);
+            }
 
             string? comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim();
             if (comment?.Length > COMMENT_MAX_LENGTH)
                 return ServiceResult<bool>.Fail(400, "Комментарий не должен превышать 1024 символа.");
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
-                item => item.Id == request.MoneyMovementId && item.AccountId == request.AccountId,
+                item => item.Id == request.MoneyMovementId &&
+                        (request.AccountId.HasValue && request.AccountId.Value != Guid.Empty
+                            ? item.AccountId == request.AccountId.Value
+                            : item.AccountId == Guid.Empty && item.CreatedByUserId == currentUserId),
                 ct: ct);
 
             if (movement == null)

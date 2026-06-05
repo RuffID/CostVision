@@ -10,6 +10,7 @@ type MoneyMovementReceiptListResponse = ServiceResultWithData<MoneyMovementRecei
 type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
 type BooleanResponse = ServiceResultWithData<boolean>;
 type ImportResultResponse = ServiceResultWithData<BankStatementImportResultDto>;
+const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
 export async function loadAccounts(forgeryToken: string | null): Promise<UserAccountViewModel[]> {
     const response = await sendJsonRequest<AccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken));
@@ -40,7 +41,10 @@ export async function createMoneyMovement(forgeryToken: string | null, request: 
 }
 
 export async function moveMoneyMovementToAccount(forgeryToken: string | null, request: MoveMoneyMovementToAccountRequest): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>("?handler=MoveToAccount", "POST", buildJsonHeaders(forgeryToken), request);
+    const response = await sendJsonRequest<BooleanResponse>("?handler=MoveToAccount", "POST", buildJsonHeaders(forgeryToken), {
+        ...request,
+        sourceAccountId: request.sourceAccountId || EMPTY_GUID
+    });
     return unwrapServiceResult<boolean>(response);
 }
 

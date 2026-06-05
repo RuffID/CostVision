@@ -45,7 +45,7 @@ export function buildReceiptCard(receipt: ReceiptDto, formatCurrency: (value: nu
     if (receiptAccounts.length > 0) {
         renderReceiptAccountBadges(accountDiv, receipt);
     } else {
-        accountDiv.style.display = "none";
+        renderReceiptWithoutAccountBadge(accountDiv);
     }
 
     leftDiv.appendChild(accountDiv);
@@ -150,7 +150,8 @@ export function updateCardFromDto(cardElement: HTMLElement, receipt: ReceiptDto,
             renderReceiptAccountBadges(accountElement, receipt);
             accountElement.style.display = "";
         } else {
-            accountElement.style.display = "none";
+            renderReceiptWithoutAccountBadge(accountElement);
+            accountElement.style.display = "";
         }
     }
 
@@ -201,6 +202,34 @@ export function renderReceiptAccountBadges(container: HTMLElement, receipt: Rece
 
         container.appendChild(badge);
     }
+}
+
+function renderReceiptWithoutAccountBadge(container: HTMLElement): void {
+    container.replaceChildren();
+
+    const badge = document.createElement("button");
+    badge.type = "button";
+    badge.className = "btn btn-sm px-2 py-1 rounded-pill";
+    badge.setAttribute("data-action", "assign-account-link");
+    badge.textContent = "Без счёта";
+    badge.style.backgroundColor = "#fff";
+    badge.style.color = "#212529";
+    badge.style.border = "2px solid #dee2e6";
+    badge.style.transition = "background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease";
+
+    badge.addEventListener("mouseenter", function () {
+        badge.style.backgroundColor = "#dee2e614";
+        badge.style.boxShadow = "0 0 0 0.2rem #dee2e622";
+        badge.style.transform = "translateY(-1px)";
+    });
+
+    badge.addEventListener("mouseleave", function () {
+        badge.style.backgroundColor = "#fff";
+        badge.style.boxShadow = "none";
+        badge.style.transform = "translateY(0)";
+    });
+
+    container.appendChild(badge);
 }
 
 function buildReceiptTitleText(receipt: ReceiptDto): string {
