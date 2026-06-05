@@ -28,7 +28,7 @@
 
                 <div class="form-check mt-2">
                     <input type="checkbox" id="storesUseAdaptiveNames" name="storesUseAdaptiveNames" class="form-check-input">
-                    <label for="storesUseAdaptiveNames" class="form-check-label">Включить адапт. названия</label>
+                    <label for="storesUseAdaptiveNames" class="form-check-label">Включить адаптивное названия</label>
                 </div>
             </div>
         </div>
@@ -47,11 +47,11 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0 stores-table">
             <thead class="table-light">
                 <tr>
-                    <th scope="col" class="border-0 bg-transparent p-0" style="width: 2.5rem;"></th>
-                    <th scope="col" class="border-start-0">
+                    <th scope="col" class="stores-table__toggle-cell p-0" style="width: 2.5rem;"></th>
+                    <th scope="col" class="stores-table__first-data-cell">
                         <button type="button" id="storesNameSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Наименование ↑</button>
                     </th>
                     <th scope="col">Адрес</th>
@@ -72,5 +72,49 @@
         <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" data-stores-pagination></div>
     </div>
 </div>
+
+<style>
+    .stores-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .stores-table > :not(caption) > * > * {
+        border-color: #dee2e6;
+        border-style: solid;
+        border-width: 0 1px 1px 0;
+    }
+
+    .stores-table > thead > tr > th:not(.stores-table__toggle-cell) {
+        border-top-width: 1px;
+    }
+
+    .stores-table > :not(caption) > * > .stores-table__first-data-cell {
+        border-left-width: 1px;
+    }
+
+    .stores-table > :not(caption) > * > .stores-table__toggle-cell {
+        background-color: transparent;
+        border-width: 0;
+        box-shadow: none;
+    }
+
+    .stores-table > :not(caption) > * > .stores-table__child-first-data-cell {
+        border-bottom-width: 0;
+        border-left-width: 0;
+        position: relative;
+    }
+
+    .stores-table > :not(caption) > * > .stores-table__child-first-data-cell::before {
+        border-color: #dee2e6;
+        border-style: solid;
+        border-width: 0 0 1px 1px;
+        content: "";
+        inset: 0 auto 0 2rem;
+        pointer-events: none;
+        position: absolute;
+        width: calc(100% - 2rem);
+    }
+</style>
 
 <script type="module" src="~/dist/pages/stores/index.js" asp-append-version="true"></script>

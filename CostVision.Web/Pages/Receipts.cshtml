@@ -67,9 +67,7 @@
             <div class="col-12 col-sm-5 col-lg-4">
                 <label for="receiptOperationFilter" class="form-label mb-1">
                     Связь с операциями
-                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle text-secondary ms-1"
-                          style="width: 1.25rem; height: 1.25rem;"
-                          title="Все чеки — без фильтра. Без операций — чеки без привязанных операций. С операциями — чеки с одной или несколькими операциями. Расхождение суммы — сумма привязанных операций отличается от суммы чека.">?</span>
+                    <span id="receiptOperationFilterHelp" data-help-tooltip-host></span>
                 </label>
                 <select id="receiptOperationFilter" name="receiptOperationFilter" class="form-select">
                     <option value="all" selected>Все чеки</option>

@@ -2,6 +2,7 @@
 import { clearElement, requireElementById, requireInputById, requireSelectById } from "../../../shared/dom.js";
 import { formatMoneyRub, formatRuNumber } from "../../../shared/formatters.js";
 import { BootstrapModal, createBootstrapModal } from "../../../shared/bootstrap.js";
+import { renderHelpTooltip } from "../../../shared/helpTooltip.js";
 import { deleteReceiptApi, loadAvailableAccountsApi, loadReceiptsApi, moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi } from "./api.js";
 import { applyReceiptFilters as applyReceiptFiltersCore } from "./filters.js";
 import { createReceiptsPageState, removeReceiptFromCache } from "./state.js";
@@ -200,6 +201,15 @@ async function initListOfChecksPage(): Promise<void> {
     receiptAccountFilterSelect = requireSelectById('receiptAccountFilter');
     receiptAccountFilterError = requireElementById<HTMLElement>('receiptAccountFilterError');
     receiptOperationFilterSelect = requireSelectById('receiptOperationFilter');
+    renderHelpTooltip(requireElementById<HTMLElement>('receiptOperationFilterHelp'), {
+        title: 'Связь с операциями',
+        text: [
+            'Все чеки — без фильтра.',
+            'Без операций — чеки без привязанных операций.',
+            'С операциями — чеки с одной или несколькими операциями.',
+            'Расхождение суммы — сумма привязанных операций отличается от суммы чека.'
+        ]
+    });
 
     if (receiptSearchInput) {
         receiptSearchInput.addEventListener('input', onSearchChanged);

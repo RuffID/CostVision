@@ -2,7 +2,7 @@ import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { requireElementById, requireInputById } from "../../shared/dom.js";
 import { renderHelpTooltip } from "../../shared/helpTooltip.js";
 import { getStores, updateStoreAdaptiveName } from "./api.js";
-import { renderStores, updateSaveButtonVisibility, type StoresUi } from "./render.js";
+import { createStoreRow, renderStores, updateSaveButtonVisibility, type StoresUi } from "./render.js";
 import { storesState } from "./state.js";
 import type { StoreListItem, StoreSortBy } from "./types.js";
 
@@ -184,20 +184,48 @@ function toggleStoreGroup(button: HTMLButtonElement): void {
         throw new Error("Не найдена группа магазинов.");
     }
 
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
     const storeGroupKey = row.dataset.storeGroupKey;
+    button.blur();
 
     if (storesState.expandedStoreGroups.has(storeGroupKey)) {
         storesState.expandedStoreGroups.delete(storeGroupKey);
+        removeStoreGroupChildRows(storeGroupKey);
     } else {
         storesState.expandedStoreGroups.add(storeGroupKey);
+        appendStoreGroupChildRows(row, storeGroupKey);
     }
 
-    renderStores(ui, storesState, pageNumber => {
-        void loadPage(pageNumber);
-    });
-    window.scrollTo(scrollX, scrollY);
+    button.textContent = storesState.expandedStoreGroups.has(storeGroupKey) ? "⌃" : "⌄";
+    button.ariaLabel = storesState.expandedStoreGroups.has(storeGroupKey) ? "Свернуть группу магазинов" : "Развернуть группу магазинов";
+}
+
+function appendStoreGroupChildRows(parentRow: HTMLTableRowElement, storeGroupKey: string): void {
+    const store = getStoreByGroupKey(storeGroupKey);
+    let previousRow = parentRow;
+
+    for (const child of store.children) {
+        const childRow = createStoreRow(child, storesState, true, storeGroupKey);
+        previousRow.after(childRow);
+        previousRow = childRow;
+    }
+}
+
+function removeStoreGroupChildRows(storeGroupKey: string): void {
+    const rows = ui.tableBody.querySelectorAll<HTMLTableRowElement>("tr[data-store-parent-group-key]");
+    for (const row of rows) {
+        if (row.dataset.storeParentGroupKey === storeGroupKey) {
+            row.remove();
+        }
+    }
+}
+
+function getStoreByGroupKey(storeGroupKey: string): StoreListItem {
+    const store = storesState.stores.find(item => item.groupKey === storeGroupKey);
+    if (!store) {
+        throw new Error("Группа магазинов не найдена в состоянии страницы.");
+    }
+
+    return store;
 }
 
 function getErrorMessage(error: unknown): string {

@@ -19,11 +19,15 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
 
     if (state.stores.length === 0) {
         const row = document.createElement("tr");
+        const toggleCell = document.createElement("td");
+        toggleCell.className = "stores-table__toggle-cell p-0";
+        toggleCell.style.width = "2.5rem";
+
         const cell = document.createElement("td");
-        cell.colSpan = state.useAdaptiveNames ? 6 : 4;
-        cell.className = "text-muted text-center py-4";
+        cell.colSpan = state.useAdaptiveNames ? 5 : 3;
+        cell.className = "stores-table__first-data-cell text-muted text-center py-4";
         cell.textContent = "Магазины не найдены.";
-        row.append(cell);
+        row.append(toggleCell, cell);
         ui.tableBody.append(row);
     }
     else {
@@ -32,7 +36,7 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
 
             if (isStoreGroupExpanded(store, state)) {
                 for (const child of store.children) {
-                    ui.tableBody.append(createStoreRow(child, state, true));
+                    ui.tableBody.append(createStoreRow(child, state, true, store.groupKey));
                 }
             }
         }
@@ -64,7 +68,15 @@ function buildSortButtonText(text: string, direction: string | null): string {
     return text;
 }
 
-function createStoreRow(store: StoreListItem, state: StoreListState, isChildRow: boolean): HTMLTableRowElement {
+function formatStoreTableText(text: string | null, maxLength: number): string {
+    if (!text) {
+        return "-";
+    }
+
+    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+}
+
+export function createStoreRow(store: StoreListItem, state: StoreListState, isChildRow: boolean, parentGroupKey: string | null = null): HTMLTableRowElement {
     const row = document.createElement("tr");
     row.dataset.storeId = store.id;
     row.style.height = "43px";
@@ -73,9 +85,16 @@ function createStoreRow(store: StoreListItem, state: StoreListState, isChildRow:
     if (isGroupRow) {
         row.dataset.storeGroupKey = store.groupKey;
     }
+    if (isChildRow) {
+        if (!parentGroupKey) {
+            throw new Error("Не задан ключ родительской группы магазина.");
+        }
+
+        row.dataset.storeParentGroupKey = parentGroupKey;
+    }
 
     const toggleCell = document.createElement("td");
-    toggleCell.className = "border-0 bg-transparent p-0 text-center align-middle";
+    toggleCell.className = "stores-table__toggle-cell p-0 text-center align-middle";
     toggleCell.style.width = "2.5rem";
 
     if (isGroupRow) {
@@ -94,17 +113,17 @@ function createStoreRow(store: StoreListItem, state: StoreListState, isChildRow:
     row.append(toggleCell);
 
     const nameCell = document.createElement("td");
-    nameCell.className = "border-start-0";
+    nameCell.className = isChildRow
+        ? "stores-table__first-data-cell stores-table__child-first-data-cell"
+        : "stores-table__first-data-cell";
     const nameText = document.createElement("div");
-    if (isChildRow) {
-        nameText.className = "ps-3";
-    }
-    nameText.textContent = store.name || "-";
+    nameText.className = isChildRow ? "ps-5" : "";
+    nameText.textContent = formatStoreTableText(store.name, 50);
     nameCell.append(nameText);
     row.append(nameCell);
 
     const addressCell = document.createElement("td");
-    addressCell.textContent = store.address || "-";
+    addressCell.textContent = formatStoreTableText(store.address, 200);
     row.append(addressCell);
 
     const receiptCountCell = document.createElement("td");
