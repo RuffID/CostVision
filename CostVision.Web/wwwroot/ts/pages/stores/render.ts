@@ -113,9 +113,12 @@ export function createStoreRow(store: StoreListItem, state: StoreListState, isCh
     row.append(toggleCell);
 
     const nameCell = document.createElement("td");
-    nameCell.className = isChildRow ? "p-0" : "border-start border-bottom";
+    nameCell.className = isChildRow ? "p-0 align-middle" : "border-start border-bottom";
     const nameText = document.createElement("div");
-    nameText.className = isChildRow ? "border-start border-bottom ms-5 ps-3 h-100 d-flex align-items-center" : "";
+    nameText.className = isChildRow ? "border-start border-bottom ms-4 ps-3 d-flex align-items-center" : "";
+    if (isChildRow) {
+        nameText.style.minHeight = "43px";
+    }
     nameText.textContent = formatStoreTableText(store.name, 50);
     nameCell.append(nameText);
     row.append(nameCell);
