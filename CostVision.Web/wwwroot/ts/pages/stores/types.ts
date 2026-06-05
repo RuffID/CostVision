@@ -1,3 +1,5 @@
+import type { ReceiptDto } from "../reports/receipts/types.js";
+
 export interface StoreListItem {
     id: string;
     name: string;
@@ -11,6 +13,16 @@ export interface StoreListItem {
 
 export interface StoreList {
     items: StoreListItem[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+export interface StoreReceiptList {
+    items: ReceiptDto[];
     page: number;
     pageSize: number;
     totalCount: number;

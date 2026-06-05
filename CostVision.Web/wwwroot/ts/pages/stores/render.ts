@@ -20,12 +20,12 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
     if (state.stores.length === 0) {
         const row = document.createElement("tr");
         const toggleCell = document.createElement("td");
-        toggleCell.className = "stores-table__toggle-cell p-0";
+        toggleCell.className = "border-0 bg-transparent p-0";
         toggleCell.style.width = "2.5rem";
 
         const cell = document.createElement("td");
         cell.colSpan = state.useAdaptiveNames ? 5 : 3;
-        cell.className = "stores-table__first-data-cell text-muted text-center py-4";
+        cell.className = "border-start text-muted text-center py-4";
         cell.textContent = "Магазины не найдены.";
         row.append(toggleCell, cell);
         ui.tableBody.append(row);
@@ -94,7 +94,7 @@ export function createStoreRow(store: StoreListItem, state: StoreListState, isCh
     }
 
     const toggleCell = document.createElement("td");
-    toggleCell.className = "stores-table__toggle-cell p-0 text-center align-middle";
+    toggleCell.className = "border-0 bg-transparent p-0 text-center align-middle";
     toggleCell.style.width = "2.5rem";
 
     if (isGroupRow) {
@@ -113,9 +113,7 @@ export function createStoreRow(store: StoreListItem, state: StoreListState, isCh
     row.append(toggleCell);
 
     const nameCell = document.createElement("td");
-    nameCell.className = isChildRow
-        ? "stores-table__first-data-cell stores-table__child-first-data-cell"
-        : "stores-table__first-data-cell";
+    nameCell.className = "border-start";
     const nameText = document.createElement("div");
     nameText.className = isChildRow ? "ps-5" : "";
     nameText.textContent = formatStoreTableText(store.name, 50);
@@ -123,12 +121,21 @@ export function createStoreRow(store: StoreListItem, state: StoreListState, isCh
     row.append(nameCell);
 
     const addressCell = document.createElement("td");
-    addressCell.textContent = formatStoreTableText(store.address, 200);
+    addressCell.textContent = formatStoreTableText(store.address, 100);
     row.append(addressCell);
 
     const receiptCountCell = document.createElement("td");
-    receiptCountCell.className = "text-end text-nowrap";
-    receiptCountCell.textContent = String(store.receiptCount);
+    receiptCountCell.className = "text-center text-nowrap";
+    const receiptCountButton = document.createElement("button");
+    receiptCountButton.type = "button";
+    receiptCountButton.className = "btn btn-sm btn-outline-secondary px-2 py-0";
+    receiptCountButton.textContent = String(store.receiptCount);
+    receiptCountButton.dataset.storeReceiptsButton = "true";
+    receiptCountButton.dataset.storeId = store.id;
+    if (isGroupRow) {
+        receiptCountButton.dataset.storeGroupKey = store.groupKey;
+    }
+    receiptCountCell.append(receiptCountButton);
     row.append(receiptCountCell);
 
     if (!state.useAdaptiveNames) {

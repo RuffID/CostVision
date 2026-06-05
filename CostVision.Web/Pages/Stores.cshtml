@@ -47,11 +47,11 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0 stores-table">
+        <table class="table table-bordered table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
-                    <th scope="col" class="stores-table__toggle-cell p-0" style="width: 2.5rem;"></th>
-                    <th scope="col" class="stores-table__first-data-cell">
+                    <th scope="col" class="border-0 bg-transparent p-0" style="width: 2.5rem;"></th>
+                    <th scope="col" class="border-start">
                         <button type="button" id="storesNameSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Наименование ↑</button>
                     </th>
                     <th scope="col">Адрес</th>
@@ -73,48 +73,128 @@
     </div>
 </div>
 
-<style>
-    .stores-table {
-        border-collapse: separate;
-        border-spacing: 0;
-    }
+<div class="modal fade" id="storeReceiptsModal" tabindex="-1" aria-labelledby="storeReceiptsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="storeReceiptsModalLabel">Чеки магазина</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div id="storeReceiptsAlert" class="alert alert-warning d-none mb-3" role="alert"></div>
+                <div id="storeReceiptsInfo" class="mb-3 fw-semibold"></div>
+                <div id="storeReceiptsList" class="d-flex flex-column gap-2"></div>
+                <div id="storeReceiptsPagination" class="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    .stores-table > :not(caption) > * > * {
-        border-color: #dee2e6;
-        border-style: solid;
-        border-width: 0 1px 1px 0;
-    }
+<div class="modal fade" id="receiptMoneyMovementsModal" tabindex="-1" aria-labelledby="receiptMoneyMovementsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="receiptMoneyMovementsModalLabel">Операции чека</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div id="receiptMoneyMovementsAlert" class="alert alert-warning d-none mb-3" role="alert"></div>
+                <div id="receiptMoneyMovementsInfo" class="mb-1"></div>
+                <div class="text-muted small mb-3">Выберите подходящую операцию из списка ниже или измените фильтры поиска.</div>
 
-    .stores-table > thead > tr > th:not(.stores-table__toggle-cell) {
-        border-top-width: 1px;
-    }
+                <div class="border rounded-3 p-3 mb-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-3">
+                            <label for="receiptMoneyMovementsDateFrom" class="form-label mb-1">с</label>
+                            <input type="date" id="receiptMoneyMovementsDateFrom" name="receiptMoneyMovementsDateFrom" class="form-control" autocomplete="off">
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label for="receiptMoneyMovementsDateTo" class="form-label mb-1">по</label>
+                            <input type="date" id="receiptMoneyMovementsDateTo" name="receiptMoneyMovementsDateTo" class="form-control" autocomplete="off">
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label for="receiptMoneyMovementsAmountTolerance" class="form-label mb-1">
+                                Допуск суммы (₽)
+                                <span id="receiptMoneyMovementsAmountToleranceHelp" data-help-tooltip-host></span>
+                            </label>
+                            <input type="number" step="0.01" min="0" id="receiptMoneyMovementsAmountTolerance" name="receiptMoneyMovementsAmountTolerance" class="form-control" value="1" autocomplete="off">
+                        </div>
+                        <div class="col-12 col-md-2" style="min-width: 12.5rem;">
+                            <label for="receiptMoneyMovementsTimeWindowHours" class="form-label mb-1">
+                                Допуск времени (час)
+                                <span id="receiptMoneyMovementsTimeWindowHoursHelp" data-help-tooltip-host></span>
+                            </label>
+                            <input type="number" step="0.25" min="0" id="receiptMoneyMovementsTimeWindowHours" name="receiptMoneyMovementsTimeWindowHours" class="form-control" value="1" autocomplete="off">
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input type="checkbox" id="receiptMoneyMovementsUseTimeWindow" name="receiptMoneyMovementsUseTimeWindow" class="form-check-input">
+                                    <label for="receiptMoneyMovementsUseTimeWindow" class="form-check-label">
+                                        Окно времени
+                                        <span id="receiptMoneyMovementsUseTimeWindowHelp" data-help-tooltip-host></span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" id="receiptMoneyMovementsUseAmountFilter" name="receiptMoneyMovementsUseAmountFilter" class="form-check-input" checked>
+                                    <label for="receiptMoneyMovementsUseAmountFilter" class="form-check-label">
+                                        По сумме
+                                        <span id="receiptMoneyMovementsUseAmountFilterHelp" data-help-tooltip-host></span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" id="receiptMoneyMovementsExcludeLinked" name="receiptMoneyMovementsExcludeLinked" class="form-check-input" checked>
+                                    <label for="receiptMoneyMovementsExcludeLinked" class="form-check-label">
+                                        Без привязанных
+                                        <span id="receiptMoneyMovementsExcludeLinkedHelp" data-help-tooltip-host></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="button" id="receiptMoneyMovementsReloadCandidatesButton" class="btn btn-outline-primary">Найти операции</button>
+                        </div>
+                    </div>
+                </div>
 
-    .stores-table > :not(caption) > * > .stores-table__first-data-cell {
-        border-left-width: 1px;
-    }
+                <div class="row g-3">
+                    <div class="col-12 col-lg-5">
+                        <h6>Привязанные операции</h6>
+                        <div id="receiptLinkedMoneyMovements" class="d-flex flex-column gap-2"></div>
+                    </div>
+                    <div class="col-12 col-lg-7">
+                        <h6>Доступные операции для привязки</h6>
+                        <div id="receiptMoneyMovementCandidates" class="d-flex flex-column gap-2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    .stores-table > :not(caption) > * > .stores-table__toggle-cell {
-        background-color: transparent;
-        border-width: 0;
-        box-shadow: none;
-    }
-
-    .stores-table > :not(caption) > * > .stores-table__child-first-data-cell {
-        border-bottom-width: 0;
-        border-left-width: 0;
-        position: relative;
-    }
-
-    .stores-table > :not(caption) > * > .stores-table__child-first-data-cell::before {
-        border-color: #dee2e6;
-        border-style: solid;
-        border-width: 0 0 1px 1px;
-        content: "";
-        inset: 0 auto 0 2rem;
-        pointer-events: none;
-        position: absolute;
-        width: calc(100% - 2rem);
-    }
-</style>
+<div class="modal fade" id="receiptDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Детали чека</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div id="receipt-details-header" class="mb-2"></div>
+                <div id="receipt-details-list" class="d-flex flex-column gap-2"></div>
+            </div>
+            <div class="modal-footer">
+                <span id="receipt-details-total" class="me-auto fw-semibold"></span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script type="module" src="~/dist/pages/stores/index.js" asp-append-version="true"></script>
