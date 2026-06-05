@@ -47,6 +47,8 @@ namespace CostVision.Application.Models.Dtos.Mappers
                 TotalSum = receipt.TotalSum,
                 AccountId = receiptAccount?.Id,
                 AccountName = receiptAccount?.Name ?? string.Empty,
+                CreatedByUserName = receipt.CreatedByUser?.Name ?? string.Empty,
+                CreatedAtUtc = receipt.CreatedAtUtc,
                 MoneyMovementCount = receipt.MoneyMovementLinks.Count,
                 MoneyMovementsTotalSum = receipt.MoneyMovementLinks
                     .Where(link => link.MoneyMovement != null)

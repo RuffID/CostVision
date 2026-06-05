@@ -67,6 +67,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 asNoTracking: true,
                 include: query => query
                     .Include(receipt => receipt.Store)
+                    .Include(receipt => receipt.CreatedByUser)
                     .Include(receipt => receipt.Accounts)
                         .ThenInclude(link => link.Account)
                             .ThenInclude(account => account!.Members)

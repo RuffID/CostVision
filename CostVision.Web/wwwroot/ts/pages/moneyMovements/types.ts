@@ -63,6 +63,8 @@ export interface MoneyMovementReceiptDto {
     retailPlace: string;
     totalSum: number;
     accountName: string;
+    createdByUserName: string;
+    createdAtUtc: string;
     isLinkedToOtherMoneyMovement: boolean;
 }
 
@@ -174,6 +176,8 @@ export interface ReceiptDto {
     fiscalSign: string;
     accountId: string | null;
     accountName: string;
+    createdByUserName: string;
+    createdAtUtc: string;
     moneyMovementCount: number;
     availableMoneyMovementCount: number;
     moneyMovementsTotalSum: number;

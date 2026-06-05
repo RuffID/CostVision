@@ -19,6 +19,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 asNoTracking: false,
                 include: query => query
                     .Include(receipt => receipt.Store)
+                    .Include(receipt => receipt.CreatedByUser)
                     .Include(receipt => receipt.Items)
                         .ThenInclude(item => item.Product)
                     .Include(receipt => receipt.Accounts)

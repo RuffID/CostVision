@@ -3,6 +3,7 @@ import { getReceiptAccounts } from "../state/accountModel.js";
 import { ReceiptDto } from "../types.js";
 
 const RETAIL_PLACE_DISPLAY_LIMIT = 100;
+const RECEIPT_UPLOADER_NAME_LIMIT = 30;
 
 export function buildReceiptCard(receipt: ReceiptDto, formatCurrency: (value: number) => string): HTMLElement {
     const card = document.createElement("div");
@@ -48,6 +49,7 @@ export function buildReceiptCard(receipt: ReceiptDto, formatCurrency: (value: nu
         renderReceiptWithoutAccountBadge(accountDiv);
     }
 
+    accountDiv.appendChild(createReceiptUploaderInfo(receipt));
     leftDiv.appendChild(accountDiv);
 
     const rightDiv = document.createElement("div");
@@ -153,6 +155,8 @@ export function updateCardFromDto(cardElement: HTMLElement, receipt: ReceiptDto,
             renderReceiptWithoutAccountBadge(accountElement);
             accountElement.style.display = "";
         }
+
+        accountElement.appendChild(createReceiptUploaderInfo(receipt));
     }
 
     if (totalElement && typeof receipt.totalSum === "number") {
@@ -232,6 +236,13 @@ function renderReceiptWithoutAccountBadge(container: HTMLElement): void {
     container.appendChild(badge);
 }
 
+function createReceiptUploaderInfo(receipt: ReceiptDto): HTMLElement {
+    const element = document.createElement("span");
+    element.classList.add("fw-normal", "text-body", "align-self-center");
+    element.textContent = `Загрузил: ${truncateTextForDisplay(receipt.createdByUserName, RECEIPT_UPLOADER_NAME_LIMIT)} от ${formatReceiptCreatedDate(receipt.createdAtUtc)}`;
+    return element;
+}
+
 function buildReceiptTitleText(receipt: ReceiptDto): string {
     let dateText = "";
     if (receipt.dateTime) {
@@ -248,6 +259,20 @@ function buildReceiptTitleText(receipt: ReceiptDto): string {
 function buildMoneyMovementsButtonText(receipt: ReceiptDto): string {
     const totalCount = Number(receipt.moneyMovementCount || 0) + Number(receipt.availableMoneyMovementCount || 0);
     return totalCount > 0 ? `Операций: ${totalCount}` : "Операции";
+}
+
+function formatReceiptCreatedDate(value: string): string {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleDateString("ru-RU", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    });
 }
 
 function truncateTextForDisplay(value: string, maxLength: number): string {

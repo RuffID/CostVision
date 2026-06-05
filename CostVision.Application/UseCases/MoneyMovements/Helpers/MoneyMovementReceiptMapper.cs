@@ -20,6 +20,8 @@ namespace CostVision.Application.UseCases.MoneyMovements.Helpers
                 RetailPlace = receipt.Store?.AdaptiveName ?? receipt.Store?.Name ?? receipt.User ?? "Без названия",
                 TotalSum = receipt.TotalSum,
                 AccountName = accountLink?.Account?.Name ?? string.Empty,
+                CreatedByUserName = receipt.CreatedByUser?.Name ?? string.Empty,
+                CreatedAtUtc = receipt.CreatedAtUtc,
                 IsLinkedToOtherMoneyMovement = receipt.MoneyMovementLinks.Any()
             };
         }

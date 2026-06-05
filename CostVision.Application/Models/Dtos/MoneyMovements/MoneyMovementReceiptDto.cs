@@ -12,6 +12,10 @@
 
         public string AccountName { get; set; } = string.Empty;
 
+        public string CreatedByUserName { get; set; } = string.Empty;
+
+        public DateTime CreatedAtUtc { get; set; }
+
         public bool IsLinkedToOtherMoneyMovement { get; set; }
     }
 }

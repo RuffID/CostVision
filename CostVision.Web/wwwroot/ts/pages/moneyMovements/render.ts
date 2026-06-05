@@ -3,6 +3,7 @@ import { formatMoneyRub } from "../../shared/formatters.js";
 import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type BankStatementImportBankDto, type BankStatementImportLineErrorDto, type BankStatementImportPreviewRowDto, type MoneyMovementDto, type MoneyMovementReceiptDto, type UserAccountViewModel } from "./types.js";
 
 export const MONEY_MOVEMENT_ACCOUNT_FILTER_WITHOUT_ACCOUNT = "__without_account__";
+const RECEIPT_UPLOADER_NAME_LIMIT = 30;
 
 export function renderAccountOptions(select: HTMLSelectElement, accounts: UserAccountViewModel[], includeAllOption: boolean): void {
     clearElement(select);
@@ -456,19 +457,30 @@ function createReceiptCard(receipt: MoneyMovementReceiptDto, action: string, act
     left.classList.add("d-flex", "flex-column", "gap-1");
 
     const title = document.createElement("div");
-    title.classList.add("fw-semibold");
-    title.textContent = receipt.retailPlace || "Без названия";
+    title.classList.add("fw-semibold", "d-flex", "flex-wrap", "gap-2", "align-items-baseline");
+
+    const titleText = document.createElement("span");
+    titleText.textContent = receipt.retailPlace || "Без названия";
+
+    const titleAmount = document.createElement("span");
+    titleAmount.textContent = formatMoneyRub(receipt.totalSum);
+
+    title.append(titleText, titleAmount);
 
     const meta = document.createElement("div");
     meta.classList.add("small", "text-muted");
-    const accountText = receipt.accountName ? ` · ${receipt.accountName}` : "";
-    meta.textContent = `${formatDateTime(receipt.dateTime)}${accountText}`;
+    meta.textContent = formatDateTime(receipt.dateTime);
 
-    const amount = document.createElement("div");
-    amount.classList.add("small");
-    amount.textContent = formatMoneyRub(receipt.totalSum);
+    const receiptInfo = document.createElement("div");
+    receiptInfo.classList.add("small", "d-flex", "align-items-start", "gap-2", "flex-wrap");
 
-    left.append(title, meta, amount);
+    if (receipt.accountName) {
+        receiptInfo.append(createReceiptAccountBadge(receipt.accountName));
+    }
+
+    receiptInfo.append(createReceiptUploaderInfo(receipt));
+
+    left.append(title, meta, receiptInfo);
 
     if (receipt.isLinkedToOtherMoneyMovement && action === "link-receipt") {
         const warning = document.createElement("div");
@@ -503,6 +515,33 @@ function canEditAccount(account: UserAccountViewModel): boolean {
     return account.canManage === true || account.accessRole === 1 || account.accessRole === 2;
 }
 
+function createReceiptAccountBadge(accountName: string): HTMLElement {
+    const badge = document.createElement("span");
+    badge.className = "btn btn-sm px-2 py-1 rounded-pill disabled";
+    badge.textContent = accountName;
+    badge.style.backgroundColor = "transparent";
+    badge.style.color = "#212529";
+    badge.style.border = "2px solid #dee2e6";
+    badge.style.opacity = "1";
+    return badge;
+}
+
+function createReceiptUploaderInfo(receipt: MoneyMovementReceiptDto): HTMLElement {
+    const element = document.createElement("span");
+    element.classList.add("fw-normal", "text-body", "align-self-center");
+    element.textContent = `Загрузил: ${truncateTextForDisplay(receipt.createdByUserName, RECEIPT_UPLOADER_NAME_LIMIT)} от ${formatDate(receipt.createdAtUtc)}`;
+    return element;
+}
+
+function truncateTextForDisplay(value: string, maxLength: number): string {
+    const chars = Array.from(value);
+    if (chars.length <= maxLength) {
+        return value;
+    }
+
+    return chars.slice(0, maxLength).join("") + "...";
+}
+
 function formatDateTime(value: string): string {
     const date = new Date(value);
 
@@ -516,5 +555,19 @@ function formatDateTime(value: string): string {
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit"
+    });
+}
+
+function formatDate(value: string): string {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleDateString("ru-RU", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
     });
 }

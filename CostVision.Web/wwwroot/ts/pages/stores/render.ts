@@ -25,7 +25,7 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
 
         const cell = document.createElement("td");
         cell.colSpan = state.useAdaptiveNames ? 5 : 3;
-        cell.className = "border-start text-muted text-center py-4";
+        cell.className = "border-start border-end border-bottom text-muted text-center py-4";
         cell.textContent = "Магазины не найдены.";
         row.append(toggleCell, cell);
         ui.tableBody.append(row);
@@ -113,19 +113,20 @@ export function createStoreRow(store: StoreListItem, state: StoreListState, isCh
     row.append(toggleCell);
 
     const nameCell = document.createElement("td");
-    nameCell.className = "border-start";
+    nameCell.className = isChildRow ? "p-0" : "border-start border-bottom";
     const nameText = document.createElement("div");
-    nameText.className = isChildRow ? "ps-5" : "";
+    nameText.className = isChildRow ? "border-start border-bottom ms-5 ps-3 h-100 d-flex align-items-center" : "";
     nameText.textContent = formatStoreTableText(store.name, 50);
     nameCell.append(nameText);
     row.append(nameCell);
 
     const addressCell = document.createElement("td");
+    addressCell.className = "border-start border-bottom";
     addressCell.textContent = formatStoreTableText(store.address, 100);
     row.append(addressCell);
 
     const receiptCountCell = document.createElement("td");
-    receiptCountCell.className = "text-center text-nowrap";
+    receiptCountCell.className = state.useAdaptiveNames ? "border-start border-bottom text-center text-nowrap" : "border-start border-end border-bottom text-center text-nowrap";
     const receiptCountButton = document.createElement("button");
     receiptCountButton.type = "button";
     receiptCountButton.className = "btn btn-sm btn-outline-secondary px-2 py-0";
@@ -144,11 +145,11 @@ export function createStoreRow(store: StoreListItem, state: StoreListState, isCh
 
     if (isGroupRow) {
         const adaptiveNameCell = document.createElement("td");
-        adaptiveNameCell.className = "text-muted";
+        adaptiveNameCell.className = "border-start border-bottom text-muted";
         adaptiveNameCell.textContent = "-";
 
         const actionsCell = document.createElement("td");
-        actionsCell.className = "text-center text-nowrap";
+        actionsCell.className = "border-start border-end border-bottom text-center text-nowrap";
         actionsCell.textContent = "-";
 
         row.append(adaptiveNameCell, actionsCell);
@@ -156,7 +157,7 @@ export function createStoreRow(store: StoreListItem, state: StoreListState, isCh
     }
 
     const adaptiveNameCell = document.createElement("td");
-    adaptiveNameCell.className = "p-0";
+    adaptiveNameCell.className = "border-start border-bottom p-0";
     adaptiveNameCell.style.minWidth = "22rem";
     const adaptiveNameInput = document.createElement("input");
     adaptiveNameInput.type = "text";
@@ -173,7 +174,7 @@ export function createStoreRow(store: StoreListItem, state: StoreListState, isCh
     adaptiveNameCell.append(adaptiveNameInput);
 
     const actionsCell = document.createElement("td");
-    actionsCell.className = "text-center text-nowrap align-middle p-0";
+    actionsCell.className = "border-start border-end border-bottom text-center text-nowrap align-middle p-0";
     actionsCell.style.width = "9rem";
     const saveButton = document.createElement("button");
     saveButton.type = "button";

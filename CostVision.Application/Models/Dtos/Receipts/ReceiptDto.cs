@@ -12,6 +12,8 @@
         public string FiscalSign { get; set; } = string.Empty;
         public Guid? AccountId { get; set; }
         public string AccountName { get; set; } = string.Empty;
+        public string CreatedByUserName { get; set; } = string.Empty;
+        public DateTime CreatedAtUtc { get; set; }
         public int MoneyMovementCount { get; set; }
         public int AvailableMoneyMovementCount { get; set; }
         public decimal MoneyMovementsTotalSum { get; set; }
