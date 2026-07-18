@@ -30,7 +30,19 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 using (IServiceScope scope = app.Services.CreateScope())
 {
     DataBaseCheckUpService<ApplicationContext> dbCheckUp = scope.ServiceProvider.GetRequiredService<DataBaseCheckUpService<ApplicationContext>>();
-    dbCheckUp.CheckOrUpdateDB();
+
+    const int DATABASE_STARTUP_TIMEOUT_SECONDS = 60;
+
+    try
+    {
+        await Task.Run(dbCheckUp.CheckOrUpdateDB)
+            .WaitAsync(TimeSpan.FromSeconds(DATABASE_STARTUP_TIMEOUT_SECONDS));
+    }
+    catch (TimeoutException exception)
+    {
+        Log.Fatal(exception, "[Startup] Database initialization did not finish within {TimeoutSeconds} seconds.", DATABASE_STARTUP_TIMEOUT_SECONDS);
+        throw;
+    }
 }
 
 if (!app.Environment.IsDevelopment())
@@ -39,7 +51,7 @@ if (!app.Environment.IsDevelopment())
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Моё API v1");
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "My API v1");
     options.RoutePrefix = "swagger";
 });
 
