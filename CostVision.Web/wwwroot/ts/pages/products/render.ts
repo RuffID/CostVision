@@ -5,22 +5,18 @@ export interface ProductsUi {
     tableBody: HTMLTableSectionElement;
     pageInfoElements: HTMLElement[];
     paginationElements: HTMLElement[];
-    adaptiveNameHeader: HTMLElement;
-    actionsHeader: HTMLElement;
     nameSortButton: HTMLButtonElement;
     receiptCountSortButton: HTMLButtonElement;
 }
 
 export function renderProducts(ui: ProductsUi, state: ProductListState, onPageClick: (page: number) => void): void {
     clearElement(ui.tableBody);
-    ui.adaptiveNameHeader.classList.toggle("d-none", !state.useAdaptiveNames);
-    ui.actionsHeader.classList.toggle("d-none", !state.useAdaptiveNames);
     updateSortButtons(ui, state);
 
     if (state.products.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = state.useAdaptiveNames ? 4 : 2;
+        cell.colSpan = 2;
         cell.className = "text-muted text-center py-4";
         cell.textContent = "Товары не найдены.";
         row.append(cell);
@@ -28,7 +24,7 @@ export function renderProducts(ui: ProductsUi, state: ProductListState, onPageCl
     }
     else {
         for (const product of state.products) {
-            ui.tableBody.append(createProductRow(product, state));
+            ui.tableBody.append(createProductRow(product, state.showOriginalNames));
         }
     }
 
@@ -58,14 +54,19 @@ function buildSortButtonText(text: string, direction: string | null): string {
     return text;
 }
 
-function createProductRow(product: ProductListItem, state: ProductListState): HTMLTableRowElement {
+function createProductRow(product: ProductListItem, showOriginalNames: boolean): HTMLTableRowElement {
     const row = document.createElement("tr");
     row.dataset.productId = product.id;
     row.style.height = "43px";
 
     const nameCell = document.createElement("td");
-    const nameText = document.createElement("div");
-    nameText.textContent = product.name;
+    const nameText = document.createElement("button");
+    nameText.type = "button";
+    nameText.className = product.adaptiveName ? "btn btn-link p-0 text-decoration-none text-success" : "btn btn-link p-0 text-decoration-none text-body";
+    nameText.textContent = showOriginalNames ? product.name : product.adaptiveName ?? product.name;
+    nameText.dataset.productAdaptiveNameButton = "true";
+    nameText.addEventListener("mouseenter", () => updateProductNameHover(nameText, Boolean(product.adaptiveName), true));
+    nameText.addEventListener("mouseleave", () => updateProductNameHover(nameText, Boolean(product.adaptiveName), false));
     nameCell.append(nameText);
     row.append(nameCell);
 
@@ -74,46 +75,17 @@ function createProductRow(product: ProductListItem, state: ProductListState): HT
     receiptCountCell.textContent = String(product.receiptCount);
     row.append(receiptCountCell);
 
-    if (!state.useAdaptiveNames) {
-        return row;
+    return row;
+}
+
+function updateProductNameHover(button: HTMLButtonElement, hasAdaptiveName: boolean, isHovered: boolean): void {
+    if (hasAdaptiveName) {
+        button.classList.toggle("text-success", true);
+        return;
     }
 
-    const adaptiveNameCell = document.createElement("td");
-    adaptiveNameCell.className = "p-0";
-    adaptiveNameCell.style.minWidth = "22rem";
-    const adaptiveNameInput = document.createElement("input");
-    adaptiveNameInput.type = "text";
-    adaptiveNameInput.id = `productAdaptiveName_${product.id}`;
-    adaptiveNameInput.name = `productAdaptiveName_${product.id}`;
-    adaptiveNameInput.className = "form-control-plaintext border-0 rounded-0 shadow-none bg-transparent w-100 h-100 px-2 py-0";
-    adaptiveNameInput.style.height = "100%";
-    adaptiveNameInput.style.minHeight = "40px";
-    adaptiveNameInput.style.lineHeight = "1.5";
-    adaptiveNameInput.style.outline = "none";
-    adaptiveNameInput.maxLength = 500;
-    adaptiveNameInput.value = state.editedAdaptiveNames.get(product.id) ?? product.adaptiveName ?? "";
-    adaptiveNameInput.dataset.productAdaptiveNameInput = "true";
-    adaptiveNameCell.append(adaptiveNameInput);
-
-    const actionsCell = document.createElement("td");
-    actionsCell.className = "text-center text-nowrap align-middle p-0";
-    actionsCell.style.width = "9rem";
-    const saveButton = document.createElement("button");
-    saveButton.type = "button";
-    saveButton.className = "btn btn-sm btn-primary px-2 py-0 invisible";
-    saveButton.style.width = "calc(100% - 4px)";
-    saveButton.style.height = "calc(100% - 4px)";
-    saveButton.style.minHeight = "39px";
-    saveButton.style.lineHeight = "1";
-    saveButton.style.margin = "2px";
-    saveButton.textContent = "Сохранить";
-    saveButton.dataset.productSaveButton = "true";
-    actionsCell.append(saveButton);
-
-    row.append(adaptiveNameCell, actionsCell);
-    updateSaveButtonVisibility(row, product);
-
-    return row;
+    button.classList.toggle("text-body", !isHovered);
+    button.classList.toggle("text-primary", isHovered);
 }
 
 function renderProductsPagination(container: HTMLElement, state: ProductListState, onPageClick: (page: number) => void): void {
@@ -175,14 +147,3 @@ function getProductsPageRange(currentPage: number, visibleLastPage: number): num
     return pages;
 }
 
-export function updateSaveButtonVisibility(row: HTMLTableRowElement, product: ProductListItem): void {
-    const input = row.querySelector<HTMLInputElement>("[data-product-adaptive-name-input]");
-    const saveButton = row.querySelector<HTMLButtonElement>("[data-product-save-button]");
-
-    if (!input || !saveButton) {
-        throw new Error("Не найдены элементы строки товара.");
-    }
-
-    const initialValue = product.adaptiveName ?? "";
-    saveButton.classList.toggle("invisible", input.value === initialValue);
-}

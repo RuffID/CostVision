@@ -18,7 +18,7 @@
                 <div class="row g-2 align-items-end">
                     <div class="col-12 col-lg">
                         <label for="productsSearch" class="form-label mb-1">Поиск</label>
-                        <input type="text" id="productsSearch" name="productsSearch" class="form-control" placeholder="Название или адаптивное название..." autocomplete="off">
+                        <input type="text" id="productsSearch" name="productsSearch" class="form-control" placeholder="Название или Ваше наименование..." autocomplete="off">
                     </div>
 
                     <div class="col-12 col-md-auto">
@@ -27,8 +27,9 @@
                 </div>
 
                 <div class="form-check mt-2">
-                    <input type="checkbox" id="productsUseAdaptiveNames" name="productsUseAdaptiveNames" class="form-check-input">
-                    <label for="productsUseAdaptiveNames" class="form-check-label">Включить адаптивные названия</label>
+                    <input type="checkbox" id="productsShowOriginalNames" name="productsShowOriginalNames" class="form-check-input">
+                    <label for="productsShowOriginalNames" class="form-check-label">Отображать оригинальные названия</label>
+                    <span id="productsShowOriginalNamesHelp" data-help-tooltip-host></span>
                 </div>
             </div>
         </div>
@@ -46,19 +47,18 @@
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle mb-0">
+    <div id="productsTableContainer" class="table-responsive" data-products-table-container>
+        <table class="table table-bordered table-hover align-middle mb-0" data-table-loading-content>
             <thead class="table-light">
                 <tr>
                     <th scope="col">
                         <button type="button" id="productsNameSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Наименование ↑</button>
+                        <span id="productsNameHelp" data-help-tooltip-host></span>
                     </th>
                     <th scope="col" class="text-nowrap" style="width: 9rem;">
                         <button type="button" id="productsReceiptCountSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Количество</button>
                         <span id="productsReceiptCountHelp" data-help-tooltip-host></span>
                     </th>
-                    <th scope="col" id="productsAdaptiveNameHeader" class="text-nowrap d-none" style="width: 22rem;">Адаптивное название</th>
-                    <th scope="col" id="productsActionsHeader" class="text-center d-none" style="width: 9rem;">Действия</th>
                 </tr>
             </thead>
             <tbody id="productsTableBody"></tbody>
@@ -68,6 +68,36 @@
     <div class="d-flex flex-column align-items-center gap-1 mt-2">
         <div class="fs-5" data-products-page-info></div>
         <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" data-products-pagination></div>
+    </div>
+</div>
+
+<div class="modal fade" id="productAdaptiveNameModal" tabindex="-1" aria-labelledby="productAdaptiveNameModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productAdaptiveNameModalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <form id="productAdaptiveNameForm" name="productAdaptiveNameForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="productOriginalName" class="form-label">Оригинальное наименование</label>
+                        <input type="text" id="productOriginalName" name="productOriginalName" class="form-control" readonly>
+                    </div>
+                    <div>
+                        <label for="productAdaptiveName" class="form-label">Ваше наименование</label>
+                        <div class="input-group">
+                            <input type="text" id="productAdaptiveName" name="productAdaptiveName" class="form-control" maxlength="500" autocomplete="off">
+                            <button type="button" id="productClearAdaptiveName" class="btn btn-outline-secondary d-none">Очистить</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" id="productSaveAdaptiveName" class="btn btn-success">Сохранить</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

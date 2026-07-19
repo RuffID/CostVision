@@ -9,8 +9,7 @@ export const productsState: ProductListState = {
     hasPreviousPage: false,
     hasNextPage: false,
     search: "",
-    useAdaptiveNames: false,
-    editedAdaptiveNames: new Map<string, string>(),
-    sortBy: "name",
-    sortDirection: "asc"
+    showOriginalNames: false,
+    sortBy: "receiptCount",
+    sortDirection: "desc"
 };

@@ -2,10 +2,9 @@ import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSu
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
 import type { ProductList, ProductSortBy, ProductSortDirection } from "./types.js";
 
-export async function getProducts(search: string, useAdaptiveNames: boolean, page: number, pageSize: number, sortBy: ProductSortBy, sortDirection: ProductSortDirection): Promise<ProductList> {
+export async function getProducts(search: string, page: number, pageSize: number, sortBy: ProductSortBy, sortDirection: ProductSortDirection): Promise<ProductList> {
     const params = new URLSearchParams({
         search: search,
-        useAdaptiveNames: String(useAdaptiveNames),
         page: String(page),
         pageSize: String(pageSize),
         sortBy: sortBy,

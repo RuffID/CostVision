@@ -25,8 +25,7 @@ export interface ProductListState {
     hasPreviousPage: boolean;
     hasNextPage: boolean;
     search: string;
-    useAdaptiveNames: boolean;
-    editedAdaptiveNames: Map<string, string>;
+    showOriginalNames: boolean;
     sortBy: ProductSortBy;
     sortDirection: ProductSortDirection;
 }
