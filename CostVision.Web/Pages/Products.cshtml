@@ -1,4 +1,4 @@
-﻿@page "/products"
+@page "/products"
 @model CostVision.Web.Pages.ProductsModel
 
 @{
@@ -83,9 +83,11 @@
                         <thead class="table-light">
                             <tr>
                                 <th scope="col">Магазин</th>
-                                <th scope="col" class="text-center text-nowrap">Количество</th>
+                                <th scope="col" class="text-center text-nowrap">
+                                    <button type="button" id="productStorePurchasesQuantitySortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Количество</button>
+                                </th>
                                 <th scope="col" class="text-end text-nowrap">
-                                    Средняя цена
+                                    <button type="button" id="productStorePurchasesPriceSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Средняя цена</button>
                                     <span id="productStorePurchasesPriceHelp" data-help-tooltip-host></span>
                                 </th>
                             </tr>

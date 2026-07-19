@@ -23,6 +23,8 @@ export interface ProductStorePurchase {
     isWeighted: boolean;
 }
 
+export type ProductStorePurchaseSortBy = "quantity" | "pricePerUnit";
+
 export interface ProductListState {
     products: ProductListItem[];
     page: number;

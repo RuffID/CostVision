@@ -6,7 +6,7 @@ import { createTableLoadingIndicator, type TableLoadingIndicator } from "../../s
 import { getProductStorePurchases, getProducts, updateProductAdaptiveName } from "./api.js";
 import { renderProductStorePurchases, renderProducts, type ProductsUi } from "./render.js";
 import { productsState } from "./state.js";
-import type { ProductListItem, ProductSortBy } from "./types.js";
+import type { ProductListItem, ProductSortBy, ProductSortDirection, ProductStorePurchase, ProductStorePurchaseSortBy } from "./types.js";
 
 let searchInput: HTMLInputElement;
 let showOriginalNamesInput: HTMLInputElement;
@@ -19,6 +19,9 @@ let adaptiveNameModalElement: HTMLElement;
 let storePurchasesModal: BootstrapModal;
 let storePurchasesModalElement: HTMLElement;
 let storePurchasesBody: HTMLTableSectionElement;
+let storePurchases: ProductStorePurchase[] = [];
+let storePurchasesSortBy: ProductStorePurchaseSortBy = "quantity";
+let storePurchasesSortDirection: ProductSortDirection = "desc";
 let originalNameInput: HTMLInputElement;
 let adaptiveNameInput: HTMLInputElement;
 let clearAdaptiveNameButton: HTMLButtonElement;
@@ -29,6 +32,8 @@ let latestLoadRequestId = 0;
 const SORT_BY_COOKIE_NAME = "productsSortBy";
 const SORT_DIRECTION_COOKIE_NAME = "productsSortDirection";
 const PAGE_SIZE_COOKIE_NAME = "productsPageSize";
+const STORE_PURCHASES_SORT_BY_COOKIE_NAME = "productStorePurchasesSortBy";
+const STORE_PURCHASES_SORT_DIRECTION_COOKIE_NAME = "productStorePurchasesSortDirection";
 
 document.addEventListener("DOMContentLoaded", () => {
     initProductsPage();
@@ -51,7 +56,9 @@ function initProductsPage(): void {
         pageInfoElements: Array.from(document.querySelectorAll<HTMLElement>("[data-products-page-info]")),
         paginationElements: Array.from(document.querySelectorAll<HTMLElement>("[data-products-pagination]")),
         nameSortButton: requireElementById<HTMLButtonElement>("productsNameSortButton"),
-        receiptCountSortButton: requireElementById<HTMLButtonElement>("productsReceiptCountSortButton")
+        receiptCountSortButton: requireElementById<HTMLButtonElement>("productsReceiptCountSortButton"),
+        storePurchasesQuantitySortButton: requireElementById<HTMLButtonElement>("productStorePurchasesQuantitySortButton"),
+        storePurchasesPriceSortButton: requireElementById<HTMLButtonElement>("productStorePurchasesPriceSortButton")
     };
 
     renderHelpTooltip(requireElementById<HTMLElement>("productsReceiptCountHelp"), {
@@ -86,6 +93,8 @@ function initProductsPage(): void {
     showOriginalNamesInput.addEventListener("change", handleShowOriginalNamesChange);
     ui.nameSortButton.addEventListener("click", () => handleSortClick("name"));
     ui.receiptCountSortButton.addEventListener("click", () => handleSortClick("receiptCount"));
+    ui.storePurchasesQuantitySortButton.addEventListener("click", () => handleStorePurchasesSortClick("quantity"));
+    ui.storePurchasesPriceSortButton.addEventListener("click", () => handleStorePurchasesSortClick("pricePerUnit"));
     for (const pageSizeInput of pageSizeInputs) {
         pageSizeInput.addEventListener("change", () => reloadFromFirstPage(pageSizeInput));
     }
@@ -114,6 +123,18 @@ function handleSortClick(sortBy: ProductSortBy): void {
 
     savePreferences();
     void loadPage(1);
+}
+
+function handleStorePurchasesSortClick(sortBy: ProductStorePurchaseSortBy): void {
+    if (storePurchasesSortBy === sortBy) {
+        storePurchasesSortDirection = storePurchasesSortDirection === "asc" ? "desc" : "asc";
+    } else {
+        storePurchasesSortBy = sortBy;
+        storePurchasesSortDirection = "asc";
+    }
+
+    saveStorePurchasesSortPreferences();
+    renderStorePurchases();
 }
 
 function handleSearchKeyDown(event: KeyboardEvent): void {
@@ -197,12 +218,28 @@ function restorePreferences(): void {
     if (pageSize === 20 || pageSize === 50 || pageSize === 100) {
         productsState.pageSize = pageSize;
     }
+
+    const savedStorePurchasesSortBy = getCookie(STORE_PURCHASES_SORT_BY_COOKIE_NAME);
+    const savedStorePurchasesSortDirection = getCookie(STORE_PURCHASES_SORT_DIRECTION_COOKIE_NAME);
+
+    if (savedStorePurchasesSortBy === "quantity" || savedStorePurchasesSortBy === "pricePerUnit") {
+        storePurchasesSortBy = savedStorePurchasesSortBy;
+    }
+
+    if (savedStorePurchasesSortDirection === "asc" || savedStorePurchasesSortDirection === "desc") {
+        storePurchasesSortDirection = savedStorePurchasesSortDirection;
+    }
 }
 
 function savePreferences(): void {
     setCookie(SORT_BY_COOKIE_NAME, productsState.sortBy);
     setCookie(SORT_DIRECTION_COOKIE_NAME, productsState.sortDirection);
     setCookie(PAGE_SIZE_COOKIE_NAME, String(productsState.pageSize));
+}
+
+function saveStorePurchasesSortPreferences(): void {
+    setCookie(STORE_PURCHASES_SORT_BY_COOKIE_NAME, storePurchasesSortBy);
+    setCookie(STORE_PURCHASES_SORT_DIRECTION_COOKIE_NAME, storePurchasesSortDirection);
 }
 
 function getPageFromQuery(): number {
@@ -256,17 +293,29 @@ function handleTableClick(event: MouseEvent): void {
 
 async function openStorePurchasesModal(product: ProductListItem): Promise<void> {
     requireElementById<HTMLElement>("productStorePurchasesModalTitle").textContent = `Магазины, в которых был куплен товар - ${product.adaptiveName ?? product.name}`;
-    renderProductStorePurchases(storePurchasesBody, []);
+    storePurchases = [];
+    renderStorePurchases();
     storePurchasesModal.show();
 
     try {
         hideAlertMessage(alertElement);
-        renderProductStorePurchases(storePurchasesBody, await getProductStorePurchases(product.id));
+        storePurchases = await getProductStorePurchases(product.id);
+        renderStorePurchases();
     }
     catch (error) {
         storePurchasesModal.hide();
         showAlertMessage(alertElement, getErrorMessage(error));
     }
+}
+
+function renderStorePurchases(): void {
+    renderProductStorePurchases(
+        storePurchasesBody,
+        storePurchases,
+        storePurchasesSortBy,
+        storePurchasesSortDirection,
+        ui.storePurchasesQuantitySortButton,
+        ui.storePurchasesPriceSortButton);
 }
 
 function openAdaptiveNameModal(product: ProductListItem): void {

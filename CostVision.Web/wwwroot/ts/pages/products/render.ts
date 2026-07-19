@@ -1,6 +1,6 @@
 import { clearElement } from "../../shared/dom.js";
 import { formatRuNumber } from "../../shared/formatters.js";
-import type { ProductListItem, ProductListState, ProductStorePurchase } from "./types.js";
+import type { ProductListItem, ProductListState, ProductSortDirection, ProductStorePurchase, ProductStorePurchaseSortBy } from "./types.js";
 
 export interface ProductsUi {
     tableBody: HTMLTableSectionElement;
@@ -8,6 +8,8 @@ export interface ProductsUi {
     paginationElements: HTMLElement[];
     nameSortButton: HTMLButtonElement;
     receiptCountSortButton: HTMLButtonElement;
+    storePurchasesQuantitySortButton: HTMLButtonElement;
+    storePurchasesPriceSortButton: HTMLButtonElement;
 }
 
 export function renderProducts(ui: ProductsUi, state: ProductListState, onPageClick: (page: number) => void): void {
@@ -92,8 +94,16 @@ function setReceiptCountButtonHover(button: HTMLButtonElement, isHovered: boolea
     button.classList.toggle("border-dark", isHovered);
 }
 
-export function renderProductStorePurchases(container: HTMLTableSectionElement, purchases: ProductStorePurchase[]): void {
+export function renderProductStorePurchases(
+    container: HTMLTableSectionElement,
+    purchases: ProductStorePurchase[],
+    sortBy: ProductStorePurchaseSortBy,
+    sortDirection: ProductSortDirection,
+    quantitySortButton: HTMLButtonElement,
+    priceSortButton: HTMLButtonElement): void {
     clearElement(container);
+    quantitySortButton.textContent = buildSortButtonText("Количество", sortBy === "quantity" ? sortDirection : null);
+    priceSortButton.textContent = buildSortButtonText("Средняя цена", sortBy === "pricePerUnit" ? sortDirection : null);
 
     if (purchases.length === 0) {
         const row = document.createElement("tr");
@@ -106,7 +116,7 @@ export function renderProductStorePurchases(container: HTMLTableSectionElement, 
         return;
     }
 
-    for (const purchase of purchases) {
+    for (const purchase of sortStorePurchases(purchases, sortBy, sortDirection)) {
         const row = document.createElement("tr");
         const storeNameCell = document.createElement("td");
         storeNameCell.textContent = purchase.storeName;
@@ -119,6 +129,15 @@ export function renderProductStorePurchases(container: HTMLTableSectionElement, 
         row.append(storeNameCell, quantityCell, priceCell);
         container.append(row);
     }
+}
+
+function sortStorePurchases(
+    purchases: ProductStorePurchase[],
+    sortBy: ProductStorePurchaseSortBy,
+    sortDirection: ProductSortDirection): ProductStorePurchase[] {
+    const direction = sortDirection === "asc" ? 1 : -1;
+
+    return [...purchases].sort((left, right) => (left[sortBy] - right[sortBy]) * direction);
 }
 
 function formatAveragePrice(value: number): string {
