@@ -15,6 +15,7 @@ namespace CostVision.Application.UseCases.Receipts.Stores
         private const int MAX_PAGE_SIZE = 100;
         private const string SORT_BY_NAME = "name";
         private const string SORT_BY_RECEIPT_COUNT = "receiptCount";
+        private const string SORT_BY_TOTAL_SPENT = "totalSpent";
         private const string SORT_DIRECTION_DESC = "desc";
 
         public async Task<ServiceResult<StoreListDto>> ExecuteAsync(GetStoreListRequest request, Guid currentUserId, CancellationToken ct)
@@ -47,7 +48,9 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                     .AsSplitQuery(),
                 ct: ct);
 
-            List<StoreListItemDto> allItems = GroupStoreItems(stores, request.UseAdaptiveNames, currentUserId);
+            List<StoreListItemDto> allItems = request.GroupByName
+                ? GroupStoreItems(stores, request.UseAdaptiveNames, currentUserId)
+                : stores.Select(store => CreateStoreListItem(store, request.UseAdaptiveNames, currentUserId)).ToList();
             int totalCount = allItems.Count;
             int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
             page = Math.Min(page, totalPages);
@@ -82,6 +85,9 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                 SORT_BY_RECEIPT_COUNT => isDescending
                     ? items.OrderByDescending(item => item.ReceiptCount).ThenBy(item => item.Name).ThenBy(item => item.Address)
                     : items.OrderBy(item => item.ReceiptCount).ThenBy(item => item.Name).ThenBy(item => item.Address),
+                SORT_BY_TOTAL_SPENT => isDescending
+                    ? items.OrderByDescending(item => item.TotalSpent).ThenBy(item => item.Name).ThenBy(item => item.Address)
+                    : items.OrderBy(item => item.TotalSpent).ThenBy(item => item.Name).ThenBy(item => item.Address),
                 _ => isDescending
                     ? items.OrderByDescending(item => item.Name).ThenBy(item => item.Address).ThenByDescending(item => item.ReceiptCount)
                     : items.OrderBy(item => item.Name).ThenBy(item => item.Address).ThenByDescending(item => item.ReceiptCount)
@@ -111,10 +117,11 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                     {
                         Id = firstItem.Id,
                         Name = firstItem.Name,
-                        Address = firstItem.Address,
+                        Address = "Несколько адресов",
                         AdaptiveName = firstItem.AdaptiveName,
                         DisplayName = firstItem.DisplayName,
                         ReceiptCount = children.Sum(item => item.ReceiptCount),
+                        TotalSpent = children.Sum(item => item.TotalSpent),
                         GroupKey = group.Key,
                         Children = children
                     };
@@ -134,6 +141,7 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                     ? store.AdaptiveName
                     : store.Name,
                 ReceiptCount = CountAccessibleReceipts(store, currentUserId),
+                TotalSpent = SumAccessibleReceiptTotals(store, currentUserId),
                 GroupKey = store.NormalizedName
             };
         }
@@ -145,6 +153,14 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                 .Select(receipt => receipt.Id)
                 .Distinct()
                 .Count();
+        }
+
+        private static decimal SumAccessibleReceiptTotals(Store store, Guid currentUserId)
+        {
+            return store.Receipts
+                .Where(receipt => IsReceiptAccessible(receipt, currentUserId))
+                .GroupBy(receipt => receipt.Id)
+                .Sum(receiptGroup => receiptGroup.First().TotalSum);
         }
 
         private static bool IsReceiptAccessible(Receipt receipt, Guid currentUserId)

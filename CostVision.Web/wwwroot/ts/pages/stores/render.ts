@@ -1,44 +1,32 @@
 import { clearElement } from "../../shared/dom.js";
+import { formatRuNumber } from "../../shared/formatters.js";
 import type { StoreListItem, StoreListState } from "./types.js";
 
 export interface StoresUi {
     tableBody: HTMLTableSectionElement;
     pageInfoElements: HTMLElement[];
     paginationElements: HTMLElement[];
-    adaptiveNameHeader: HTMLElement;
-    actionsHeader: HTMLElement;
     nameSortButton: HTMLButtonElement;
     receiptCountSortButton: HTMLButtonElement;
+    totalSpentSortButton: HTMLButtonElement;
 }
 
 export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (page: number) => void): void {
     clearElement(ui.tableBody);
-    ui.adaptiveNameHeader.classList.toggle("d-none", !state.useAdaptiveNames);
-    ui.actionsHeader.classList.toggle("d-none", !state.useAdaptiveNames);
     updateSortButtons(ui, state);
 
     if (state.stores.length === 0) {
         const row = document.createElement("tr");
-        const toggleCell = document.createElement("td");
-        toggleCell.className = "border-0 bg-transparent p-0";
-        toggleCell.style.width = "2.5rem";
-
         const cell = document.createElement("td");
-        cell.colSpan = state.useAdaptiveNames ? 5 : 3;
+        cell.colSpan = 4;
         cell.className = "border-start border-end border-bottom text-muted text-center py-4";
         cell.textContent = "Магазины не найдены.";
-        row.append(toggleCell, cell);
+        row.append(cell);
         ui.tableBody.append(row);
     }
     else {
         for (const store of state.stores) {
-            ui.tableBody.append(createStoreRow(store, state, false));
-
-            if (isStoreGroupExpanded(store, state)) {
-                for (const child of store.children) {
-                    ui.tableBody.append(createStoreRow(child, state, true, store.groupKey));
-                }
-            }
+            ui.tableBody.append(createStoreRow(store, state));
         }
     }
 
@@ -53,7 +41,8 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
 
 function updateSortButtons(ui: StoresUi, state: StoreListState): void {
     ui.nameSortButton.textContent = buildSortButtonText("Наименование", state.sortBy === "name" ? state.sortDirection : null);
-    ui.receiptCountSortButton.textContent = buildSortButtonText("Количество", state.sortBy === "receiptCount" ? state.sortDirection : null);
+    updateReceiptCountSortButton(ui.receiptCountSortButton, state.sortBy === "receiptCount" ? state.sortDirection : null);
+    ui.totalSpentSortButton.textContent = buildSortButtonText("Потрачено", state.sortBy === "totalSpent" ? state.sortDirection : null);
 }
 
 function buildSortButtonText(text: string, direction: string | null): string {
@@ -76,129 +65,82 @@ function formatStoreTableText(text: string | null, maxLength: number): string {
     return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
 }
 
-export function createStoreRow(store: StoreListItem, state: StoreListState, isChildRow: boolean, parentGroupKey: string | null = null): HTMLTableRowElement {
+export function createStoreRow(store: StoreListItem, state: StoreListState): HTMLTableRowElement {
     const row = document.createElement("tr");
     row.dataset.storeId = store.id;
     row.style.height = "43px";
 
-    const isGroupRow = !isChildRow && store.children.length > 0;
+    const isGroupRow = store.children.length > 0;
     if (isGroupRow) {
         row.dataset.storeGroupKey = store.groupKey;
     }
-    if (isChildRow) {
-        if (!parentGroupKey) {
-            throw new Error("Не задан ключ родительской группы магазина.");
-        }
-
-        row.dataset.storeParentGroupKey = parentGroupKey;
-    }
-
-    const toggleCell = document.createElement("td");
-    toggleCell.className = "border-0 bg-transparent p-0 text-center align-middle";
-    toggleCell.style.width = "2.5rem";
-
-    if (isGroupRow) {
-        const expandButton = document.createElement("button");
-        expandButton.type = "button";
-        expandButton.className = "btn btn-sm btn-outline-secondary";
-        expandButton.style.width = "2rem";
-        expandButton.style.height = "2rem";
-        expandButton.style.lineHeight = "1";
-        expandButton.textContent = state.expandedStoreGroups.has(store.groupKey) ? "⌃" : "⌄";
-        expandButton.ariaLabel = state.expandedStoreGroups.has(store.groupKey) ? "Свернуть группу магазинов" : "Развернуть группу магазинов";
-        expandButton.dataset.storeGroupToggle = "true";
-        toggleCell.append(expandButton);
-    }
-
-    row.append(toggleCell);
 
     const nameCell = document.createElement("td");
-    nameCell.className = isChildRow ? "p-0 align-middle" : "border-start border-bottom";
-    const nameText = document.createElement("div");
-    nameText.className = isChildRow ? "border-start border-bottom ms-4 ps-3 d-flex align-items-center" : "";
-    if (isChildRow) {
-        nameText.style.minHeight = "43px";
+    nameCell.className = "border-start border-bottom";
+    const nameText = isGroupRow ? document.createElement("div") : document.createElement("button");
+    if (nameText instanceof HTMLButtonElement) {
+        nameText.type = "button";
+        nameText.className = store.adaptiveName ? "btn btn-link p-0 text-decoration-none text-success" : "btn btn-link p-0 text-decoration-none text-body";
+        nameText.classList.add("text-start");
+        nameText.textContent = formatStoreTableText(state.showOriginalNames ? store.name : store.adaptiveName ?? store.name, 50);
+        nameText.dataset.storeAdaptiveNameButton = "true";
+        nameText.addEventListener("mouseenter", () => updateStoreNameHover(nameText, Boolean(store.adaptiveName), true));
+        nameText.addEventListener("mouseleave", () => updateStoreNameHover(nameText, Boolean(store.adaptiveName), false));
     }
-    nameText.textContent = formatStoreTableText(store.name, 50);
+    else {
+        nameText.textContent = formatStoreTableText(store.name, 50);
+    }
     nameCell.append(nameText);
     row.append(nameCell);
 
     const addressCell = document.createElement("td");
-    addressCell.className = "border-start border-bottom";
+    addressCell.className = isGroupRow ? "border-start border-bottom fw-bold" : "border-start border-bottom";
     addressCell.textContent = formatStoreTableText(store.address, 100);
     row.append(addressCell);
 
     const receiptCountCell = document.createElement("td");
-    receiptCountCell.className = state.useAdaptiveNames ? "border-start border-bottom text-center text-nowrap" : "border-start border-end border-bottom text-center text-nowrap";
+    receiptCountCell.className = "border-start border-bottom text-center text-nowrap";
     const receiptCountButton = document.createElement("button");
     receiptCountButton.type = "button";
-    receiptCountButton.className = "btn btn-sm btn-outline-secondary px-2 py-0";
+    receiptCountButton.className = "btn btn-sm border border-transparent px-3 py-1 text-body text-decoration-none";
     receiptCountButton.textContent = String(store.receiptCount);
     receiptCountButton.dataset.storeReceiptsButton = "true";
     receiptCountButton.dataset.storeId = store.id;
     if (isGroupRow) {
         receiptCountButton.dataset.storeGroupKey = store.groupKey;
     }
+    receiptCountButton.addEventListener("mouseenter", () => setReceiptCountButtonHover(receiptCountButton, true));
+    receiptCountButton.addEventListener("mouseleave", () => setReceiptCountButtonHover(receiptCountButton, false));
+    receiptCountButton.addEventListener("mousedown", event => event.preventDefault());
     receiptCountCell.append(receiptCountButton);
     row.append(receiptCountCell);
 
-    if (!state.useAdaptiveNames) {
-        return row;
-    }
-
-    if (isGroupRow) {
-        const adaptiveNameCell = document.createElement("td");
-        adaptiveNameCell.className = "border-start border-bottom text-muted";
-        adaptiveNameCell.textContent = "-";
-
-        const actionsCell = document.createElement("td");
-        actionsCell.className = "border-start border-end border-bottom text-center text-nowrap";
-        actionsCell.textContent = "-";
-
-        row.append(adaptiveNameCell, actionsCell);
-        return row;
-    }
-
-    const adaptiveNameCell = document.createElement("td");
-    adaptiveNameCell.className = "border-start border-bottom p-0";
-    adaptiveNameCell.style.minWidth = "22rem";
-    const adaptiveNameInput = document.createElement("input");
-    adaptiveNameInput.type = "text";
-    adaptiveNameInput.id = `storeAdaptiveName_${store.id}`;
-    adaptiveNameInput.name = `storeAdaptiveName_${store.id}`;
-    adaptiveNameInput.className = "form-control-plaintext border-0 rounded-0 shadow-none bg-transparent w-100 h-100 px-2 py-0";
-    adaptiveNameInput.style.height = "100%";
-    adaptiveNameInput.style.minHeight = "40px";
-    adaptiveNameInput.style.lineHeight = "1.5";
-    adaptiveNameInput.style.outline = "none";
-    adaptiveNameInput.maxLength = 500;
-    adaptiveNameInput.value = state.editedAdaptiveNames.get(store.id) ?? store.adaptiveName ?? "";
-    adaptiveNameInput.dataset.storeAdaptiveNameInput = "true";
-    adaptiveNameCell.append(adaptiveNameInput);
-
-    const actionsCell = document.createElement("td");
-    actionsCell.className = "border-start border-end border-bottom text-center text-nowrap align-middle p-0";
-    actionsCell.style.width = "9rem";
-    const saveButton = document.createElement("button");
-    saveButton.type = "button";
-    saveButton.className = "btn btn-sm btn-primary px-2 py-0 invisible";
-    saveButton.style.width = "calc(100% - 4px)";
-    saveButton.style.height = "calc(100% - 4px)";
-    saveButton.style.minHeight = "39px";
-    saveButton.style.lineHeight = "1";
-    saveButton.style.margin = "2px";
-    saveButton.textContent = "Сохранить";
-    saveButton.dataset.storeSaveButton = "true";
-    actionsCell.append(saveButton);
-
-    row.append(adaptiveNameCell, actionsCell);
-    updateSaveButtonVisibility(row, store);
+    const totalSpentCell = document.createElement("td");
+    totalSpentCell.className = "border-start border-end border-bottom text-end text-nowrap";
+    totalSpentCell.textContent = `${formatRuNumber(Math.floor(store.totalSpent))} ₽`;
+    row.append(totalSpentCell);
 
     return row;
 }
 
-function isStoreGroupExpanded(store: StoreListItem, state: StoreListState): boolean {
-    return store.children.length > 0 && state.expandedStoreGroups.has(store.groupKey);
+function updateStoreNameHover(button: HTMLButtonElement, hasAdaptiveName: boolean, isHovered: boolean): void {
+    if (hasAdaptiveName) {
+        button.classList.toggle("text-success", true);
+        return;
+    }
+
+    button.classList.toggle("text-body", !isHovered);
+    button.classList.toggle("text-primary", isHovered);
+}
+
+function setReceiptCountButtonHover(button: HTMLButtonElement, isHovered: boolean): void {
+    button.classList.toggle("border-transparent", !isHovered);
+    button.classList.toggle("border-dark", isHovered);
+}
+
+function updateReceiptCountSortButton(button: HTMLButtonElement, direction: string | null): void {
+    const directionText = direction === "asc" ? " ↑" : direction === "desc" ? " ↓" : "";
+    button.replaceChildren(document.createTextNode("Количество"), document.createElement("br"), document.createTextNode(`чеков${directionText}`));
 }
 
 function renderStoresPagination(container: HTMLElement, state: StoreListState, onPageClick: (page: number) => void): void {
@@ -260,14 +202,3 @@ function getStoresPageRange(currentPage: number, visibleLastPage: number): numbe
     return pages;
 }
 
-export function updateSaveButtonVisibility(row: HTMLTableRowElement, store: StoreListItem): void {
-    const input = row.querySelector<HTMLInputElement>("[data-store-adaptive-name-input]");
-    const saveButton = row.querySelector<HTMLButtonElement>("[data-store-save-button]");
-
-    if (!input || !saveButton) {
-        throw new Error("Не найдены элементы строки магазина.");
-    }
-
-    const initialValue = store.adaptiveName ?? "";
-    saveButton.classList.toggle("invisible", input.value === initialValue);
-}

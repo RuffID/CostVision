@@ -4,10 +4,10 @@ import { loadAvailableAccountsApi, moveReceiptToAccountApi, openReceiptApi, refr
 import type { AvailableAccountDto, ReceiptDto } from "../reports/receipts/types.js";
 import type { StoreList, StoreReceiptList, StoreSortBy, StoreSortDirection } from "./types.js";
 
-export async function getStores(search: string, useAdaptiveNames: boolean, page: number, pageSize: number, sortBy: StoreSortBy, sortDirection: StoreSortDirection): Promise<StoreList> {
+export async function getStores(search: string, groupByName: boolean, page: number, pageSize: number, sortBy: StoreSortBy, sortDirection: StoreSortDirection): Promise<StoreList> {
     const params = new URLSearchParams({
         search: search,
-        useAdaptiveNames: String(useAdaptiveNames),
+        groupByName: String(groupByName),
         page: String(page),
         pageSize: String(pageSize),
         sortBy: sortBy,

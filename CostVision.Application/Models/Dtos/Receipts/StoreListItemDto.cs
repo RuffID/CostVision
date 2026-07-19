@@ -14,6 +14,8 @@ namespace CostVision.Application.Models.Dtos.Receipts
 
         public int ReceiptCount { get; set; }
 
+        public decimal TotalSpent { get; set; }
+
         public string GroupKey { get; set; } = string.Empty;
 
         public List<StoreListItemDto> Children { get; set; } = new();

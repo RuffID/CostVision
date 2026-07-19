@@ -3,6 +3,7 @@ import { createBootstrapModal, type BootstrapModal } from "../../shared/bootstra
 import { clearElement, requireElementById, requireInputById } from "../../shared/dom.js";
 import { formatMoneyRub, formatRuNumber } from "../../shared/formatters.js";
 import { renderHelpTooltip } from "../../shared/helpTooltip.js";
+import { createTableLoadingIndicator, type TableLoadingIndicator } from "../../shared/tableLoadingIndicator.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
 import { fillDeleteReceiptModal as fillDeleteReceiptModalUi } from "../reports/receipts/modals/deleteReceiptModal.js";
 import { initReceiptMoneyMovementsModal, type ReceiptMoneyMovementsModalController } from "../reports/receipts/modals/receiptMoneyMovementsModal.js";
@@ -11,15 +12,23 @@ import { renderReceiptDetails as renderReceiptDetailsModal } from "../reports/re
 import { buildReceiptCard, updateCardFromDto } from "../reports/receipts/ui/receiptCards.js";
 import type { AvailableAccountDto, MoveReceiptAccountAction, ReceiptDto } from "../reports/receipts/types.js";
 import { getStores, getStoreReceipts, loadStoreAvailableAccounts, moveStoreReceiptToAccount, openStoreReceipt, refreshStoreReceipt, removeStoreReceiptFromAccount, updateStoreAdaptiveName } from "./api.js";
-import { createStoreRow, renderStores, updateSaveButtonVisibility, type StoresUi } from "./render.js";
+import { renderStores, type StoresUi } from "./render.js";
 import { storesState } from "./state.js";
 import type { StoreListItem, StoreSortBy } from "./types.js";
 
 let searchInput: HTMLInputElement;
-let useAdaptiveNamesInput: HTMLInputElement;
+let showOriginalNamesInput: HTMLInputElement;
+let groupByNameInput: HTMLInputElement;
 let pageSizeInputs: HTMLSelectElement[];
 let alertElement: HTMLElement;
 let ui: StoresUi;
+let tableLoadingIndicator: TableLoadingIndicator;
+let adaptiveNameModal: BootstrapModal;
+let originalNameInput: HTMLInputElement;
+let adaptiveNameInput: HTMLInputElement;
+let clearAdaptiveNameButton: HTMLButtonElement;
+let saveAdaptiveNameButton: HTMLButtonElement;
+let editedStoreId: string | null = null;
 let storeReceiptsModalElement: HTMLElement;
 let storeReceiptsModal: BootstrapModal;
 let storeReceiptsTitleElement: HTMLElement;
@@ -51,7 +60,13 @@ let availableAccounts: AvailableAccountDto[] = [];
 let pendingReceiptAccountAction: MoveReceiptAccountAction | null = null;
 let preserveMoveReceiptAccountModalStateOnHide = false;
 let shouldRestoreMoveReceiptAccountModalAfterRemoveConfirmation = false;
+let latestLoadRequestId = 0;
 const STORE_RECEIPTS_PAGE_SIZE = 20;
+const SORT_BY_COOKIE_NAME = "storesSortBy";
+const SORT_DIRECTION_COOKIE_NAME = "storesSortDirection";
+const PAGE_SIZE_COOKIE_NAME = "storesPageSize";
+const SHOW_ORIGINAL_NAMES_COOKIE_NAME = "storesShowOriginalNames";
+const GROUP_BY_NAME_COOKIE_NAME = "storesGroupByName";
 
 document.addEventListener("DOMContentLoaded", () => {
     initStoresPage().catch(error => {
@@ -64,11 +79,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function initStoresPage(): Promise<void> {
     searchInput = requireInputById("storesSearch");
-    useAdaptiveNamesInput = requireInputById("storesUseAdaptiveNames");
+    showOriginalNamesInput = requireInputById("storesShowOriginalNames");
+    groupByNameInput = requireInputById("storesGroupByName");
     pageSizeInputs = [
         requireElementById<HTMLSelectElement>("storesTopPageSize")
     ];
     alertElement = requireElementById<HTMLElement>("storesAlert");
+    tableLoadingIndicator = createTableLoadingIndicator(
+        requireElementById<HTMLElement>("storesTableContainer"),
+        "Идёт загрузка магазинов...",
+        480
+    );
     storeReceiptsModalElement = requireElementById<HTMLElement>("storeReceiptsModal");
     storeReceiptsModal = createBootstrapModal(storeReceiptsModalElement);
     storeReceiptsTitleElement = requireElementById<HTMLElement>("storeReceiptsModalLabel");
@@ -95,28 +116,50 @@ async function initStoresPage(): Promise<void> {
         tableBody: requireElementById<HTMLTableSectionElement>("storesTableBody"),
         pageInfoElements: Array.from(document.querySelectorAll<HTMLElement>("[data-stores-page-info]")),
         paginationElements: Array.from(document.querySelectorAll<HTMLElement>("[data-stores-pagination]")),
-        adaptiveNameHeader: requireElementById<HTMLElement>("storesAdaptiveNameHeader"),
-        actionsHeader: requireElementById<HTMLElement>("storesActionsHeader"),
         nameSortButton: requireElementById<HTMLButtonElement>("storesNameSortButton"),
-        receiptCountSortButton: requireElementById<HTMLButtonElement>("storesReceiptCountSortButton")
+        receiptCountSortButton: requireElementById<HTMLButtonElement>("storesReceiptCountSortButton"),
+        totalSpentSortButton: requireElementById<HTMLButtonElement>("storesTotalSpentSortButton")
     };
 
-    renderHelpTooltip(requireElementById<HTMLElement>("storesReceiptCountHelp"), {
-        title: "Количество",
-        text: "Сколько чеков текущего пользователя относятся к этому магазину."
+    renderHelpTooltip(requireElementById<HTMLElement>("storesNameHelp"), {
+        title: "Наименование",
+        text: "Нажмите на наименование магазина, чтобы указать своё название. Магазины с заданным названием выделены зелёным цветом."
     });
+    renderHelpTooltip(requireElementById<HTMLElement>("storesShowOriginalNamesHelp"), {
+        title: "Отображать оригинальные названия",
+        text: "Показывает исходные названия магазинов вместо указанных Вами названий."
+    });
+    renderHelpTooltip(requireElementById<HTMLElement>("storesGroupByNameHelp"), {
+        title: "Группировать магазины по названию",
+        text: "Объединяет магазины с одинаковым названием в одну строку."
+    });
+
+    adaptiveNameModal = createBootstrapModal(requireElementById<HTMLElement>("storeAdaptiveNameModal"));
+    originalNameInput = requireInputById("storeOriginalName");
+    adaptiveNameInput = requireInputById("storeAdaptiveName");
+    clearAdaptiveNameButton = requireElementById<HTMLButtonElement>("storeClearAdaptiveName");
+    saveAdaptiveNameButton = requireElementById<HTMLButtonElement>("storeSaveAdaptiveName");
 
     requireElementById<HTMLButtonElement>("storesApplyFilter").addEventListener("click", () => reloadFromFirstPage());
     searchInput.addEventListener("keydown", handleSearchKeyDown);
-    useAdaptiveNamesInput.addEventListener("change", () => reloadFromFirstPage());
+    showOriginalNamesInput.addEventListener("change", handleShowOriginalNamesChange);
+    groupByNameInput.addEventListener("change", () => reloadFromFirstPage());
     ui.nameSortButton.addEventListener("click", () => handleSortClick("name"));
     ui.receiptCountSortButton.addEventListener("click", () => handleSortClick("receiptCount"));
+    ui.totalSpentSortButton.addEventListener("click", () => handleSortClick("totalSpent"));
     for (const pageSizeInput of pageSizeInputs) {
         pageSizeInput.addEventListener("change", () => reloadFromFirstPage(pageSizeInput));
     }
-    ui.tableBody.addEventListener("input", handleTableInput);
     ui.tableBody.addEventListener("click", event => {
         void handleTableClick(event);
+    });
+    requireElementById<HTMLFormElement>("storeAdaptiveNameForm").addEventListener("submit", event => {
+        event.preventDefault();
+        void saveAdaptiveName();
+    });
+    clearAdaptiveNameButton.addEventListener("click", () => {
+        adaptiveNameInput.value = "";
+        adaptiveNameInput.focus();
     });
     storeReceiptsListElement.addEventListener("click", event => {
         void handleStoreReceiptClick(event);
@@ -153,8 +196,10 @@ async function initStoresPage(): Promise<void> {
         formatCurrency: formatCurrency
     });
 
+    restorePreferences();
+    syncPageSizeInputs(storesState.pageSize);
     await loadAvailableAccounts();
-    await loadPage(1);
+    await loadPage(getPageFromQuery());
 }
 
 function handleSortClick(sortBy: StoreSortBy): void {
@@ -165,8 +210,7 @@ function handleSortClick(sortBy: StoreSortBy): void {
         storesState.sortDirection = "asc";
     }
 
-    storesState.editedAdaptiveNames.clear();
-    storesState.expandedStoreGroups.clear();
+    savePreferences();
     void loadPage(1);
 }
 
@@ -179,11 +223,10 @@ function handleSearchKeyDown(event: KeyboardEvent): void {
 
 function reloadFromFirstPage(changedPageSizeInput: HTMLSelectElement | null = null): void {
     storesState.search = searchInput.value.trim();
-    storesState.useAdaptiveNames = useAdaptiveNamesInput.checked;
+    storesState.groupByName = groupByNameInput.checked;
     storesState.pageSize = Number((changedPageSizeInput ?? pageSizeInputs[0]).value);
     syncPageSizeInputs(storesState.pageSize);
-    storesState.editedAdaptiveNames.clear();
-    storesState.expandedStoreGroups.clear();
+    savePreferences();
     void loadPage(1);
 }
 
@@ -192,10 +235,18 @@ async function loadPage(page: number): Promise<void> {
         return;
     }
 
+    const requestId = ++latestLoadRequestId;
+    updatePageQuery(page);
+    tableLoadingIndicator.show();
+
     try {
         hideAlertMessage(alertElement);
 
-        const result = await getStores(storesState.search, storesState.useAdaptiveNames, page, storesState.pageSize, storesState.sortBy, storesState.sortDirection);
+        const result = await getStores(storesState.search, storesState.groupByName, page, storesState.pageSize, storesState.sortBy, storesState.sortDirection);
+        if (requestId !== latestLoadRequestId) {
+            return;
+        }
+
         storesState.stores = result.items;
         storesState.page = result.page;
         storesState.pageSize = result.pageSize;
@@ -204,14 +255,73 @@ async function loadPage(page: number): Promise<void> {
         storesState.hasPreviousPage = result.hasPreviousPage;
         storesState.hasNextPage = result.hasNextPage;
         syncPageSizeInputs(storesState.pageSize);
+        updatePageQuery(storesState.page);
 
         renderStores(ui, storesState, pageNumber => {
             void loadPage(pageNumber);
         });
+        tableLoadingIndicator.hide();
     }
     catch (error) {
+        if (requestId !== latestLoadRequestId) {
+            return;
+        }
+
+        tableLoadingIndicator.hide();
         showAlertMessage(alertElement, getErrorMessage(error));
     }
+}
+
+function restorePreferences(): void {
+    const sortBy = getCookie(SORT_BY_COOKIE_NAME);
+    const sortDirection = getCookie(SORT_DIRECTION_COOKIE_NAME);
+    const pageSize = Number(getCookie(PAGE_SIZE_COOKIE_NAME));
+
+    if (sortBy === "name" || sortBy === "receiptCount" || sortBy === "totalSpent") {
+        storesState.sortBy = sortBy;
+    }
+
+    if (sortDirection === "asc" || sortDirection === "desc") {
+        storesState.sortDirection = sortDirection;
+    }
+
+    if (pageSize === 20 || pageSize === 50 || pageSize === 100) {
+        storesState.pageSize = pageSize;
+    }
+
+    storesState.showOriginalNames = getCookie(SHOW_ORIGINAL_NAMES_COOKIE_NAME) === "true";
+    storesState.groupByName = getCookie(GROUP_BY_NAME_COOKIE_NAME) === "true";
+    showOriginalNamesInput.checked = storesState.showOriginalNames;
+    groupByNameInput.checked = storesState.groupByName;
+}
+
+function savePreferences(): void {
+    setCookie(SORT_BY_COOKIE_NAME, storesState.sortBy);
+    setCookie(SORT_DIRECTION_COOKIE_NAME, storesState.sortDirection);
+    setCookie(PAGE_SIZE_COOKIE_NAME, String(storesState.pageSize));
+    setCookie(SHOW_ORIGINAL_NAMES_COOKIE_NAME, String(storesState.showOriginalNames));
+    setCookie(GROUP_BY_NAME_COOKIE_NAME, String(storesState.groupByName));
+}
+
+function getPageFromQuery(): number {
+    const page = Number(new URLSearchParams(window.location.search).get("page"));
+    return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+function updatePageQuery(page: number): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set("page", String(page));
+    window.history.replaceState(null, "", url);
+}
+
+function getCookie(name: string): string | null {
+    const prefix = `${name}=`;
+    const cookie = document.cookie.split("; ").find(item => item.startsWith(prefix));
+    return cookie ? decodeURIComponent(cookie.substring(prefix.length)) : null;
+}
+
+function setCookie(name: string, value: string): void {
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; samesite=lax`;
 }
 
 function syncPageSizeInputs(pageSize: number): void {
@@ -220,31 +330,9 @@ function syncPageSizeInputs(pageSize: number): void {
     }
 }
 
-function handleTableInput(event: Event): void {
-    const target = event.target;
-    if (!(target instanceof HTMLInputElement) || target.dataset.storeAdaptiveNameInput !== "true") {
-        return;
-    }
-
-    const row = target.closest("tr");
-    if (!(row instanceof HTMLTableRowElement) || !row.dataset.storeId) {
-        throw new Error("Не найдена строка магазина.");
-    }
-
-    const store = getStoreById(row.dataset.storeId);
-    storesState.editedAdaptiveNames.set(store.id, target.value);
-    updateSaveButtonVisibility(row, store);
-}
-
 async function handleTableClick(event: MouseEvent): Promise<void> {
     const target = event.target;
     if (!(target instanceof Element)) {
-        return;
-    }
-
-    const groupToggleButton = target.closest<HTMLButtonElement>("[data-store-group-toggle]");
-    if (groupToggleButton) {
-        toggleStoreGroup(groupToggleButton);
         return;
     }
 
@@ -254,31 +342,53 @@ async function handleTableClick(event: MouseEvent): Promise<void> {
         return;
     }
 
-    const saveButton = target.closest<HTMLButtonElement>("[data-store-save-button]");
-    if (!saveButton) {
+    const adaptiveNameButton = target.closest<HTMLButtonElement>("[data-store-adaptive-name-button]");
+    if (!adaptiveNameButton) {
         return;
     }
 
-    const row = saveButton.closest("tr");
+    const row = adaptiveNameButton.closest("tr");
     if (!(row instanceof HTMLTableRowElement) || !row.dataset.storeId) {
         throw new Error("Не найдена строка магазина.");
     }
 
-    const input = row.querySelector<HTMLInputElement>("[data-store-adaptive-name-input]");
-    if (!input) {
-        throw new Error("Не найдено поле адаптивного названия.");
+    openAdaptiveNameModal(getStoreById(row.dataset.storeId));
+}
+
+function handleShowOriginalNamesChange(): void {
+    storesState.showOriginalNames = showOriginalNamesInput.checked;
+    savePreferences();
+    renderStores(ui, storesState, pageNumber => {
+        void loadPage(pageNumber);
+    });
+}
+
+function openAdaptiveNameModal(store: StoreListItem): void {
+    editedStoreId = store.id;
+    requireElementById<HTMLElement>("storeAdaptiveNameModalTitle").textContent = `Укажите Ваше наименование для магазина - ${store.name}`;
+    originalNameInput.value = store.name;
+    adaptiveNameInput.value = store.adaptiveName ?? "";
+    clearAdaptiveNameButton.classList.toggle("d-none", !store.adaptiveName);
+    adaptiveNameModal.show();
+}
+
+async function saveAdaptiveName(): Promise<void> {
+    if (!editedStoreId) {
+        throw new Error("Не выбран магазин для изменения наименования.");
     }
 
     try {
-        saveButton.disabled = true;
+        saveAdaptiveNameButton.disabled = true;
         hideAlertMessage(alertElement);
-        await updateStoreAdaptiveName(row.dataset.storeId, input.value);
-        storesState.editedAdaptiveNames.delete(row.dataset.storeId);
+        await updateStoreAdaptiveName(editedStoreId, adaptiveNameInput.value);
+        adaptiveNameModal.hide();
         await loadPage(storesState.page);
     }
     catch (error) {
-        saveButton.disabled = false;
         showAlertMessage(alertElement, getErrorMessage(error));
+    }
+    finally {
+        saveAdaptiveNameButton.disabled = false;
     }
 }
 
@@ -291,47 +401,6 @@ function getStoreById(storeId: string): StoreListItem {
     }
 
     return store;
-}
-
-function toggleStoreGroup(button: HTMLButtonElement): void {
-    const row = button.closest("tr");
-    if (!(row instanceof HTMLTableRowElement) || !row.dataset.storeGroupKey) {
-        throw new Error("Не найдена группа магазинов.");
-    }
-
-    const storeGroupKey = row.dataset.storeGroupKey;
-    button.blur();
-
-    if (storesState.expandedStoreGroups.has(storeGroupKey)) {
-        storesState.expandedStoreGroups.delete(storeGroupKey);
-        removeStoreGroupChildRows(storeGroupKey);
-    } else {
-        storesState.expandedStoreGroups.add(storeGroupKey);
-        appendStoreGroupChildRows(row, storeGroupKey);
-    }
-
-    button.textContent = storesState.expandedStoreGroups.has(storeGroupKey) ? "⌃" : "⌄";
-    button.ariaLabel = storesState.expandedStoreGroups.has(storeGroupKey) ? "Свернуть группу магазинов" : "Развернуть группу магазинов";
-}
-
-function appendStoreGroupChildRows(parentRow: HTMLTableRowElement, storeGroupKey: string): void {
-    const store = getStoreByGroupKey(storeGroupKey);
-    let previousRow = parentRow;
-
-    for (const child of store.children) {
-        const childRow = createStoreRow(child, storesState, true, storeGroupKey);
-        previousRow.after(childRow);
-        previousRow = childRow;
-    }
-}
-
-function removeStoreGroupChildRows(storeGroupKey: string): void {
-    const rows = ui.tableBody.querySelectorAll<HTMLTableRowElement>("tr[data-store-parent-group-key]");
-    for (const row of rows) {
-        if (row.dataset.storeParentGroupKey === storeGroupKey) {
-            row.remove();
-        }
-    }
 }
 
 function getStoreByGroupKey(storeGroupKey: string): StoreListItem {

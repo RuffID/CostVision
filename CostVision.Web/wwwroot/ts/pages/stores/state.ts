@@ -9,9 +9,8 @@ export const storesState: StoreListState = {
     hasPreviousPage: false,
     hasNextPage: false,
     search: "",
-    useAdaptiveNames: false,
-    editedAdaptiveNames: new Map<string, string>(),
-    expandedStoreGroups: new Set<string>(),
+    showOriginalNames: false,
+    groupByName: false,
     sortBy: "name",
     sortDirection: "asc"
 };

@@ -7,6 +7,7 @@ export interface StoreListItem {
     adaptiveName: string | null;
     displayName: string;
     receiptCount: number;
+    totalSpent: number;
     groupKey: string;
     children: StoreListItem[];
 }
@@ -40,12 +41,11 @@ export interface StoreListState {
     hasPreviousPage: boolean;
     hasNextPage: boolean;
     search: string;
-    useAdaptiveNames: boolean;
-    editedAdaptiveNames: Map<string, string>;
-    expandedStoreGroups: Set<string>;
+    showOriginalNames: boolean;
+    groupByName: boolean;
     sortBy: StoreSortBy;
     sortDirection: StoreSortDirection;
 }
 
-export type StoreSortBy = "name" | "receiptCount";
+export type StoreSortBy = "name" | "receiptCount" | "totalSpent";
 export type StoreSortDirection = "asc" | "desc";
