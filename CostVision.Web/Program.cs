@@ -41,7 +41,12 @@ using (IServiceScope scope = app.Services.CreateScope())
     catch (TimeoutException exception)
     {
         Log.Fatal(exception, "[Startup] Database initialization did not finish within {TimeoutSeconds} seconds.", DATABASE_STARTUP_TIMEOUT_SECONDS);
-        throw;
+        Environment.Exit(1);
+    }
+    catch (Exception exception)
+    {
+        Log.Fatal(exception, "[Startup] Database initialization failed.");
+        Environment.Exit(1);
     }
 }
 
