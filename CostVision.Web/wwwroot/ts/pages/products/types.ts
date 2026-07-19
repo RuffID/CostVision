@@ -4,6 +4,8 @@ export interface ProductListItem {
     adaptiveName: string | null;
     displayName: string;
     receiptCount: number;
+    averagePrice: number | null;
+    averagePriceIsWeighted: boolean | null;
 }
 
 export interface ProductList {
@@ -39,5 +41,5 @@ export interface ProductListState {
     sortDirection: ProductSortDirection;
 }
 
-export type ProductSortBy = "name" | "receiptCount";
+export type ProductSortBy = "name" | "receiptCount" | "averagePrice";
 export type ProductSortDirection = "asc" | "desc";

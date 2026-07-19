@@ -57,6 +57,7 @@ function initProductsPage(): void {
         paginationElements: Array.from(document.querySelectorAll<HTMLElement>("[data-products-pagination]")),
         nameSortButton: requireElementById<HTMLButtonElement>("productsNameSortButton"),
         receiptCountSortButton: requireElementById<HTMLButtonElement>("productsReceiptCountSortButton"),
+        averagePriceSortButton: requireElementById<HTMLButtonElement>("productsAveragePriceSortButton"),
         storePurchasesQuantitySortButton: requireElementById<HTMLButtonElement>("productStorePurchasesQuantitySortButton"),
         storePurchasesPriceSortButton: requireElementById<HTMLButtonElement>("productStorePurchasesPriceSortButton")
     };
@@ -68,6 +69,10 @@ function initProductsPage(): void {
     renderHelpTooltip(requireElementById<HTMLElement>("productsNameHelp"), {
         title: "Наименование",
         text: "Нажмите на наименование товара, чтобы указать своё название. Товары с заданным названием выделены зелёным цветом."
+    });
+    renderHelpTooltip(requireElementById<HTMLElement>("productsAveragePriceHelp"), {
+        title: "Средняя цена",
+        text: "Рассчитывается как общая стоимость покупок, делённая на общее количество. Для весового товара цена указана за килограмм. Если товар покупался и в килограммах, и в штуках, средняя цена не отображается."
     });
     renderHelpTooltip(requireElementById<HTMLElement>("productsShowOriginalNamesHelp"), {
         title: "Отображать оригинальные названия",
@@ -93,6 +98,7 @@ function initProductsPage(): void {
     showOriginalNamesInput.addEventListener("change", handleShowOriginalNamesChange);
     ui.nameSortButton.addEventListener("click", () => handleSortClick("name"));
     ui.receiptCountSortButton.addEventListener("click", () => handleSortClick("receiptCount"));
+    ui.averagePriceSortButton.addEventListener("click", () => handleSortClick("averagePrice"));
     ui.storePurchasesQuantitySortButton.addEventListener("click", () => handleStorePurchasesSortClick("quantity"));
     ui.storePurchasesPriceSortButton.addEventListener("click", () => handleStorePurchasesSortClick("pricePerUnit"));
     for (const pageSizeInput of pageSizeInputs) {
@@ -207,7 +213,7 @@ function restorePreferences(): void {
     const sortDirection = getCookie(SORT_DIRECTION_COOKIE_NAME);
     const pageSize = Number(getCookie(PAGE_SIZE_COOKIE_NAME));
 
-    if (sortBy === "name" || sortBy === "receiptCount") {
+    if (sortBy === "name" || sortBy === "receiptCount" || sortBy === "averagePrice") {
         productsState.sortBy = sortBy;
     }
 

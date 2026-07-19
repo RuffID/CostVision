@@ -47,7 +47,7 @@
     </div>
 
     <div id="productsTableContainer" class="table-responsive" data-products-table-container>
-        <table class="table table-bordered table-hover align-middle mb-0" data-table-loading-content>
+        <table class="table table-bordered table-hover align-middle mb-0" style="table-layout: fixed;" data-table-loading-content>
             <thead class="table-light">
                 <tr>
                     <th scope="col">
@@ -57,6 +57,10 @@
                     <th scope="col" class="text-nowrap" style="width: 9rem;">
                         <button type="button" id="productsReceiptCountSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Количество</button>
                         <span id="productsReceiptCountHelp" data-help-tooltip-host></span>
+                    </th>
+                    <th scope="col" class="text-end text-nowrap" style="width: 10rem;">
+                        <button type="button" id="productsAveragePriceSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Средняя цена</button>
+                        <span id="productsAveragePriceHelp" data-help-tooltip-host></span>
                     </th>
                 </tr>
             </thead>

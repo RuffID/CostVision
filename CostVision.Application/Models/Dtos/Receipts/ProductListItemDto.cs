@@ -11,5 +11,9 @@ namespace CostVision.Application.Models.Dtos.Receipts
         public string DisplayName { get; set; } = string.Empty;
 
         public int ReceiptCount { get; set; }
+
+        public decimal? AveragePrice { get; set; }
+
+        public bool? AveragePriceIsWeighted { get; set; }
     }
 }

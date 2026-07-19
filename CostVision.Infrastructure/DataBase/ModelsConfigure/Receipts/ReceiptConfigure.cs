@@ -87,6 +87,18 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
 
             builder.HasIndex(x => new { x.FiscalDriveNumber, x.FiscalDocumentNumber, x.FiscalSign });
 
+            builder.HasIndex(x => new
+                {
+                    x.CreatedByUserId,
+                    x.FiscalDriveNumber,
+                    x.FiscalDocumentNumber,
+                    x.FiscalSign,
+                    x.DateTime,
+                    x.TotalSum,
+                    x.OperationType
+                })
+                .IsUnique();
+
             builder.HasIndex(x => x.StoreId);
         }
     }

@@ -2,6 +2,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
+using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -15,6 +16,7 @@ namespace CostVision.Application.UseCases.Receipts.Products
         private const int MAX_PAGE_SIZE = 100;
         private const string SORT_BY_NAME = "name";
         private const string SORT_BY_RECEIPT_COUNT = "receiptCount";
+        private const string SORT_BY_AVERAGE_PRICE = "averagePrice";
         private const string SORT_DIRECTION_DESC = "desc";
 
         public async Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, Guid currentUserId, CancellationToken ct)
@@ -55,16 +57,7 @@ namespace CostVision.Application.UseCases.Receipts.Products
                 ct: ct);
 
             List<ProductListItemDto> allItems = products
-                .Select(product => new ProductListItemDto
-                {
-                    Id = product.Id,
-                    Name = product.Name,
-                    AdaptiveName = product.AdaptiveName,
-                    DisplayName = request.UseAdaptiveNames && !string.IsNullOrWhiteSpace(product.AdaptiveName)
-                        ? product.AdaptiveName
-                        : product.Name,
-                    ReceiptCount = CountAccessibleReceipts(product, currentUserId)
-                })
+                .Select(product => CreateProductListItem(product, request.UseAdaptiveNames, currentUserId))
                 .ToList();
 
             List<ProductListItemDto> items = SortItems(allItems, request.SortBy, request.SortDirection)
@@ -96,6 +89,9 @@ namespace CostVision.Application.UseCases.Receipts.Products
                 SORT_BY_RECEIPT_COUNT => isDescending
                     ? items.OrderByDescending(item => item.ReceiptCount).ThenBy(item => item.Name)
                     : items.OrderBy(item => item.ReceiptCount).ThenBy(item => item.Name),
+                SORT_BY_AVERAGE_PRICE => isDescending
+                    ? items.OrderByDescending(item => item.AveragePrice.HasValue).ThenByDescending(item => item.AveragePrice).ThenBy(item => item.Name)
+                    : items.OrderByDescending(item => item.AveragePrice.HasValue).ThenBy(item => item.AveragePrice).ThenBy(item => item.Name),
                 _ => isDescending
                     ? items.OrderByDescending(item => item.Name).ThenByDescending(item => item.ReceiptCount)
                     : items.OrderBy(item => item.Name).ThenByDescending(item => item.ReceiptCount)
@@ -104,13 +100,48 @@ namespace CostVision.Application.UseCases.Receipts.Products
             return orderedItems.ToList();
         }
 
-        private static int CountAccessibleReceipts(Product product, Guid currentUserId)
+        private static ProductListItemDto CreateProductListItem(Product product, bool useAdaptiveNames, Guid currentUserId)
         {
-            return product.ReceiptItems
+            List<ReceiptItem> accessibleReceiptItems = product.ReceiptItems
                 .Where(item => item.Receipt != null && IsReceiptAccessible(item.Receipt, currentUserId))
-                .Select(item => item.ReceiptId)
+                .ToList();
+            List<bool> weightedVariants = accessibleReceiptItems
+                .Select(item => IsWeighted(item.ItemsQuantityMeasure))
                 .Distinct()
-                .Count();
+                .ToList();
+            bool hasSingleQuantityMeasure = weightedVariants.Count == 1;
+            decimal totalQuantity = accessibleReceiptItems.Sum(NormalizeQuantity);
+
+            return new ProductListItemDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                AdaptiveName = product.AdaptiveName,
+                DisplayName = useAdaptiveNames && !string.IsNullOrWhiteSpace(product.AdaptiveName)
+                    ? product.AdaptiveName
+                    : product.Name,
+                ReceiptCount = accessibleReceiptItems.Select(item => item.ReceiptId).Distinct().Count(),
+                AveragePrice = hasSingleQuantityMeasure && totalQuantity != 0
+                    ? accessibleReceiptItems.Sum(item => item.Sum) / totalQuantity
+                    : null,
+                AveragePriceIsWeighted = hasSingleQuantityMeasure ? weightedVariants[0] : null
+            };
+        }
+
+        private static decimal NormalizeQuantity(ReceiptItem item)
+        {
+            return item.ItemsQuantityMeasure switch
+            {
+                QuantityMeasureType.Gram => item.Quantity / 1000m,
+                QuantityMeasureType.Kilogram => item.Quantity,
+                QuantityMeasureType.Ton => item.Quantity * 1000m,
+                _ => item.Quantity
+            };
+        }
+
+        private static bool IsWeighted(QuantityMeasureType quantityMeasure)
+        {
+            return quantityMeasure is QuantityMeasureType.Gram or QuantityMeasureType.Kilogram or QuantityMeasureType.Ton;
         }
 
         private static bool IsReceiptAccessible(Receipt receipt, Guid currentUserId)

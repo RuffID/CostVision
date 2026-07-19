@@ -2,12 +2,15 @@ import { clearElement } from "../../shared/dom.js";
 import { formatRuNumber } from "../../shared/formatters.js";
 import type { ProductListItem, ProductListState, ProductSortDirection, ProductStorePurchase, ProductStorePurchaseSortBy } from "./types.js";
 
+const MAX_PRODUCT_NAME_LENGTH = 50;
+
 export interface ProductsUi {
     tableBody: HTMLTableSectionElement;
     pageInfoElements: HTMLElement[];
     paginationElements: HTMLElement[];
     nameSortButton: HTMLButtonElement;
     receiptCountSortButton: HTMLButtonElement;
+    averagePriceSortButton: HTMLButtonElement;
     storePurchasesQuantitySortButton: HTMLButtonElement;
     storePurchasesPriceSortButton: HTMLButtonElement;
 }
@@ -19,7 +22,7 @@ export function renderProducts(ui: ProductsUi, state: ProductListState, onPageCl
     if (state.products.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = 2;
+        cell.colSpan = 3;
         cell.className = "text-muted text-center py-4";
         cell.textContent = "Товары не найдены.";
         row.append(cell);
@@ -43,6 +46,7 @@ export function renderProducts(ui: ProductsUi, state: ProductListState, onPageCl
 function updateSortButtons(ui: ProductsUi, state: ProductListState): void {
     ui.nameSortButton.textContent = buildSortButtonText("Наименование", state.sortBy === "name" ? state.sortDirection : null);
     ui.receiptCountSortButton.textContent = buildSortButtonText("Количество", state.sortBy === "receiptCount" ? state.sortDirection : null);
+    ui.averagePriceSortButton.textContent = buildSortButtonText("Средняя цена", state.sortBy === "averagePrice" ? state.sortDirection : null);
 }
 
 function buildSortButtonText(text: string, direction: string | null): string {
@@ -63,10 +67,15 @@ function createProductRow(product: ProductListItem, showOriginalNames: boolean):
     row.style.height = "43px";
 
     const nameCell = document.createElement("td");
+    nameCell.className = "text-start";
     const nameText = document.createElement("button");
     nameText.type = "button";
-    nameText.className = product.adaptiveName ? "btn btn-link p-0 text-decoration-none text-success" : "btn btn-link p-0 text-decoration-none text-body";
-    nameText.textContent = showOriginalNames ? product.name : product.adaptiveName ?? product.name;
+    nameText.className = product.adaptiveName
+        ? "btn btn-link d-block w-100 p-0 text-start text-break text-decoration-none text-success"
+        : "btn btn-link d-block w-100 p-0 text-start text-break text-decoration-none text-body";
+    const displayName = showOriginalNames ? product.name : product.adaptiveName ?? product.name;
+    nameText.textContent = truncateProductName(displayName);
+    nameText.title = displayName;
     nameText.dataset.productAdaptiveNameButton = "true";
     nameText.addEventListener("mouseenter", () => updateProductNameHover(nameText, Boolean(product.adaptiveName), true));
     nameText.addEventListener("mouseleave", () => updateProductNameHover(nameText, Boolean(product.adaptiveName), false));
@@ -86,7 +95,20 @@ function createProductRow(product: ProductListItem, showOriginalNames: boolean):
     receiptCountCell.append(receiptCountButton);
     row.append(receiptCountCell);
 
+    const averagePriceCell = document.createElement("td");
+    averagePriceCell.className = "text-end text-nowrap";
+    averagePriceCell.textContent = product.averagePrice === null || product.averagePriceIsWeighted === null
+        ? "—"
+        : `${formatAveragePrice(product.averagePrice)}/${product.averagePriceIsWeighted ? "кг" : "шт."}`;
+    row.append(averagePriceCell);
+
     return row;
+}
+
+function truncateProductName(name: string): string {
+    return name.length > MAX_PRODUCT_NAME_LENGTH
+        ? `${name.substring(0, MAX_PRODUCT_NAME_LENGTH - 1)}…`
+        : name;
 }
 
 function setReceiptCountButtonHover(button: HTMLButtonElement, isHovered: boolean): void {
