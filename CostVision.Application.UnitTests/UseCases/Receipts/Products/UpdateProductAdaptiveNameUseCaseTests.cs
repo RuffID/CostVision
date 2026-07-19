@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
@@ -20,6 +21,13 @@ public class UpdateProductAdaptiveNameUseCaseTests
         productRepository
             .Setup(repository => repository.GetItemByIdAsync(productId, It.IsAny<bool>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
+        productRepository
+            .Setup(repository => repository.GetItemByPredicateAsync(
+                It.IsAny<Expression<Func<Product, bool>>>(),
+                true,
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Product?)null);
 
         Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(productRepository);
         UpdateProductAdaptiveNameUseCase useCase = new(unitOfWork.Object);
