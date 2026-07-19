@@ -7,6 +7,7 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <AssemblyName>CostVision.Web</AssemblyName>
     <RootNamespace>CostVision.Web</RootNamespace>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**;artifacts\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

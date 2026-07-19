@@ -130,6 +130,8 @@ function appendHelpTooltipBodyText(body: HTMLElement, text: string | string[]): 
 }
 
 function positionHelpTooltip(trigger: HTMLElement, popup: HTMLElement): void {
+    popup.style.zIndex = getHelpTooltipZIndex(trigger);
+
     let triggerRect = trigger.getBoundingClientRect();
     let popupRect = popup.getBoundingClientRect();
     let viewportPadding = 8;
@@ -154,6 +156,16 @@ function positionHelpTooltip(trigger: HTMLElement, popup: HTMLElement): void {
 
     popup.style.left = `${left}px`;
     popup.style.top = `${top}px`;
+}
+
+function getHelpTooltipZIndex(trigger: HTMLElement): string {
+    const modal = trigger.closest<HTMLElement>(".modal");
+    if (!modal) {
+        return "1080";
+    }
+
+    const modalZIndex = Number(window.getComputedStyle(modal).zIndex);
+    return Number.isFinite(modalZIndex) ? String(modalZIndex + 10) : "1080";
 }
 
 function handleWindowResize(): void {

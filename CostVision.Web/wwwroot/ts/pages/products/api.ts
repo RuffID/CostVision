@@ -1,6 +1,6 @@
 import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import type { ProductList, ProductSortBy, ProductSortDirection } from "./types.js";
+import type { ProductList, ProductSortBy, ProductSortDirection, ProductStorePurchase } from "./types.js";
 
 export async function getProducts(search: string, page: number, pageSize: number, sortBy: ProductSortBy, sortDirection: ProductSortDirection): Promise<ProductList> {
     const params = new URLSearchParams({
@@ -26,4 +26,10 @@ export async function updateProductAdaptiveName(productId: string, adaptiveName:
         });
 
     unwrapServiceSuccess(result);
+}
+
+export async function getProductStorePurchases(productId: string): Promise<ProductStorePurchase[]> {
+    const params = new URLSearchParams({ productId: productId });
+    const result = await sendJsonRequest<ServiceResultWithData<ProductStorePurchase[]>>(`/products?handler=StorePurchases&${params.toString()}`);
+    return unwrapServiceResult(result);
 }

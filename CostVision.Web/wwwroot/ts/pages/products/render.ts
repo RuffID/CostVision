@@ -1,5 +1,6 @@
 import { clearElement } from "../../shared/dom.js";
-import type { ProductListItem, ProductListState } from "./types.js";
+import { formatRuNumber } from "../../shared/formatters.js";
+import type { ProductListItem, ProductListState, ProductStorePurchase } from "./types.js";
 
 export interface ProductsUi {
     tableBody: HTMLTableSectionElement;
@@ -71,11 +72,57 @@ function createProductRow(product: ProductListItem, showOriginalNames: boolean):
     row.append(nameCell);
 
     const receiptCountCell = document.createElement("td");
-    receiptCountCell.className = "text-end text-nowrap";
-    receiptCountCell.textContent = String(product.receiptCount);
+    receiptCountCell.className = "text-center text-nowrap";
+    const receiptCountButton = document.createElement("button");
+    receiptCountButton.type = "button";
+    receiptCountButton.className = "btn btn-sm border border-transparent px-3 py-1 text-body text-decoration-none";
+    receiptCountButton.textContent = String(product.receiptCount);
+    receiptCountButton.dataset.productStorePurchasesButton = "true";
+    receiptCountButton.addEventListener("mouseenter", () => setReceiptCountButtonHover(receiptCountButton, true));
+    receiptCountButton.addEventListener("mouseleave", () => setReceiptCountButtonHover(receiptCountButton, false));
+    receiptCountButton.addEventListener("mousedown", event => event.preventDefault());
+    receiptCountCell.append(receiptCountButton);
     row.append(receiptCountCell);
 
     return row;
+}
+
+function setReceiptCountButtonHover(button: HTMLButtonElement, isHovered: boolean): void {
+    button.classList.toggle("border-transparent", !isHovered);
+    button.classList.toggle("border-dark", isHovered);
+}
+
+export function renderProductStorePurchases(container: HTMLTableSectionElement, purchases: ProductStorePurchase[]): void {
+    clearElement(container);
+
+    if (purchases.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.className = "text-muted text-center py-4";
+        cell.textContent = "Покупки в магазинах не найдены.";
+        row.append(cell);
+        container.append(row);
+        return;
+    }
+
+    for (const purchase of purchases) {
+        const row = document.createElement("tr");
+        const storeNameCell = document.createElement("td");
+        storeNameCell.textContent = purchase.storeName;
+        const quantityCell = document.createElement("td");
+        quantityCell.className = "text-center text-nowrap";
+        quantityCell.textContent = `${formatRuNumber(purchase.quantity)} ${purchase.isWeighted ? "кг" : "шт."}`;
+        const priceCell = document.createElement("td");
+        priceCell.className = "text-end text-nowrap";
+        priceCell.textContent = `${formatAveragePrice(purchase.pricePerUnit)}/${purchase.isWeighted ? "кг" : "шт."}`;
+        row.append(storeNameCell, quantityCell, priceCell);
+        container.append(row);
+    }
+}
+
+function formatAveragePrice(value: number): string {
+    return `${value.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽`;
 }
 
 function updateProductNameHover(button: HTMLButtonElement, hasAdaptiveName: boolean, isHovered: boolean): void {

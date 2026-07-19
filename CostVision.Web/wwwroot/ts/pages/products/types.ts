@@ -16,6 +16,13 @@ export interface ProductList {
     hasNextPage: boolean;
 }
 
+export interface ProductStorePurchase {
+    storeName: string;
+    quantity: number;
+    pricePerUnit: number;
+    isWeighted: boolean;
+}
+
 export interface ProductListState {
     products: ProductListItem[];
     page: number;

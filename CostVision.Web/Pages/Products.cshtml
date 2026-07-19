@@ -35,9 +35,8 @@
         </div>
     </div>
 
-    <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
-        <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 flex-grow-1" data-products-pagination></div>
-        <div class="ms-auto">
+    <div class="d-flex justify-content-end mb-3">
+        <div>
             <label for="productsTopPageSize" class="form-label mb-1">На странице</label>
             <select id="productsTopPageSize" name="productsTopPageSize" class="form-select">
                 <option value="20" selected>20</option>
@@ -68,6 +67,34 @@
     <div class="d-flex flex-column align-items-center gap-1 mt-2">
         <div class="fs-5" data-products-page-info></div>
         <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" data-products-pagination></div>
+    </div>
+</div>
+
+<div class="modal fade" id="productStorePurchasesModal" tabindex="-1" aria-labelledby="productStorePurchasesModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productStorePurchasesModalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Магазин</th>
+                                <th scope="col" class="text-center text-nowrap">Количество</th>
+                                <th scope="col" class="text-end text-nowrap">
+                                    Средняя цена
+                                    <span id="productStorePurchasesPriceHelp" data-help-tooltip-host></span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="productStorePurchasesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

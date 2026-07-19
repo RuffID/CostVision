@@ -15,6 +15,7 @@ namespace CostVision.Web.Pages
     [LoadUser]
     public class ProductsModel(
         IGetProductListUseCase getProductListUseCase,
+        IGetProductStorePurchasesUseCase getProductStorePurchasesUseCase,
         IUpdateProductAdaptiveNameUseCase updateProductAdaptiveNameUseCase) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
@@ -28,6 +29,12 @@ namespace CostVision.Web.Pages
         public async Task<JsonResult> OnPostUpdateAdaptiveNameAsync([FromBody] UpdateProductAdaptiveNameRequest request, CancellationToken ct)
         {
             ServiceResult<bool> result = await updateProductAdaptiveNameUseCase.ExecuteAsync(request, ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<JsonResult> OnGetStorePurchasesAsync([FromQuery] GetProductStorePurchasesRequest request, CancellationToken ct)
+        {
+            ServiceResult<List<ProductStorePurchaseDto>> result = await getProductStorePurchasesUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
     }

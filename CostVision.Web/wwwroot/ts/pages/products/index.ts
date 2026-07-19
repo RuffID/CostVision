@@ -3,8 +3,8 @@ import { createBootstrapModal, type BootstrapModal } from "../../shared/bootstra
 import { requireElementById, requireInputById } from "../../shared/dom.js";
 import { renderHelpTooltip } from "../../shared/helpTooltip.js";
 import { createTableLoadingIndicator, type TableLoadingIndicator } from "../../shared/tableLoadingIndicator.js";
-import { getProducts, updateProductAdaptiveName } from "./api.js";
-import { renderProducts, type ProductsUi } from "./render.js";
+import { getProductStorePurchases, getProducts, updateProductAdaptiveName } from "./api.js";
+import { renderProductStorePurchases, renderProducts, type ProductsUi } from "./render.js";
 import { productsState } from "./state.js";
 import type { ProductListItem, ProductSortBy } from "./types.js";
 
@@ -16,6 +16,9 @@ let ui: ProductsUi;
 let tableLoadingIndicator: TableLoadingIndicator;
 let adaptiveNameModal: BootstrapModal;
 let adaptiveNameModalElement: HTMLElement;
+let storePurchasesModal: BootstrapModal;
+let storePurchasesModalElement: HTMLElement;
+let storePurchasesBody: HTMLTableSectionElement;
 let originalNameInput: HTMLInputElement;
 let adaptiveNameInput: HTMLInputElement;
 let clearAdaptiveNameButton: HTMLButtonElement;
@@ -63,6 +66,10 @@ function initProductsPage(): void {
         title: "Отображать оригинальные названия",
         text: "Показывает исходные названия товаров вместо указанных Вами названий."
     });
+    renderHelpTooltip(requireElementById<HTMLElement>("productStorePurchasesPriceHelp"), {
+        title: "Средняя цена",
+        text: "Рассчитывается как общая стоимость всех покупок товара в магазине, делённая на общее количество. Для весового товара цена указана за килограмм."
+    });
 
     adaptiveNameModalElement = requireElementById<HTMLElement>("productAdaptiveNameModal");
     adaptiveNameModal = createBootstrapModal(adaptiveNameModalElement);
@@ -70,6 +77,9 @@ function initProductsPage(): void {
     adaptiveNameInput = requireInputById("productAdaptiveName");
     clearAdaptiveNameButton = requireElementById<HTMLButtonElement>("productClearAdaptiveName");
     saveAdaptiveNameButton = requireElementById<HTMLButtonElement>("productSaveAdaptiveName");
+    storePurchasesModalElement = requireElementById<HTMLElement>("productStorePurchasesModal");
+    storePurchasesModal = createBootstrapModal(storePurchasesModalElement);
+    storePurchasesBody = requireElementById<HTMLTableSectionElement>("productStorePurchasesBody");
 
     requireElementById<HTMLButtonElement>("productsApplyFilter").addEventListener("click", () => reloadFromFirstPage());
     searchInput.addEventListener("keydown", handleSearchKeyDown);
@@ -224,7 +234,7 @@ function syncPageSizeInputs(pageSize: number): void {
 
 function handleTableClick(event: MouseEvent): void {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement) || target.dataset.productAdaptiveNameButton !== "true") {
+    if (!(target instanceof HTMLButtonElement)) {
         return;
     }
 
@@ -233,7 +243,30 @@ function handleTableClick(event: MouseEvent): void {
         throw new Error("Не найдена строка товара.");
     }
 
-    openAdaptiveNameModal(getProductById(row.dataset.productId));
+    const product = getProductById(row.dataset.productId);
+    if (target.dataset.productAdaptiveNameButton === "true") {
+        openAdaptiveNameModal(product);
+        return;
+    }
+
+    if (target.dataset.productStorePurchasesButton === "true") {
+        void openStorePurchasesModal(product);
+    }
+}
+
+async function openStorePurchasesModal(product: ProductListItem): Promise<void> {
+    requireElementById<HTMLElement>("productStorePurchasesModalTitle").textContent = `Магазины, в которых был куплен товар - ${product.adaptiveName ?? product.name}`;
+    renderProductStorePurchases(storePurchasesBody, []);
+    storePurchasesModal.show();
+
+    try {
+        hideAlertMessage(alertElement);
+        renderProductStorePurchases(storePurchasesBody, await getProductStorePurchases(product.id));
+    }
+    catch (error) {
+        storePurchasesModal.hide();
+        showAlertMessage(alertElement, getErrorMessage(error));
+    }
 }
 
 function openAdaptiveNameModal(product: ProductListItem): void {

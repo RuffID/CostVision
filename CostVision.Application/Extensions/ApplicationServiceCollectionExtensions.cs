@@ -40,6 +40,7 @@ namespace CostVision.Application.Extensions
             services.AddScoped<IMoveReceiptToAccountUseCase, MoveReceiptToAccountUseCase>();
             services.AddScoped<IRemoveReceiptFromAccountUseCase, RemoveReceiptFromAccountUseCase>();
             services.AddScoped<IGetProductListUseCase, GetProductListUseCase>();
+            services.AddScoped<IGetProductStorePurchasesUseCase, GetProductStorePurchasesUseCase>();
             services.AddScoped<IUpdateProductAdaptiveNameUseCase, UpdateProductAdaptiveNameUseCase>();
             services.AddScoped<IGetStoreListUseCase, GetStoreListUseCase>();
             services.AddScoped<IGetStoreReceiptListUseCase, GetStoreReceiptListUseCase>();
