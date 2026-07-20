@@ -4,7 +4,7 @@ import { loadAvailableAccountsApi, moveReceiptToAccountApi, openReceiptApi, refr
 import type { AvailableAccountDto, ReceiptDto } from "../reports/receipts/types.js";
 import type { StoreList, StoreReceiptList, StoreSortBy, StoreSortDirection } from "./types.js";
 
-export async function getStores(search: string, groupByName: boolean, page: number, pageSize: number, sortBy: StoreSortBy, sortDirection: StoreSortDirection): Promise<StoreList> {
+export async function getStores(search: string, groupByName: boolean, page: number, pageSize: number, sortBy: StoreSortBy, sortDirection: StoreSortDirection, accountId: string): Promise<StoreList> {
     const params = new URLSearchParams({
         search: search,
         groupByName: String(groupByName),
@@ -13,6 +13,7 @@ export async function getStores(search: string, groupByName: boolean, page: numb
         sortBy: sortBy,
         sortDirection: sortDirection
     });
+    if (accountId) params.set("accountId", accountId);
 
     const result = await sendJsonRequest<ServiceResultWithData<StoreList>>(`/stores?handler=List&${params.toString()}`);
     return unwrapServiceResult(result);

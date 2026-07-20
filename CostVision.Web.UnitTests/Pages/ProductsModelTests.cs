@@ -2,6 +2,7 @@ using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Products;
+using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Web.Pages;
 using CostVision.Web.UnitTests.Helpers;
@@ -24,9 +25,10 @@ public class ProductsModelTests
             .Setup(useCase => useCase.ExecuteAsync(request, currentUser.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<ProductListDto>.Ok(new ProductListDto { Items = [new ProductListItemDto { Name = "Milk" }] }));
         Mock<IGetProductStorePurchasesUseCase> getProductStorePurchasesUseCase = new(MockBehavior.Strict);
+        Mock<IGetUserAccountsUseCase> getUserAccountsUseCase = new(MockBehavior.Strict);
         Mock<IUpdateProductAdaptiveNameUseCase> updateProductAdaptiveNameUseCase = new(MockBehavior.Strict);
 
-        ProductsModel model = new(getProductListUseCase.Object, getProductStorePurchasesUseCase.Object, updateProductAdaptiveNameUseCase.Object)
+        ProductsModel model = new(getProductListUseCase.Object, getProductStorePurchasesUseCase.Object, getUserAccountsUseCase.Object, updateProductAdaptiveNameUseCase.Object)
         {
             CurrentUser = currentUser
         };
@@ -44,12 +46,13 @@ public class ProductsModelTests
 
         Mock<IGetProductListUseCase> getProductListUseCase = new(MockBehavior.Strict);
         Mock<IGetProductStorePurchasesUseCase> getProductStorePurchasesUseCase = new(MockBehavior.Strict);
+        Mock<IGetUserAccountsUseCase> getUserAccountsUseCase = new(MockBehavior.Strict);
         Mock<IUpdateProductAdaptiveNameUseCase> updateProductAdaptiveNameUseCase = new(MockBehavior.Strict);
         updateProductAdaptiveNameUseCase
             .Setup(useCase => useCase.ExecuteAsync(request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<bool>.Ok(true));
 
-        ProductsModel model = new(getProductListUseCase.Object, getProductStorePurchasesUseCase.Object, updateProductAdaptiveNameUseCase.Object)
+        ProductsModel model = new(getProductListUseCase.Object, getProductStorePurchasesUseCase.Object, getUserAccountsUseCase.Object, updateProductAdaptiveNameUseCase.Object)
         {
             CurrentUser = TestUsers.Create()
         };

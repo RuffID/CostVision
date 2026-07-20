@@ -16,6 +16,7 @@ export interface ProductList {
     totalPages: number;
     hasPreviousPage: boolean;
     hasNextPage: boolean;
+    totalSum: number;
 }
 
 export interface ProductStorePurchase {

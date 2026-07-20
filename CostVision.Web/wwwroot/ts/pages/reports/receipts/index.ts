@@ -8,7 +8,7 @@ import { applyReceiptFilters as applyReceiptFiltersCore } from "./filters.js";
 import { createReceiptsPageState, removeReceiptFromCache } from "./state.js";
 import { updateReceiptsSummary } from "./render.js";
 import { formatDateForQuery, getDateRangeByPeriodPreset } from "./dateRange.js";
-import { MoveReceiptAccountAction, PendingDeleteAction, ReceiptDto } from "./types.js";
+import { MoveReceiptAccountAction, PendingDeleteAction, ReceiptDto, ReceiptList } from "./types.js";
 import { hideReceiptAccountFilterError as hideAccountFilterError, renderReceiptAccountFilterError as renderAccountFilterError, renderReceiptAccountFilterLoading as renderAccountFilterLoading, renderReceiptAccountFilterOptions as renderAccountFilterOptions } from "./ui/accountFilter.js";
 import { buildReceiptCard as buildReceiptCardElement, updateCardFromDto as updateReceiptCardFromDto } from "./ui/receiptCards.js";
 import { renderReceiptDetails as renderReceiptDetailsModal } from "./ui/receiptDetailsModal.js";
@@ -37,6 +37,9 @@ let applyFilterButton: HTMLButtonElement;
 let receiptPeriodPresetSelect: HTMLSelectElement;
 let receiptsCountElement: HTMLElement;
 let receiptsSumElement: HTMLElement;
+let receiptPageSizeSelect: HTMLSelectElement;
+let receiptsPaginationElement: HTMLElement;
+let currentReceiptList: ReceiptList | null = null;
 
 // Для удаления
 let deleteModalElement: HTMLElement;
@@ -97,6 +100,8 @@ async function initListOfChecksPage(): Promise<void> {
     receiptPeriodPresetSelect = requireSelectById('receiptPeriodPreset');
     receiptsCountElement = requireElementById<HTMLElement>('receiptsCount');
     receiptsSumElement = requireElementById<HTMLElement>('receiptsSum');
+    receiptPageSizeSelect = requireSelectById('receiptsPageSize');
+    receiptsPaginationElement = requireElementById<HTMLElement>('receiptsPagination');
     forgeryToken = getRequestVerificationToken();
 
     if (modalElement) {
@@ -112,7 +117,7 @@ async function initListOfChecksPage(): Promise<void> {
 
     if (applyFilterButton) {
         applyFilterButton.addEventListener('click', function () {
-            loadReceiptList();
+            void loadReceiptList(1);
         });
     }
 
@@ -230,14 +235,19 @@ async function initListOfChecksPage(): Promise<void> {
         receiptPeriodPresetSelect.addEventListener('change', onReceiptPeriodPresetChanged);
     }
 
+    receiptPageSizeSelect.addEventListener('change', () => void loadReceiptList(1));
+    dateFromInput.addEventListener('change', updatePeriodPresetForManualDateRange);
+    dateToInput.addEventListener('change', updatePeriodPresetForManualDateRange);
     setCurrentMonthPeriod();
 
     await loadAvailableAccountsAsync();
-    await loadReceiptList();
+    await loadReceiptList(getPageFromQuery());
 }
 
 function onReceiptPeriodPresetChanged(): void {
+    if (receiptPeriodPresetSelect.value === 'other') return;
     applySelectedReceiptPeriodPreset();
+    void loadReceiptList(1);
 }
 
 function applySelectedReceiptPeriodPreset(): void {
@@ -346,7 +356,7 @@ function onReceiptListClick(event: MouseEvent): void {
 }
 
 // Собрать query-параметры для dateFrom/dateTo
-function buildDateRangeQuery(): string {
+function buildDateRangeQuery(page: number): string {
     const fromVal = dateFromInput.value;
     const toVal = dateToInput.value;
 
@@ -359,15 +369,23 @@ function buildDateRangeQuery(): string {
         parts.push('dateTo=' + encodeURIComponent(toVal));
     }
 
+    parts.push('page=' + page, 'pageSize=' + receiptPageSizeSelect.value, 'search=' + encodeURIComponent(getSearchQuery()), 'searchMode=' + encodeURIComponent(getSearchMode()), 'operationFilter=' + encodeURIComponent(getReceiptOperationFilter()));
+    const accountId = getSelectedReceiptAccountId();
+    if (accountId) parts.push('accountId=' + encodeURIComponent(accountId));
     return parts.join('&');
 }
 
 // Загрузить список чеков (ожидается массив DTO)
-async function loadReceiptList(): Promise<void> {
+async function loadReceiptList(page = 1): Promise<void> {
     try {
-        const rangeQuery = buildDateRangeQuery();
-        pageState.receipts = await loadReceiptsApi(rangeQuery, forgeryToken);
-        renderReceiptList(applyReceiptFilters(pageState.receipts));
+        listContainer.replaceChildren(createLoadingIndicator());
+        currentReceiptList = await loadReceiptsApi(buildDateRangeQuery(page), forgeryToken);
+        pageState.receipts = currentReceiptList.items;
+        renderReceiptList(currentReceiptList.items);
+        receiptsCountElement.textContent = 'Чеков: ' + currentReceiptList.totalCount;
+        receiptsSumElement.textContent = 'Сумма: ' + formatCurrency(currentReceiptList.totalSum);
+        renderReceiptPagination(currentReceiptList);
+        updatePageQuery(currentReceiptList.page);
     } catch (error) {
         console.error(error);
         alert('Ошибка при получении списка чеков.');
@@ -430,7 +448,7 @@ function updateReceiptSummary(list: ReceiptDto[]): void {
         throw new Error('Элементы сводки чеков не найдены.');
     }
 
-    updateReceiptsSummary(receiptsCountElement, receiptsSumElement, list, formatCurrency);
+    if (!currentReceiptList) updateReceiptsSummary(receiptsCountElement, receiptsSumElement, list, formatCurrency);
 }
 
 // Обновить чек (ожидается один ReceiptDto без Items)
@@ -612,8 +630,60 @@ function onSearchChanged(): void {
     }
 
     searchDebounceTimerId = setTimeout(function () {
-        renderReceiptList(applyReceiptFilters(pageState.receipts));
+        void loadReceiptList(1);
     }, 250);
+}
+
+function updatePeriodPresetForManualDateRange(): void {
+    const preset = receiptPeriodPresetSelect.value;
+    if (preset === 'other') return;
+
+    const range = getDateRangeByPeriodPreset(preset, new Date());
+    if (dateFromInput.value !== formatDateForQuery(range.dateFrom) || dateToInput.value !== formatDateForQuery(range.dateTo)) {
+        receiptPeriodPresetSelect.value = 'other';
+    }
+}
+
+function getPageFromQuery(): number {
+    const page = Number(new URLSearchParams(window.location.search).get('page'));
+    return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+function updatePageQuery(page: number): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', String(page));
+    window.history.replaceState(null, '', url);
+}
+
+function createLoadingIndicator(): HTMLElement {
+    const indicator = document.createElement('div');
+    indicator.className = 'text-center text-muted py-5';
+    indicator.textContent = 'Идёт загрузка чеков...';
+    return indicator;
+}
+
+function renderReceiptPagination(result: ReceiptList): void {
+    clearElement(receiptsPaginationElement);
+    if (result.page === 1 && result.totalCount < result.pageSize) return;
+
+    if (result.hasPreviousPage) {
+        receiptsPaginationElement.append(createReceiptPageButton('<<', 1), createReceiptPageButton('<', result.page - 1));
+    }
+    for (let page = Math.max(1, result.page - 2); page <= Math.min(result.totalPages, result.page + 2); page += 1) {
+        receiptsPaginationElement.append(createReceiptPageButton(String(page), page, page === result.page));
+    }
+    if (result.hasNextPage) {
+        receiptsPaginationElement.append(createReceiptPageButton('>', result.page + 1), createReceiptPageButton('>>', result.totalPages));
+    }
+}
+
+function createReceiptPageButton(text: string, page: number, active = false): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = active ? 'btn btn-primary' : 'btn btn-outline-secondary';
+    button.textContent = text;
+    button.addEventListener('click', () => void loadReceiptList(page));
+    return button;
 }
 
 function applyReceiptFilters(list: ReceiptDto[]): ReceiptDto[] {

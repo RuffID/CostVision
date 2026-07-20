@@ -3,6 +3,7 @@ using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Products;
+using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Web.Authorize.Attributes;
 using CostVision.Web.Abstractions.Entity;
@@ -16,6 +17,7 @@ namespace CostVision.Web.Pages
     public class ProductsModel(
         IGetProductListUseCase getProductListUseCase,
         IGetProductStorePurchasesUseCase getProductStorePurchasesUseCase,
+        IGetUserAccountsUseCase getUserAccountsUseCase,
         IUpdateProductAdaptiveNameUseCase updateProductAdaptiveNameUseCase) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
@@ -36,6 +38,12 @@ namespace CostVision.Web.Pages
         {
             ServiceResult<List<ProductStorePurchaseDto>> result = await getProductStorePurchasesUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<JsonResult> OnGetAccountsAsync(CancellationToken ct)
+        {
+            List<UserAccountViewModel> accounts = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeArchived: false, ct);
+            return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
         }
     }
 }

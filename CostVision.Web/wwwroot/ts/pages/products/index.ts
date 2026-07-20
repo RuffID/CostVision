@@ -3,7 +3,7 @@ import { createBootstrapModal, type BootstrapModal } from "../../shared/bootstra
 import { requireElementById, requireInputById } from "../../shared/dom.js";
 import { renderHelpTooltip } from "../../shared/helpTooltip.js";
 import { createTableLoadingIndicator, type TableLoadingIndicator } from "../../shared/tableLoadingIndicator.js";
-import { getProductStorePurchases, getProducts, updateProductAdaptiveName } from "./api.js";
+import { getProductAccounts, getProductStorePurchases, getProducts, updateProductAdaptiveName } from "./api.js";
 import { renderProductStorePurchases, renderProducts, type ProductsUi } from "./render.js";
 import { productsState } from "./state.js";
 import type { ProductListItem, ProductSortBy, ProductSortDirection, ProductStorePurchase, ProductStorePurchaseSortBy } from "./types.js";
@@ -22,12 +22,18 @@ let storePurchasesBody: HTMLTableSectionElement;
 let storePurchases: ProductStorePurchase[] = [];
 let storePurchasesSortBy: ProductStorePurchaseSortBy = "quantity";
 let storePurchasesSortDirection: ProductSortDirection = "desc";
+let storePurchasesPage = 1;
+let storePurchasesPageSizeSelect: HTMLSelectElement;
+let storePurchasesPagination: HTMLElement;
 let originalNameInput: HTMLInputElement;
 let adaptiveNameInput: HTMLInputElement;
 let clearAdaptiveNameButton: HTMLButtonElement;
 let saveAdaptiveNameButton: HTMLButtonElement;
 let editedProductId: string | null = null;
 let latestLoadRequestId = 0;
+let accountFilterSelect: HTMLSelectElement;
+let productsCountElement: HTMLElement;
+let productsSumElement: HTMLElement;
 
 const SORT_BY_COOKIE_NAME = "productsSortBy";
 const SORT_DIRECTION_COOKIE_NAME = "productsSortDirection";
@@ -36,16 +42,19 @@ const STORE_PURCHASES_SORT_BY_COOKIE_NAME = "productStorePurchasesSortBy";
 const STORE_PURCHASES_SORT_DIRECTION_COOKIE_NAME = "productStorePurchasesSortDirection";
 
 document.addEventListener("DOMContentLoaded", () => {
-    initProductsPage();
+    void initProductsPage();
 });
 
-function initProductsPage(): void {
+async function initProductsPage(): Promise<void> {
     searchInput = requireInputById("productsSearch");
     showOriginalNamesInput = requireInputById("productsShowOriginalNames");
     pageSizeInputs = [
         requireElementById<HTMLSelectElement>("productsTopPageSize")
     ];
     alertElement = requireElementById<HTMLElement>("productsAlert");
+    accountFilterSelect = requireElementById<HTMLSelectElement>("productsAccountFilter");
+    productsCountElement = requireElementById<HTMLElement>("productsCount");
+    productsSumElement = requireElementById<HTMLElement>("productsSum");
     tableLoadingIndicator = createTableLoadingIndicator(
         requireElementById<HTMLElement>("productsTableContainer"),
         "Идёт загрузка продуктов...",
@@ -92,15 +101,19 @@ function initProductsPage(): void {
     storePurchasesModalElement = requireElementById<HTMLElement>("productStorePurchasesModal");
     storePurchasesModal = createBootstrapModal(storePurchasesModalElement);
     storePurchasesBody = requireElementById<HTMLTableSectionElement>("productStorePurchasesBody");
+    storePurchasesPageSizeSelect = requireElementById<HTMLSelectElement>("productStorePurchasesPageSize");
+    storePurchasesPagination = requireElementById<HTMLElement>("productStorePurchasesPagination");
 
     requireElementById<HTMLButtonElement>("productsApplyFilter").addEventListener("click", () => reloadFromFirstPage());
     searchInput.addEventListener("keydown", handleSearchKeyDown);
     showOriginalNamesInput.addEventListener("change", handleShowOriginalNamesChange);
+    accountFilterSelect.addEventListener("change", () => reloadFromFirstPage());
     ui.nameSortButton.addEventListener("click", () => handleSortClick("name"));
     ui.receiptCountSortButton.addEventListener("click", () => handleSortClick("receiptCount"));
     ui.averagePriceSortButton.addEventListener("click", () => handleSortClick("averagePrice"));
     ui.storePurchasesQuantitySortButton.addEventListener("click", () => handleStorePurchasesSortClick("quantity"));
     ui.storePurchasesPriceSortButton.addEventListener("click", () => handleStorePurchasesSortClick("pricePerUnit"));
+    storePurchasesPageSizeSelect.addEventListener("change", () => { storePurchasesPage = 1; renderStorePurchases(); });
     for (const pageSizeInput of pageSizeInputs) {
         pageSizeInput.addEventListener("change", () => reloadFromFirstPage(pageSizeInput));
     }
@@ -115,6 +128,7 @@ function initProductsPage(): void {
     });
 
     restorePreferences();
+    await loadAccounts();
     syncPageSizeInputs(productsState.pageSize);
     void loadPage(getPageFromQuery());
 }
@@ -177,7 +191,7 @@ async function loadPage(page: number): Promise<void> {
     try {
         hideAlertMessage(alertElement);
 
-        const result = await getProducts(productsState.search, page, productsState.pageSize, productsState.sortBy, productsState.sortDirection);
+        const result = await getProducts(productsState.search, page, productsState.pageSize, productsState.sortBy, productsState.sortDirection, accountFilterSelect.value);
         if (requestId !== latestLoadRequestId) {
             return;
         }
@@ -189,6 +203,8 @@ async function loadPage(page: number): Promise<void> {
         productsState.totalPages = result.totalPages;
         productsState.hasPreviousPage = result.hasPreviousPage;
         productsState.hasNextPage = result.hasNextPage;
+        productsCountElement.textContent = `Товаров: ${result.totalCount}`;
+        productsSumElement.textContent = `Сумма: ${formatMoney(result.totalSum)}`;
         syncPageSizeInputs(productsState.pageSize);
         updatePageQuery(productsState.page);
 
@@ -300,6 +316,7 @@ function handleTableClick(event: MouseEvent): void {
 async function openStorePurchasesModal(product: ProductListItem): Promise<void> {
     requireElementById<HTMLElement>("productStorePurchasesModalTitle").textContent = `Магазины, в которых был куплен товар - ${product.adaptiveName ?? product.name}`;
     storePurchases = [];
+    storePurchasesPage = 1;
     renderStorePurchases();
     storePurchasesModal.show();
 
@@ -315,13 +332,43 @@ async function openStorePurchasesModal(product: ProductListItem): Promise<void> 
 }
 
 function renderStorePurchases(): void {
+    const pageSize = Number(storePurchasesPageSizeSelect.value);
+    const sortedPurchases = [...storePurchases].sort((left, right) => (left[storePurchasesSortBy] - right[storePurchasesSortBy]) * (storePurchasesSortDirection === "asc" ? 1 : -1));
+    const totalPages = Math.max(1, Math.ceil(sortedPurchases.length / pageSize));
+    storePurchasesPage = Math.min(storePurchasesPage, totalPages);
+    requireElementById<HTMLElement>("productStorePurchasesPageSizeContainer").classList.toggle("d-none", storePurchasesPage === 1 && sortedPurchases.length < pageSize);
     renderProductStorePurchases(
         storePurchasesBody,
-        storePurchases,
+        sortedPurchases.slice((storePurchasesPage - 1) * pageSize, storePurchasesPage * pageSize),
         storePurchasesSortBy,
         storePurchasesSortDirection,
         ui.storePurchasesQuantitySortButton,
         ui.storePurchasesPriceSortButton);
+    storePurchasesPagination.replaceChildren();
+    if (totalPages > 1) for (let page = 1; page <= totalPages; page += 1) {
+        const button = document.createElement("button"); button.type = "button"; button.className = page === storePurchasesPage ? "btn btn-primary" : "btn btn-outline-secondary"; button.textContent = String(page);
+        button.addEventListener("click", () => { storePurchasesPage = page; renderStorePurchases(); }); storePurchasesPagination.append(button);
+    }
+}
+
+async function loadAccounts(): Promise<void> {
+    const accounts = await getProductAccounts();
+    accountFilterSelect.replaceChildren();
+    const allAccountsOption = document.createElement("option");
+    allAccountsOption.value = "";
+    allAccountsOption.textContent = "Все счета";
+    accountFilterSelect.append(allAccountsOption);
+    for (const account of accounts) {
+        const option = document.createElement("option");
+        option.value = account.id;
+        option.textContent = account.name;
+        accountFilterSelect.append(option);
+    }
+    accountFilterSelect.disabled = false;
+}
+
+function formatMoney(value: number): string {
+    return `${value.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽`;
 }
 
 function openAdaptiveNameModal(product: ProductListItem): void {

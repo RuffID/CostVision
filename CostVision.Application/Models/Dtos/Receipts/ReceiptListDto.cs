@@ -1,8 +1,8 @@
 namespace CostVision.Application.Models.Dtos.Receipts
 {
-    public class StoreListDto
+    public class ReceiptListDto
     {
-        public List<StoreListItemDto> Items { get; set; } = new();
+        public List<ReceiptDto> Items { get; set; } = new();
 
         public int Page { get; set; }
 

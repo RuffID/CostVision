@@ -1,6 +1,11 @@
 ﻿@using CostVision.Domain.Models.Enums.Authorization
 @using Microsoft.AspNetCore.Antiforgery
 @inject IAntiforgery Antiforgery
+@{
+    bool isMainNavigationExpanded = Context.Request.Cookies["mainNavigationExpanded"] == "true";
+    string? pagePath = ViewContext.RouteData.Values["page"]?.ToString();
+    bool requiresNavigationToggleClearance = pagePath is "/Index" or "/AddReceipt";
+}
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -18,65 +23,58 @@
 
     <body>
         <header>
-            <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <nav class="navbar navbar-light bg-white border-bottom box-shadow mb-3">
                 <div class="container">
-                    <a class="navbar-brand" asp-area="" asp-page="/Index">CostVision</a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                            aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <div class="ms-auto d-flex align-items-center">
                         @if (User.Identity?.IsAuthenticated ?? false)
                         {
-                            <ul class="navbar-nav flex-grow-1">
-                                @if (User.IsInRole(RoleType.Admin.ToString()))
-                                {
-                                    <li class="nav-item">
-                                        <a class="nav-link text-dark" asp-area="" asp-page="/Settings/Users">Пользователи</a>
-                                    </li>
-                                }
-                                <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-page="/Receipts">Чеки</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-page="/MoneyMovements">Операции</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-page="/Products">Товары</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-page="/Stores">Магазины</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-page="/AddReceipt">Добавить чек</a>
-                                </li>
-                            </ul>
-                        }
-
-                        @if (User.Identity?.IsAuthenticated ?? false)
-                        {
-                            <div class="d-flex align-items-center">
-                                <span class="me-3" style="font-weight:600; color:#1E3A50;">
-                                    @User.Identity.Name
-                                </span>
-
-                               <a asp-area="" asp-page="/Settings/UserSettings" class="btn p-0 me-3" aria-label="Настройки пользователя" title="Настройки">
-                                   <img src="~/icon/settings.svg" alt="settings" style="width:25px; height:25px;">
-                               </a>
-
-                                <form method="post" asp-page="/Logout" class="m-0 p-0">
-                                    <button type="submit" class="btn p-0">
-                                        <img src="~/icon/door-exit.svg" alt="exit" style="width:25px; height:25px;">
-                                    </button>
-                                </form>
-                            </div>
+                            <span class="me-3 d-none d-sm-inline" style="font-weight:600; color:#1E3A50;">@User.Identity.Name</span>
+                            <a asp-area="" asp-page="/Settings/UserSettings" class="btn p-0 me-3" aria-label="Настройки пользователя" title="Настройки"><img src="~/icon/settings.svg" alt="settings" style="width:25px; height:25px;"></a>
+                            <form method="post" asp-page="/Logout" class="m-0 p-0"><button type="submit" class="btn p-0"><img src="~/icon/door-exit.svg" alt="exit" style="width:25px; height:25px;"></button></form>
                         }
                     </div>
                 </div>
             </nav>
+            @if (User.Identity?.IsAuthenticated ?? false)
+            {
+                <nav id="mainNavigation" class="main-navigation @(isMainNavigationExpanded ? "main-navigation--expanded" : null)" data-main-navigation aria-label="Основная навигация">
+                    <div class="main-navigation__header">
+                        <span id="mainNavigationLabel" class="fs-5 fw-semibold">CostVision</span>
+                    </div>
+                    <div class="main-navigation__body">
+                        <ul class="navbar-nav main-navigation__links">
+                                <li class="nav-item">
+                                    <a class="nav-link main-navigation__link" asp-area="" asp-page="/Index">Дашборд</a>
+                                </li>
+                                @if (User.IsInRole(RoleType.Admin.ToString()))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link main-navigation__link" asp-area="" asp-page="/Settings/Users">Пользователи</a>
+                                    </li>
+                                }
+                                <li class="nav-item">
+                                    <a class="nav-link main-navigation__link" asp-area="" asp-page="/Receipts">Чеки</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link main-navigation__link" asp-area="" asp-page="/MoneyMovements">Операции</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link main-navigation__link" asp-area="" asp-page="/Products">Товары</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link main-navigation__link" asp-area="" asp-page="/Stores">Магазины</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link main-navigation__link" asp-area="" asp-page="/AddReceipt">Добавить чек</a>
+                                </li>
+                        </ul>
+                    </div>
+                </nav>
+                <button type="button" class="main-navigation__toggle @(isMainNavigationExpanded ? "main-navigation__toggle--expanded" : null)" data-main-navigation-toggle aria-controls="mainNavigation" aria-expanded="@isMainNavigationExpanded" aria-label="@(isMainNavigationExpanded ? "Свернуть меню" : "Развернуть меню")">@(isMainNavigationExpanded ? "‹" : "›")</button>
+            }
         </header>
 
-        <div class="container">
+        <div id="mainContent" class="container @(requiresNavigationToggleClearance ? "main-content--with-navigation-toggle-clearance" : null)">
             <main role="main" class="pb-3">
                 @RenderBody()
             </main>
@@ -86,6 +84,7 @@
         <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
         @if (User.Identity?.IsAuthenticated ?? false)
         {
+            <script type="module" src="~/dist/shared/navigation.js" asp-append-version="true"></script>
             <script type="module" src="~/dist/shared/userActivity.js" asp-append-version="true"></script>
         }
 

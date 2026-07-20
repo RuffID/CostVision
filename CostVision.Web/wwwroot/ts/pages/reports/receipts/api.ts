@@ -1,14 +1,14 @@
 import { buildJsonHeaders, ServiceResultWithData, sendJsonRequest, unwrapServiceResult } from "../../../shared/http.js";
-import { AvailableAccountDto, GetReceiptMoneyMovementCandidatesRequest, LinkReceiptMoneyMovementRequest, ReceiptDto, ReceiptMoneyMovementDto } from "./types.js";
+import { AvailableAccountDto, GetReceiptMoneyMovementCandidatesRequest, LinkReceiptMoneyMovementRequest, ReceiptDto, ReceiptList, ReceiptMoneyMovementDto } from "./types.js";
 
-type ReceiptListResponse = ServiceResultWithData<ReceiptDto[]>;
+type ReceiptListResponse = ServiceResultWithData<ReceiptList>;
 type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
 type AvailableAccountsResponse = ServiceResultWithData<AvailableAccountDto[]>;
 type ReceiptMoneyMovementListResponse = ServiceResultWithData<ReceiptMoneyMovementDto[]>;
 type BooleanResponse = ServiceResultWithData<boolean>;
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
-export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string | null): Promise<ReceiptDto[]> {
+export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string | null): Promise<ReceiptList> {
     const url = rangeQuery
         ? "?handler=ReceiptList&" + rangeQuery
         : "?handler=ReceiptList";

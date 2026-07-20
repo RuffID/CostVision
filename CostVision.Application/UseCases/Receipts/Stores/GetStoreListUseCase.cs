@@ -49,8 +49,8 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                 ct: ct);
 
             List<StoreListItemDto> allItems = request.GroupByName
-                ? GroupStoreItems(stores, request.UseAdaptiveNames, currentUserId)
-                : stores.Select(store => CreateStoreListItem(store, request.UseAdaptiveNames, currentUserId)).ToList();
+                ? GroupStoreItems(stores, request, currentUserId)
+                : stores.Select(store => CreateStoreListItem(store, request, currentUserId)).Where(item => item.ReceiptCount > 0).ToList();
             int totalCount = allItems.Count;
             int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
             page = Math.Min(page, totalPages);
@@ -69,7 +69,8 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                 TotalCount = totalCount,
                 TotalPages = totalPages,
                 HasPreviousPage = page > MIN_PAGE,
-                HasNextPage = page < totalPages
+                HasNextPage = page < totalPages,
+                TotalSum = allItems.Sum(item => item.TotalSpent)
             };
 
             return ServiceResult<StoreListDto>.Ok(result);
@@ -96,13 +97,13 @@ namespace CostVision.Application.UseCases.Receipts.Stores
             return orderedItems.ToList();
         }
 
-        private static List<StoreListItemDto> GroupStoreItems(List<Store> stores, bool useAdaptiveNames, Guid currentUserId)
+        private static List<StoreListItemDto> GroupStoreItems(List<Store> stores, GetStoreListRequest request, Guid currentUserId)
         {
             return stores
                 .Select(store => new
                 {
                     Store = store,
-                    Item = CreateStoreListItem(store, useAdaptiveNames, currentUserId)
+                    Item = CreateStoreListItem(store, request, currentUserId)
                 })
                 .GroupBy(item => item.Store.NormalizedName)
                 .Select(group =>
@@ -126,10 +127,11 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                         Children = children
                     };
                 })
+                .Where(item => item.ReceiptCount > 0)
                 .ToList();
         }
 
-        private static StoreListItemDto CreateStoreListItem(Store store, bool useAdaptiveNames, Guid currentUserId)
+        private static StoreListItemDto CreateStoreListItem(Store store, GetStoreListRequest request, Guid currentUserId)
         {
             return new StoreListItemDto
             {
@@ -137,34 +139,39 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                 Name = store.Name,
                 Address = store.Address,
                 AdaptiveName = store.AdaptiveName,
-                DisplayName = useAdaptiveNames && !string.IsNullOrWhiteSpace(store.AdaptiveName)
+                DisplayName = request.UseAdaptiveNames && !string.IsNullOrWhiteSpace(store.AdaptiveName)
                     ? store.AdaptiveName
                     : store.Name,
-                ReceiptCount = CountAccessibleReceipts(store, currentUserId),
-                TotalSpent = SumAccessibleReceiptTotals(store, currentUserId),
+                ReceiptCount = CountAccessibleReceipts(store, request, currentUserId),
+                TotalSpent = SumAccessibleReceiptTotals(store, request, currentUserId),
                 GroupKey = store.NormalizedName
             };
         }
 
-        private static int CountAccessibleReceipts(Store store, Guid currentUserId)
+        private static int CountAccessibleReceipts(Store store, GetStoreListRequest request, Guid currentUserId)
         {
             return store.Receipts
-                .Where(receipt => IsReceiptAccessible(receipt, currentUserId))
+                .Where(receipt => IsReceiptAccessible(receipt, request, currentUserId))
                 .Select(receipt => receipt.Id)
                 .Distinct()
                 .Count();
         }
 
-        private static decimal SumAccessibleReceiptTotals(Store store, Guid currentUserId)
+        private static decimal SumAccessibleReceiptTotals(Store store, GetStoreListRequest request, Guid currentUserId)
         {
             return store.Receipts
-                .Where(receipt => IsReceiptAccessible(receipt, currentUserId))
+                .Where(receipt => IsReceiptAccessible(receipt, request, currentUserId))
                 .GroupBy(receipt => receipt.Id)
                 .Sum(receiptGroup => receiptGroup.First().TotalSum);
         }
 
-        private static bool IsReceiptAccessible(Receipt receipt, Guid currentUserId)
+        private static bool IsReceiptAccessible(Receipt receipt, GetStoreListRequest request, Guid currentUserId)
         {
+            if (request.DateFrom.HasValue && receipt.DateTime.Date < request.DateFrom.Value.Date ||
+                request.DateTo.HasValue && receipt.DateTime.Date > request.DateTo.Value.Date ||
+                request.AccountId.HasValue && !receipt.Accounts.Any(link => link.AccountId == request.AccountId.Value))
+                return false;
+
             if (receipt.CreatedByUserId == currentUserId)
                 return true;
 

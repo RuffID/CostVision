@@ -426,22 +426,20 @@ function qrScanRenderResults(results) {
 
     if (!sectionBody) {
         const wrapper = document.createElement("div");
-        wrapper.className = "qr-section mt-4 rounded-4 border overflow-hidden";
+        wrapper.className = "qr-section rounded-4 border overflow-hidden w-100";
         wrapper.style.backgroundColor = "#F9FAFB";
         wrapper.style.borderColor = "#d1d5db";
         wrapper.style.borderRadius = "1rem";
-        wrapper.style.width = "min(100%, 41rem)";
-
         const headerBtn = document.createElement("button");
         headerBtn.type = "button";
-        headerBtn.className = "qr-section__header qr-section__header--collapsed btn w-100 d-flex align-items-center justify-content-between text-start px-4 py-3 border-0 rounded-top-4 bg-transparent fw-bold fs-6";
+        headerBtn.className = "qr-section__header btn w-100 d-flex align-items-center justify-content-between text-start px-4 py-3 border-0 rounded-top-4 bg-transparent fw-bold fs-6";
         headerBtn.setAttribute("data-collapse-target", "#decoded-results-section");
-        headerBtn.setAttribute("aria-expanded", "false");
+        headerBtn.setAttribute("aria-expanded", "true");
         headerBtn.style.backgroundColor = "transparent";
         headerBtn.style.border = "0";
 
         const headerTextSpan = document.createElement("span");
-        headerTextSpan.textContent = "Результат обработки";
+        headerTextSpan.textContent = "Результаты обработки";
 
         const headerArrowSpan = document.createElement("span");
         headerArrowSpan.className = "qr-section__arrow text-body-secondary fs-5";
@@ -453,7 +451,7 @@ function qrScanRenderResults(results) {
 
         sectionBody = document.createElement("div");
         sectionBody.id = "decoded-results-section";
-        sectionBody.className = "qr-section__body qr-section__body--collapsed card-body d-none bg-body-tertiary";
+        sectionBody.className = "qr-section__body card-body bg-body-tertiary";
         sectionBody.style.boxSizing = "border-box";
         sectionBody.style.width = "100%";
         sectionBody.style.backgroundColor = "#F9FAFB";
@@ -466,16 +464,12 @@ function qrScanRenderResults(results) {
         wrapper.appendChild(headerBtn);
         wrapper.appendChild(sectionBody);
 
-        const manualRoot = document.getElementById("manual-request-root");
-        const manualSection = manualRoot ? manualRoot.closest(".qr-section") || manualRoot : null;
-
-        if (manualSection && manualSection.parentNode) {
-            manualSection.parentNode.insertBefore(wrapper, manualSection.nextSibling);
-        } else if (qrScanForm && qrScanForm.parentNode) {
-            qrScanForm.parentNode.insertBefore(wrapper, qrScanForm.nextSibling);
-        } else {
-            document.body.appendChild(wrapper);
+        const resultsHost = document.getElementById("decoded-results-host");
+        if (!resultsHost) {
+            throw new Error("Не найден контейнер результатов обработки.");
         }
+
+        resultsHost.appendChild(wrapper);
     } else {
         ul = sectionBody.querySelector("ul");
         if (!ul) {
@@ -484,6 +478,13 @@ function qrScanRenderResults(results) {
             sectionBody.appendChild(ul);
         }
     }
+
+    const resultsHeader = sectionBody.previousElementSibling;
+    if (!(resultsHeader instanceof HTMLButtonElement)) {
+        throw new Error("Не найден заголовок результатов обработки.");
+    }
+
+    qrScanSetCollapseState(resultsHeader, sectionBody, false);
 
     clearElement(ul);
 

@@ -20,6 +20,7 @@ export interface StoreList {
     totalPages: number;
     hasPreviousPage: boolean;
     hasNextPage: boolean;
+    totalSum: number;
 }
 
 export interface StoreReceiptList {

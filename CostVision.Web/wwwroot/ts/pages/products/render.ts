@@ -34,6 +34,8 @@ export function renderProducts(ui: ProductsUi, state: ProductListState, onPageCl
         }
     }
 
+    const shouldShowPagination = state.page > 1 || state.totalCount >= state.pageSize;
+    document.getElementById("productsPageSizeContainer")?.classList.toggle("d-none", !shouldShowPagination);
     for (const pageInfo of ui.pageInfoElements) {
         pageInfo.textContent = `Всего товаров: ${state.totalCount}`;
     }
@@ -178,6 +180,8 @@ function updateProductNameHover(button: HTMLButtonElement, hasAdaptiveName: bool
 
 function renderProductsPagination(container: HTMLElement, state: ProductListState, onPageClick: (page: number) => void): void {
     clearElement(container);
+
+    if (state.page === 1 && state.totalCount < state.pageSize) return;
 
     const currentPage = state.page || 1;
     const totalPages = Math.max(1, state.totalPages || 1);

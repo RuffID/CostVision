@@ -7,6 +7,6 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 {
     public interface IGetReceiptListPageUseCase
     {
-        Task<ServiceResult<List<ReceiptDto>>> ExecuteAsync(User currentUser, GetReceiptListRequest request, CancellationToken ct);
+        Task<ServiceResult<ReceiptListDto>> ExecuteAsync(User currentUser, GetReceiptListRequest request, CancellationToken ct);
     }
 }

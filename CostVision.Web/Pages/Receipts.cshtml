@@ -20,6 +20,7 @@
                     <option value="previousMonth">Прошлый месяц</option>
                     <option value="currentMonth" selected>Текущий месяц</option>
                     <option value="currentYear">Текущий год</option>
+                    <option value="other">Другой</option>
                 </select>
             </div>
 
@@ -83,6 +84,10 @@
                     <span id="receiptsSum" class="input-group-text">Сумма: 0 ₽</span>
                 </div>
             </div>
+            <div class="col-12 col-sm-4 col-lg-2" id="receiptsPageSizeContainer">
+                <label for="receiptsPageSize" class="form-label mb-1">На странице</label>
+                <select id="receiptsPageSize" name="receiptsPageSize" class="form-select"><option value="20" selected>20</option><option value="50">50</option><option value="100">100</option></select>
+            </div>
         </div>
     </div>
 
@@ -90,6 +95,7 @@
     <div id="receipt-list" class="d-flex flex-column gap-2">
         <!-- Элементы будут добавляться через JS -->
     </div>
+    <div id="receiptsPagination" class="d-flex flex-wrap justify-content-center gap-2 mt-3"></div>
 </div>
 
 <!-- Модальное окно операций чека -->

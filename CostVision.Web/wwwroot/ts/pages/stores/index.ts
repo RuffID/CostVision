@@ -35,6 +35,7 @@ let storeReceiptsTitleElement: HTMLElement;
 let storeReceiptsAlertElement: HTMLElement;
 let storeReceiptsListElement: HTMLElement;
 let storeReceiptsPaginationElement: HTMLElement;
+let storeReceiptsPageSizeSelect: HTMLSelectElement;
 let receiptDetailsModal: BootstrapModal;
 let receiptDetailsListElement: HTMLElement;
 let receiptDetailsHeaderElement: HTMLElement;
@@ -61,7 +62,9 @@ let pendingReceiptAccountAction: MoveReceiptAccountAction | null = null;
 let preserveMoveReceiptAccountModalStateOnHide = false;
 let shouldRestoreMoveReceiptAccountModalAfterRemoveConfirmation = false;
 let latestLoadRequestId = 0;
-const STORE_RECEIPTS_PAGE_SIZE = 20;
+let accountFilterSelect: HTMLSelectElement;
+let storesCountElement: HTMLElement;
+let storesSumElement: HTMLElement;
 const SORT_BY_COOKIE_NAME = "storesSortBy";
 const SORT_DIRECTION_COOKIE_NAME = "storesSortDirection";
 const PAGE_SIZE_COOKIE_NAME = "storesPageSize";
@@ -85,6 +88,9 @@ async function initStoresPage(): Promise<void> {
         requireElementById<HTMLSelectElement>("storesTopPageSize")
     ];
     alertElement = requireElementById<HTMLElement>("storesAlert");
+    accountFilterSelect = requireElementById<HTMLSelectElement>("storesAccountFilter");
+    storesCountElement = requireElementById<HTMLElement>("storesCount");
+    storesSumElement = requireElementById<HTMLElement>("storesSum");
     tableLoadingIndicator = createTableLoadingIndicator(
         requireElementById<HTMLElement>("storesTableContainer"),
         "Идёт загрузка магазинов...",
@@ -96,6 +102,8 @@ async function initStoresPage(): Promise<void> {
     storeReceiptsAlertElement = requireElementById<HTMLElement>("storeReceiptsAlert");
     storeReceiptsListElement = requireElementById<HTMLElement>("storeReceiptsList");
     storeReceiptsPaginationElement = requireElementById<HTMLElement>("storeReceiptsPagination");
+    storeReceiptsPageSizeSelect = requireElementById<HTMLSelectElement>("storeReceiptsPageSize");
+    storeReceiptsPageSizeSelect.addEventListener("change", () => void loadSelectedStoreReceiptsPage(1));
     receiptDetailsModal = createBootstrapModal(requireElementById<HTMLElement>("receiptDetailsModal"));
     receiptDetailsListElement = requireElementById<HTMLElement>("receipt-details-list");
     receiptDetailsHeaderElement = requireElementById<HTMLElement>("receipt-details-header");
@@ -144,6 +152,7 @@ async function initStoresPage(): Promise<void> {
     searchInput.addEventListener("keydown", handleSearchKeyDown);
     showOriginalNamesInput.addEventListener("change", handleShowOriginalNamesChange);
     groupByNameInput.addEventListener("change", () => reloadFromFirstPage());
+    accountFilterSelect.addEventListener("change", () => reloadFromFirstPage());
     ui.nameSortButton.addEventListener("click", () => handleSortClick("name"));
     ui.receiptCountSortButton.addEventListener("click", () => handleSortClick("receiptCount"));
     ui.totalSpentSortButton.addEventListener("click", () => handleSortClick("totalSpent"));
@@ -242,7 +251,7 @@ async function loadPage(page: number): Promise<void> {
     try {
         hideAlertMessage(alertElement);
 
-        const result = await getStores(storesState.search, storesState.groupByName, page, storesState.pageSize, storesState.sortBy, storesState.sortDirection);
+        const result = await getStores(storesState.search, storesState.groupByName, page, storesState.pageSize, storesState.sortBy, storesState.sortDirection, accountFilterSelect.value);
         if (requestId !== latestLoadRequestId) {
             return;
         }
@@ -254,6 +263,8 @@ async function loadPage(page: number): Promise<void> {
         storesState.totalPages = result.totalPages;
         storesState.hasPreviousPage = result.hasPreviousPage;
         storesState.hasNextPage = result.hasNextPage;
+        storesCountElement.textContent = `Магазинов: ${result.totalCount}`;
+        storesSumElement.textContent = `Сумма: ${formatCurrency(result.totalSum)}`;
         syncPageSizeInputs(storesState.pageSize);
         updatePageQuery(storesState.page);
 
@@ -436,11 +447,11 @@ async function loadSelectedStoreReceiptsPage(page: number): Promise<void> {
 
     try {
         hideStoreReceiptsAlert();
-        const result = await getStoreReceipts(selectedStoreReceiptsStoreId, selectedStoreReceiptsGroupKey, page, STORE_RECEIPTS_PAGE_SIZE);
+        const result = await getStoreReceipts(selectedStoreReceiptsStoreId, selectedStoreReceiptsGroupKey, page, Number(storeReceiptsPageSizeSelect.value));
         selectedStoreReceipts = result.items;
         selectedStoreReceiptsPage = result.page;
         renderStoreReceipts(result.items);
-        renderStoreReceiptsPagination(result.page, result.totalPages, result.hasPreviousPage, result.hasNextPage);
+        renderStoreReceiptsPagination(result.page, result.totalPages, result.totalCount, result.pageSize, result.hasPreviousPage, result.hasNextPage);
     }
     catch (error) {
         showStoreReceiptsAlert(getErrorMessage(error));
@@ -470,8 +481,10 @@ function removeUnsupportedReceiptActions(card: HTMLElement): void {
     deleteButton?.remove();
 }
 
-function renderStoreReceiptsPagination(page: number, totalPages: number, hasPreviousPage: boolean, hasNextPage: boolean): void {
+function renderStoreReceiptsPagination(page: number, totalPages: number, totalCount: number, pageSize: number, hasPreviousPage: boolean, hasNextPage: boolean): void {
     clearElement(storeReceiptsPaginationElement);
+
+    requireElementById<HTMLElement>("storeReceiptsPageSizeContainer").classList.toggle("d-none", page === 1 && totalCount < pageSize);
 
     if (totalPages <= 1) {
         return;
@@ -583,6 +596,18 @@ async function handleStoreReceiptClick(event: MouseEvent): Promise<void> {
 
 async function loadAvailableAccounts(): Promise<void> {
     availableAccounts = (await loadStoreAvailableAccounts()).map(normalizeAvailableAccount);
+    accountFilterSelect.replaceChildren();
+    const allAccountsOption = document.createElement("option");
+    allAccountsOption.value = "";
+    allAccountsOption.textContent = "Все счета";
+    accountFilterSelect.append(allAccountsOption);
+    for (const account of availableAccounts) {
+        const option = document.createElement("option");
+        option.value = account.id;
+        option.textContent = account.name;
+        accountFilterSelect.append(option);
+    }
+    accountFilterSelect.disabled = false;
 }
 
 async function openMoveReceiptAccountModal(receiptId: string, sourceAccountId: string): Promise<void> {

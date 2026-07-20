@@ -30,14 +30,14 @@ public class ReceiptsModelTests
                 currentUser,
                 It.Is<GetReceiptListRequest>(request => request.DateFrom == date && request.DateTo == date),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<List<ReceiptDto>>.Ok([receipt]));
+            .ReturnsAsync(ServiceResult<ReceiptListDto>.Ok(new ReceiptListDto { Items = [receipt] }));
 
         ReceiptsModel model = dependencies.CreateModel(currentUser);
 
-        JsonResult json = await model.OnGetReceiptListAsync(date, date, CancellationToken.None);
+        JsonResult json = await model.OnGetReceiptListAsync(new GetReceiptListRequest { DateFrom = date, DateTo = date }, CancellationToken.None);
 
-        List<ReceiptDto> data = JsonResultAssert.Data<List<ReceiptDto>>(json);
-        Assert.Equal(2, data.Single().AvailableMoneyMovementCount);
+        ReceiptListDto data = JsonResultAssert.Data<ReceiptListDto>(json);
+        Assert.Equal(2, data.Items.Single().AvailableMoneyMovementCount);
     }
 
     [Fact]

@@ -2,7 +2,9 @@ import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSu
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
 import type { ProductList, ProductSortBy, ProductSortDirection, ProductStorePurchase } from "./types.js";
 
-export async function getProducts(search: string, page: number, pageSize: number, sortBy: ProductSortBy, sortDirection: ProductSortDirection): Promise<ProductList> {
+export interface AccountFilterOption { id: string; name: string; }
+
+export async function getProducts(search: string, page: number, pageSize: number, sortBy: ProductSortBy, sortDirection: ProductSortDirection, accountId: string): Promise<ProductList> {
     const params = new URLSearchParams({
         search: search,
         page: String(page),
@@ -10,8 +12,14 @@ export async function getProducts(search: string, page: number, pageSize: number
         sortBy: sortBy,
         sortDirection: sortDirection
     });
+    if (accountId) params.set("accountId", accountId);
 
     const result = await sendJsonRequest<ServiceResultWithData<ProductList>>(`/products?handler=List&${params.toString()}`);
+    return unwrapServiceResult(result);
+}
+
+export async function getProductAccounts(): Promise<AccountFilterOption[]> {
+    const result = await sendJsonRequest<ServiceResultWithData<AccountFilterOption[]>>("/products?handler=Accounts");
     return unwrapServiceResult(result);
 }
 

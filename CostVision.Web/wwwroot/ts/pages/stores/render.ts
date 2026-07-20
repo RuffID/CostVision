@@ -30,6 +30,8 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
         }
     }
 
+    const shouldShowPagination = state.page > 1 || state.totalCount >= state.pageSize;
+    document.getElementById("storesPageSizeContainer")?.classList.toggle("d-none", !shouldShowPagination);
     for (const pageInfo of ui.pageInfoElements) {
         pageInfo.textContent = `Всего магазинов: ${state.totalCount}`;
     }
@@ -145,6 +147,8 @@ function updateReceiptCountSortButton(button: HTMLButtonElement, direction: stri
 
 function renderStoresPagination(container: HTMLElement, state: StoreListState, onPageClick: (page: number) => void): void {
     clearElement(container);
+
+    if (state.page === 1 && state.totalCount < state.pageSize) return;
 
     const currentPage = state.page || 1;
     const totalPages = Math.max(1, state.totalPages || 1);

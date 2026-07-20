@@ -39,11 +39,6 @@ namespace CostVision.Application.UseCases.Receipts.Products
                 (search == null ||
                  product.Name.Contains(search) ||
                  (product.AdaptiveName != null && product.AdaptiveName.Contains(search)));
-            int totalCount = await unitOfWork.Product.CountByPredicateAsync(predicate, ct);
-            int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-            page = Math.Min(page, totalPages);
-            int skip = (page - 1) * pageSize;
-
             List<Product> products = await unitOfWork.Product.GetItemsByPredicateAsync(
                 predicate,
                 asNoTracking: true,
@@ -57,8 +52,14 @@ namespace CostVision.Application.UseCases.Receipts.Products
                 ct: ct);
 
             List<ProductListItemDto> allItems = products
-                .Select(product => CreateProductListItem(product, request.UseAdaptiveNames, currentUserId))
+                .Select(product => CreateProductListItem(product, request, currentUserId))
+                .Where(item => item.ReceiptCount > 0)
                 .ToList();
+
+            int totalCount = allItems.Count;
+            int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Min(page, totalPages);
+            int skip = (page - 1) * pageSize;
 
             List<ProductListItemDto> items = SortItems(allItems, request.SortBy, request.SortDirection)
                 .Skip(skip)
@@ -73,7 +74,8 @@ namespace CostVision.Application.UseCases.Receipts.Products
                 TotalCount = totalCount,
                 TotalPages = totalPages,
                 HasPreviousPage = page > MIN_PAGE,
-                HasNextPage = page < totalPages
+                HasNextPage = page < totalPages,
+                TotalSum = allItems.Sum(item => item.TotalSum)
             };
 
             return ServiceResult<ProductListDto>.Ok(result);
@@ -100,10 +102,10 @@ namespace CostVision.Application.UseCases.Receipts.Products
             return orderedItems.ToList();
         }
 
-        private static ProductListItemDto CreateProductListItem(Product product, bool useAdaptiveNames, Guid currentUserId)
+        private static ProductListItemDto CreateProductListItem(Product product, GetProductListRequest request, Guid currentUserId)
         {
             List<ReceiptItem> accessibleReceiptItems = product.ReceiptItems
-                .Where(item => item.Receipt != null && IsReceiptAccessible(item.Receipt, currentUserId))
+                .Where(item => item.Receipt != null && IsReceiptAccessible(item.Receipt, request, currentUserId))
                 .ToList();
             List<bool> weightedVariants = accessibleReceiptItems
                 .Select(item => IsWeighted(item.ItemsQuantityMeasure))
@@ -117,14 +119,15 @@ namespace CostVision.Application.UseCases.Receipts.Products
                 Id = product.Id,
                 Name = product.Name,
                 AdaptiveName = product.AdaptiveName,
-                DisplayName = useAdaptiveNames && !string.IsNullOrWhiteSpace(product.AdaptiveName)
+                DisplayName = request.UseAdaptiveNames && !string.IsNullOrWhiteSpace(product.AdaptiveName)
                     ? product.AdaptiveName
                     : product.Name,
                 ReceiptCount = accessibleReceiptItems.Select(item => item.ReceiptId).Distinct().Count(),
                 AveragePrice = hasSingleQuantityMeasure && totalQuantity != 0
                     ? accessibleReceiptItems.Sum(item => item.Sum) / totalQuantity
                     : null,
-                AveragePriceIsWeighted = hasSingleQuantityMeasure ? weightedVariants[0] : null
+                AveragePriceIsWeighted = hasSingleQuantityMeasure ? weightedVariants[0] : null,
+                TotalSum = accessibleReceiptItems.Sum(item => item.Sum)
             };
         }
 
@@ -144,8 +147,13 @@ namespace CostVision.Application.UseCases.Receipts.Products
             return quantityMeasure is QuantityMeasureType.Gram or QuantityMeasureType.Kilogram or QuantityMeasureType.Ton;
         }
 
-        private static bool IsReceiptAccessible(Receipt receipt, Guid currentUserId)
+        private static bool IsReceiptAccessible(Receipt receipt, GetProductListRequest request, Guid currentUserId)
         {
+            if (request.DateFrom.HasValue && receipt.DateTime.Date < request.DateFrom.Value.Date ||
+                request.DateTo.HasValue && receipt.DateTime.Date > request.DateTo.Value.Date ||
+                request.AccountId.HasValue && !receipt.Accounts.Any(link => link.AccountId == request.AccountId.Value))
+                return false;
+
             if (receipt.CreatedByUserId == currentUserId)
                 return true;
 

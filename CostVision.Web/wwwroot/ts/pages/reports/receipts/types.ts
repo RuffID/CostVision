@@ -34,6 +34,17 @@ export interface ReceiptDto {
     items: ReceiptItemDto[];
 }
 
+export interface ReceiptList {
+    items: ReceiptDto[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+    totalSum: number;
+}
+
 export interface ReceiptMoneyMovementDto {
     moneyMovementId: string;
     occurredAt: string;

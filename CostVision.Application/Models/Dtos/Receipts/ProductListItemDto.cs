@@ -15,5 +15,7 @@ namespace CostVision.Application.Models.Dtos.Receipts
         public decimal? AveragePrice { get; set; }
 
         public bool? AveragePriceIsWeighted { get; set; }
+
+        public decimal TotalSum { get; set; }
     }
 }

@@ -39,16 +39,9 @@ namespace CostVision.Web.Pages
             return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
         }
 
-        public async Task<JsonResult> OnGetReceiptListAsync([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, CancellationToken ct)
+        public async Task<JsonResult> OnGetReceiptListAsync([FromQuery] GetReceiptListRequest request, CancellationToken ct)
         {
-            ServiceResult<List<ReceiptDto>> result = await getReceiptListPageUseCase.ExecuteAsync(
-                CurrentUser,
-                new GetReceiptListRequest
-                {
-                    DateFrom = dateFrom,
-                    DateTo = dateTo
-                },
-                ct);
+            ServiceResult<ReceiptListDto> result = await getReceiptListPageUseCase.ExecuteAsync(CurrentUser, request, ct);
 
             return JsonResultMapper.ToJsonResult(result);
         }

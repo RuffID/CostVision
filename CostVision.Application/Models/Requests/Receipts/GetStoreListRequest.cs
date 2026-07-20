@@ -15,5 +15,11 @@ namespace CostVision.Application.Models.Requests.Receipts
         public string? SortBy { get; set; }
 
         public string? SortDirection { get; set; }
+
+        public DateTime? DateFrom { get; set; }
+
+        public DateTime? DateTo { get; set; }
+
+        public Guid? AccountId { get; set; }
     }
 }
