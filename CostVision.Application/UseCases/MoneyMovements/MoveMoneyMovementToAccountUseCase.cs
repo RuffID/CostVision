@@ -40,7 +40,9 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (movement == null)
                 return ServiceResult<bool>.Fail(404, "Операция не найдена в исходном счёте.");
 
-            movement.AccountId = request.TargetAccountId;
+            if (!movement.TryMoveToAccount(request.TargetAccountId, out string? error))
+                return ServiceResult<bool>.Fail(400, error!);
+
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);

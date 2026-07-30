@@ -69,9 +69,17 @@ public class UpdateMoneyMovementCommentUseCaseTests : MoneyMovementUseCaseTestBa
                 null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((MoneyMovement?)null);
+        Mock<IMoneyMovementRepository> existingMovementRepository = CreateMoneyMovementRepository();
+        existingMovementRepository
+            .Setup(repository => repository.GetItemByPredicateAsync(
+                It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
+                false,
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateMovement(Guid.NewGuid(), accountId, 100, DateTime.Today, userId));
         UpdateMoneyMovementCommentUseCase tooLongUseCase = new(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
-            moneyMovementRepository: CreateMoneyMovementRepository()).Object);
+            moneyMovementRepository: existingMovementRepository).Object);
         UpdateMoneyMovementCommentUseCase missingUseCase = new(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: missingMovementRepository).Object);

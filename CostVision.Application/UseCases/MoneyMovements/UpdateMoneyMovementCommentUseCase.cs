@@ -8,8 +8,6 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class UpdateMoneyMovementCommentUseCase(IUnitOfWork unitOfWork) : IUpdateMoneyMovementCommentUseCase
     {
-        private const int COMMENT_MAX_LENGTH = 1024;
-
         public async Task<ServiceResult<bool>> ExecuteAsync(UpdateMoneyMovementCommentRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.MoneyMovementId == Guid.Empty)
@@ -22,10 +20,6 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     return ServiceResult<bool>.Fail(access.Error!.StatusCode, access.Error.Message);
             }
 
-            string? comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim();
-            if (comment?.Length > COMMENT_MAX_LENGTH)
-                return ServiceResult<bool>.Fail(400, "Комментарий не должен превышать 1024 символа.");
-
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
                 item => item.Id == request.MoneyMovementId &&
                         (request.AccountId.HasValue && request.AccountId.Value != Guid.Empty
@@ -36,7 +30,9 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (movement == null)
                 return ServiceResult<bool>.Fail(404, "Операция не найдена в счёте.");
 
-            movement.Comment = comment;
+            if (!movement.TryUpdateComment(request.Comment, out string? error))
+                return ServiceResult<bool>.Fail(400, error!);
+
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);

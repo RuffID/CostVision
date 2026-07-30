@@ -16,14 +16,21 @@ namespace CostVision.Application.UseCases.MoneyMovements
     {
         public async Task<ServiceResult<MoneyMovementDto>> ExecuteAsync(CreateMoneyMovementRequest request, Guid currentUserId, CancellationToken ct)
         {
-            if (request.AccountId == Guid.Empty)
-                return ServiceResult<MoneyMovementDto>.Fail(400, "Некорректный идентификатор счёта.");
+            Guid performedByUserId = request.PerformedByUserId.GetValueOrDefault(currentUserId);
+            if (!MoneyMovement.TryCreateManual(
+                    request.AccountId,
+                    request.Amount,
+                    request.Type,
+                    request.OccurredAt,
+                    request.Comment,
+                    currentUserId,
+                    performedByUserId,
+                    DateTime.UtcNow,
+                    out MoneyMovement? movement,
+                    out string? error))
+                return ServiceResult<MoneyMovementDto>.Fail(400, error!);
 
-            if (request.Amount == 0)
-                return ServiceResult<MoneyMovementDto>.Fail(400, "Сумма операции не может быть равна нулю.");
-
-            if (request.OccurredAt == default)
-                return ServiceResult<MoneyMovementDto>.Fail(400, "Дата операции не заполнена.");
+            MoneyMovement newMovement = movement!;
 
             AccountMember? membership = await unitOfWork.AccountMember.GetItemByPredicateAsync(
                 member => member.AccountId == request.AccountId && member.UserId == currentUserId,
@@ -36,7 +43,6 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (membership.Role == AccountAccessRole.Viewer)
                 return ServiceResult<MoneyMovementDto>.Fail(403, "Недостаточно прав для добавления операции в этот счёт.");
 
-            Guid performedByUserId = request.PerformedByUserId.GetValueOrDefault(currentUserId);
             if (performedByUserId != currentUserId)
             {
                 AccountMember? performedByMembership = await unitOfWork.AccountMember.GetItemByPredicateAsync(
@@ -48,29 +54,12 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     return ServiceResult<MoneyMovementDto>.Fail(400, "Исполнитель операции должен быть участником счёта.");
             }
 
-            MoneyMovementType movementType = request.Type ?? (request.Amount < 0 ? MoneyMovementType.Expense : MoneyMovementType.Income);
-            DateTime occurredAt = request.OccurredAt == default ? DateTime.Now : request.OccurredAt;
-            DateTime createdAtUtc = DateTime.UtcNow;
-
-            MoneyMovement movement = new()
-            {
-                AccountId = request.AccountId,
-                Amount = Math.Abs(request.Amount),
-                Type = movementType,
-                OccurredAt = occurredAt,
-                Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim(),
-                CreatedByUserId = currentUserId,
-                PerformedByUserId = performedByUserId,
-                CreatedAtUtc = createdAtUtc,
-                Source = MoneyMovementSource.Manual
-            };
-
-            unitOfWork.MoneyMovement.Create(movement);
+            unitOfWork.MoneyMovement.Create(newMovement);
             await unitOfWork.SaveChangesAsync(ct);
-            await TryAutoLinkExactReceiptAsync(movement, currentUserId, ct);
+            await TryAutoLinkExactReceiptAsync(newMovement, currentUserId, ct);
 
             MoneyMovement? created = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
-                item => item.Id == movement.Id,
+                item => item.Id == newMovement.Id,
                 asNoTracking: true,
                 include: query => query
                     .Include(item => item.Account)

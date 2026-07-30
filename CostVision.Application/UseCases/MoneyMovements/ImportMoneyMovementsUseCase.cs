@@ -22,15 +22,16 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return ServiceResult<BankStatementImportResultDto>.Fail(accountAccess.Error!.StatusCode, accountAccess.Error.Message);
 
             BankStatementImportResultDto result = new();
-            List<BankStatementImportRowRequest> validRows = ValidateRows(request.Rows, result);
+            List<(BankStatementImportRowRequest Row, MoneyMovement Movement)> validRows =
+                ValidateRows(request.AccountId, request.Rows, currentUserId, result);
             if (validRows.Count == 0)
                 return ServiceResult<BankStatementImportResultDto>.Ok(result);
 
             await unitOfWork.ExecuteInTransaction(async () =>
             {
-                foreach (BankStatementImportRowRequest row in validRows)
+                foreach ((BankStatementImportRowRequest row, MoneyMovement movement) in validRows)
                 {
-                    MoneyMovement? duplicate = await FindDuplicateAsync(request.AccountId, row, ct);
+                    MoneyMovement? duplicate = await FindDuplicateAsync(request.AccountId, row, movement, ct);
                     if (duplicate != null)
                     {
                         if (!row.ReplaceDuplicate)
@@ -39,12 +40,24 @@ namespace CostVision.Application.UseCases.MoneyMovements
                             continue;
                         }
 
-                        UpdateDuplicate(duplicate, row);
+                        if (!duplicate.TryReplaceFromBankStatement(
+                                movement.Amount,
+                                movement.Type,
+                                movement.OccurredAt,
+                                movement.Comment,
+                                movement.ImportComment,
+                                DateTime.UtcNow,
+                                out string? error))
+                        {
+                            AddError(result, request.Rows.IndexOf(row), error!, row.ImportComment);
+                            continue;
+                        }
+
                         result.UpdatedCount++;
                         continue;
                     }
 
-                    unitOfWork.MoneyMovement.Create(CreateMovement(request.AccountId, row, currentUserId));
+                    unitOfWork.MoneyMovement.Create(movement);
                     result.CreatedCount++;
                 }
             }, ct);
@@ -52,22 +65,30 @@ namespace CostVision.Application.UseCases.MoneyMovements
             return ServiceResult<BankStatementImportResultDto>.Ok(result);
         }
 
-        private static List<BankStatementImportRowRequest> ValidateRows(List<BankStatementImportRowRequest> rows, BankStatementImportResultDto result)
+        private static List<(BankStatementImportRowRequest Row, MoneyMovement Movement)> ValidateRows(
+            Guid accountId,
+            List<BankStatementImportRowRequest> rows,
+            Guid currentUserId,
+            BankStatementImportResultDto result)
         {
             HashSet<string> keys = new();
-            List<BankStatementImportRowRequest> validRows = new();
+            List<(BankStatementImportRowRequest Row, MoneyMovement Movement)> validRows = new();
 
             foreach ((BankStatementImportRowRequest row, int index) in rows.Select((row, index) => (row, index)))
             {
-                if (row.Amount <= 0)
+                if (!MoneyMovement.TryCreateBankStatementImport(
+                        accountId,
+                        row.Amount,
+                        row.Type,
+                        row.OccurredAt,
+                        row.Comment,
+                        row.ImportComment,
+                        currentUserId,
+                        DateTime.UtcNow,
+                        out MoneyMovement? movement,
+                        out string? error))
                 {
-                    AddError(result, index, "Сумма импортируемой операции должна быть больше нуля.", row.ImportComment);
-                    continue;
-                }
-
-                if (string.IsNullOrWhiteSpace(row.ImportComment))
-                {
-                    AddError(result, index, "У импортируемой операции отсутствует исходный комментарий.", row.ImportComment);
+                    AddError(result, index, error!, row.ImportComment);
                     continue;
                 }
 
@@ -86,7 +107,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     continue;
                 }
 
-                validRows.Add(row);
+                validRows.Add((row, movement!));
             }
 
             return validRows;
@@ -104,7 +125,11 @@ namespace CostVision.Application.UseCases.MoneyMovements
             result.ErrorCount = result.Errors.Count;
         }
 
-        private async Task<MoneyMovement?> FindDuplicateAsync(Guid accountId, BankStatementImportRowRequest row, CancellationToken ct)
+        private async Task<MoneyMovement?> FindDuplicateAsync(
+            Guid accountId,
+            BankStatementImportRowRequest row,
+            MoneyMovement importedMovement,
+            CancellationToken ct)
         {
             if (row.DuplicateMoneyMovementId.HasValue)
             {
@@ -120,47 +145,12 @@ namespace CostVision.Application.UseCases.MoneyMovements
             return await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
                 movement => movement.AccountId == accountId &&
                             movement.Source == MoneyMovementSource.BankStatementImport &&
-                            movement.OccurredAt == row.OccurredAt &&
-                            movement.Amount == row.Amount &&
-                            movement.Type == row.Type &&
-                            movement.ImportComment == row.ImportComment,
+                            movement.OccurredAt == importedMovement.OccurredAt &&
+                            movement.Amount == importedMovement.Amount &&
+                            movement.Type == importedMovement.Type &&
+                            movement.ImportComment == importedMovement.ImportComment,
                 asNoTracking: false,
                 ct: ct);
-        }
-
-        private static MoneyMovement CreateMovement(Guid accountId, BankStatementImportRowRequest row, Guid currentUserId)
-        {
-            DateTime nowUtc = DateTime.UtcNow;
-
-            return new MoneyMovement
-            {
-                AccountId = accountId,
-                Amount = Math.Abs(row.Amount),
-                Type = row.Type,
-                OccurredAt = row.OccurredAt,
-                Comment = NormalizeComment(row.Comment),
-                ImportComment = row.ImportComment.Trim(),
-                CreatedByUserId = currentUserId,
-                PerformedByUserId = currentUserId,
-                CreatedAtUtc = nowUtc,
-                Source = MoneyMovementSource.BankStatementImport
-            };
-        }
-
-        private static void UpdateDuplicate(MoneyMovement duplicate, BankStatementImportRowRequest row)
-        {
-            duplicate.Amount = Math.Abs(row.Amount);
-            duplicate.Type = row.Type;
-            duplicate.OccurredAt = row.OccurredAt;
-            duplicate.Comment = NormalizeComment(row.Comment);
-            duplicate.ImportComment = row.ImportComment.Trim();
-            duplicate.Source = MoneyMovementSource.BankStatementImport;
-            duplicate.MarkUpdated(DateTime.UtcNow);
-        }
-
-        private static string? NormalizeComment(string? comment)
-        {
-            return string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
         }
     }
 }
