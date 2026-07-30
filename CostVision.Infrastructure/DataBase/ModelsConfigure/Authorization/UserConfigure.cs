@@ -18,15 +18,15 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Authorization
 
             builder.Property(x => x.Login)
                 .IsRequired()
-                .HasMaxLength(128);
+                .HasMaxLength(User.MAX_LOGIN_LENGTH);
 
             builder.Property(x => x.Name)
                 .IsRequired()
-                .HasMaxLength(256);
+                .HasMaxLength(User.MAX_NAME_LENGTH);
 
             builder.Property(x => x.PasswordHash)
                 .IsRequired()
-                .HasMaxLength(512);
+                .HasMaxLength(User.PASSWORD_HASH_MAX_LENGTH);
 
             builder.Property(x => x.IsActive)
                 .IsRequired();
@@ -42,6 +42,9 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Authorization
             builder.HasMany(e => e.Roles)
                 .WithMany(e => e.Users)
                 .UsingEntity<UserRole>();
+
+            builder.Navigation(e => e.UserRoles)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
 
             builder.HasMany(x => x.CreatedReceipts)
                 .WithOne(x => x.CreatedByUser)

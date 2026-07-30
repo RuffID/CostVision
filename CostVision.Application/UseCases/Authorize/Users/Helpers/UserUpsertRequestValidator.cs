@@ -1,14 +1,11 @@
 using CostVision.Application.Models.Requests.Authorize;
 using CostVision.Application.Models.Responses.Results;
+using CostVision.Domain.Models.Authorization;
 
 namespace CostVision.Application.UseCases.Authorize.Users.Helpers
 {
     internal static class UserUpsertRequestValidator
     {
-        private const int MIN_LOGIN_LENGTH = 3;
-        private const int MAX_LOGIN_LENGTH = 128;
-        private const int MIN_NAME_LENGTH = 2;
-        private const int MAX_NAME_LENGTH = 256;
         private const int MIN_PASSWORD_LENGTH = 8;
         private const int MAX_PASSWORD_LENGTH = 128;
 
@@ -18,15 +15,15 @@ namespace CostVision.Application.UseCases.Authorize.Users.Helpers
                 return ServiceResult<List<Guid>>.Fail(400, "Логин обязателен.");
 
             string login = request.Login.Trim();
-            if (login.Length is < MIN_LOGIN_LENGTH or > MAX_LOGIN_LENGTH)
-                return ServiceResult<List<Guid>>.Fail(400, $"Логин должен быть от {MIN_LOGIN_LENGTH} до {MAX_LOGIN_LENGTH} символов.");
+            if (login.Length is < User.MIN_LOGIN_LENGTH or > User.MAX_LOGIN_LENGTH)
+                return ServiceResult<List<Guid>>.Fail(400, $"Логин должен быть от {User.MIN_LOGIN_LENGTH} до {User.MAX_LOGIN_LENGTH} символов.");
 
             if (string.IsNullOrWhiteSpace(request.Name))
                 return ServiceResult<List<Guid>>.Fail(400, "Имя обязательно.");
 
             string name = request.Name.Trim();
-            if (name.Length is < MIN_NAME_LENGTH or > MAX_NAME_LENGTH)
-                return ServiceResult<List<Guid>>.Fail(400, $"Имя должно быть от {MIN_NAME_LENGTH} до {MAX_NAME_LENGTH} символов.");
+            if (name.Length is < User.MIN_NAME_LENGTH or > User.MAX_NAME_LENGTH)
+                return ServiceResult<List<Guid>>.Fail(400, $"Имя должно быть от {User.MIN_NAME_LENGTH} до {User.MAX_NAME_LENGTH} символов.");
 
             if (requirePassword && string.IsNullOrWhiteSpace(request.Password))
                 return ServiceResult<List<Guid>>.Fail(400, "Пароль обязателен.");

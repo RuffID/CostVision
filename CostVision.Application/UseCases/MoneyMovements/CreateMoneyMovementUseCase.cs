@@ -116,13 +116,16 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (movementCandidates.Count != 1 || movementCandidates[0].Id != movement.Id)
                 return;
 
-            unitOfWork.MoneyMovementReceipt.Create(new MoneyMovementReceipt
-            {
-                MoneyMovementId = movement.Id,
-                ReceiptId = receiptCandidates[0].Id,
-                CreatedByUserId = currentUserId,
-                CreatedAtUtc = DateTime.UtcNow
-            });
+            if (!MoneyMovementReceipt.TryCreate(
+                    movement.Id,
+                    receiptCandidates[0].Id,
+                    currentUserId,
+                    DateTime.UtcNow,
+                    out MoneyMovementReceipt? link,
+                    out string? error))
+                throw new InvalidOperationException(error!);
+
+            unitOfWork.MoneyMovementReceipt.Create(link!);
 
             await unitOfWork.SaveChangesAsync(ct);
         }

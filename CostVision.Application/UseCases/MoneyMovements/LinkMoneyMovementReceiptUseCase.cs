@@ -48,15 +48,18 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (existingLink != null)
                 return ServiceResult<bool>.Fail(409, "Чек уже привязан к операции.");
 
+            if (!MoneyMovementReceipt.TryCreate(
+                    request.MoneyMovementId,
+                    request.ReceiptId,
+                    currentUserId,
+                    DateTime.UtcNow,
+                    out MoneyMovementReceipt? link,
+                    out string? error))
+                return ServiceResult<bool>.Fail(400, error!);
+
             await unitOfWork.ExecuteInTransaction(() =>
             {
-                unitOfWork.MoneyMovementReceipt.Create(new MoneyMovementReceipt
-                {
-                    MoneyMovementId = request.MoneyMovementId,
-                    ReceiptId = request.ReceiptId,
-                    CreatedByUserId = currentUserId,
-                    CreatedAtUtc = DateTime.UtcNow
-                });
+                unitOfWork.MoneyMovementReceipt.Create(link!);
 
                 return Task.CompletedTask;
             }, ct);

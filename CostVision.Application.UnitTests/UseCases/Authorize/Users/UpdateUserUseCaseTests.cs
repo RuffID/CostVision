@@ -18,14 +18,7 @@ public class UpdateUserUseCaseTests
         Guid userId = Guid.NewGuid();
         Guid oldRoleId = Guid.NewGuid();
         Guid newRoleId = Guid.NewGuid();
-        User user = new()
-        {
-            Id = userId,
-            Login = "old",
-            Name = "Old Name",
-            PasswordHash = "old-hash",
-            UserRoles = new List<UserRole> { new() { UserId = userId, RoleId = oldRoleId } }
-        };
+        User user = CreateUser(userId, "old", "Old Name", "old-hash", oldRoleId);
 
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         userRepository
@@ -66,14 +59,7 @@ public class UpdateUserUseCaseTests
     {
         Guid userId = Guid.NewGuid();
         Guid roleId = Guid.NewGuid();
-        User user = new()
-        {
-            Id = userId,
-            Login = "user",
-            Name = "Old Name",
-            PasswordHash = "old-hash",
-            UserRoles = new List<UserRole> { new() { UserId = userId, RoleId = roleId } }
-        };
+        User user = CreateUser(userId, "user", "Old Name", "old-hash", roleId);
 
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         userRepository
@@ -109,14 +95,7 @@ public class UpdateUserUseCaseTests
     {
         Guid userId = Guid.NewGuid();
         Guid roleId = Guid.NewGuid();
-        User user = new()
-        {
-            Id = userId,
-            Login = "old-login",
-            Name = "Test User",
-            PasswordHash = "old-hash",
-            UserRoles = new List<UserRole> { new() { UserId = userId, RoleId = roleId } }
-        };
+        User user = CreateUser(userId, "old-login", "Test User", "old-hash", roleId);
         User conflictUser = new() { Id = Guid.NewGuid(), Login = "new-login" };
 
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
@@ -189,5 +168,21 @@ public class UpdateUserUseCaseTests
 
         Assert.False(result.Success);
         Assert.Equal(400, result.Error?.StatusCode);
+    }
+
+    private static User CreateUser(Guid userId, string login, string name, string passwordHash, Guid roleId)
+    {
+        Assert.True(User.TryCreate(
+            login,
+            name,
+            passwordHash,
+            [roleId],
+            DateTime.UtcNow,
+            out User? user,
+            out string? error),
+            error);
+
+        user!.Id = userId;
+        return user;
     }
 }

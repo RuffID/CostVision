@@ -21,7 +21,7 @@ namespace CostVision.Web.Pages
         ISaveReceiptsScannedUseCase saveReceiptsScannedUseCase,
         ISaveManualReceiptUseCase saveManualReceiptUseCase) : PageModel, IHasCurrentUser
     {
-        public User CurrentUser { get; set; } = new();
+        public User CurrentUser { get; set; } = null!;
 
         public async Task<IActionResult> OnGetAccountsAsync(CancellationToken ct)
         {

@@ -23,26 +23,17 @@ namespace CostVision.Application.UseCases.Authorize.Users
             if (existingUser != null)
                 return ServiceResult.Fail(409, "Пользователь с таким логином уже существует");
 
-            User user = new()
-            {
-                Login = request.Login.Trim(),
-                Name = request.Name.Trim(),
-                PasswordHash = passwordHasher.Hash(request.Password!.Trim()),
-                IsActive = true,
-                CreatedAtUtc = DateTime.UtcNow,
-                LastLoginAtUtc = null
-            };
+            if (!User.TryCreate(
+                    request.Login,
+                    request.Name,
+                    passwordHasher.Hash(request.Password!.Trim()),
+                    validationResult.Data,
+                    DateTime.UtcNow,
+                    out User? user,
+                    out string? error))
+                return ServiceResult.Fail(400, error!);
 
-            foreach (Guid roleId in validationResult.Data)
-            {
-                user.UserRoles.Add(new UserRole
-                {
-                    User = user,
-                    RoleId = roleId
-                });
-            }
-
-            unitOfWork.User.Create(user);
+            unitOfWork.User.Create(user!);
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult.Ok();

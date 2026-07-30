@@ -2,12 +2,26 @@ namespace CostVision.Domain.Models.Authorization
 {
     public class UserRole
     {
-        public Guid UserId { get; set; }
+        internal UserRole()
+        {
+        }
 
-        public Guid RoleId { get; set; }
+        public Guid UserId { get; internal set; }
 
-        public Role? Role { get; set; }
+        public Guid RoleId { get; internal set; }
 
-        public User? User { get; set; }
+        public Role? Role { get; internal set; }
+
+        public User? User { get; internal set; }
+
+        internal static UserRole Create(User user, Guid roleId)
+        {
+            return new UserRole
+            {
+                UserId = user.Id,
+                RoleId = roleId,
+                User = user
+            };
+        }
     }
 }

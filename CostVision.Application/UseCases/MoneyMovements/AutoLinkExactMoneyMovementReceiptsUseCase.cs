@@ -1,4 +1,4 @@
-using CostVision.Application.Abstractions.DataBase.Repositories;
+﻿using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Enums.MoneyMovements;
 using CostVision.Domain.Models.Enums.Receipts;
@@ -95,13 +95,16 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 if (movementCandidateCount != 1)
                     continue;
 
-                links.Add(new MoneyMovementReceipt
-                {
-                    MoneyMovementId = movement.Id,
-                    ReceiptId = receipt.Id,
-                    CreatedByUserId = currentUserId,
-                    CreatedAtUtc = createdAtUtc
-                });
+                if (!MoneyMovementReceipt.TryCreate(
+                        movement.Id,
+                        receipt.Id,
+                        currentUserId,
+                        createdAtUtc,
+                        out MoneyMovementReceipt? link,
+                        out string? error))
+                    throw new InvalidOperationException(error!);
+
+                links.Add(link!);
 
                 linkedMovementIds.Add(movement.Id);
                 linkedReceiptIds.Add(receipt.Id);
