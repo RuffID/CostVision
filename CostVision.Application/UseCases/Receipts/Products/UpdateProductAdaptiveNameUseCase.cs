@@ -7,16 +7,13 @@ namespace CostVision.Application.UseCases.Receipts.Products
 {
     public class UpdateProductAdaptiveNameUseCase(IUnitOfWork unitOfWork) : IUpdateProductAdaptiveNameUseCase
     {
-        private const int MAX_ADAPTIVE_NAME_LENGTH = 500;
-
         public async Task<ServiceResult<bool>> ExecuteAsync(UpdateProductAdaptiveNameRequest request, CancellationToken ct)
         {
             if (request.ProductId == Guid.Empty)
                 return ServiceResult<bool>.Fail(400, "Товар не указан.");
 
-            string? adaptiveName = string.IsNullOrWhiteSpace(request.AdaptiveName) ? null : request.AdaptiveName.Trim();
-            if (adaptiveName?.Length > MAX_ADAPTIVE_NAME_LENGTH)
-                return ServiceResult<bool>.Fail(400, "Адаптивное название не должно быть длиннее 500 символов.");
+            if (!Product.TryNormalizeAdaptiveName(request.AdaptiveName, out string? adaptiveName, out string? error))
+                return ServiceResult<bool>.Fail(400, error!);
 
             Product? product = await unitOfWork.Product.GetItemByIdAsync(request.ProductId, ct: ct);
             if (product == null)
@@ -32,7 +29,9 @@ namespace CostVision.Application.UseCases.Receipts.Products
                     return ServiceResult<bool>.Fail(409, "Такое Ваше наименование уже задано другому товару.");
             }
 
-            product.UpdateAdaptiveName(adaptiveName);
+            if (!product.TryUpdateAdaptiveName(adaptiveName, out error))
+                return ServiceResult<bool>.Fail(400, error!);
+
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);

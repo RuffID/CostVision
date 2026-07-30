@@ -74,21 +74,27 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
             string normalizedName = sourceProduct.NormalizedName;
             if (productCache.TryGetValue(normalizedName, out Product? cached))
             {
-                cached.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName);
+                if (!cached.TryUpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName, out string? error))
+                    throw new InvalidOperationException($"Не удалось обновить данные товара: {error}");
+
                 return cached;
             }
 
             Product? productFromDb = await unitOfWork.Product.GetItemByPredicateAsync(p => normalizedName == p.NormalizedName, ct: ct);
             if (productFromDb == null)
             {
-                Product createdProduct = new();
-                createdProduct.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName);
-                unitOfWork.Product.Create(createdProduct);
-                productCache[normalizedName] = createdProduct;
-                return createdProduct;
+                if (!Product.TryCreate(sourceProduct.Name, sourceProduct.NormalizedName, out Product? createdProduct, out string? error))
+                    throw new InvalidOperationException($"Не удалось создать товар: {error}");
+
+                Product newProduct = createdProduct!;
+                unitOfWork.Product.Create(newProduct);
+                productCache[normalizedName] = newProduct;
+                return newProduct;
             }
 
-            productFromDb.UpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName);
+            if (!productFromDb.TryUpdateDetails(sourceProduct.Name, sourceProduct.NormalizedName, out string? updateError))
+                throw new InvalidOperationException($"Не удалось обновить данные товара: {updateError}");
+
             productCache[normalizedName] = productFromDb;
             return productFromDb;
         }
@@ -106,13 +112,28 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
 
             if (storeFromDb == null)
             {
-                Store createdStore = new();
-                createdStore.UpdateDetails(sourceStore.Name, sourceStore.NormalizedName, sourceStore.Address, sourceStore.NormalizedAddress);
-                unitOfWork.Store.Create(createdStore);
-                return createdStore;
+                if (!Store.TryCreate(
+                        sourceStore.Name,
+                        sourceStore.NormalizedName,
+                        sourceStore.Address,
+                        sourceStore.NormalizedAddress,
+                        out Store? createdStore,
+                        out string? error))
+                    throw new InvalidOperationException($"Не удалось создать магазин: {error}");
+
+                Store newStore = createdStore!;
+                unitOfWork.Store.Create(newStore);
+                return newStore;
             }
 
-            storeFromDb.UpdateDetails(sourceStore.Name, sourceStore.NormalizedName, sourceStore.Address, sourceStore.NormalizedAddress);
+            if (!storeFromDb.TryUpdateDetails(
+                    sourceStore.Name,
+                    sourceStore.NormalizedName,
+                    sourceStore.Address,
+                    sourceStore.NormalizedAddress,
+                    out string? updateError))
+                throw new InvalidOperationException($"Не удалось обновить данные магазина: {updateError}");
+
             return storeFromDb;
         }
     }

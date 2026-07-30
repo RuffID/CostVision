@@ -54,29 +54,43 @@ namespace CostVision.Infrastructure.Services.Receipts
                 return ServiceResult<Receipt>.Fail(500, $"Не удалось обновить чек по внешнему API.\nОшибка: {result.Data?.Error ?? "В ответе API отсутствует JSON чека."}");
 
             Receipt mappedReceipt = result.MapToReceipt();
-            Store? store = CreateStore(result.Data.Json.RetailPlace, result.Data.Json.RetailPlaceAddress);
+            if (!TryCreateStore(result.Data.Json.RetailPlace, result.Data.Json.RetailPlaceAddress, out Store? store, out string? storeError))
+                return ServiceResult<Receipt>.Fail(500, $"Внешний API вернул некорректные данные магазина: {storeError}");
+
             mappedReceipt.Store = store;
-            mappedReceipt.Items = result.Data?.Json?.Items
-                .Select(item =>
+            List<ReceiptItem> receiptItems = new();
+            foreach (ProverkachekaItem item in result.Data.Json.Items)
+            {
+                string normalizedName = NameNormalizedHelper.GetNormalizedName(item.Name);
+                if (!Product.TryCreate(item.Name, normalizedName, out Product? product, out string? productError))
                 {
-                    string normalizedName = NameNormalizedHelper.GetNormalizedName(item.Name);
-                    Product product = new();
-                    product.UpdateDetails(item.Name, normalizedName);
+                    return ServiceResult<Receipt>.Fail(
+                        500,
+                        $"Внешний API вернул некорректные данные товара: {productError}");
+                }
 
-                    ReceiptItem receiptItem = item.MapToReceiptItem(receipt.Id, Guid.Empty);
-                    receiptItem.Product = product;
+                ReceiptItem receiptItem = item.MapToReceiptItem(receipt.Id, Guid.Empty);
+                receiptItem.Product = product!;
+                receiptItems.Add(receiptItem);
+            }
 
-                    return receiptItem;
-                })
-                .ToList() ?? new List<ReceiptItem>();
+            mappedReceipt.Items = receiptItems;
 
             return ServiceResult<Receipt>.Ok(mappedReceipt);
         }
 
-        private static Store? CreateStore(string? retailPlace, string? retailPlaceAddress)
+        private static bool TryCreateStore(
+            string? retailPlace,
+            string? retailPlaceAddress,
+            out Store? store,
+            out string? error)
         {
             if (string.IsNullOrWhiteSpace(retailPlace) && string.IsNullOrWhiteSpace(retailPlaceAddress))
-                return null;
+            {
+                store = null;
+                error = null;
+                return true;
+            }
 
             string normalizedName = string.IsNullOrWhiteSpace(retailPlace)
                 ? string.Empty
@@ -85,9 +99,13 @@ namespace CostVision.Infrastructure.Services.Receipts
                 ? string.Empty
                 : NameNormalizedHelper.GetNormalizedName(retailPlaceAddress);
 
-            Store store = new();
-            store.UpdateDetails(retailPlace, normalizedName, retailPlaceAddress, normalizedAddress);
-            return store;
+            return Store.TryCreate(
+                retailPlace,
+                normalizedName,
+                retailPlaceAddress,
+                normalizedAddress,
+                out store,
+                out error);
         }
     }
 }
