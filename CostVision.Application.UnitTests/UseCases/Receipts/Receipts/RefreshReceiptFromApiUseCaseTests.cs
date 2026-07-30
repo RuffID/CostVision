@@ -18,7 +18,7 @@ public class RefreshReceiptFromApiUseCaseTests
     public async Task ExecuteAsync_RefreshesReceipt_WhenUserHasAccess()
     {
         User currentUser = new() { Id = Guid.NewGuid() };
-        Receipt receipt = new() { Id = Guid.NewGuid(), CreatedByUserId = currentUser.Id };
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), currentUser.Id);
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(true);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
@@ -36,7 +36,7 @@ public class RefreshReceiptFromApiUseCaseTests
     public async Task ExecuteAsync_ReturnsUnauthorized_WhenUserHasNoAccess()
     {
         User currentUser = new() { Id = Guid.NewGuid() };
-        Receipt receipt = new() { Id = Guid.NewGuid(), CreatedByUserId = Guid.NewGuid() };
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(false);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
@@ -66,7 +66,7 @@ public class RefreshReceiptFromApiUseCaseTests
     public async Task ExecuteAsync_ReturnsWorkflowError_WhenRefreshWorkflowFails()
     {
         User currentUser = new() { Id = Guid.NewGuid() };
-        Receipt receipt = new() { Id = Guid.NewGuid(), CreatedByUserId = currentUser.Id };
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), currentUser.Id);
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(true);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);

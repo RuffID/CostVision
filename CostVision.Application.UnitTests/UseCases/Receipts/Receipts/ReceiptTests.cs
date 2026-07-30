@@ -1,4 +1,5 @@
 using CostVision.Domain.Models.Enums.Receipts;
+using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using Xunit;
 
@@ -89,25 +90,21 @@ public class ReceiptTests
     }
 
     [Fact]
-    public void TryRefreshFrom_DoesNotChangeStateWhenItemIsInvalid()
+    public void TryRefreshFrom_DoesNotChangeStateWhenItemBelongsToAnotherReceipt()
     {
         Receipt receipt = CreateReceipt();
-        Product originalProduct = new() { Name = "Old", NormalizedName = "OLD" };
+        Product originalProduct = TestReceiptFactory.CreateProduct("Old");
         Assert.True(ReceiptItem.TryCreate(10, 1, 10, 0, default, default, default, originalProduct, null, out ReceiptItem? originalItem, out string? error), error);
         Assert.True(receipt.TryAddItem(originalItem!, out error), error);
         Receipt source = CreateReceipt("new-fn", "new-fd", "new-fp", 20);
-        ReceiptItem invalidItem = new()
-        {
-            Product = new Product { Name = "Invalid", NormalizedName = "INVALID" },
-            Price = 20,
-            Quantity = 0,
-            Sum = 20
-        };
+        Product sourceProduct = TestReceiptFactory.CreateProduct("Source");
+        Assert.True(ReceiptItem.TryCreate(20, 1, 20, 0, default, default, default, sourceProduct, null, out ReceiptItem? sourceItem, out error), error);
+        Assert.True(source.TryAddItem(sourceItem!, out error), error);
 
         bool success = receipt.TryRefreshFrom(
             source,
             null,
-            [invalidItem],
+            [sourceItem!],
             DateTime.UtcNow,
             out error);
 
@@ -119,7 +116,7 @@ public class ReceiptTests
     [Fact]
     public void ReceiptItemTryCreate_RejectsInvalidQuantity()
     {
-        Product product = new() { Name = "Product", NormalizedName = "PRODUCT" };
+        Product product = TestReceiptFactory.CreateProduct("Product");
 
         bool success = ReceiptItem.TryCreate(
             10,
@@ -137,6 +134,50 @@ public class ReceiptTests
         Assert.False(success);
         Assert.Null(item);
         Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void PublicApi_DoesNotExposeAggregateStateForMutation()
+    {
+        Receipt receipt = CreateReceipt();
+        Product product = TestReceiptFactory.CreateProduct("Product");
+        ReceiptItem item = TestReceiptFactory.CreateItem(product);
+
+        Assert.Null(typeof(Receipt).GetConstructor(Type.EmptyTypes));
+        Assert.Null(typeof(ReceiptItem).GetConstructor(Type.EmptyTypes));
+        Assert.Null(typeof(ReceiptAccount).GetConstructor(Type.EmptyTypes));
+        Assert.Null(typeof(Store).GetConstructor(Type.EmptyTypes));
+        Assert.Null(typeof(Product).GetConstructor(Type.EmptyTypes));
+        Assert.True(typeof(Receipt).GetProperty(nameof(Receipt.TotalSum))!.SetMethod!.IsPrivate);
+        Assert.True(typeof(ReceiptItem).GetProperty(nameof(ReceiptItem.Quantity))!.SetMethod!.IsPrivate);
+        Assert.True(typeof(Store).GetProperty(nameof(Store.Name))!.SetMethod!.IsPrivate);
+        Assert.True(typeof(Product).GetProperty(nameof(Product.Name))!.SetMethod!.IsPrivate);
+        Assert.False(receipt.Items is List<ReceiptItem>);
+        Assert.False(receipt.Accounts is List<ReceiptAccount>);
+        Assert.False(receipt.MoneyMovementLinks is List<CostVision.Domain.Models.MoneyMovements.MoneyMovementReceipt>);
+        Assert.Null(item.Receipt);
+    }
+
+    [Fact]
+    public void MoneyMovementReceipt_CannotBeCreatedWithIncompleteMetadata()
+    {
+        Receipt receipt = CreateReceipt();
+        receipt.Id = Guid.NewGuid();
+
+        bool success = MoneyMovementReceipt.TryCreate(
+            Guid.NewGuid(),
+            receipt.Id,
+            Guid.Empty,
+            new DateTime(2026, 1, 1),
+            out MoneyMovementReceipt? link,
+            out string? error);
+
+        Assert.False(success);
+        Assert.NotNull(error);
+        Assert.Null(link);
+        Assert.Empty(receipt.MoneyMovementLinks);
+        Assert.Null(typeof(MoneyMovementReceipt).GetConstructor(Type.EmptyTypes));
+        Assert.True(typeof(MoneyMovementReceipt).GetProperty(nameof(MoneyMovementReceipt.Receipt))!.SetMethod!.IsPrivate);
     }
 
     private static Receipt CreateReceipt(

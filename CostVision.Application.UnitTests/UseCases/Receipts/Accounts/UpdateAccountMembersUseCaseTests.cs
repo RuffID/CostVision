@@ -66,7 +66,7 @@ public class UpdateAccountMembersUseCaseTests
     {
         Guid ownerUserId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        Account account = new() { Id = accountId, CreatedByUserId = ownerUserId };
+        Account account = TestAccountFactory.Create(accountId, ownerUserId);
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         Mock<IAccountMemberRepository> accountMemberRepository = new(MockBehavior.Strict);
         UpdateAccountMembersUseCase useCase = new(CreateUnitOfWork(CreateAccountRepository(account), userRepository, accountMemberRepository).Object);
@@ -85,7 +85,7 @@ public class UpdateAccountMembersUseCaseTests
     {
         Guid ownerUserId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        Account account = new() { Id = accountId, CreatedByUserId = ownerUserId };
+        Account account = TestAccountFactory.Create(accountId, ownerUserId);
         Mock<IAccountMemberRepository> accountMemberRepository = new(MockBehavior.Strict);
         UpdateAccountMembersUseCase useCase = new(CreateUnitOfWork(CreateAccountRepository(account), CreateUsersRepository([]), accountMemberRepository).Object);
 

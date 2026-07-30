@@ -89,7 +89,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
                 true,
                 null,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new MoneyMovementReceipt());
+            .ReturnsAsync(TestMoneyMovementFactory.CreateLink(movement.Id, Guid.NewGuid(), userId));
         LinkMoneyMovementReceiptUseCase useCase = new(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
@@ -152,7 +152,10 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
-        MoneyMovementReceipt link = new() { MoneyMovementId = movement.Id, ReceiptId = Guid.NewGuid() };
+        MoneyMovementReceipt link = TestMoneyMovementFactory.CreateLink(
+            movement.Id,
+            Guid.NewGuid(),
+            userId);
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
             .Setup(repository => repository.GetItemByIdAsync(movement.Id, true, null, It.IsAny<CancellationToken>()))

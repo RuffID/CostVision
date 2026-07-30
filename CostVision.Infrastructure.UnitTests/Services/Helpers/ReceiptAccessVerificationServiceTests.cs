@@ -12,7 +12,7 @@ public class ReceiptAccessVerificationServiceTests
     public void UserHasAccessToReceipt_ReturnsTrueForReceiptOwner()
     {
         User user = new() { Id = Guid.NewGuid() };
-        Receipt receipt = new() { CreatedByUserId = user.Id };
+        Receipt receipt = CreateReceipt(user.Id);
         ReceiptAccessVerificationService service = new();
 
         bool result = service.UserHasAccessToReceipt(user, receipt);
@@ -24,11 +24,7 @@ public class ReceiptAccessVerificationServiceTests
     public void UserHasAccessToReceipt_ReturnsTrueForLinkedAccountOwner()
     {
         User user = new() { Id = Guid.NewGuid() };
-        Account account = new()
-        {
-            Id = Guid.NewGuid(),
-            CreatedByUserId = user.Id
-        };
+        Account account = CreateAccount(Guid.NewGuid(), user.Id);
         Receipt receipt = CreateReceiptWithAccount(account);
         ReceiptAccessVerificationService service = new();
 
@@ -41,7 +37,7 @@ public class ReceiptAccessVerificationServiceTests
     public void UserHasAccessToReceipt_ReturnsTrueForLinkedAccountMember()
     {
         User user = new() { Id = Guid.NewGuid() };
-        Account account = new() { Id = Guid.NewGuid(), CreatedByUserId = Guid.NewGuid() };
+        Account account = CreateAccount(Guid.NewGuid(), Guid.NewGuid());
         account.TryAddMember(user.Id, AccountAccessRole.Viewer, out _, out _);
         Receipt receipt = CreateReceiptWithAccount(account);
         ReceiptAccessVerificationService service = new();
@@ -55,7 +51,7 @@ public class ReceiptAccessVerificationServiceTests
     public void UserHasAccessToReceipt_ReturnsFalseForUnrelatedUser()
     {
         User user = new() { Id = Guid.NewGuid() };
-        Account account = new() { Id = Guid.NewGuid(), CreatedByUserId = Guid.NewGuid() };
+        Account account = CreateAccount(Guid.NewGuid(), Guid.NewGuid());
         account.TryAddMember(Guid.NewGuid(), AccountAccessRole.Viewer, out _, out _);
         Receipt receipt = CreateReceiptWithAccount(account);
         ReceiptAccessVerificationService service = new();
@@ -69,7 +65,7 @@ public class ReceiptAccessVerificationServiceTests
     public void UserHasAccessToReceipt_ReturnsFalseWhenReceiptHasNoAccountLinks()
     {
         User user = new() { Id = Guid.NewGuid() };
-        Receipt receipt = new() { CreatedByUserId = Guid.NewGuid() };
+        Receipt receipt = CreateReceipt(Guid.NewGuid());
         ReceiptAccessVerificationService service = new();
 
         bool result = service.UserHasAccessToReceipt(user, receipt);
@@ -79,9 +75,41 @@ public class ReceiptAccessVerificationServiceTests
 
     private static Receipt CreateReceiptWithAccount(Account account)
     {
-        Receipt receipt = new() { CreatedByUserId = Guid.NewGuid() };
-        Assert.True(receipt.TryAddAccount(account.Id, out ReceiptAccount? link, out string? error), error);
-        link!.Account = account;
+        Receipt receipt = CreateReceipt(Guid.NewGuid());
+        Assert.True(receipt.TryAddAccount(account, out _, out string? error), error);
         return receipt;
+    }
+
+    private static Receipt CreateReceipt(Guid createdByUserId)
+    {
+        bool isCreated = Receipt.TryCreate(
+            "fn",
+            "fd",
+            "fp",
+            new DateTime(2026, 1, 1),
+            CostVision.Domain.Models.Enums.Receipts.ReceiptOperationType.Income,
+            100,
+            createdByUserId,
+            new DateTime(2026, 1, 1),
+            out Receipt? receipt,
+            out string? error);
+        Assert.True(isCreated, error);
+        receipt!.Id = Guid.NewGuid();
+        return receipt;
+    }
+
+    private static Account CreateAccount(Guid accountId, Guid ownerUserId)
+    {
+        bool isCreated = Account.TryCreate(
+            "Account",
+            null,
+            null,
+            ownerUserId,
+            new DateTime(2026, 1, 1),
+            out Account? account,
+            out string? error);
+        Assert.True(isCreated, error);
+        account!.Id = accountId;
+        return account;
     }
 }

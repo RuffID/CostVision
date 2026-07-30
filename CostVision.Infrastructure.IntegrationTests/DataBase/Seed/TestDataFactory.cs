@@ -1,5 +1,4 @@
 using CostVision.Domain.Models.Authorization;
-using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 
@@ -22,34 +21,33 @@ public static class TestDataFactory
 
     public static Account CreateAccount(Guid id, Guid createdByUserId, string name)
     {
-        return new Account
-        {
-            Id = id,
-            Name = name,
-            ColorHex = Account.DEFAULT_COLOR_HEX,
-            CreatedAtUtc = DateTime.UtcNow,
-            CreatedByUserId = createdByUserId
-        };
-    }
+        bool isCreated = Account.TryCreate(
+            name,
+            null,
+            null,
+            createdByUserId,
+            DateTime.UtcNow,
+            out Account? account,
+            out string? error);
+        if (!isCreated || account == null)
+            throw new InvalidOperationException(error ?? "Не удалось создать тестовый счёт.");
 
-    public static AccountMember CreateAccountOwner(Guid accountId, Guid userId)
-    {
-        return new AccountMember
-        {
-            AccountId = accountId,
-            UserId = userId,
-            Role = AccountAccessRole.Owner
-        };
+        account.Id = id;
+        return account;
     }
 
     public static Product CreateProduct(Guid id, string name)
     {
-        return new Product
-        {
-            Id = id,
-            Name = name,
-            NormalizedName = $"{name}-{Guid.NewGuid():N}".ToLowerInvariant()
-        };
+        bool isCreated = Product.TryCreate(
+            name,
+            $"{name}-{Guid.NewGuid():N}".ToLowerInvariant(),
+            out Product? product,
+            out string? error);
+        if (!isCreated || product == null)
+            throw new InvalidOperationException(error ?? "Не удалось создать тестовый товар.");
+
+        product.Id = id;
+        return product;
     }
 
     public static Receipt CreateReceipt(Guid id, Guid createdByUserId, Guid accountId, Product product)

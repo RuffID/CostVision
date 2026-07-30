@@ -15,7 +15,7 @@ public class DeleteReceiptUseCaseTests
     {
         Guid userId = Guid.NewGuid();
         Guid receiptId = Guid.NewGuid();
-        Receipt receipt = new() { Id = receiptId, CreatedByUserId = userId };
+        Receipt receipt = TestReceiptFactory.Create(receiptId, userId);
 
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         receiptRepository
@@ -38,7 +38,7 @@ public class DeleteReceiptUseCaseTests
     public async Task ExecuteAsync_ReturnsForbidden_WhenCurrentUserDidNotCreateReceipt()
     {
         Guid receiptId = Guid.NewGuid();
-        Receipt receipt = new() { Id = receiptId, CreatedByUserId = Guid.NewGuid() };
+        Receipt receipt = TestReceiptFactory.Create(receiptId);
 
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         receiptRepository

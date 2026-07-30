@@ -8,19 +8,19 @@ namespace CostVision.Domain.Models.Receipts
     /// </summary>
     public class AccountMember
     {
-        internal AccountMember()
+        private AccountMember()
         {
         }
 
-        public Guid UserId { get; internal set; }
+        public Guid UserId { get; private set; }
 
-        public User User { get; internal set; } = null!;
+        public User User { get; private set; } = null!;
 
-        public Guid AccountId { get; internal set; }
+        public Guid AccountId { get; private set; }
 
-        public Account Account { get; internal set; } = null!;
+        public Account Account { get; private set; } = null!;
 
-        public AccountAccessRole Role { get; internal set; }
+        public AccountAccessRole Role { get; private set; }
 
         internal static AccountMember CreateOwner(Account account, Guid userId)
         {

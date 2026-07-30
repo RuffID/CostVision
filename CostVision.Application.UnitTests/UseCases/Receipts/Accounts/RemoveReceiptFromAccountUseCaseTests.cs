@@ -17,9 +17,9 @@ public class RemoveReceiptFromAccountUseCaseTests
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         Guid receiptId = Guid.NewGuid();
-        Receipt receipt = new() { Id = receiptId };
-        ReceiptAccount link = AddAccount(receipt, new Account { Id = accountId, CreatedByUserId = userId });
-        AddAccount(receipt, new Account { Id = Guid.NewGuid(), CreatedByUserId = userId });
+        Receipt receipt = TestReceiptFactory.Create(receiptId);
+        ReceiptAccount link = AddAccount(receipt, TestAccountFactory.Create(accountId, userId));
+        AddAccount(receipt, TestAccountFactory.Create(Guid.NewGuid(), userId));
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository(receipt);
         Mock<IReceiptAccountRepository> receiptAccountRepository = new(MockBehavior.Strict);
         receiptAccountRepository.Setup(repository => repository.Delete(link));
@@ -39,8 +39,8 @@ public class RemoveReceiptFromAccountUseCaseTests
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        Receipt receipt = new() { Id = Guid.NewGuid() };
-        AddAccount(receipt, new Account { Id = accountId, CreatedByUserId = userId });
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
+        AddAccount(receipt, TestAccountFactory.Create(accountId, userId));
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository(receipt);
         receiptRepository.Setup(repository => repository.Delete(receipt));
         Mock<IReceiptAccountRepository> receiptAccountRepository = new(MockBehavior.Strict);
@@ -57,13 +57,9 @@ public class RemoveReceiptFromAccountUseCaseTests
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        Account account = new()
-        {
-            Id = accountId,
-            CreatedByUserId = Guid.NewGuid()
-        };
+        Account account = TestAccountFactory.Create(accountId);
         account.TryAddMember(userId, AccountAccessRole.Viewer, out _, out _);
-        Receipt receipt = new() { Id = Guid.NewGuid() };
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
         AddAccount(receipt, account);
         RemoveReceiptFromAccountUseCase useCase = new(CreateUnitOfWork(CreateReceiptRepository(receipt), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);
 
@@ -99,9 +95,8 @@ public class RemoveReceiptFromAccountUseCaseTests
 
     private static ReceiptAccount AddAccount(Receipt receipt, Account account)
     {
-        Assert.True(receipt.TryAddAccount(account.Id, out ReceiptAccount? link, out string? error), error);
-        link!.Account = account;
-        return link;
+        Assert.True(receipt.TryAddAccount(account, out ReceiptAccount? link, out string? error), error);
+        return link!;
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)

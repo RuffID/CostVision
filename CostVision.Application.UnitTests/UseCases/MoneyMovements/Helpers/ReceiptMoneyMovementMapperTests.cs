@@ -12,17 +12,17 @@ public class ReceiptMoneyMovementMapperTests
     public void MapReceiptMoneyMovementDto_MapsMovementAndDetectsExistingLinks()
     {
         Guid movementId = Guid.NewGuid();
-        MoneyMovement movement = new()
-        {
-            Id = movementId,
-            Account = new Account { Name = "Main" },
-            Amount = 15m,
-            Type = MoneyMovementType.Expense,
-            OccurredAt = new DateTime(2026, 2, 1),
-            Comment = "comment",
-            ImportComment = "import",
-            ReceiptLinks = [new MoneyMovementReceipt()]
-        };
+        MoneyMovement movement = TestMoneyMovementFactory.CreateBankStatementImport(
+            movementId,
+            amount: 15m,
+            occurredAt: new DateTime(2026, 2, 1),
+            type: MoneyMovementType.Expense,
+            comment: "comment",
+            importComment: "import",
+            accountName: "Main");
+        TestMoneyMovementFactory.CreateLink(
+            movement,
+            TestReceiptFactory.Create(Guid.NewGuid()));
 
         dynamic dto = MapMovement(movement);
 
@@ -39,13 +39,10 @@ public class ReceiptMoneyMovementMapperTests
     [Fact]
     public void MapReceiptMoneyMovementDto_UsesEmptyStringsForNullableFields()
     {
-        MoneyMovement movement = new()
-        {
-            Id = Guid.NewGuid(),
-            Amount = 15m,
-            Type = MoneyMovementType.Income,
-            OccurredAt = new DateTime(2026, 2, 1)
-        };
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManualWithoutNavigations(
+            amount: 15m,
+            occurredAt: new DateTime(2026, 2, 1),
+            type: MoneyMovementType.Income);
 
         dynamic dto = MapMovement(movement);
 
@@ -59,7 +56,7 @@ public class ReceiptMoneyMovementMapperTests
     public void MapReceiptMoneyMovementDto_MapsLinkWithoutNestedMovement()
     {
         Guid movementId = Guid.NewGuid();
-        MoneyMovementReceipt link = new() { MoneyMovementId = movementId };
+        MoneyMovementReceipt link = TestMoneyMovementFactory.CreateLink(movementId, Guid.NewGuid());
 
         dynamic dto = MapLink(link);
 

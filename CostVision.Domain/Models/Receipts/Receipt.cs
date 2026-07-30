@@ -2,6 +2,7 @@
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.MoneyMovements;
 using EFCoreLibrary.Abstractions.Entity;
+using System.Collections.ObjectModel;
 
 namespace CostVision.Domain.Models.Receipts
 {
@@ -14,10 +15,17 @@ namespace CostVision.Domain.Models.Receipts
         public const int MAX_REGION_LENGTH = 32;
 
         private readonly List<ReceiptItem> _items = new();
+        private readonly ReadOnlyCollection<ReceiptItem> _itemsView;
         private readonly List<ReceiptAccount> _accounts = new();
+        private readonly ReadOnlyCollection<ReceiptAccount> _accountsView;
+        private readonly List<MoneyMovementReceipt> _moneyMovementLinks = new();
+        private readonly ReadOnlyCollection<MoneyMovementReceipt> _moneyMovementLinksView;
 
-        internal Receipt()
+        private Receipt()
         {
+            _itemsView = _items.AsReadOnly();
+            _accountsView = _accounts.AsReadOnly();
+            _moneyMovementLinksView = _moneyMovementLinks.AsReadOnly();
         }
 
         public Guid Id { get; set; }
@@ -25,102 +33,102 @@ namespace CostVision.Domain.Models.Receipts
         /// <summary>
         /// ФН (FN) - номер фискального накопителя.
         /// </summary>
-        public string FiscalDriveNumber { get; internal set; } = string.Empty;
+        public string FiscalDriveNumber { get; private set; } = string.Empty;
 
         /// <summary>
         /// ФД (FD) - фискальный номер документа.
         /// </summary>
-        public string FiscalDocumentNumber { get; internal set; } = string.Empty;
+        public string FiscalDocumentNumber { get; private set; } = string.Empty;
 
         /// <summary>
         /// ФПД, ФП (FP) - фискальный признак документа.
         /// </summary>
-        public string FiscalSign { get; internal set; } = string.Empty;
+        public string FiscalSign { get; private set; } = string.Empty;
 
-        public Guid? StoreId { get; internal set; }
+        public Guid? StoreId { get; private set; }
 
-        public Store? Store { get; internal set; }
+        public Store? Store { get; private set; }
 
         /// <summary>
         /// Наименование юридического лица.
         /// </summary>
-        public string? User { get; internal set; }
+        public string? User { get; private set; }
 
-        public string? UserInn { get; internal set; }
+        public string? UserInn { get; private set; }
 
         /// <summary>
         /// Время покупки.
         /// </summary>
-        public DateTime DateTime { get; internal set; }
+        public DateTime DateTime { get; private set; }
 
         /// <summary>
         /// Номер чека за смену.
         /// </summary>
-        public int? CheckNumber { get; internal set; }
+        public int? CheckNumber { get; private set; }
 
-        public int? ShiftNumber { get; internal set; }
+        public int? ShiftNumber { get; private set; }
 
-        public ReceiptOperationType OperationType { get; internal set; }
+        public ReceiptOperationType OperationType { get; private set; }
 
-        public TaxationType? TaxationType { get; internal set; }
+        public TaxationType? TaxationType { get; private set; }
 
-        public decimal TotalSum { get; internal set; }
+        public decimal TotalSum { get; private set; }
 
-        public decimal CashTotalSum { get; internal set; }
+        public decimal CashTotalSum { get; private set; }
 
-        public decimal EcashTotalSum { get; internal set; }
+        public decimal EcashTotalSum { get; private set; }
 
         /// <summary>
         /// Налоги.
         /// </summary>
-        public decimal? Nds18 { get; internal set; }
+        public decimal? Nds18 { get; private set; }
 
-        public decimal? Nds10 { get; internal set; }
+        public decimal? Nds10 { get; private set; }
 
-        public decimal? Nds0 { get; internal set; }
+        public decimal? Nds0 { get; private set; }
 
-        public decimal? NdsNo { get; internal set; }
+        public decimal? NdsNo { get; private set; }
 
         /// <summary>
         /// Информация о кассовой технике.
         /// </summary>
-        public string? KktRegId { get; internal set; }
+        public string? KktRegId { get; private set; }
 
-        public string? NumberKkt { get; internal set; }
+        public string? NumberKkt { get; private set; }
 
         /// <summary>
         /// Регион или город покупки.
         /// </summary>
-        public string? Region { get; internal set; }
+        public string? Region { get; private set; }
 
         /// <summary>
         /// Идентификатор пользователя, который импортировал чек.
         /// </summary>
-        public Guid CreatedByUserId { get; internal set; }
+        public Guid CreatedByUserId { get; private set; }
 
-        public User? CreatedByUser { get; set; }
+        public User? CreatedByUser { get; private set; }
 
         /// <summary>
         /// Позиции чека.
         /// </summary>
-        public IReadOnlyCollection<ReceiptItem> Items => _items;
+        public IReadOnlyCollection<ReceiptItem> Items => _itemsView;
 
         /// <summary>
         /// Связи чека со счетами.
         /// </summary>
-        public IReadOnlyCollection<ReceiptAccount> Accounts => _accounts;
+        public IReadOnlyCollection<ReceiptAccount> Accounts => _accountsView;
 
         /// <summary>
         /// Связи чека с операциями движения денег.
         /// </summary>
-        public List<MoneyMovementReceipt> MoneyMovementLinks { get; set; } = new();
+        public IReadOnlyCollection<MoneyMovementReceipt> MoneyMovementLinks => _moneyMovementLinksView;
 
         /// <summary>
         /// Метка времени создания записи в системе.
         /// </summary>
-        public DateTime CreatedAtUtc { get; internal set; }
+        public DateTime CreatedAtUtc { get; private set; }
 
-        public DateTime? UpdatedAtUtc { get; internal set; }
+        public DateTime? UpdatedAtUtc { get; private set; }
 
         /// <summary>
         /// Создаёт чек с допустимыми обязательными реквизитами.
@@ -265,16 +273,15 @@ namespace CostVision.Domain.Models.Receipts
                 return false;
             }
 
-            if (!item.CanAttachTo(this, out error))
-                return false;
-
             if (_items.Contains(item))
             {
                 error = "Позиция уже добавлена в чек.";
                 return false;
             }
 
-            item.AttachTo(this);
+            if (!item.TryAttachTo(this, out error))
+                return false;
+
             _items.Add(item);
             return true;
         }
@@ -309,6 +316,50 @@ namespace CostVision.Domain.Models.Receipts
 
             link = ReceiptAccount.Create(this, accountId);
             _accounts.Add(link);
+            error = null;
+            return true;
+        }
+
+        /// <summary>
+        /// Добавляет связь чека с указанным счётом и согласованно задаёт навигацию.
+        /// </summary>
+        public bool TryAddAccount(Account account, out ReceiptAccount? link, out string? error)
+        {
+            link = null;
+
+            if (account == null)
+            {
+                error = "Счёт не указан.";
+                return false;
+            }
+
+            if (!TryAddAccount(account.Id, out link, out error))
+                return false;
+
+            link!.AttachAccount(account);
+            return true;
+        }
+
+        internal bool TryAttachMoneyMovementLink(MoneyMovementReceipt link, out string? error)
+        {
+            if (link == null ||
+                link.ReceiptId != Id ||
+                !ReferenceEquals(link.Receipt, this) ||
+                link.MoneyMovementId == Guid.Empty ||
+                link.CreatedByUserId == Guid.Empty ||
+                link.CreatedAtUtc == default)
+            {
+                error = "Некорректная связь чека с операцией.";
+                return false;
+            }
+
+            if (_moneyMovementLinks.Any(item => item.MoneyMovementId == link.MoneyMovementId))
+            {
+                error = "Операция уже привязана к чеку.";
+                return false;
+            }
+
+            _moneyMovementLinks.Add(link);
             error = null;
             return true;
         }
@@ -498,7 +549,9 @@ namespace CostVision.Domain.Models.Receipts
             _items.Clear();
             foreach (ReceiptItem item in refreshedItems)
             {
-                item.AttachTo(this);
+                if (!item.TryAttachTo(this, out error))
+                    return false;
+
                 _items.Add(item);
             }
 

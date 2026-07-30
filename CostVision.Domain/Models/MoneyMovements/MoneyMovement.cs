@@ -1,7 +1,8 @@
-﻿using CostVision.Domain.Models.Authorization;
+using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Enums.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using EFCoreLibrary.Abstractions.Entity;
+using System.Collections.ObjectModel;
 
 namespace CostVision.Domain.Models.MoneyMovements
 {
@@ -12,41 +13,45 @@ namespace CostVision.Domain.Models.MoneyMovements
     {
         public const int COMMENT_MAX_LENGTH = 1024;
 
-        internal MoneyMovement()
+        private readonly List<MoneyMovementReceipt> _receiptLinks = new();
+        private readonly ReadOnlyCollection<MoneyMovementReceipt> _receiptLinksView;
+
+        private MoneyMovement()
         {
+            _receiptLinksView = _receiptLinks.AsReadOnly();
         }
 
         public Guid Id { get; set; }
 
-        public Guid AccountId { get; internal set; }
+        public Guid AccountId { get; private set; }
 
-        public Account Account { get; set; } = null!;
+        public Account? Account { get; private set; }
 
-        public decimal Amount { get; internal set; }
+        public decimal Amount { get; private set; }
 
-        public MoneyMovementType Type { get; internal set; }
+        public MoneyMovementType Type { get; private set; }
 
-        public DateTime OccurredAt { get; internal set; }
+        public DateTime OccurredAt { get; private set; }
 
-        public string? Comment { get; internal set; }
+        public string? Comment { get; private set; }
 
-        public string? ImportComment { get; internal set; }
+        public string? ImportComment { get; private set; }
 
-        public Guid CreatedByUserId { get; internal set; }
+        public Guid CreatedByUserId { get; private set; }
 
-        public User? CreatedByUser { get; set; }
+        public User? CreatedByUser { get; private set; }
 
-        public Guid PerformedByUserId { get; internal set; }
+        public Guid PerformedByUserId { get; private set; }
 
-        public User? PerformedByUser { get; set; }
+        public User? PerformedByUser { get; private set; }
 
-        public DateTime CreatedAtUtc { get; internal set; }
+        public DateTime CreatedAtUtc { get; private set; }
 
-        public DateTime? UpdatedAtUtc { get; internal set; }
+        public DateTime? UpdatedAtUtc { get; private set; }
 
-        public MoneyMovementSource Source { get; internal set; }
+        public MoneyMovementSource Source { get; private set; }
 
-        public List<MoneyMovementReceipt> ReceiptLinks { get; set; } = new();
+        public IReadOnlyCollection<MoneyMovementReceipt> ReceiptLinks => _receiptLinksView;
 
         /// <summary>
         /// Создаёт ручную операцию с допустимыми начальными данными.
@@ -97,6 +102,48 @@ namespace CostVision.Domain.Models.MoneyMovements
                 CreatedAtUtc = createdAtUtc,
                 Source = MoneyMovementSource.Manual
             };
+            return true;
+        }
+
+        /// <summary>
+        /// Создаёт ручную операцию и согласованно задаёт загруженные навигации.
+        /// </summary>
+        public static bool TryCreateManual(
+            Account account,
+            decimal amount,
+            MoneyMovementType? type,
+            DateTime occurredAt,
+            string? comment,
+            User createdByUser,
+            User performedByUser,
+            DateTime createdAtUtc,
+            out MoneyMovement? movement,
+            out string? error)
+        {
+            movement = null;
+
+            if (account == null || createdByUser == null || performedByUser == null)
+            {
+                error = "Счёт или пользователь операции не указан.";
+                return false;
+            }
+
+            if (!TryCreateManual(
+                    account.Id,
+                    amount,
+                    type,
+                    occurredAt,
+                    comment,
+                    createdByUser.Id,
+                    performedByUser.Id,
+                    createdAtUtc,
+                    out movement,
+                    out error))
+                return false;
+
+            movement!.Account = account;
+            movement.CreatedByUser = createdByUser;
+            movement.PerformedByUser = performedByUser;
             return true;
         }
 
@@ -156,6 +203,48 @@ namespace CostVision.Domain.Models.MoneyMovements
                 CreatedAtUtc = createdAtUtc,
                 Source = MoneyMovementSource.BankStatementImport
             };
+            return true;
+        }
+
+        /// <summary>
+        /// Создаёт импортированную операцию и согласованно задаёт загруженные навигации.
+        /// </summary>
+        public static bool TryCreateBankStatementImport(
+            Account account,
+            decimal amount,
+            MoneyMovementType type,
+            DateTime occurredAt,
+            string? comment,
+            string? importComment,
+            User user,
+            DateTime createdAtUtc,
+            out MoneyMovement? movement,
+            out string? error)
+        {
+            movement = null;
+
+            if (account == null || user == null)
+            {
+                error = "Счёт или пользователь операции не указан.";
+                return false;
+            }
+
+            if (!TryCreateBankStatementImport(
+                    account.Id,
+                    amount,
+                    type,
+                    occurredAt,
+                    comment,
+                    importComment,
+                    user.Id,
+                    createdAtUtc,
+                    out movement,
+                    out error))
+                return false;
+
+            movement!.Account = account;
+            movement.CreatedByUser = user;
+            movement.PerformedByUser = user;
             return true;
         }
 
@@ -231,6 +320,48 @@ namespace CostVision.Domain.Models.MoneyMovements
             }
 
             AccountId = accountId;
+            error = null;
+            return true;
+        }
+
+        /// <summary>
+        /// Переносит операцию на указанный счёт и согласованно задаёт навигацию.
+        /// </summary>
+        public bool TryMoveToAccount(Account account, out string? error)
+        {
+            if (account == null)
+            {
+                error = "Счёт не указан.";
+                return false;
+            }
+
+            if (!TryMoveToAccount(account.Id, out error))
+                return false;
+
+            Account = account;
+            return true;
+        }
+
+        internal bool TryAttachReceiptLink(MoneyMovementReceipt link, out string? error)
+        {
+            if (link == null ||
+                link.MoneyMovementId != Id ||
+                !ReferenceEquals(link.MoneyMovement, this) ||
+                link.ReceiptId == Guid.Empty ||
+                link.CreatedByUserId == Guid.Empty ||
+                link.CreatedAtUtc == default)
+            {
+                error = "Некорректная связь операции с чеком.";
+                return false;
+            }
+
+            if (_receiptLinks.Any(item => item.ReceiptId == link.ReceiptId))
+            {
+                error = "Чек уже привязан к операции.";
+                return false;
+            }
+
+            _receiptLinks.Add(link);
             error = null;
             return true;
         }

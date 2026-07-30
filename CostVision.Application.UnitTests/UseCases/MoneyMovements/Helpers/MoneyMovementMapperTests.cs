@@ -15,26 +15,23 @@ public class MoneyMovementMapperTests
         Guid movementId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         Guid userId = Guid.NewGuid();
-        MoneyMovement movement = new()
-        {
-            Id = movementId,
-            AccountId = accountId,
-            Account = new Account { Id = accountId, Name = "Main", ColorHex = "#112233" },
-            Amount = 123.45m,
-            Type = MoneyMovementType.Expense,
-            OccurredAt = new DateTime(2026, 2, 1, 10, 0, 0),
-            Comment = "comment",
-            ImportComment = "import",
-            PerformedByUserId = userId,
-            PerformedByUser = new User { Id = userId, Name = "User" },
-            Source = MoneyMovementSource.BankStatementImport,
-            ReceiptLinks =
-            [
-                new MoneyMovementReceipt { Receipt = new Receipt { TotalSum = 100m } },
-                new MoneyMovementReceipt { Receipt = new Receipt { TotalSum = 23.45m } },
-                new MoneyMovementReceipt()
-            ]
-        };
+        MoneyMovement movement = TestMoneyMovementFactory.CreateBankStatementImport(
+            movementId,
+            accountId,
+            123.45m,
+            new DateTime(2026, 2, 1, 10, 0, 0),
+            userId,
+            MoneyMovementType.Expense,
+            "comment",
+            "import",
+            "Main",
+            "#112233",
+            "User");
+        TestReceiptFactory.AddMoneyMovementLink(TestReceiptFactory.Create(totalSum: 100m), movement);
+        TestReceiptFactory.AddMoneyMovementLink(TestReceiptFactory.Create(totalSum: 23.45m), movement);
+        TestMoneyMovementFactory.AddMaterializedReceiptLink(
+            movement,
+            TestMoneyMovementFactory.CreateLink(movement.Id, Guid.NewGuid(), userId));
 
         dynamic dto = MapDto(movement, 7);
 
@@ -57,16 +54,10 @@ public class MoneyMovementMapperTests
     [Fact]
     public void MapDto_UsesEmptyStringsForMissingNavigationData()
     {
-        MoneyMovement movement = new()
-        {
-            Id = Guid.NewGuid(),
-            AccountId = Guid.NewGuid(),
-            Amount = 10m,
-            Type = MoneyMovementType.Income,
-            OccurredAt = new DateTime(2026, 2, 2),
-            PerformedByUserId = Guid.NewGuid(),
-            Source = MoneyMovementSource.Manual
-        };
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManualWithoutNavigations(
+            amount: 10m,
+            occurredAt: new DateTime(2026, 2, 2),
+            type: MoneyMovementType.Income);
 
         dynamic dto = MapDto(movement);
 

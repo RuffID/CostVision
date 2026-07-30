@@ -16,10 +16,16 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
-        movement.Account = CreateAccount(accountId, userId);
-        MoneyMovementReceipt oldLink = new() { MoneyMovementId = movement.Id, Receipt = CreateReceipt(Guid.NewGuid(), userId, accountId, 10, new DateTime(2026, 5, 1)) };
-        MoneyMovementReceipt newLink = new() { MoneyMovementId = movement.Id, Receipt = CreateReceipt(Guid.NewGuid(), userId, accountId, 20, new DateTime(2026, 5, 2)) };
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
+        MoneyMovementReceipt oldLink = TestMoneyMovementFactory.CreateLink(
+            movement,
+            CreateReceipt(Guid.NewGuid(), userId, accountId, 10, new DateTime(2026, 5, 1)),
+            userId);
+        MoneyMovementReceipt newLink = TestMoneyMovementFactory.CreateLink(
+            movement,
+            CreateReceipt(Guid.NewGuid(), userId, accountId, 20, new DateTime(2026, 5, 2)),
+            userId);
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
             .Setup(repository => repository.GetItemByPredicateAsync(
@@ -53,8 +59,8 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
-        movement.Account = CreateAccount(accountId, userId);
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
             .Setup(repository => repository.GetItemByPredicateAsync(
@@ -89,10 +95,12 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         Receipt receipt = CreateReceipt(Guid.NewGuid(), userId, accountId, 100, DateTime.Today);
-        MoneyMovement oldMovement = CreateMovement(Guid.NewGuid(), accountId, 10, new DateTime(2026, 5, 1), userId);
-        MoneyMovement newMovement = CreateMovement(Guid.NewGuid(), accountId, 20, new DateTime(2026, 5, 2), userId);
-        oldMovement.Account = CreateAccount(accountId, userId, "Card");
-        newMovement.Account = oldMovement.Account;
+        MoneyMovement oldMovement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 10, new DateTime(2026, 5, 1), userId, "Card");
+        MoneyMovement newMovement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 20, new DateTime(2026, 5, 2), userId, "Card");
+        MoneyMovementReceipt oldLink = TestMoneyMovementFactory.CreateLink(oldMovement, receipt, userId);
+        MoneyMovementReceipt newLink = TestMoneyMovementFactory.CreateLink(newMovement, receipt, userId);
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository();
         receiptRepository
             .Setup(repository => repository.GetItemByPredicateAsync(
@@ -110,10 +118,7 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
                 true,
                 It.IsAny<Func<IQueryable<MoneyMovementReceipt>, IQueryable<MoneyMovementReceipt>>>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync([
-                new MoneyMovementReceipt { ReceiptId = receipt.Id, MoneyMovement = oldMovement },
-                new MoneyMovementReceipt { ReceiptId = receipt.Id, MoneyMovement = newMovement }
-            ]);
+            .ReturnsAsync([oldLink, newLink]);
         GetLinkedReceiptMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
             receiptRepository: receiptRepository,
             moneyMovementReceiptRepository: linkRepository).Object);

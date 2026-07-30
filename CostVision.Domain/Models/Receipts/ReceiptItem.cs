@@ -8,37 +8,37 @@ namespace CostVision.Domain.Models.Receipts
     /// </summary>
     public class ReceiptItem : IEntity<Guid>
     {
-        internal ReceiptItem()
+        private ReceiptItem()
         {
         }
 
         public Guid Id { get; set; }
 
-        public decimal Price { get; internal set; }
+        public decimal Price { get; private set; }
 
-        public decimal Quantity { get; internal set; }
+        public decimal Quantity { get; private set; }
 
-        public decimal Sum { get; internal set; }
+        public decimal Sum { get; private set; }
 
-        public int Nds { get; internal set; }
+        public int Nds { get; private set; }
 
-        public PaymentType PaymentType { get; internal set; }
+        public PaymentType PaymentType { get; private set; }
 
-        public ProductType ProductType { get; internal set; }
+        public ProductType ProductType { get; private set; }
 
-        public QuantityMeasureType ItemsQuantityMeasure { get; internal set; }
+        public QuantityMeasureType ItemsQuantityMeasure { get; private set; }
 
-        public Guid ReceiptId { get; internal set; }
+        public Guid ReceiptId { get; private set; }
 
-        public Guid? ProductId { get; internal set; }
+        public Guid? ProductId { get; private set; }
 
-        public Guid? CategoryId { get; internal set; }
+        public Guid? CategoryId { get; private set; }
 
-        public Receipt? Receipt { get; internal set; }
+        public Receipt? Receipt { get; private set; }
 
-        public ExpenseCategory? Category { get; set; }
+        public ExpenseCategory? Category { get; private set; }
 
-        public Product? Product { get; internal set; }
+        public Product? Product { get; private set; }
 
         /// <summary>
         /// Создаёт допустимую позицию чека.
@@ -110,10 +110,14 @@ namespace CostVision.Domain.Models.Receipts
             return true;
         }
 
-        internal void AttachTo(Receipt receipt)
+        internal bool TryAttachTo(Receipt receipt, out string? error)
         {
+            if (!CanAttachTo(receipt, out error))
+                return false;
+
             Receipt = receipt;
             ReceiptId = receipt.Id;
+            return true;
         }
 
         private static bool TryValidateValues(

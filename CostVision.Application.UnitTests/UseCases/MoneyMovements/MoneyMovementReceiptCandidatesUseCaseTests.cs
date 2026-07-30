@@ -18,8 +18,8 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         DateTime occurredAt = new(2026, 5, 10, 12, 0, 0);
-        MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, occurredAt, userId);
-        movement.Account = CreateAccount(accountId, userId, "Card");
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 100, occurredAt, userId, "Card");
         Receipt nearest = CreateReceipt(Guid.NewGuid(), userId, accountId, 100, occurredAt.AddMinutes(5));
         Receipt later = CreateReceipt(Guid.NewGuid(), userId, accountId, 101, occurredAt.AddMinutes(30));
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
@@ -61,8 +61,8 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
-        movement.Account = CreateAccount(accountId, userId);
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
             .Setup(repository => repository.GetItemByPredicateAsync(
@@ -90,10 +90,10 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
         Guid accountId = Guid.NewGuid();
         DateTime receiptDate = new(2026, 5, 10, 12, 0, 0);
         Receipt receipt = CreateReceipt(Guid.NewGuid(), userId, accountId, 100, receiptDate);
-        MoneyMovement nearest = CreateMovement(Guid.NewGuid(), accountId, 100, receiptDate.AddMinutes(5), userId);
-        MoneyMovement later = CreateMovement(Guid.NewGuid(), accountId, 101, receiptDate.AddMinutes(30), userId);
-        nearest.Account = CreateAccount(accountId, userId, "Card");
-        later.Account = nearest.Account;
+        MoneyMovement nearest = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 100, receiptDate.AddMinutes(5), userId, "Card");
+        MoneyMovement later = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 101, receiptDate.AddMinutes(30), userId, "Card");
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository();
         receiptRepository
             .Setup(repository => repository.GetItemByPredicateAsync(

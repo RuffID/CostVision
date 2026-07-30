@@ -96,42 +96,24 @@ public class GetProductListUseCaseTests
 
     private static Product CreateProduct(string name, string? adaptiveName, Guid currentUserId, int accessibleReceiptCount)
     {
-        Product product = new()
-        {
-            Id = Guid.NewGuid(),
-            Name = name,
-            AdaptiveName = adaptiveName
-        };
+        Assert.True(Product.TryCreate(name, name.ToUpperInvariant(), out Product? product, out string? productError), productError);
+        product!.Id = Guid.NewGuid();
+        Assert.True(product.TryUpdateAdaptiveName(adaptiveName, out productError), productError);
 
         for (int index = 0; index < accessibleReceiptCount; index++)
         {
-            Receipt receipt = new()
-            {
-                Id = Guid.NewGuid(),
-                CreatedByUserId = currentUserId
-            };
-
-            product.ReceiptItems.Add(new ReceiptItem
-            {
-                Id = Guid.NewGuid(),
-                ReceiptId = receipt.Id,
-                Receipt = receipt,
-                Product = product
-            });
+            Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), currentUserId);
+            ReceiptItem item = TestReceiptFactory.CreateItem(product);
+            item.Id = Guid.NewGuid();
+            Assert.True(receipt.TryAddItem(item, out string? itemError), itemError);
+            TestReceiptFactory.AddMaterializedReceiptItem(product, item);
         }
 
-        Receipt inaccessibleReceipt = new()
-        {
-            Id = Guid.NewGuid(),
-            CreatedByUserId = Guid.NewGuid()
-        };
-        product.ReceiptItems.Add(new ReceiptItem
-        {
-            Id = Guid.NewGuid(),
-            ReceiptId = inaccessibleReceipt.Id,
-            Receipt = inaccessibleReceipt,
-            Product = product
-        });
+        Receipt inaccessibleReceipt = TestReceiptFactory.Create(Guid.NewGuid());
+        ReceiptItem inaccessibleItem = TestReceiptFactory.CreateItem(product);
+        inaccessibleItem.Id = Guid.NewGuid();
+        Assert.True(inaccessibleReceipt.TryAddItem(inaccessibleItem, out string? inaccessibleItemError), inaccessibleItemError);
+        TestReceiptFactory.AddMaterializedReceiptItem(product, inaccessibleItem);
 
         return product;
     }

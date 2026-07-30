@@ -16,7 +16,7 @@ public class GetReceiptWithItemsUseCaseTests
     public async Task ExecuteAsync_ReturnsReceipt_WhenUserHasAccess()
     {
         User currentUser = new() { Id = Guid.NewGuid() };
-        Receipt receipt = new() { Id = Guid.NewGuid(), CreatedByUserId = currentUser.Id };
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), currentUser.Id);
 
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(true);
@@ -33,7 +33,7 @@ public class GetReceiptWithItemsUseCaseTests
     public async Task ExecuteAsync_ReturnsUnauthorized_WhenUserHasNoAccess()
     {
         User currentUser = new() { Id = Guid.NewGuid() };
-        Receipt receipt = new() { Id = Guid.NewGuid(), CreatedByUserId = Guid.NewGuid() };
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
 
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(false);

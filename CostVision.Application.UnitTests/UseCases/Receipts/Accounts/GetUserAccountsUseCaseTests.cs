@@ -17,15 +17,13 @@ public class GetUserAccountsUseCaseTests
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        Account account = new Account
-        {
-            Id = accountId,
-            Name = "Shared",
-            Description = "Groceries",
-            ColorHex = "#ABCDEF",
-            CreatedByUserId = Guid.NewGuid(),
-            CreatedByUser = new User { Id = Guid.NewGuid(), Name = "Owner" }
-        };
+        User owner = new() { Id = Guid.NewGuid(), Name = "Owner" };
+        Account account = TestAccountFactory.Create(
+            accountId,
+            name: "Shared",
+            description: "Groceries",
+            colorHex: "#ABCDEF",
+            owner: owner);
         account.TryAddMember(userId, AccountAccessRole.Editor, out AccountMember? membership, out _);
         Assert.NotNull(membership);
         List<AccountMember> memberships = [membership];

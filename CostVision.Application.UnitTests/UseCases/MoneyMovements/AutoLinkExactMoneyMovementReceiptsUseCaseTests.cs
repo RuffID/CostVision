@@ -19,12 +19,12 @@ public class AutoLinkExactMoneyMovementReceiptsUseCaseTests : MoneyMovementUseCa
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         DateTime date = new(2026, 5, 10);
-        MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, date, userId);
-        movement.Type = MoneyMovementType.Expense;
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 100, date, userId, type: MoneyMovementType.Expense);
         Receipt matchingReceipt = CreateReceipt(Guid.NewGuid(), userId, accountId, 100, date);
         Receipt duplicateReceipt = CreateReceipt(Guid.NewGuid(), userId, accountId, 50, date);
-        MoneyMovement duplicateMovement = CreateMovement(Guid.NewGuid(), accountId, 50, date, userId);
-        duplicateMovement.Type = MoneyMovementType.Expense;
+        MoneyMovement duplicateMovement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 50, date, userId, type: MoneyMovementType.Expense);
         List<MoneyMovementReceipt>? createdLinks = null;
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
@@ -72,8 +72,8 @@ public class AutoLinkExactMoneyMovementReceiptsUseCaseTests : MoneyMovementUseCa
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         DateTime date = new(2026, 5, 10);
-        MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, date, userId);
-        movement.Type = MoneyMovementType.Expense;
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 100, date, userId, type: MoneyMovementType.Expense);
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
             .Setup(repository => repository.GetItemsByPredicateAsync(

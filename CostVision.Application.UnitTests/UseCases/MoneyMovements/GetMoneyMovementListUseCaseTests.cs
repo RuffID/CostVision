@@ -19,11 +19,10 @@ public class GetMoneyMovementListUseCaseTests : MoneyMovementUseCaseTestBase
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         DateTime date = new(2026, 5, 10);
-        MoneyMovement first = CreateMovement(Guid.NewGuid(), accountId, 100, date.AddHours(11), userId);
-        first.Account = CreateAccount(accountId, userId, "Wallet");
-        first.PerformedByUser = new User { Id = userId, Name = "Ivan" };
-        MoneyMovement second = CreateMovement(Guid.NewGuid(), accountId, 50, date.AddHours(10), userId);
-        second.Account = first.Account;
+        MoneyMovement first = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 100, date.AddHours(11), userId, "Wallet", "Ivan");
+        MoneyMovement second = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(), accountId, 50, date.AddHours(10), userId, "Wallet");
         Receipt matchingReceipt = CreateReceipt(Guid.NewGuid(), userId, accountId, 100, date.AddHours(12));
 
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();

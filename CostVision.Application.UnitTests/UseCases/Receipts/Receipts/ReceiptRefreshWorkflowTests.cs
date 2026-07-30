@@ -16,16 +16,17 @@ public class ReceiptRefreshWorkflowTests
     [Fact]
     public async Task RefreshAsync_AppliesExternalReceiptRecreatesItemsAndCreatesMissingProduct()
     {
-        Receipt receipt = new()
-        {
-            Id = Guid.NewGuid(),
-            Store = new Store { Name = "Old", NormalizedName = "OLD", Address = "Old address", NormalizedAddress = "OLDADDRESS" }
-        };
-        Product oldProduct = new() { Name = "Old", NormalizedName = "OLD" };
+        Store.TryCreate("Old", "OLD", "Old address", "OLDADDRESS", out Store? oldStore, out string? oldStoreError);
+        Assert.NotNull(oldStore);
+        Assert.Null(oldStoreError);
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), store: oldStore);
+        Product oldProduct = TestReceiptFactory.CreateProduct("Old");
         Assert.True(ReceiptItem.TryCreate(1, 1, 1, 0, default, default, default, oldProduct, null, out ReceiptItem? oldItem, out string? oldItemError), oldItemError);
         Assert.True(receipt.TryAddItem(oldItem!, out oldItemError), oldItemError);
-        Product sourceProduct = new() { Name = "Milk", NormalizedName = "milk" };
-        Store sourceStore = new() { Name = "New", NormalizedName = "NEW", Address = "Address", NormalizedAddress = "ADDRESS" };
+        Product sourceProduct = TestReceiptFactory.CreateProduct("Milk");
+        Store.TryCreate("New", "NEW", "Address", "ADDRESS", out Store? sourceStore, out string? sourceStoreError);
+        Assert.NotNull(sourceStore);
+        Assert.Null(sourceStoreError);
         Assert.True(Receipt.TryCreate("fn", "fd", "fp", new DateTime(2026, 1, 1), ReceiptOperationType.Income, 20, Guid.NewGuid(), new DateTime(2026, 1, 1), out Receipt? externalReceipt, out string? receiptError), receiptError);
         externalReceipt!.AssignStore(sourceStore);
         Assert.True(ReceiptItem.TryCreate(10, 2, 20, 0, default, default, default, sourceProduct, null, out ReceiptItem? sourceItem, out string? itemError), itemError);
@@ -75,7 +76,7 @@ public class ReceiptRefreshWorkflowTests
     [Fact]
     public async Task RefreshAsync_ReturnsProviderError_WhenExternalProviderFails()
     {
-        Receipt receipt = new() { Id = Guid.NewGuid() };
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
         Mock<IExternalReceiptProvider> externalReceiptProvider = new(MockBehavior.Strict);
         externalReceiptProvider.Setup(provider => provider.GetReceiptAsync(receipt, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Receipt>.Fail(502, "Provider error"));

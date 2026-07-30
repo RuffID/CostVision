@@ -1,6 +1,7 @@
 ﻿using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.MoneyMovements;
 using EFCoreLibrary.Abstractions.Entity;
+using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using CostVision.Domain.Models.Enums.Authorization;
 
@@ -18,35 +19,43 @@ namespace CostVision.Domain.Models.Receipts
 
         private static readonly Regex COLOR_HEX_REGEX = new("^#[0-9A-F]{6}$", RegexOptions.Compiled);
         private readonly List<AccountMember> _members = new();
+        private readonly ReadOnlyCollection<AccountMember> _membersView;
+        private readonly List<ReceiptAccount> _receiptLinks = new();
+        private readonly ReadOnlyCollection<ReceiptAccount> _receiptLinksView;
+        private readonly List<MoneyMovement> _moneyMovements = new();
+        private readonly ReadOnlyCollection<MoneyMovement> _moneyMovementsView;
 
-        internal Account()
+        private Account()
         {
+            _membersView = _members.AsReadOnly();
+            _receiptLinksView = _receiptLinks.AsReadOnly();
+            _moneyMovementsView = _moneyMovements.AsReadOnly();
         }
 
         public Guid Id { get; set; }
 
-        public string Name { get; internal set; } = string.Empty;
+        public string Name { get; private set; } = string.Empty;
 
-        public string? Description { get; internal set; }
+        public string? Description { get; private set; }
 
         /// <summary>
         /// Цвет счёта в формате HEX.
         /// </summary>
-        public string ColorHex { get; internal set; } = DEFAULT_COLOR_HEX;
+        public string ColorHex { get; private set; } = DEFAULT_COLOR_HEX;
 
-        public bool IsArchived { get; internal set; }
+        public bool IsArchived { get; private set; }
 
-        public DateTime CreatedAtUtc { get; internal set; }
+        public DateTime CreatedAtUtc { get; private set; }
 
-        public Guid CreatedByUserId { get; internal set; }
+        public Guid CreatedByUserId { get; private set; }
 
-        public User? CreatedByUser { get; set; }
+        public User? CreatedByUser { get; private set; }
 
-        public IReadOnlyCollection<AccountMember> Members => _members;
+        public IReadOnlyCollection<AccountMember> Members => _membersView;
 
-        public List<ReceiptAccount> ReceiptLinks { get; set; } = new();
+        public IReadOnlyCollection<ReceiptAccount> ReceiptLinks => _receiptLinksView;
 
-        public List<MoneyMovement> MoneyMovements { get; set; } = new();
+        public IReadOnlyCollection<MoneyMovement> MoneyMovements => _moneyMovementsView;
 
         /// <summary>
         /// Создаёт счёт с допустимыми начальными данными.
@@ -87,6 +96,40 @@ namespace CostVision.Domain.Models.Receipts
             };
             account._members.Add(AccountMember.CreateOwner(account, createdByUserId));
 
+            return true;
+        }
+
+        /// <summary>
+        /// Создаёт счёт для указанного владельца и согласованно задаёт навигацию владельца.
+        /// </summary>
+        public static bool TryCreate(
+            string name,
+            string? description,
+            string? colorHex,
+            User createdByUser,
+            DateTime createdAtUtc,
+            out Account? account,
+            out string? error)
+        {
+            account = null;
+
+            if (createdByUser == null)
+            {
+                error = "Владелец счёта не указан.";
+                return false;
+            }
+
+            if (!TryCreate(
+                    name,
+                    description,
+                    colorHex,
+                    createdByUser.Id,
+                    createdAtUtc,
+                    out account,
+                    out error))
+                return false;
+
+            account!.CreatedByUser = createdByUser;
             return true;
         }
 

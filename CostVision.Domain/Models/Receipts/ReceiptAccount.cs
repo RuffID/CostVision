@@ -5,17 +5,17 @@ namespace CostVision.Domain.Models.Receipts
     /// </summary>
     public class ReceiptAccount
     {
-        internal ReceiptAccount()
+        private ReceiptAccount()
         {
         }
 
-        public Guid ReceiptId { get; internal set; }
+        public Guid ReceiptId { get; private set; }
 
-        public Receipt Receipt { get; internal set; } = null!;
+        public Receipt Receipt { get; private set; } = null!;
 
-        public Guid AccountId { get; internal set; }
+        public Guid AccountId { get; private set; }
 
-        public Account? Account { get; set; }
+        public Account? Account { get; private set; }
 
         internal static ReceiptAccount Create(Receipt receipt, Guid accountId)
         {
@@ -25,6 +25,14 @@ namespace CostVision.Domain.Models.Receipts
                 Receipt = receipt,
                 AccountId = accountId
             };
+        }
+
+        internal void AttachAccount(Account account)
+        {
+            if (account.Id != AccountId)
+                throw new InvalidOperationException("Идентификатор счёта не соответствует связи.");
+
+            Account = account;
         }
     }
 }

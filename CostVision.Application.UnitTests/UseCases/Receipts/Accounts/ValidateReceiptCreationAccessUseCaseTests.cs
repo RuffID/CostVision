@@ -14,7 +14,8 @@ public class ValidateReceiptCreationAccessUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsSuccess_WhenUserIsEditor()
     {
-        ValidateReceiptCreationAccessUseCase useCase = new(CreateUnitOfWork(new AccountMember { Role = AccountAccessRole.Editor }).Object);
+        AccountMember member = TestAccountFactory.CreateMember(Guid.NewGuid(), Guid.NewGuid(), AccountAccessRole.Editor);
+        ValidateReceiptCreationAccessUseCase useCase = new(CreateUnitOfWork(member).Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
 
@@ -25,7 +26,8 @@ public class ValidateReceiptCreationAccessUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsForbidden_WhenUserIsViewer()
     {
-        ValidateReceiptCreationAccessUseCase useCase = new(CreateUnitOfWork(new AccountMember { Role = AccountAccessRole.Viewer }).Object);
+        AccountMember member = TestAccountFactory.CreateMember(Guid.NewGuid(), Guid.NewGuid(), AccountAccessRole.Viewer);
+        ValidateReceiptCreationAccessUseCase useCase = new(CreateUnitOfWork(member).Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
 

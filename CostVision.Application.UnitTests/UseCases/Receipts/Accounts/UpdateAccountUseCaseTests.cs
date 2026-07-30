@@ -16,13 +16,7 @@ public class UpdateAccountUseCaseTests
     {
         Guid ownerUserId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        Account current = new()
-        {
-            Id = accountId,
-            Name = "Old",
-            ColorHex = "#000000",
-            CreatedByUserId = ownerUserId
-        };
+        Account current = TestAccountFactory.Create(accountId, ownerUserId, "Old", colorHex: "#000000");
 
         Mock<IAccountRepository> accountRepository = new(MockBehavior.Strict);
         accountRepository
@@ -109,13 +103,7 @@ public class UpdateAccountUseCaseTests
     {
         Guid ownerUserId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        Account current = new()
-        {
-            Id = accountId,
-            Name = "Old",
-            ColorHex = "#000000",
-            CreatedByUserId = ownerUserId
-        };
+        Account current = TestAccountFactory.Create(accountId, ownerUserId, "Old", colorHex: "#000000");
 
         Mock<IAccountRepository> accountRepository = new(MockBehavior.Strict);
         accountRepository

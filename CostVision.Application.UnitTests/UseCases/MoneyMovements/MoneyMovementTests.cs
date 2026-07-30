@@ -109,4 +109,17 @@ public class MoneyMovementTests
         Assert.NotNull(error);
         Assert.Equal("original", movement.Comment);
     }
+
+    [Fact]
+    public void PublicApi_DoesNotExposeInvariantBypasses()
+    {
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManual();
+
+        Assert.Null(typeof(MoneyMovement).GetConstructor(Type.EmptyTypes));
+        Assert.Null(typeof(MoneyMovementReceipt).GetConstructor(Type.EmptyTypes));
+        Assert.True(typeof(MoneyMovement).GetProperty(nameof(MoneyMovement.Amount))!.SetMethod!.IsPrivate);
+        Assert.True(typeof(MoneyMovement).GetProperty(nameof(MoneyMovement.Account))!.SetMethod!.IsPrivate);
+        Assert.True(typeof(MoneyMovementReceipt).GetProperty(nameof(MoneyMovementReceipt.Receipt))!.SetMethod!.IsPrivate);
+        Assert.False(movement.ReceiptLinks is List<MoneyMovementReceipt>);
+    }
 }

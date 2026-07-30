@@ -17,19 +17,9 @@ public class ProductRepositoryIntegrationTests(SqlServerContainerFixture fixture
         await using ServiceProvider serviceProvider = fixture.CreateServiceProvider();
         IUnitOfWork unitOfWork = serviceProvider.GetRequiredService<IUnitOfWork>();
 
-        unitOfWork.Product.CreateRange(
-        [
-            new Product
-            {
-                Name = "Milk",
-                NormalizedName = "milk"
-            },
-            new Product
-            {
-                Name = "Milk duplicate",
-                NormalizedName = "milk"
-            }
-        ]);
+        Assert.True(Product.TryCreate("Milk", "milk", out Product? product, out string? firstError), firstError);
+        Assert.True(Product.TryCreate("Milk duplicate", "milk", out Product? duplicate, out string? secondError), secondError);
+        unitOfWork.Product.CreateRange([product!, duplicate!]);
 
         DbUpdateException exception = await Assert.ThrowsAsync<DbUpdateException>(() => unitOfWork.SaveChangesAsync(ct));
 

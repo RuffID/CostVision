@@ -35,7 +35,7 @@ public class UserSettingsModelTests
     {
         User currentUser = TestUsers.Create();
         CreateAccountRequest request = new() { Name = "Main" };
-        Account account = new() { Id = Guid.NewGuid(), Name = "Main" };
+        Account account = CreateAccount(Guid.NewGuid(), currentUser.Id, "Main");
 
         Dependencies dependencies = new();
         dependencies.CreateAccountUseCase
@@ -69,7 +69,7 @@ public class UserSettingsModelTests
                 currentUser.Id,
                 request,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<Account>.Ok(new Account { Id = request.AccountId, Name = request.Name }));
+            .ReturnsAsync(ServiceResult<Account>.Ok(CreateAccount(request.AccountId, currentUser.Id, request.Name)));
 
         UserSettingsModel model = dependencies.CreateModel(currentUser);
 
@@ -77,6 +77,21 @@ public class UserSettingsModelTests
 
         Assert.Equal(request.AccountId, JsonResultAssert.Data<UserAccountViewModel>(json).Id);
         dependencies.UpdateAccountUseCase.VerifyAll();
+    }
+
+    private static Account CreateAccount(Guid accountId, Guid ownerUserId, string name)
+    {
+        bool isCreated = Account.TryCreate(
+            name,
+            null,
+            null,
+            ownerUserId,
+            new DateTime(2026, 1, 1),
+            out Account? account,
+            out string? error);
+        Assert.True(isCreated, error);
+        account!.Id = accountId;
+        return account;
     }
 
     private sealed class Dependencies

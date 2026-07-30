@@ -18,7 +18,7 @@ public class GetReceiptListUseCaseTests
     public async Task ExecuteAsync_ReturnsReceiptsFromRepository_WhenPeriodIsValid()
     {
         User currentUser = new() { Id = Guid.NewGuid() };
-        List<Receipt> receipts = [new Receipt { Id = Guid.NewGuid(), CreatedByUserId = currentUser.Id }];
+        List<Receipt> receipts = [TestReceiptFactory.Create(Guid.NewGuid(), currentUser.Id)];
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         receiptRepository
             .Setup(repository => repository.GetItemsByPredicateAsync(
@@ -112,16 +112,14 @@ public class GetReceiptListUseCaseTests
 
     private static Receipt CreateReceipt(Guid currentUserId, DateTime dateTime, string fiscalDriveNumber, string fiscalDocumentNumber, string fiscalSign)
     {
-        return new Receipt
-        {
-            Id = Guid.NewGuid(),
-            CreatedByUserId = currentUserId,
-            DateTime = dateTime,
-            FiscalDriveNumber = fiscalDriveNumber,
-            FiscalDocumentNumber = fiscalDocumentNumber,
-            FiscalSign = fiscalSign,
-            OperationType = ReceiptOperationType.Income,
-            TotalSum = 100
-        };
+        return TestReceiptFactory.Create(
+            Guid.NewGuid(),
+            currentUserId,
+            dateTime,
+            100,
+            ReceiptOperationType.Income,
+            fiscalDriveNumber: fiscalDriveNumber,
+            fiscalDocumentNumber: fiscalDocumentNumber,
+            fiscalSign: fiscalSign);
     }
 }

@@ -20,7 +20,7 @@ public class RepositoryCrudIntegrationTests(SqlServerContainerFixture fixture) :
 
         User user = TestDataFactory.CreateUser(userId, "repository-user");
         Account account = TestDataFactory.CreateAccount(accountId, userId, "Repository account");
-        AccountMember member = TestDataFactory.CreateAccountOwner(accountId, userId);
+        AccountMember member = account.Members.Single(item => item.Role == AccountAccessRole.Owner);
 
         await using (ServiceProvider createServiceProvider = fixture.CreateServiceProvider())
         {

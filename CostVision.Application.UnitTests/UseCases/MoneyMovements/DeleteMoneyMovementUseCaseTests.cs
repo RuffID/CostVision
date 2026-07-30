@@ -18,8 +18,10 @@ public class DeleteMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
-        MoneyMovementReceipt link = new() { MoneyMovementId = movement.Id, ReceiptId = Guid.NewGuid() };
-        movement.ReceiptLinks.Add(link);
+        MoneyMovementReceipt link = TestMoneyMovementFactory.CreateLink(
+            movement,
+            TestReceiptFactory.Create(Guid.NewGuid()),
+            userId);
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
             .Setup(repository => repository.GetItemByPredicateAsync(

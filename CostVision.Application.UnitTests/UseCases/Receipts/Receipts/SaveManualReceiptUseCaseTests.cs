@@ -49,8 +49,8 @@ public class SaveManualReceiptUseCaseTests
     public async Task ExecuteAsync_AddsExistingReceiptToAccount_WhenReceiptExistsForUserButNotAccount()
     {
         Guid accountId = Guid.NewGuid();
-        Receipt existingReceipt = new() { Id = Guid.NewGuid() };
-        Receipt loadedReceipt = new() { Id = existingReceipt.Id };
+        Receipt existingReceipt = TestReceiptFactory.Create(Guid.NewGuid());
+        Receipt loadedReceipt = TestReceiptFactory.Create(existingReceipt.Id);
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepositoryForSequence(null, existingReceipt, loadedReceipt);
         Mock<IReceiptAccountRepository> receiptAccountRepository = new(MockBehavior.Strict);
         receiptAccountRepository.Setup(repository => repository.Create(It.IsAny<ReceiptAccount>()));
@@ -72,8 +72,8 @@ public class SaveManualReceiptUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsDuplicateError_WhenReceiptAlreadyExistsInAccount()
     {
-        Receipt existingReceipt = new() { Id = Guid.NewGuid() };
-        Receipt loadedReceipt = new() { Id = existingReceipt.Id };
+        Receipt existingReceipt = TestReceiptFactory.Create(Guid.NewGuid());
+        Receipt loadedReceipt = TestReceiptFactory.Create(existingReceipt.Id);
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepositoryForSequence(existingReceipt, loadedReceipt);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
         SaveManualReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, refreshWorkflow.Object);

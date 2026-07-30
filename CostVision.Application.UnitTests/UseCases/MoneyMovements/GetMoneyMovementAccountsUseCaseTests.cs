@@ -15,10 +15,10 @@ public class GetMoneyMovementAccountsUseCaseTests : MoneyMovementUseCaseTestBase
     public async Task GetMoneyMovementAccounts_ReturnsAccessibleAccountsSortedByName()
     {
         Guid userId = Guid.NewGuid();
-        Account bAccount = CreateAccount(Guid.NewGuid(), Guid.NewGuid(), "B");
+        Account bAccount = CreateAccount(Guid.NewGuid(), Guid.NewGuid(), "Beta");
         bAccount.TryAddMember(userId, AccountAccessRole.Viewer, out _, out _);
-        Account aAccount = CreateAccount(Guid.NewGuid(), userId, "A");
-        aAccount.CreatedByUser = new User { Id = userId, Name = "Owner" };
+        User owner = new() { Id = userId, Name = "Owner" };
+        Account aAccount = TestAccountFactory.Create(Guid.NewGuid(), name: "Alpha", owner: owner);
         Mock<IAccountRepository> accountRepository = CreateAccountRepository();
         accountRepository
             .Setup(repository => repository.GetItemsByPredicateAsync(
@@ -33,7 +33,7 @@ public class GetMoneyMovementAccountsUseCaseTests : MoneyMovementUseCaseTestBase
 
         var result = await useCase.ExecuteAsync(userId, CancellationToken.None);
 
-        Assert.Equal(["A", "B"], result.Select(item => item.Name).ToList());
+        Assert.Equal(["Alpha", "Beta"], result.Select(item => item.Name).ToList());
         Assert.True(result[0].CanManage);
         Assert.Equal(AccountAccessRole.Viewer, result[1].AccessRole);
     }

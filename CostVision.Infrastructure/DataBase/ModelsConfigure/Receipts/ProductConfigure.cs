@@ -29,6 +29,9 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
             builder.HasIndex(p => p.AdaptiveName)
                 .IsUnique()
                 .HasFilter("[AdaptiveName] IS NOT NULL");
+
+            builder.Navigation(p => p.ReceiptItems)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

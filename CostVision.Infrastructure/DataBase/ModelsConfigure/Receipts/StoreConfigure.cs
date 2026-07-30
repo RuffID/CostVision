@@ -31,6 +31,9 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
 
             builder.HasIndex(x => new { x.NormalizedName, x.NormalizedAddress })
                 .IsUnique();
+
+            builder.Navigation(x => x.Receipts)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

@@ -16,36 +16,34 @@ public class ReceiptMapperTests
         Guid receiptId = Guid.NewGuid();
         Account editableAccount = CreateAccount("Editable", "#111111", userId, userId, AccountAccessRole.Editor);
         Account readonlyAccount = CreateAccount("Readonly", "#222222", Guid.NewGuid(), userId, AccountAccessRole.Viewer);
-        Receipt receipt = new()
-        {
-            Id = receiptId,
-            CreatedByUserId = userId,
-            DateTime = new DateTime(2026, 2, 1),
-            Store = new Store { Name = "Store" },
-            FiscalDocumentNumber = null!,
-            FiscalDriveNumber = null!,
-            FiscalSign = null!,
-            TotalSum = 50m,
-            MoneyMovementLinks =
-            [
-                new MoneyMovementReceipt { MoneyMovement = new MoneyMovement { Amount = 10m, Type = MoneyMovementType.Expense } },
-                new MoneyMovementReceipt { MoneyMovement = new MoneyMovement { Amount = 20m, Type = MoneyMovementType.Expense } },
-                new MoneyMovementReceipt()
-            ]
-        };
+        Receipt receipt = TestReceiptFactory.Create(
+            receiptId,
+            userId,
+            new DateTime(2026, 2, 1),
+            50m,
+            store: TestReceiptFactory.CreateStore("Store"));
+        MoneyMovement firstMovement = TestMoneyMovementFactory.CreateManual(
+            amount: 10m,
+            type: MoneyMovementType.Expense);
+        MoneyMovement secondMovement = TestMoneyMovementFactory.CreateManual(
+            amount: 20m,
+            type: MoneyMovementType.Expense);
+        TestReceiptFactory.AddMoneyMovementLink(receipt, firstMovement);
+        TestReceiptFactory.AddMoneyMovementLink(receipt, secondMovement);
+        TestReceiptFactory.AddMoneyMovementLink(receipt);
         AddAccount(receipt, readonlyAccount);
         AddAccount(receipt, editableAccount);
-        AddItem(receipt, new Product { Name = "Milk", AdaptiveName = "Milk 2.5%" }, 2m, 60m, 120m);
-        AddItem(receipt, new Product { Name = "Bread" }, 1m, 45m, 45m);
+        AddItem(receipt, TestReceiptFactory.CreateProduct("Milk", "Milk 2.5%"), 2m, 60m, 120m);
+        AddItem(receipt, TestReceiptFactory.CreateProduct("Bread"), 1m, 45m, 45m);
 
         var dto = receipt.MapReceiptDto(userId);
 
         Assert.Equal(receiptId, dto.Id);
         Assert.Equal("Store", dto.RetailPlace);
         Assert.Equal(string.Empty, dto.RetailPlaceAddress);
-        Assert.Equal(string.Empty, dto.FiscalDocumentNumber);
-        Assert.Equal(string.Empty, dto.FiscalDriveNumber);
-        Assert.Equal(string.Empty, dto.FiscalSign);
+        Assert.Equal("fd", dto.FiscalDocumentNumber);
+        Assert.Equal("fn", dto.FiscalDriveNumber);
+        Assert.Equal("fp", dto.FiscalSign);
         Assert.Equal(50m, dto.TotalSum);
         Assert.Equal(3, dto.MoneyMovementCount);
         Assert.Equal(30m, dto.MoneyMovementsTotalSum);
@@ -82,12 +80,7 @@ public class ReceiptMapperTests
     [Fact]
     public void MapReceiptDto_UsesUserNameWhenStoreIsMissing()
     {
-        Receipt receipt = new()
-        {
-            Id = Guid.NewGuid(),
-            CreatedByUserId = Guid.NewGuid(),
-            User = "Legal seller"
-        };
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), user: "Legal seller");
 
         var dto = receipt.MapReceiptDto();
 
@@ -100,13 +93,7 @@ public class ReceiptMapperTests
     private static Account CreateAccount(string name, string colorHex, Guid ownerId, Guid memberId, AccountAccessRole role)
     {
         Guid accountId = Guid.NewGuid();
-        Account account = new()
-        {
-            Id = accountId,
-            Name = name,
-            ColorHex = colorHex,
-            CreatedByUserId = ownerId
-        };
+        Account account = TestAccountFactory.Create(accountId, ownerId, name, colorHex: colorHex);
 
         if (memberId != ownerId)
             account.TryAddMember(memberId, role, out _, out _);
@@ -116,8 +103,7 @@ public class ReceiptMapperTests
 
     private static void AddAccount(Receipt receipt, Account account)
     {
-        Assert.True(receipt.TryAddAccount(account.Id, out ReceiptAccount? link, out string? error), error);
-        link!.Account = account;
+        Assert.True(receipt.TryAddAccount(account, out _, out string? error), error);
     }
 
     private static void AddItem(Receipt receipt, Product product, decimal quantity, decimal price, decimal sum)

@@ -1,4 +1,5 @@
 using EFCoreLibrary.Abstractions.Entity;
+using System.Collections.ObjectModel;
 
 namespace CostVision.Domain.Models.Receipts
 {
@@ -8,23 +9,27 @@ namespace CostVision.Domain.Models.Receipts
         public const int MAX_ADDRESS_LENGTH = 512;
         public const int MAX_ADAPTIVE_NAME_LENGTH = 500;
 
-        internal Store()
+        private readonly List<Receipt> _receipts = new();
+        private readonly ReadOnlyCollection<Receipt> _receiptsView;
+
+        private Store()
         {
+            _receiptsView = _receipts.AsReadOnly();
         }
 
         public Guid Id { get; set; }
 
-        public string Name { get; internal set; } = string.Empty;
+        public string Name { get; private set; } = string.Empty;
 
-        public string NormalizedName { get; internal set; } = string.Empty;
+        public string NormalizedName { get; private set; } = string.Empty;
 
-        public string Address { get; internal set; } = string.Empty;
+        public string Address { get; private set; } = string.Empty;
 
-        public string NormalizedAddress { get; internal set; } = string.Empty;
+        public string NormalizedAddress { get; private set; } = string.Empty;
 
-        public string? AdaptiveName { get; internal set; }
+        public string? AdaptiveName { get; private set; }
 
-        public ICollection<Receipt> Receipts { get; set; } = new List<Receipt>();
+        public IReadOnlyCollection<Receipt> Receipts => _receiptsView;
 
         /// <summary>
         /// Создаёт магазин с допустимыми начальными данными.

@@ -140,18 +140,20 @@ public class ExternalReceiptProviderTests
 
     private static Receipt CreateSourceReceipt()
     {
-        return new Receipt
-        {
-            Id = Guid.NewGuid(),
-            FiscalDocumentNumber = "fd",
-            FiscalDriveNumber = "fn",
-            FiscalSign = "fp",
-            DateTime = new DateTime(2026, 5, 29, 10, 15, 0),
-            TotalSum = 123.45m,
-            OperationType = ReceiptOperationType.Expense,
-            CreatedByUserId = Guid.NewGuid(),
-            CreatedAtUtc = new DateTime(2026, 5, 29, 10, 16, 0, DateTimeKind.Utc)
-        };
+        bool isCreated = Receipt.TryCreate(
+            "fn",
+            "fd",
+            "fp",
+            new DateTime(2026, 5, 29, 10, 15, 0),
+            ReceiptOperationType.Expense,
+            123.45m,
+            Guid.NewGuid(),
+            new DateTime(2026, 5, 29, 10, 16, 0, DateTimeKind.Utc),
+            out Receipt? receipt,
+            out string? error);
+        Assert.True(isCreated, error);
+        receipt!.Id = Guid.NewGuid();
+        return receipt;
     }
 
     private static ProverkachekaResponse CreateSuccessfulResponse()

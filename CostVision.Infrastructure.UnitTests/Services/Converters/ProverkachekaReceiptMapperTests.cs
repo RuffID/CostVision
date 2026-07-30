@@ -77,7 +77,8 @@ public class ProverkachekaReceiptMapperTests
     {
         Guid productId = Guid.NewGuid();
         Guid categoryId = Guid.NewGuid();
-        Product product = new() { Id = productId, Name = "Product", NormalizedName = "PRODUCT" };
+        Assert.True(Product.TryCreate("Product", "PRODUCT", out Product? product, out string? productError), productError);
+        product!.Id = productId;
         ProverkachekaItem item = new()
         {
             Price = 1999,

@@ -23,10 +23,15 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         Guid accountId = Guid.NewGuid();
         Guid performerId = Guid.NewGuid();
         MoneyMovement? createdMovement = null;
-        MoneyMovement loadedMovement = CreateMovement(Guid.NewGuid(), accountId, 125.50m, new DateTime(2026, 5, 10), userId);
-        loadedMovement.Account = CreateAccount(accountId, userId, "Card");
-        loadedMovement.PerformedByUser = new User { Id = performerId, Name = "Ivan" };
-        loadedMovement.PerformedByUserId = performerId;
+        MoneyMovement loadedMovement = TestMoneyMovementFactory.CreateManual(
+            Guid.NewGuid(),
+            accountId,
+            125.50m,
+            new DateTime(2026, 5, 10),
+            userId,
+            "Card",
+            "Ivan",
+            performedByUserId: performerId);
         loadedMovement.Id = Guid.NewGuid();
 
         Mock<IAccountMemberRepository> accountMemberRepository = CreateAccountMemberRepositorySequence(
@@ -93,9 +98,14 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         Receipt receipt = CreateReceipt(Guid.NewGuid(), userId, accountId, 125.50m, occurredAt.AddHours(1));
         MoneyMovement? createdMovement = null;
         MoneyMovementReceipt? createdLink = null;
-        MoneyMovement loadedMovement = CreateMovement(movementId, accountId, 125.50m, occurredAt, userId);
-        loadedMovement.Type = MoneyMovementType.Expense;
-        loadedMovement.Account = CreateAccount(accountId, userId, "Card");
+        MoneyMovement loadedMovement = TestMoneyMovementFactory.CreateManual(
+            movementId,
+            accountId,
+            125.50m,
+            occurredAt,
+            userId,
+            "Card",
+            type: MoneyMovementType.Expense);
 
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository.Setup(repository => repository.Create(It.IsAny<MoneyMovement>()))

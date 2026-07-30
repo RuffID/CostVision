@@ -58,27 +58,20 @@ public class ReceiptGroupMapperTests
 
     private static Receipt CreateReceipt(Guid receiptId, Guid createdByUserId, Account account, decimal linkedAmount)
     {
-        Receipt receipt = new()
-        {
-            Id = receiptId,
-            CreatedByUserId = createdByUserId,
-            Store = new Store { Name = "Store" },
-            MoneyMovementLinks = [new MoneyMovementReceipt { MoneyMovement = new MoneyMovement { Amount = linkedAmount } }]
-        };
-        Assert.True(receipt.TryAddAccount(account.Id, out ReceiptAccount? link, out string? error), error);
-        link!.Account = account;
+        Receipt receipt = TestReceiptFactory.Create(
+            receiptId,
+            createdByUserId,
+            store: TestReceiptFactory.CreateStore("Store"));
+        MoneyMovement movement = TestMoneyMovementFactory.CreateManual(amount: linkedAmount);
+        TestReceiptFactory.AddMoneyMovementLink(receipt, movement);
+        Assert.True(receipt.TryAddAccount(account, out _, out string? error), error);
         return receipt;
     }
 
     private static Account CreateAccount(string name, Guid ownerId, Guid memberId, AccountAccessRole role)
     {
         Guid accountId = Guid.NewGuid();
-        Account account = new()
-        {
-            Id = accountId,
-            Name = name,
-            CreatedByUserId = ownerId
-        };
+        Account account = TestAccountFactory.Create(accountId, ownerId, name);
 
         if (memberId != ownerId)
             account.TryAddMember(memberId, role, out _, out _);

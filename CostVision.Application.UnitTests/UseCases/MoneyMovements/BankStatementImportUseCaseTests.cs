@@ -31,10 +31,14 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
                 CreatePreviewRow(occurredAt, 100, "purchase")
             ]
         };
-        MoneyMovement existing = CreateMovement(Guid.NewGuid(), accountId, 100, occurredAt, userId);
-        existing.Source = MoneyMovementSource.BankStatementImport;
-        existing.Type = MoneyMovementType.Expense;
-        existing.ImportComment = "purchase";
+        MoneyMovement existing = TestMoneyMovementFactory.CreateBankStatementImport(
+            Guid.NewGuid(),
+            accountId,
+            100,
+            occurredAt,
+            userId,
+            MoneyMovementType.Expense,
+            importComment: "purchase");
         Mock<IBankStatementParser> parser = CreateParser("test", preview);
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
@@ -246,9 +250,13 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        MoneyMovement duplicate = CreateMovement(Guid.NewGuid(), accountId, 100, new DateTime(2026, 5, 10), userId);
-        duplicate.Source = MoneyMovementSource.BankStatementImport;
-        duplicate.ImportComment = "purchase";
+        MoneyMovement duplicate = TestMoneyMovementFactory.CreateBankStatementImport(
+            Guid.NewGuid(),
+            accountId,
+            100,
+            new DateTime(2026, 5, 10),
+            userId,
+            importComment: "purchase");
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
             .Setup(repository => repository.GetItemByPredicateAsync(

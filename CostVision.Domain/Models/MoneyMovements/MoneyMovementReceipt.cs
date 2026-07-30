@@ -1,4 +1,4 @@
-﻿using CostVision.Domain.Models.Authorization;
+using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Domain.Models.MoneyMovements
@@ -8,23 +8,23 @@ namespace CostVision.Domain.Models.MoneyMovements
     /// </summary>
     public class MoneyMovementReceipt
     {
-        internal MoneyMovementReceipt()
+        private MoneyMovementReceipt()
         {
         }
 
-        public Guid MoneyMovementId { get; internal set; }
+        public Guid MoneyMovementId { get; private set; }
 
-        public MoneyMovement? MoneyMovement { get; internal set; }
+        public MoneyMovement? MoneyMovement { get; private set; }
 
-        public Guid ReceiptId { get; internal set; }
+        public Guid ReceiptId { get; private set; }
 
-        public Receipt? Receipt { get; internal set; }
+        public Receipt? Receipt { get; private set; }
 
-        public Guid CreatedByUserId { get; internal set; }
+        public Guid CreatedByUserId { get; private set; }
 
-        public User? CreatedByUser { get; internal set; }
+        public User? CreatedByUser { get; private set; }
 
-        public DateTime CreatedAtUtc { get; internal set; }
+        public DateTime CreatedAtUtc { get; private set; }
 
         /// <summary>
         /// Создаёт допустимую связь операции движения денег с чеком.
@@ -65,6 +65,88 @@ namespace CostVision.Domain.Models.MoneyMovements
                 CreatedAtUtc = createdAtUtc
             };
             error = null;
+            return true;
+        }
+
+        /// <summary>
+        /// Создаёт связь и согласованно добавляет её в навигацию чека.
+        /// </summary>
+        public static bool TryCreate(
+            Guid moneyMovementId,
+            Receipt receipt,
+            Guid createdByUserId,
+            DateTime createdAtUtc,
+            out MoneyMovementReceipt? link,
+            out string? error)
+        {
+            link = null;
+
+            if (receipt == null)
+            {
+                error = "Чек не указан.";
+                return false;
+            }
+
+            if (!TryCreate(
+                    moneyMovementId,
+                    receipt.Id,
+                    createdByUserId,
+                    createdAtUtc,
+                    out link,
+                    out error))
+                return false;
+
+            link!.Receipt = receipt;
+            if (!receipt.TryAttachMoneyMovementLink(link, out error))
+            {
+                link = null;
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Создаёт связь и согласованно задаёт обе навигации.
+        /// </summary>
+        public static bool TryCreate(
+            MoneyMovement moneyMovement,
+            Receipt receipt,
+            Guid createdByUserId,
+            DateTime createdAtUtc,
+            out MoneyMovementReceipt? link,
+            out string? error)
+        {
+            link = null;
+
+            if (moneyMovement == null || receipt == null)
+            {
+                error = "Операция движения денег или чек не указан.";
+                return false;
+            }
+
+            if (moneyMovement.ReceiptLinks.Any(item => item.ReceiptId == receipt.Id))
+            {
+                error = "Чек уже привязан к операции.";
+                return false;
+            }
+
+            if (!TryCreate(
+                    moneyMovement.Id,
+                    receipt,
+                    createdByUserId,
+                    createdAtUtc,
+                    out link,
+                    out error))
+                return false;
+
+            link!.MoneyMovement = moneyMovement;
+            if (!moneyMovement.TryAttachReceiptLink(link, out error))
+            {
+                link = null;
+                return false;
+            }
+
             return true;
         }
     }

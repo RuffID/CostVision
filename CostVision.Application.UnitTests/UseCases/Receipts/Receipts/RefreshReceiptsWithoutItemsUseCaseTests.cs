@@ -16,9 +16,9 @@ public class RefreshReceiptsWithoutItemsUseCaseTests
     [Fact]
     public async Task ExecuteAsync_RefreshesOnlyReceiptsWithoutItems()
     {
-        Receipt receiptWithoutItems = new() { Id = Guid.NewGuid() };
-        Receipt receiptWithItems = new() { Id = Guid.NewGuid() };
-        Product product = new() { Name = "Product", NormalizedName = "PRODUCT" };
+        Receipt receiptWithoutItems = TestReceiptFactory.Create(Guid.NewGuid());
+        Receipt receiptWithItems = TestReceiptFactory.Create(Guid.NewGuid());
+        Product product = TestReceiptFactory.CreateProduct("Product");
         Assert.True(ReceiptItem.TryCreate(1, 1, 1, 0, default, default, default, product, null, out ReceiptItem? item, out string? itemError), itemError);
         Assert.True(receiptWithItems.TryAddItem(item!, out itemError), itemError);
         List<Receipt> receipts = [receiptWithoutItems, receiptWithItems];
@@ -39,8 +39,8 @@ public class RefreshReceiptsWithoutItemsUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ContinuesAndLogsWarning_WhenReceiptRefreshFails()
     {
-        Receipt failedReceipt = new() { Id = Guid.NewGuid() };
-        Receipt successfulReceipt = new() { Id = Guid.NewGuid() };
+        Receipt failedReceipt = TestReceiptFactory.Create(Guid.NewGuid());
+        Receipt successfulReceipt = TestReceiptFactory.Create(Guid.NewGuid());
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository([failedReceipt, successfulReceipt]);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
         refreshWorkflow

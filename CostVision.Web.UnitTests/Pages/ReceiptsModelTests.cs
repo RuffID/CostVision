@@ -45,15 +45,12 @@ public class ReceiptsModelTests
     {
         User currentUser = TestUsers.Create();
         Guid receiptId = Guid.NewGuid();
-        Receipt receipt = new()
-        {
-            Id = receiptId,
-            CreatedByUserId = currentUser.Id,
-            Store = new Store { Name = "Shop" },
-            DateTime = new DateTime(2026, 5, 1)
-        };
-        Product product = new() { Name = "Milk", NormalizedName = "MILK" };
-        Assert.True(ReceiptItem.TryCreate(10, 2, 20, 0, default, default, default, product, null, out ReceiptItem? item, out string? itemError), itemError);
+        Store.TryCreate("Shop", "SHOP", null, null, out Store? store, out string? storeError);
+        Assert.NotNull(store);
+        Assert.Null(storeError);
+        Receipt receipt = CreateReceipt(receiptId, currentUser.Id, new DateTime(2026, 5, 1), store);
+        Assert.True(Product.TryCreate("Milk", "MILK", out Product? product, out string? productError), productError);
+        Assert.True(ReceiptItem.TryCreate(10, 2, 20, 0, default, default, default, product!, null, out ReceiptItem? item, out string? itemError), itemError);
         Assert.True(receipt.TryAddItem(item!, out itemError), itemError);
 
         Dependencies dependencies = new();
@@ -118,12 +115,7 @@ public class ReceiptsModelTests
     {
         User currentUser = TestUsers.Create();
         Guid receiptId = Guid.NewGuid();
-        Receipt receipt = new()
-        {
-            Id = receiptId,
-            CreatedByUserId = currentUser.Id,
-            DateTime = new DateTime(2026, 5, 1)
-        };
+        Receipt receipt = CreateReceipt(receiptId, currentUser.Id, new DateTime(2026, 5, 1));
 
         Dependencies dependencies = new();
         dependencies.RefreshReceiptFromApiUseCase
@@ -137,6 +129,25 @@ public class ReceiptsModelTests
         ReceiptDto data = JsonResultAssert.Data<ReceiptDto>(json);
         Assert.Equal(receiptId, data.Id);
         dependencies.RefreshReceiptFromApiUseCase.VerifyAll();
+    }
+
+    private static Receipt CreateReceipt(Guid receiptId, Guid createdByUserId, DateTime dateTime, Store? store = null)
+    {
+        bool isCreated = Receipt.TryCreate(
+            "fn",
+            "fd",
+            "fp",
+            dateTime,
+            CostVision.Domain.Models.Enums.Receipts.ReceiptOperationType.Income,
+            100,
+            createdByUserId,
+            new DateTime(2026, 1, 1),
+            out Receipt? receipt,
+            out string? error);
+        Assert.True(isCreated, error);
+        receipt!.Id = receiptId;
+        receipt.AssignStore(store);
+        return receipt;
     }
 
     private sealed class Dependencies

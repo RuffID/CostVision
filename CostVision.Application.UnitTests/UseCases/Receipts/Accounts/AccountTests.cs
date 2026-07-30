@@ -95,4 +95,19 @@ public class AccountTests
         Assert.True(account.TryRemoveMember(memberUserId, out _, out _));
         Assert.Single(account.Members);
     }
+
+    [Fact]
+    public void PublicApi_DoesNotExposeInvariantStateForMutation()
+    {
+        Account.TryCreate("Основной", null, null, Guid.NewGuid(), DateTime.UtcNow, out Account? account, out _);
+        Assert.NotNull(account);
+
+        Assert.Null(typeof(Account).GetConstructor(Type.EmptyTypes));
+        Assert.True(typeof(Account).GetProperty(nameof(Account.Name))!.SetMethod!.IsPrivate);
+        Assert.True(typeof(Account).GetProperty(nameof(Account.Description))!.SetMethod!.IsPrivate);
+        Assert.True(typeof(Account).GetProperty(nameof(Account.ColorHex))!.SetMethod!.IsPrivate);
+        Assert.True(typeof(Account).GetProperty(nameof(Account.IsArchived))!.SetMethod!.IsPrivate);
+        Assert.False(account!.Members is List<AccountMember>);
+        Assert.False(account.ReceiptLinks is List<ReceiptAccount>);
+    }
 }

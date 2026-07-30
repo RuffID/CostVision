@@ -12,7 +12,7 @@ public class AccountReceiptAccessValidatorTests
     public void ValidateModificationAccess_ReturnsSuccess_ForOwner()
     {
         Guid userId = Guid.NewGuid();
-        Account account = new() { CreatedByUserId = userId };
+        Account account = TestAccountFactory.Create(ownerUserId: userId);
 
         ServiceResult<bool> result = Validate(account, userId);
 
@@ -23,10 +23,7 @@ public class AccountReceiptAccessValidatorTests
     public void ValidateModificationAccess_ReturnsSuccess_ForEditorMember()
     {
         Guid userId = Guid.NewGuid();
-        Account account = new()
-        {
-            CreatedByUserId = Guid.NewGuid()
-        };
+        Account account = TestAccountFactory.Create();
         account.TryAddMember(userId, AccountAccessRole.Editor, out _, out _);
 
         ServiceResult<bool> result = Validate(account, userId);
@@ -37,7 +34,7 @@ public class AccountReceiptAccessValidatorTests
     [Fact]
     public void ValidateModificationAccess_ReturnsForbidden_ForForeignUser()
     {
-        Account account = new() { CreatedByUserId = Guid.NewGuid() };
+        Account account = TestAccountFactory.Create();
 
         ServiceResult<bool> result = Validate(account, Guid.NewGuid());
 
@@ -49,10 +46,7 @@ public class AccountReceiptAccessValidatorTests
     public void ValidateModificationAccess_ReturnsForbidden_ForViewerMember()
     {
         Guid userId = Guid.NewGuid();
-        Account account = new()
-        {
-            CreatedByUserId = Guid.NewGuid()
-        };
+        Account account = TestAccountFactory.Create();
         account.TryAddMember(userId, AccountAccessRole.Viewer, out _, out _);
 
         ServiceResult<bool> result = Validate(account, userId);

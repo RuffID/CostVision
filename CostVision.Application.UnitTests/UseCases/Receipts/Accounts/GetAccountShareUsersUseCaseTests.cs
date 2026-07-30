@@ -19,11 +19,7 @@ public class GetAccountShareUsersUseCaseTests
         Guid ownerUserId = Guid.NewGuid();
         Guid selectedUserId = Guid.NewGuid();
         Guid availableUserId = Guid.NewGuid();
-        Account account = new()
-        {
-            Id = Guid.NewGuid(),
-            CreatedByUserId = ownerUserId
-        };
+        Account account = TestAccountFactory.Create(Guid.NewGuid(), ownerUserId);
         account.TryAddMember(selectedUserId, AccountAccessRole.Editor, out _, out _);
         List<User> users =
         [

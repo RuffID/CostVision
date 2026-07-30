@@ -1,4 +1,4 @@
-﻿using CostVision.Domain.Models.MoneyMovements;
+using CostVision.Domain.Models.MoneyMovements;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -64,6 +64,9 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.MoneyMovements
             builder.HasIndex(e => new { e.AccountId, e.OccurredAt, e.Amount, e.Type });
             builder.HasIndex(e => e.CreatedByUserId);
             builder.HasIndex(e => e.PerformedByUserId);
+
+            builder.Navigation(e => e.ReceiptLinks)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

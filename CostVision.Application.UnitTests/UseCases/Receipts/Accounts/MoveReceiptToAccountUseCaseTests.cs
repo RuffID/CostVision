@@ -19,11 +19,10 @@ public class MoveReceiptToAccountUseCaseTests
         Guid receiptId = Guid.NewGuid();
         Guid sourceAccountId = Guid.NewGuid();
         Guid targetAccountId = Guid.NewGuid();
-        Account sourceAccount = new() { Id = sourceAccountId, CreatedByUserId = userId };
-        Account targetAccount = new() { Id = targetAccountId, CreatedByUserId = userId };
+        Account sourceAccount = TestAccountFactory.Create(sourceAccountId, userId);
+        Account targetAccount = TestAccountFactory.Create(targetAccountId, userId);
         Receipt receipt = CreateReceipt(receiptId, userId);
-        Assert.True(receipt.TryAddAccount(sourceAccountId, out ReceiptAccount? sourceLink, out string? linkError), linkError);
-        sourceLink!.Account = sourceAccount;
+        Assert.True(receipt.TryAddAccount(sourceAccount, out ReceiptAccount? sourceLink, out string? linkError), linkError);
         ReceiptAccount? createdLink = null;
 
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
@@ -37,7 +36,7 @@ public class MoveReceiptToAccountUseCaseTests
             .ReturnsAsync((Receipt?)null);
         Mock<IAccountRepository> accountRepository = CreateAccountRepository(targetAccount);
         Mock<IReceiptAccountRepository> receiptAccountRepository = new(MockBehavior.Strict);
-        receiptAccountRepository.Setup(repository => repository.Delete(sourceLink));
+        receiptAccountRepository.Setup(repository => repository.Delete(sourceLink!));
         receiptAccountRepository.Setup(repository => repository.Create(It.IsAny<ReceiptAccount>()))
             .Callback<ReceiptAccount>(link => createdLink = link);
         Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receiptRepository, accountRepository, receiptAccountRepository);
@@ -46,7 +45,7 @@ public class MoveReceiptToAccountUseCaseTests
         var result = await useCase.ExecuteAsync(sourceAccountId, targetAccountId, receiptId, userId, CancellationToken.None);
 
         Assert.True(result.Success);
-        receiptAccountRepository.Verify(repository => repository.Delete(sourceLink), Times.Once);
+        receiptAccountRepository.Verify(repository => repository.Delete(sourceLink!), Times.Once);
         Assert.NotNull(createdLink);
         Assert.Equal(receiptId, createdLink.ReceiptId);
         Assert.Equal(targetAccountId, createdLink.AccountId);
@@ -82,10 +81,10 @@ public class MoveReceiptToAccountUseCaseTests
         Guid sourceAccountId = Guid.NewGuid();
         Guid targetAccountId = Guid.NewGuid();
         Receipt receipt = CreateReceipt(receiptId, userId);
-        Assert.True(receipt.TryAddAccount(sourceAccountId, out ReceiptAccount? sourceLink, out string? sourceError), sourceError);
-        sourceLink!.Account = new Account { Id = sourceAccountId, CreatedByUserId = userId };
-        Assert.True(receipt.TryAddAccount(targetAccountId, out ReceiptAccount? targetLink, out string? targetError), targetError);
-        targetLink!.Account = new Account { Id = targetAccountId, CreatedByUserId = userId };
+        Account sourceAccount = TestAccountFactory.Create(sourceAccountId, userId);
+        Account targetAccount = TestAccountFactory.Create(targetAccountId, userId);
+        Assert.True(receipt.TryAddAccount(sourceAccount, out ReceiptAccount? sourceLink, out string? sourceError), sourceError);
+        Assert.True(receipt.TryAddAccount(targetAccount, out ReceiptAccount? targetLink, out string? targetError), targetError);
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         receiptRepository
             .Setup(repository => repository.GetItemByPredicateAsync(
@@ -104,17 +103,7 @@ public class MoveReceiptToAccountUseCaseTests
 
     private static Receipt CreateReceipt(Guid receiptId, Guid createdByUserId)
     {
-        return new Receipt
-        {
-            Id = receiptId,
-            CreatedByUserId = createdByUserId,
-            FiscalDriveNumber = "fn",
-            FiscalDocumentNumber = "fd",
-            FiscalSign = "fp",
-            DateTime = new DateTime(2026, 1, 1),
-            TotalSum = 100,
-            OperationType = ReceiptOperationType.Income
-        };
+        return TestReceiptFactory.Create(receiptId, createdByUserId);
     }
 
     private static Mock<IAccountRepository> CreateAccountRepository(Account? account)

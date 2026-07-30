@@ -15,7 +15,8 @@ public class UpdateProductAdaptiveNameUseCaseTests
     public async Task ExecuteAsync_TrimsAndSavesAdaptiveName_WhenProductExists()
     {
         Guid productId = Guid.NewGuid();
-        Product product = new() { Id = productId, Name = "Milk" };
+        Product product = TestReceiptFactory.CreateProduct("Milk");
+        product.Id = productId;
 
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
         productRepository
@@ -47,7 +48,8 @@ public class UpdateProductAdaptiveNameUseCaseTests
     public async Task ExecuteAsync_ClearsAdaptiveName_WhenAdaptiveNameIsWhitespace()
     {
         Guid productId = Guid.NewGuid();
-        Product product = new() { Id = productId, Name = "Milk", AdaptiveName = "Milk 1L" };
+        Product product = TestReceiptFactory.CreateProduct("Milk", "Milk 1L");
+        product.Id = productId;
 
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
         productRepository

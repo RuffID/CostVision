@@ -11,14 +11,12 @@ public class MoneyMovementReceiptMapperTests
     public void MapReceiptLinkDto_MapsReceiptAndFirstAccountByName()
     {
         Guid receiptId = Guid.NewGuid();
-        Receipt receipt = new()
-        {
-            Id = receiptId,
-            DateTime = new DateTime(2026, 2, 1),
-            Store = new Store { Name = "Market" },
-            TotalSum = 77m,
-            MoneyMovementLinks = [new MoneyMovementReceipt()]
-        };
+        Receipt receipt = TestReceiptFactory.Create(
+            receiptId,
+            dateTime: new DateTime(2026, 2, 1),
+            totalSum: 77m,
+            store: TestReceiptFactory.CreateStore("Market"));
+        TestReceiptFactory.AddMoneyMovementLink(receipt);
         AddAccountLink(receipt, "Zoo");
         AddAccountLink(receipt, "Alpha");
 
@@ -35,11 +33,7 @@ public class MoneyMovementReceiptMapperTests
     [Fact]
     public void MapReceiptLinkDto_UsesFallbackRetailPlaceAndEmptyAccount()
     {
-        Receipt receipt = new()
-        {
-            Id = Guid.NewGuid(),
-            User = "Legal name"
-        };
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), user: "Legal name");
 
         dynamic dto = MapReceipt(receipt);
 
@@ -52,7 +46,7 @@ public class MoneyMovementReceiptMapperTests
     public void MapReceiptLinkDto_MapsLinkWithoutNestedReceipt()
     {
         Guid receiptId = Guid.NewGuid();
-        MoneyMovementReceipt link = new() { ReceiptId = receiptId };
+        MoneyMovementReceipt link = TestMoneyMovementFactory.CreateLink(Guid.NewGuid(), receiptId);
 
         dynamic dto = MapLink(link);
 
@@ -63,8 +57,8 @@ public class MoneyMovementReceiptMapperTests
     private static void AddAccountLink(Receipt receipt, string accountName)
     {
         Guid accountId = Guid.NewGuid();
-        Assert.True(receipt.TryAddAccount(accountId, out ReceiptAccount? link, out string? error), error);
-        link!.Account = new Account { Id = accountId, Name = accountName };
+        Account account = TestAccountFactory.Create(accountId, name: accountName);
+        Assert.True(receipt.TryAddAccount(account, out _, out string? error), error);
     }
 
     private static object MapReceipt(Receipt receipt)

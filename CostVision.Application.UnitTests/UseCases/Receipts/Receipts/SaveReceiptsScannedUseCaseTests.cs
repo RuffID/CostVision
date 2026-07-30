@@ -71,7 +71,7 @@ public class SaveReceiptsScannedUseCaseTests
     public async Task ExecuteAsync_AddsExistingReceiptToAccount_WhenReceiptExistsForUserButNotAccount()
     {
         Guid accountId = Guid.NewGuid();
-        Receipt existingReceipt = new() { Id = Guid.NewGuid() };
+        Receipt existingReceipt = TestReceiptFactory.Create(Guid.NewGuid());
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepositoryForSequence(null, existingReceipt);
         Mock<IReceiptAccountRepository> receiptAccountRepository = new(MockBehavior.Strict);
         receiptAccountRepository.Setup(repository => repository.Create(It.IsAny<ReceiptAccount>()));

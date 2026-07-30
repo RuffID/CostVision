@@ -91,53 +91,28 @@ public abstract class MoneyMovementUseCaseTestBase
 
     protected static AccountMember CreateMember(Guid accountId, Guid userId, AccountAccessRole role)
     {
-        return new AccountMember { AccountId = accountId, UserId = userId, Role = role };
+        return TestAccountFactory.CreateMember(accountId, userId, role);
     }
 
     protected static Account CreateAccount(Guid accountId, Guid ownerId, string name = "Account")
     {
-        return new Account
-        {
-            Id = accountId,
-            Name = name,
-            ColorHex = "#123456",
-            CreatedByUserId = ownerId
-        };
+        return TestAccountFactory.Create(accountId, ownerId, name);
     }
 
     protected static MoneyMovement CreateMovement(Guid movementId, Guid accountId, decimal amount, DateTime occurredAt, Guid userId)
     {
-        return new MoneyMovement
-        {
-            Id = movementId,
-            AccountId = accountId,
-            Amount = amount,
-            Type = amount < 0 ? MoneyMovementType.Expense : MoneyMovementType.Income,
-            OccurredAt = occurredAt,
-            CreatedByUserId = userId,
-            PerformedByUserId = userId,
-            CreatedAtUtc = new DateTime(2026, 1, 1),
-            Source = MoneyMovementSource.Manual
-        };
+        return TestMoneyMovementFactory.CreateManual(movementId, accountId, amount, occurredAt, userId);
     }
 
     protected static Receipt CreateReceipt(Guid receiptId, Guid userId, Guid accountId, decimal totalSum, DateTime dateTime)
     {
         Account account = CreateAccount(accountId, userId);
-        Receipt receipt = new()
-        {
-            Id = receiptId,
-            CreatedByUserId = userId,
-            DateTime = dateTime,
-            TotalSum = totalSum,
-            OperationType = ReceiptOperationType.Income,
-            FiscalDriveNumber = "fn",
-            FiscalDocumentNumber = "fd",
-            FiscalSign = "fp",
-            Store = new Store { Name = "Shop", NormalizedName = "SHOP" }
-        };
-        receipt.TryAddAccount(accountId, out ReceiptAccount? link, out _);
-        link!.Account = account;
+        Store.TryCreate("Shop", "SHOP", null, null, out Store? store, out string? storeError);
+        if (store == null)
+            throw new InvalidOperationException(storeError);
+
+        Receipt receipt = TestReceiptFactory.Create(receiptId, userId, dateTime, totalSum, store: store);
+        receipt.TryAddAccount(account, out _, out _);
         return receipt;
     }
 
