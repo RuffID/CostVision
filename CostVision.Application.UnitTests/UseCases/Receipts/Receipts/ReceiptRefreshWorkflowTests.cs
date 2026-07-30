@@ -4,6 +4,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.Service.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
+using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 using Moq;
 using Xunit;
@@ -18,16 +19,17 @@ public class ReceiptRefreshWorkflowTests
         Receipt receipt = new()
         {
             Id = Guid.NewGuid(),
-            Store = new Store { Name = "Old", NormalizedName = "OLD", Address = "Old address", NormalizedAddress = "OLDADDRESS" },
-            Items = [new ReceiptItem { Id = Guid.NewGuid() }]
+            Store = new Store { Name = "Old", NormalizedName = "OLD", Address = "Old address", NormalizedAddress = "OLDADDRESS" }
         };
+        Product oldProduct = new() { Name = "Old", NormalizedName = "OLD" };
+        Assert.True(ReceiptItem.TryCreate(1, 1, 1, 0, default, default, default, oldProduct, null, out ReceiptItem? oldItem, out string? oldItemError), oldItemError);
+        Assert.True(receipt.TryAddItem(oldItem!, out oldItemError), oldItemError);
         Product sourceProduct = new() { Name = "Milk", NormalizedName = "milk" };
         Store sourceStore = new() { Name = "New", NormalizedName = "NEW", Address = "Address", NormalizedAddress = "ADDRESS" };
-        Receipt externalReceipt = new()
-        {
-            Store = sourceStore,
-            Items = [new ReceiptItem { Product = sourceProduct, Price = 10, Quantity = 2, Sum = 20 }]
-        };
+        Assert.True(Receipt.TryCreate("fn", "fd", "fp", new DateTime(2026, 1, 1), ReceiptOperationType.Income, 20, Guid.NewGuid(), new DateTime(2026, 1, 1), out Receipt? externalReceipt, out string? receiptError), receiptError);
+        externalReceipt!.AssignStore(sourceStore);
+        Assert.True(ReceiptItem.TryCreate(10, 2, 20, 0, default, default, default, sourceProduct, null, out ReceiptItem? sourceItem, out string? itemError), itemError);
+        Assert.True(externalReceipt.TryAddItem(sourceItem!, out itemError), itemError);
         Product? createdProduct = null;
         Store? createdStore = null;
         Mock<IExternalReceiptProvider> externalReceiptProvider = new(MockBehavior.Strict);

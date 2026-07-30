@@ -43,7 +43,9 @@ public class ProverkachekaReceiptMapperTests
             }
         };
 
-        Receipt result = response.MapToReceipt();
+        Guid userId = Guid.NewGuid();
+        DateTime createdAtUtc = new(2026, 5, 29, 11, 0, 0, DateTimeKind.Utc);
+        Receipt result = response.MapToReceipt(userId, createdAtUtc);
 
         Assert.Equal("fn", result.FiscalDriveNumber);
         Assert.Equal("123", result.FiscalDocumentNumber);
@@ -66,14 +68,16 @@ public class ProverkachekaReceiptMapperTests
         Assert.Equal(5.55m, result.NdsNo);
         Assert.Equal("kkt", result.KktRegId);
         Assert.Equal("number", result.NumberKkt);
+        Assert.Equal(userId, result.CreatedByUserId);
+        Assert.Equal(createdAtUtc, result.CreatedAtUtc);
     }
 
     [Fact]
     public void MapToReceiptItem_MapsItemAmountsAndEnums()
     {
-        Guid receiptId = Guid.NewGuid();
         Guid productId = Guid.NewGuid();
         Guid categoryId = Guid.NewGuid();
+        Product product = new() { Id = productId, Name = "Product", NormalizedName = "PRODUCT" };
         ProverkachekaItem item = new()
         {
             Price = 1999,
@@ -85,9 +89,9 @@ public class ProverkachekaReceiptMapperTests
             ItemsQuantityMeasure = QuantityMeasureType.Piece
         };
 
-        ReceiptItem result = item.MapToReceiptItem(receiptId, productId, categoryId);
+        ReceiptItem result = item.MapToReceiptItem(product, categoryId);
 
-        Assert.Equal(receiptId, result.ReceiptId);
+        Assert.Equal(Guid.Empty, result.ReceiptId);
         Assert.Equal(productId, result.ProductId);
         Assert.Equal(categoryId, result.CategoryId);
         Assert.Equal(19.99m, result.Price);
@@ -100,7 +104,7 @@ public class ProverkachekaReceiptMapperTests
     }
 
     [Fact]
-    public void MapToReceipt_PreservesNullOptionalFields()
+    public void MapToReceipt_ThrowsWhenRequiredFieldsAreMissing()
     {
         ProverkachekaResponse response = new()
         {
@@ -114,13 +118,7 @@ public class ProverkachekaReceiptMapperTests
             }
         };
 
-        Receipt result = response.MapToReceipt();
-
-        Assert.Equal(string.Empty, result.FiscalDriveNumber);
-        Assert.Null(result.Store);
-        Assert.Null(result.Nds18);
-        Assert.Null(result.Nds10);
-        Assert.Null(result.Nds0);
-        Assert.Null(result.NdsNo);
+        Assert.Throws<InvalidOperationException>(() =>
+            response.MapToReceipt(Guid.NewGuid(), DateTime.UtcNow));
     }
 }

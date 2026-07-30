@@ -43,15 +43,32 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 if (string.IsNullOrWhiteSpace(result.FileName))
                     result.FileName = "Browser file";
 
+                if (!Receipt.TryCreate(
+                        result.Parsed.FiscalDriveNumber,
+                        result.Parsed.FiscalDocumentNumber,
+                        result.Parsed.FiscalSign,
+                        result.Parsed.DateTime,
+                        (ReceiptOperationType)result.Parsed.OperationType.Value,
+                        result.Parsed.Sum.Value,
+                        currentUserId,
+                        DateTime.UtcNow,
+                        out Receipt? createdReceipt,
+                        out string? creationError))
+                {
+                    result.ErrorMessage = creationError;
+                    continue;
+                }
+
+                Receipt receipt = createdReceipt!;
                 Receipt? existingReceiptInAccount = request.AccountId == Guid.Empty
                     ? null
                     : await FindExistingReceiptInAccountAsync(
-                        result.Parsed.FiscalDocumentNumber,
-                        result.Parsed.FiscalDriveNumber,
-                        result.Parsed.FiscalSign,
-                        result.Parsed.Sum.Value,
-                        result.Parsed.DateTime,
-                        (ReceiptOperationType)result.Parsed.OperationType.Value,
+                        receipt.FiscalDocumentNumber,
+                        receipt.FiscalDriveNumber,
+                        receipt.FiscalSign,
+                        receipt.TotalSum,
+                        receipt.DateTime,
+                        receipt.OperationType,
                         request.AccountId,
                         ct);
 
@@ -62,12 +79,12 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 }
 
                 Receipt? existingReceipt = await FindExistingReceiptAsync(
-                    result.Parsed.FiscalDocumentNumber,
-                    result.Parsed.FiscalDriveNumber,
-                    result.Parsed.FiscalSign,
-                    result.Parsed.Sum.Value,
-                    result.Parsed.DateTime,
-                    (ReceiptOperationType)result.Parsed.OperationType.Value,
+                    receipt.FiscalDocumentNumber,
+                    receipt.FiscalDriveNumber,
+                    receipt.FiscalSign,
+                    receipt.TotalSum,
+                    receipt.DateTime,
+                    receipt.OperationType,
                     currentUserId,
                     ct);
 
@@ -76,32 +93,24 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                     if (request.AccountId == Guid.Empty)
                         continue;
 
-                    unitOfWork.ReceiptAccount.Create(new ReceiptAccount
+                    if (!existingReceipt.TryAddAccount(request.AccountId, out ReceiptAccount? link, out string? linkError))
                     {
-                        AccountId = request.AccountId,
-                        ReceiptId = existingReceipt.Id
-                    });
+                        result.ErrorMessage = linkError;
+                        continue;
+                    }
 
+                    unitOfWork.ReceiptAccount.Create(link!);
                     addedCount++;
                     continue;
                 }
 
-                Receipt receipt = new()
-                {
-                    FiscalDocumentNumber = result.Parsed.FiscalDocumentNumber,
-                    FiscalDriveNumber = result.Parsed.FiscalDriveNumber,
-                    FiscalSign = result.Parsed.FiscalSign,
-                    CreatedAtUtc = DateTime.UtcNow,
-                    CreatedByUserId = currentUserId,
-                    OperationType = (ReceiptOperationType)result.Parsed.OperationType.Value,
-                    DateTime = result.Parsed.DateTime,
-                    TotalSum = result.Parsed.Sum.Value
-                };
-
                 if (request.AccountId != Guid.Empty)
                 {
-                    ReceiptAccount link = new() { AccountId = request.AccountId, Receipt = receipt };
-                    receipt.Accounts.Add(link);
+                    if (!receipt.TryAddAccount(request.AccountId, out _, out string? linkError))
+                    {
+                        result.ErrorMessage = linkError;
+                        continue;
+                    }
                 }
 
                 unitOfWork.Receipt.Create(receipt);
@@ -136,7 +145,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                      r.DateTime == dateTime &&
                      r.CreatedByUserId == currentUserId &&
                      r.OperationType == operationType,
-                asNoTracking: true,
+                asNoTracking: false,
                 ct: ct);
         }
 

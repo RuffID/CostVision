@@ -52,42 +52,36 @@ public static class TestDataFactory
         };
     }
 
-    public static Receipt CreateReceipt(Guid id, Guid createdByUserId, Guid accountId, Guid productId)
+    public static Receipt CreateReceipt(Guid id, Guid createdByUserId, Guid accountId, Product product)
     {
-        return new Receipt
-        {
-            Id = id,
-            FiscalDriveNumber = "1234567890123456",
-            FiscalDocumentNumber = "12345",
-            FiscalSign = "987654321",
-            DateTime = DateTime.UtcNow,
-            OperationType = ReceiptOperationType.Income,
-            TotalSum = 100,
-            CashTotalSum = 0,
-            EcashTotalSum = 100,
-            CreatedByUserId = createdByUserId,
-            CreatedAtUtc = DateTime.UtcNow,
-            Items =
-            [
-                new ReceiptItem
-                {
-                    Id = Guid.NewGuid(),
-                    ProductId = productId,
-                    Price = 100,
-                    Quantity = 1,
-                    Sum = 100,
-                    PaymentType = PaymentType.Electronic,
-                    ProductType = ProductType.Product,
-                    ItemsQuantityMeasure = QuantityMeasureType.Piece
-                }
-            ],
-            Accounts =
-            [
-                new ReceiptAccount
-                {
-                    AccountId = accountId
-                }
-            ]
-        };
+        Receipt.TryCreate(
+            "1234567890123456",
+            "12345",
+            "987654321",
+            DateTime.UtcNow,
+            ReceiptOperationType.Income,
+            100,
+            createdByUserId,
+            DateTime.UtcNow,
+            out Receipt? receipt,
+            out _);
+        receipt!.Id = id;
+        receipt.TryUpdateDetails(null, null, null, null, null, 0, 100, null, null, null, null, null, null, null, out _);
+        ReceiptItem.TryCreate(
+            100,
+            1,
+            100,
+            0,
+            PaymentType.Electronic,
+            ProductType.Product,
+            QuantityMeasureType.Piece,
+            product,
+            null,
+            out ReceiptItem? item,
+            out _);
+        item!.Id = Guid.NewGuid();
+        receipt.TryAddItem(item, out _);
+        receipt.TryAddAccount(accountId, out _, out _);
+        return receipt;
     }
 }

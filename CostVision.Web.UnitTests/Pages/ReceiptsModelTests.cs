@@ -50,18 +50,11 @@ public class ReceiptsModelTests
             Id = receiptId,
             CreatedByUserId = currentUser.Id,
             Store = new Store { Name = "Shop" },
-            DateTime = new DateTime(2026, 5, 1),
-            Items =
-            [
-                new ReceiptItem
-                {
-                    Product = new Product { Name = "Milk" },
-                    Quantity = 2,
-                    Price = 10,
-                    Sum = 20
-                }
-            ]
+            DateTime = new DateTime(2026, 5, 1)
         };
+        Product product = new() { Name = "Milk", NormalizedName = "MILK" };
+        Assert.True(ReceiptItem.TryCreate(10, 2, 20, 0, default, default, default, product, null, out ReceiptItem? item, out string? itemError), itemError);
+        Assert.True(receipt.TryAddItem(item!, out itemError), itemError);
 
         Dependencies dependencies = new();
         dependencies.GetReceiptWithItemsUseCase

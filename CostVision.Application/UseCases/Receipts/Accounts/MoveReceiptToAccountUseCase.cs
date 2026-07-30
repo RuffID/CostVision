@@ -81,14 +81,18 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             if (duplicateReceiptInTargetAccount != null)
                 return ServiceResult<bool>.Fail(409, "В счёте назначения уже есть такой же чек.");
 
-            if (sourceLink != null)
-                unitOfWork.ReceiptAccount.Delete(sourceLink);
+            if (!receipt.TryMoveAccount(
+                    sourceAccountId,
+                    targetAccountId,
+                    out ReceiptAccount? removedLink,
+                    out ReceiptAccount? targetLink,
+                    out string? moveError))
+                return ServiceResult<bool>.Fail(409, moveError!);
 
-            unitOfWork.ReceiptAccount.Create(new ReceiptAccount
-            {
-                ReceiptId = receiptId,
-                AccountId = targetAccountId
-            });
+            if (sourceLink != null)
+                unitOfWork.ReceiptAccount.Delete(removedLink!);
+
+            unitOfWork.ReceiptAccount.Create(targetLink!);
 
             await unitOfWork.SaveChangesAsync(ct);
 

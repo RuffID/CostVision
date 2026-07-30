@@ -148,7 +148,9 @@ public class ExternalReceiptProviderTests
             FiscalSign = "fp",
             DateTime = new DateTime(2026, 5, 29, 10, 15, 0),
             TotalSum = 123.45m,
-            OperationType = ReceiptOperationType.Expense
+            OperationType = ReceiptOperationType.Expense,
+            CreatedByUserId = Guid.NewGuid(),
+            CreatedAtUtc = new DateTime(2026, 5, 29, 10, 16, 0, DateTimeKind.Utc)
         };
     }
 

@@ -53,12 +53,21 @@ namespace CostVision.Infrastructure.Services.Receipts
             if (result.Code != (int)ReceiptResponseCodeEnum.Correct || result.Data?.Json == null)
                 return ServiceResult<Receipt>.Fail(500, $"Не удалось обновить чек по внешнему API.\nОшибка: {result.Data?.Error ?? "В ответе API отсутствует JSON чека."}");
 
-            Receipt mappedReceipt = result.MapToReceipt();
+            Receipt mappedReceipt;
+            try
+            {
+                mappedReceipt = result.MapToReceipt(receipt.CreatedByUserId, receipt.CreatedAtUtc);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return ServiceResult<Receipt>.Fail(500, $"Внешний API вернул некорректные данные чека: {exception.Message}");
+            }
+
+            mappedReceipt.Id = receipt.Id;
             if (!TryCreateStore(result.Data.Json.RetailPlace, result.Data.Json.RetailPlaceAddress, out Store? store, out string? storeError))
                 return ServiceResult<Receipt>.Fail(500, $"Внешний API вернул некорректные данные магазина: {storeError}");
 
-            mappedReceipt.Store = store;
-            List<ReceiptItem> receiptItems = new();
+            mappedReceipt.AssignStore(store);
             foreach (ProverkachekaItem item in result.Data.Json.Items)
             {
                 string normalizedName = NameNormalizedHelper.GetNormalizedName(item.Name);
@@ -69,12 +78,19 @@ namespace CostVision.Infrastructure.Services.Receipts
                         $"Внешний API вернул некорректные данные товара: {productError}");
                 }
 
-                ReceiptItem receiptItem = item.MapToReceiptItem(receipt.Id, Guid.Empty);
-                receiptItem.Product = product!;
-                receiptItems.Add(receiptItem);
-            }
+                ReceiptItem receiptItem;
+                try
+                {
+                    receiptItem = item.MapToReceiptItem(product!);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    return ServiceResult<Receipt>.Fail(500, $"Внешний API вернул некорректную позицию чека: {exception.Message}");
+                }
 
-            mappedReceipt.Items = receiptItems;
+                if (!mappedReceipt.TryAddItem(receiptItem, out string? itemError))
+                    return ServiceResult<Receipt>.Fail(500, $"Внешний API вернул некорректную позицию чека: {itemError}");
+            }
 
             return ServiceResult<Receipt>.Ok(mappedReceipt);
         }

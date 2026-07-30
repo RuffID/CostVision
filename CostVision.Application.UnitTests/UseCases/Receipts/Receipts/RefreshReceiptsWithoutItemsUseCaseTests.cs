@@ -17,11 +17,10 @@ public class RefreshReceiptsWithoutItemsUseCaseTests
     public async Task ExecuteAsync_RefreshesOnlyReceiptsWithoutItems()
     {
         Receipt receiptWithoutItems = new() { Id = Guid.NewGuid() };
-        Receipt receiptWithItems = new()
-        {
-            Id = Guid.NewGuid(),
-            Items = [new ReceiptItem { Id = Guid.NewGuid() }]
-        };
+        Receipt receiptWithItems = new() { Id = Guid.NewGuid() };
+        Product product = new() { Name = "Product", NormalizedName = "PRODUCT" };
+        Assert.True(ReceiptItem.TryCreate(1, 1, 1, 0, default, default, default, product, null, out ReceiptItem? item, out string? itemError), itemError);
+        Assert.True(receiptWithItems.TryAddItem(item!, out itemError), itemError);
         List<Receipt> receipts = [receiptWithoutItems, receiptWithItems];
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository(receipts);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);

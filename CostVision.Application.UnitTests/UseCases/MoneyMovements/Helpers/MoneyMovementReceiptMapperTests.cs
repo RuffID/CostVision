@@ -17,13 +17,10 @@ public class MoneyMovementReceiptMapperTests
             DateTime = new DateTime(2026, 2, 1),
             Store = new Store { Name = "Market" },
             TotalSum = 77m,
-            Accounts =
-            [
-                CreateAccountLink("Zoo"),
-                CreateAccountLink("Alpha")
-            ],
             MoneyMovementLinks = [new MoneyMovementReceipt()]
         };
+        AddAccountLink(receipt, "Zoo");
+        AddAccountLink(receipt, "Alpha");
 
         dynamic dto = MapReceipt(receipt);
 
@@ -63,13 +60,11 @@ public class MoneyMovementReceiptMapperTests
         Assert.True(dto.IsLinkedToOtherMoneyMovement);
     }
 
-    private static ReceiptAccount CreateAccountLink(string accountName)
+    private static void AddAccountLink(Receipt receipt, string accountName)
     {
-        return new ReceiptAccount
-        {
-            AccountId = Guid.NewGuid(),
-            Account = new Account { Name = accountName }
-        };
+        Guid accountId = Guid.NewGuid();
+        Assert.True(receipt.TryAddAccount(accountId, out ReceiptAccount? link, out string? error), error);
+        link!.Account = new Account { Id = accountId, Name = accountName };
     }
 
     private static object MapReceipt(Receipt receipt)

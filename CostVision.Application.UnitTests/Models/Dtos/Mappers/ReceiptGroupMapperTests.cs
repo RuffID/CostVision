@@ -58,14 +58,16 @@ public class ReceiptGroupMapperTests
 
     private static Receipt CreateReceipt(Guid receiptId, Guid createdByUserId, Account account, decimal linkedAmount)
     {
-        return new Receipt
+        Receipt receipt = new()
         {
             Id = receiptId,
             CreatedByUserId = createdByUserId,
             Store = new Store { Name = "Store" },
-            Accounts = [new ReceiptAccount { ReceiptId = receiptId, AccountId = account.Id, Account = account }],
             MoneyMovementLinks = [new MoneyMovementReceipt { MoneyMovement = new MoneyMovement { Amount = linkedAmount } }]
         };
+        Assert.True(receipt.TryAddAccount(account.Id, out ReceiptAccount? link, out string? error), error);
+        link!.Account = account;
+        return receipt;
     }
 
     private static Account CreateAccount(string name, Guid ownerId, Guid memberId, AccountAccessRole role)

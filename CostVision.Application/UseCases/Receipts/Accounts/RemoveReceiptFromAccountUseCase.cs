@@ -47,7 +47,10 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 return ServiceResult<bool>.Ok(true);
             }
 
-            unitOfWork.ReceiptAccount.Delete(link);
+            if (!receipt.TryRemoveAccount(accountId, out ReceiptAccount? removedLink, out string? removeError))
+                return ServiceResult<bool>.Fail(409, removeError!);
+
+            unitOfWork.ReceiptAccount.Delete(removedLink!);
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);

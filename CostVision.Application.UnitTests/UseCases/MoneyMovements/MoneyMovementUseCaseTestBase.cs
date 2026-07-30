@@ -136,7 +136,8 @@ public abstract class MoneyMovementUseCaseTestBase
             FiscalSign = "fp",
             Store = new Store { Name = "Shop", NormalizedName = "SHOP" }
         };
-        receipt.Accounts.Add(new ReceiptAccount { ReceiptId = receiptId, Receipt = receipt, AccountId = accountId, Account = account });
+        receipt.TryAddAccount(accountId, out ReceiptAccount? link, out _);
+        link!.Account = account;
         return receipt;
     }
 

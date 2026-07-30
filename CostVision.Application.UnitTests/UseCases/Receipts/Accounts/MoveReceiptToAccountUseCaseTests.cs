@@ -21,9 +21,9 @@ public class MoveReceiptToAccountUseCaseTests
         Guid targetAccountId = Guid.NewGuid();
         Account sourceAccount = new() { Id = sourceAccountId, CreatedByUserId = userId };
         Account targetAccount = new() { Id = targetAccountId, CreatedByUserId = userId };
-        ReceiptAccount sourceLink = new() { ReceiptId = receiptId, AccountId = sourceAccountId, Account = sourceAccount };
         Receipt receipt = CreateReceipt(receiptId, userId);
-        receipt.Accounts = [sourceLink];
+        Assert.True(receipt.TryAddAccount(sourceAccountId, out ReceiptAccount? sourceLink, out string? linkError), linkError);
+        sourceLink!.Account = sourceAccount;
         ReceiptAccount? createdLink = null;
 
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
@@ -82,11 +82,10 @@ public class MoveReceiptToAccountUseCaseTests
         Guid sourceAccountId = Guid.NewGuid();
         Guid targetAccountId = Guid.NewGuid();
         Receipt receipt = CreateReceipt(receiptId, userId);
-        receipt.Accounts =
-        [
-            new ReceiptAccount { AccountId = sourceAccountId, Account = new Account { Id = sourceAccountId, CreatedByUserId = userId } },
-            new ReceiptAccount { AccountId = targetAccountId, Account = new Account { Id = targetAccountId, CreatedByUserId = userId } }
-        ];
+        Assert.True(receipt.TryAddAccount(sourceAccountId, out ReceiptAccount? sourceLink, out string? sourceError), sourceError);
+        sourceLink!.Account = new Account { Id = sourceAccountId, CreatedByUserId = userId };
+        Assert.True(receipt.TryAddAccount(targetAccountId, out ReceiptAccount? targetLink, out string? targetError), targetError);
+        targetLink!.Account = new Account { Id = targetAccountId, CreatedByUserId = userId };
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         receiptRepository
             .Setup(repository => repository.GetItemByPredicateAsync(

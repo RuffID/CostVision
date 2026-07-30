@@ -80,10 +80,16 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
                 .HasForeignKey(x => x.ReceiptId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Navigation(x => x.Items)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
             builder.HasMany(x => x.Accounts)
                 .WithOne(x => x.Receipt)
                 .HasForeignKey(x => x.ReceiptId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Navigation(x => x.Accounts)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
 
             builder.HasIndex(x => new { x.FiscalDriveNumber, x.FiscalDocumentNumber, x.FiscalSign });
 

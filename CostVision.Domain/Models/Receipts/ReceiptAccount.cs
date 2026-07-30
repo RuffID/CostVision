@@ -5,12 +5,26 @@ namespace CostVision.Domain.Models.Receipts
     /// </summary>
     public class ReceiptAccount
     {
-        public Guid ReceiptId { get; set; }
+        internal ReceiptAccount()
+        {
+        }
 
-        public Receipt? Receipt { get; set; }
+        public Guid ReceiptId { get; internal set; }
 
-        public Guid AccountId { get; set; }
+        public Receipt Receipt { get; internal set; } = null!;
+
+        public Guid AccountId { get; internal set; }
 
         public Account? Account { get; set; }
+
+        internal static ReceiptAccount Create(Receipt receipt, Guid accountId)
+        {
+            return new ReceiptAccount
+            {
+                ReceiptId = receipt.Id,
+                Receipt = receipt,
+                AccountId = accountId
+            };
+        }
     }
 }

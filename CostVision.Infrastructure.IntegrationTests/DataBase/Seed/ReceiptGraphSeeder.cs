@@ -21,7 +21,7 @@ public class ReceiptGraphSeeder(SqlServerContainerFixture fixture)
         User user = TestDataFactory.CreateUser(userId, "integration-user");
         Account account = TestDataFactory.CreateAccount(accountId, userId, "Integration account");
         Product product = TestDataFactory.CreateProduct(productId, "Integration product");
-        Receipt receipt = TestDataFactory.CreateReceipt(receiptId, userId, accountId, productId);
+        Receipt receipt = TestDataFactory.CreateReceipt(receiptId, userId, accountId, product);
 
         context.AddRange(user, account, product, receipt);
         await context.SaveChangesAsync(ct);

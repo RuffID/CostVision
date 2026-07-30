@@ -15,33 +15,30 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
 
             Store? store = await ResolveStoreAsync(externalReceiptResult.Data.Store, ct);
 
-            receipt.ApplyDetailsFrom(externalReceiptResult.Data);
-            receipt.StoreId = store?.Id == Guid.Empty ? null : store?.Id;
-            receipt.Store = store;
-            receipt.MarkUpdated(DateTime.UtcNow);
-            receipt.Items.Clear();
-
             Dictionary<string, Product> productCache = new(StringComparer.Ordinal);
+            List<ReceiptItem> refreshedItems = new();
             foreach (ReceiptItem sourceItem in externalReceiptResult.Data.Items)
             {
                 Product product = await ResolveProductAsync(sourceItem.Product, productCache, ct);
-                ReceiptItem item = new()
-                {
-                    ReceiptId = receipt.Id,
-                    ProductId = product.Id,
-                    CategoryId = sourceItem.CategoryId,
-                    Price = sourceItem.Price,
-                    Sum = sourceItem.Sum,
-                    Quantity = sourceItem.Quantity,
-                    Nds = sourceItem.Nds,
-                    PaymentType = sourceItem.PaymentType,
-                    ProductType = sourceItem.ProductType,
-                    ItemsQuantityMeasure = sourceItem.ItemsQuantityMeasure,
-                    Product = product
-                };
+                if (!ReceiptItem.TryCreate(
+                        sourceItem.Price,
+                        sourceItem.Quantity,
+                        sourceItem.Sum,
+                        sourceItem.Nds,
+                        sourceItem.PaymentType,
+                        sourceItem.ProductType,
+                        sourceItem.ItemsQuantityMeasure,
+                        product,
+                        sourceItem.CategoryId,
+                        out ReceiptItem? item,
+                        out string? itemError))
+                    return ServiceResult<Receipt>.Fail(500, $"Внешний источник вернул некорректную позицию чека: {itemError}");
 
-                receipt.Items.Add(item);
+                refreshedItems.Add(item!);
             }
+
+            if (!receipt.TryRefreshFrom(externalReceiptResult.Data, store, refreshedItems, DateTime.UtcNow, out string? refreshError))
+                return ServiceResult<Receipt>.Fail(500, $"Внешний источник вернул некорректные данные чека: {refreshError}");
 
             await unitOfWork.SaveChangesAsync(ct);
             return ServiceResult<Receipt>.Ok(receipt);
