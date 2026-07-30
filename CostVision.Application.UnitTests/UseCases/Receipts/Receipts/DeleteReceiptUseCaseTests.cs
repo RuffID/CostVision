@@ -26,7 +26,7 @@ public class DeleteReceiptUseCaseTests
         Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receiptRepository);
         DeleteReceiptUseCase useCase = new(unitOfWork.Object);
 
-        var result = await useCase.ExecuteAsync(receiptId, new User { Id = userId }, CancellationToken.None);
+        var result = await useCase.ExecuteAsync(receiptId, TestUserFactory.Create(userId), CancellationToken.None);
 
         Assert.True(result.Success);
         Assert.True(result.Data);
@@ -47,7 +47,7 @@ public class DeleteReceiptUseCaseTests
 
         DeleteReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
 
-        var result = await useCase.ExecuteAsync(receiptId, new User { Id = Guid.NewGuid() }, CancellationToken.None);
+        var result = await useCase.ExecuteAsync(receiptId, TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal(403, result.Error?.StatusCode);
@@ -64,7 +64,7 @@ public class DeleteReceiptUseCaseTests
 
         DeleteReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
 
-        var result = await useCase.ExecuteAsync(receiptId, new User { Id = Guid.NewGuid() }, CancellationToken.None);
+        var result = await useCase.ExecuteAsync(receiptId, TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal(404, result.Error?.StatusCode);
@@ -76,7 +76,7 @@ public class DeleteReceiptUseCaseTests
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         DeleteReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
 
-        var result = await useCase.ExecuteAsync(Guid.Empty, new User { Id = Guid.NewGuid() }, CancellationToken.None);
+        var result = await useCase.ExecuteAsync(Guid.Empty, TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal(400, result.Error?.StatusCode);

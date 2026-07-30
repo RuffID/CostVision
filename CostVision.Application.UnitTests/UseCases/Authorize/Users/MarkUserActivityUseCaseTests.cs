@@ -13,7 +13,7 @@ public class MarkUserActivityUseCaseTests
     public async Task ExecuteAsync_UpdatesActivity_WhenUserExistsAndActive()
     {
         Guid userId = Guid.NewGuid();
-        User user = new() { Id = userId, IsActive = true };
+        User user = TestUserFactory.Create(userId);
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         userRepository
             .Setup(repository => repository.GetItemByIdAsync(userId, false, null, It.IsAny<CancellationToken>()))

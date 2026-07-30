@@ -15,13 +15,7 @@ public class AuthenticateUserUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsSuccess_WhenLoginAndPasswordAreValid()
     {
-        User user = new()
-        {
-            Id = Guid.NewGuid(),
-            Login = "user",
-            PasswordHash = "hash",
-            IsActive = true
-        };
+        User user = TestUserFactory.Create(passwordHash: "hash");
 
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         userRepository
@@ -52,13 +46,7 @@ public class AuthenticateUserUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsUnauthorized_WhenPasswordIsInvalid()
     {
-        User user = new()
-        {
-            Id = Guid.NewGuid(),
-            Login = "user",
-            PasswordHash = "hash",
-            IsActive = true
-        };
+        User user = TestUserFactory.Create(passwordHash: "hash");
 
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         userRepository
@@ -83,13 +71,7 @@ public class AuthenticateUserUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsForbidden_WhenUserIsInactive()
     {
-        User user = new()
-        {
-            Id = Guid.NewGuid(),
-            Login = "user",
-            PasswordHash = "hash",
-            IsActive = false
-        };
+        User user = TestUserFactory.Create(isActive: false, passwordHash: "hash");
 
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         userRepository

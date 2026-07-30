@@ -17,7 +17,7 @@ public class RefreshReceiptFromApiUseCaseTests
     [Fact]
     public async Task ExecuteAsync_RefreshesReceipt_WhenUserHasAccess()
     {
-        User currentUser = new() { Id = Guid.NewGuid() };
+        User currentUser = TestUserFactory.Create();
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), currentUser.Id);
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(true);
@@ -35,7 +35,7 @@ public class RefreshReceiptFromApiUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsUnauthorized_WhenUserHasNoAccess()
     {
-        User currentUser = new() { Id = Guid.NewGuid() };
+        User currentUser = TestUserFactory.Create();
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(false);
@@ -55,7 +55,7 @@ public class RefreshReceiptFromApiUseCaseTests
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
         RefreshReceiptFromApiUseCase useCase = new(CreateUnitOfWork(null).Object, accessVerification.Object, refreshWorkflow.Object);
 
-        var result = await useCase.ExecuteAsync(Guid.NewGuid(), new User { Id = Guid.NewGuid() }, CancellationToken.None);
+        var result = await useCase.ExecuteAsync(Guid.NewGuid(), TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal(404, result.Error?.StatusCode);
@@ -65,7 +65,7 @@ public class RefreshReceiptFromApiUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsWorkflowError_WhenRefreshWorkflowFails()
     {
-        User currentUser = new() { Id = Guid.NewGuid() };
+        User currentUser = TestUserFactory.Create();
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), currentUser.Id);
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(true);

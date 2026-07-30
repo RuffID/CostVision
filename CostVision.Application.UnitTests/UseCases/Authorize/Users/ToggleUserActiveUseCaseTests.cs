@@ -13,7 +13,7 @@ public class ToggleUserActiveUseCaseTests
     public async Task ExecuteAsync_DeactivatesActiveUser()
     {
         Guid userId = Guid.NewGuid();
-        User user = new() { Id = userId, IsActive = true };
+        User user = TestUserFactory.Create(userId);
 
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         userRepository
@@ -35,7 +35,7 @@ public class ToggleUserActiveUseCaseTests
     public async Task ExecuteAsync_ActivatesInactiveUser()
     {
         Guid userId = Guid.NewGuid();
-        User user = new() { Id = userId, IsActive = false };
+        User user = TestUserFactory.Create(userId, isActive: false);
 
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         userRepository

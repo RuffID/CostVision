@@ -16,10 +16,10 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
 
             builder.Property(x => x.Name)
                 .IsRequired()
-                .HasMaxLength(128);
+                .HasMaxLength(ExpenseCategory.MAX_NAME_LENGTH);
 
             builder.Property(x => x.Description)
-                .HasMaxLength(512);
+                .HasMaxLength(ExpenseCategory.MAX_DESCRIPTION_LENGTH);
 
             builder.Property(x => x.IsArchived)
                 .IsRequired();
@@ -37,8 +37,24 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
                 .HasForeignKey(x => x.ParentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasMany(x => x.ReceiptItems)
+                .WithOne(x => x.Category)
+                .HasForeignKey(x => x.CategoryId);
+
             builder.HasIndex(x => new { x.UserId, x.Name })
                 .IsUnique();
+
+            builder.Navigation(x => x.User)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.Navigation(x => x.Parent)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.Navigation(x => x.Children)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.Navigation(x => x.ReceiptItems)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

@@ -40,22 +40,7 @@ public sealed class TestWebApplication : IDisposable
 
     public TestWebApplication()
     {
-        ActiveUser = new User
-        {
-            Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-            Login = "active",
-            Name = "Integration User",
-            IsActive = true,
-            Roles =
-            [
-                new Role
-                {
-                    Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                    Name = "Admin",
-                    RoleType = RoleType.Admin
-                }
-            ]
-        };
+        ActiveUser = CreateActiveUser();
 
         _authenticateUser = new FakeAuthenticateUserUseCase(ActiveUser);
         MarkUserActivity = new FakeMarkUserActivityUseCase();
@@ -238,6 +223,29 @@ public sealed class TestWebApplication : IDisposable
             "..",
             "..",
             "CostVision.Web"));
+    }
+
+    private static User CreateActiveUser()
+    {
+        bool isRoleCreated = Role.TryCreate("Admin", RoleType.Admin, out Role? role, out string? error);
+        if (!isRoleCreated || role == null)
+            throw new InvalidOperationException(error ?? "Не удалось создать тестовую роль.");
+
+        role.Id = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+        bool isUserCreated = User.TryCreate(
+            "active",
+            "Integration User",
+            "password-hash",
+            [role],
+            new DateTime(2026, 1, 1),
+            out User? user,
+            out error);
+        if (!isUserCreated || user == null)
+            throw new InvalidOperationException(error ?? "Не удалось создать тестового пользователя.");
+
+        user.Id = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        return user;
     }
 
     private static string ParseRequestVerificationToken(string html)

@@ -250,6 +250,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
+
         MoneyMovement duplicate = TestMoneyMovementFactory.CreateBankStatementImport(
             Guid.NewGuid(),
             accountId,
@@ -258,6 +259,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             userId,
             importComment: "purchase");
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
+
         moneyMovementRepository
             .Setup(repository => repository.GetItemByPredicateAsync(
                 It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
@@ -265,10 +267,14 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
                 null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(duplicate);
+
         ImportMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             setupTransaction: true).Object);
+
+        string importComment = duplicate.ImportComment ?? throw new InvalidOperationException(
+        "У тестовой импортированной операции отсутствует исходный комментарий.");
 
         var result = await useCase.ExecuteAsync(new SaveBankStatementImportRequest
         {

@@ -1,4 +1,5 @@
 using CostVision.Domain.Models.Authorization;
+using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 
@@ -8,15 +9,29 @@ public static class TestDataFactory
 {
     public static User CreateUser(Guid id, string loginPrefix)
     {
-        return new User
-        {
-            Id = id,
-            Login = $"{loginPrefix}-{Guid.NewGuid():N}",
-            Name = "Integration user",
-            PasswordHash = "hash",
-            IsActive = true,
-            CreatedAtUtc = DateTime.UtcNow
-        };
+        bool isRoleCreated = Role.TryCreate(
+            $"User-{Guid.NewGuid():N}",
+            RoleType.User,
+            out Role? role,
+            out string? error);
+        if (!isRoleCreated || role == null)
+            throw new InvalidOperationException(error ?? "Не удалось создать тестовую роль.");
+
+        role.Id = Guid.NewGuid();
+
+        bool isUserCreated = User.TryCreate(
+            $"{loginPrefix}-{Guid.NewGuid():N}",
+            "Integration user",
+            "hash",
+            [role],
+            DateTime.UtcNow,
+            out User? user,
+            out error);
+        if (!isUserCreated || user == null)
+            throw new InvalidOperationException(error ?? "Не удалось создать тестового пользователя.");
+
+        user.Id = id;
+        return user;
     }
 
     public static Account CreateAccount(Guid id, Guid createdByUserId, string name)

@@ -17,7 +17,7 @@ public class GetMoneyMovementAccountsUseCaseTests : MoneyMovementUseCaseTestBase
         Guid userId = Guid.NewGuid();
         Account bAccount = CreateAccount(Guid.NewGuid(), Guid.NewGuid(), "Beta");
         bAccount.TryAddMember(userId, AccountAccessRole.Viewer, out _, out _);
-        User owner = new() { Id = userId, Name = "Owner" };
+        User owner = TestUserFactory.Create(userId, name: "Owner");
         Account aAccount = TestAccountFactory.Create(Guid.NewGuid(), name: "Alpha", owner: owner);
         Mock<IAccountRepository> accountRepository = CreateAccountRepository();
         accountRepository

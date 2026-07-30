@@ -27,6 +27,12 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Authorization
                 .WithMany(e => e.UserRoles)
                 .HasForeignKey(e => e.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Navigation(e => e.User)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.Navigation(e => e.Role)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

@@ -63,7 +63,7 @@ public class CreateUserUseCaseTests
                 true,
                 null,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new User { Id = Guid.NewGuid(), Login = "user" });
+            .ReturnsAsync(TestUserFactory.Create(login: "user"));
 
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
         CreateUserUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);

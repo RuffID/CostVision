@@ -23,8 +23,8 @@ public class GetAccountShareUsersUseCaseTests
         account.TryAddMember(selectedUserId, AccountAccessRole.Editor, out _, out _);
         List<User> users =
         [
-            new User { Id = selectedUserId, Name = "Beta", Login = "beta", IsActive = true },
-            new User { Id = availableUserId, Name = "Alpha", Login = "alpha", IsActive = true }
+            TestUserFactory.Create(selectedUserId, "beta", "Beta"),
+            TestUserFactory.Create(availableUserId, "alpha", "Alpha")
         ];
         GetAccountShareUsersUseCase useCase = new(CreateUnitOfWork(account, users).Object);
 

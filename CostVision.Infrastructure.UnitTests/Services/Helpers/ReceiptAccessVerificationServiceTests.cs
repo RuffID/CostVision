@@ -11,7 +11,7 @@ public class ReceiptAccessVerificationServiceTests
     [Fact]
     public void UserHasAccessToReceipt_ReturnsTrueForReceiptOwner()
     {
-        User user = new() { Id = Guid.NewGuid() };
+        User user = CreateUser();
         Receipt receipt = CreateReceipt(user.Id);
         ReceiptAccessVerificationService service = new();
 
@@ -23,7 +23,7 @@ public class ReceiptAccessVerificationServiceTests
     [Fact]
     public void UserHasAccessToReceipt_ReturnsTrueForLinkedAccountOwner()
     {
-        User user = new() { Id = Guid.NewGuid() };
+        User user = CreateUser();
         Account account = CreateAccount(Guid.NewGuid(), user.Id);
         Receipt receipt = CreateReceiptWithAccount(account);
         ReceiptAccessVerificationService service = new();
@@ -36,7 +36,7 @@ public class ReceiptAccessVerificationServiceTests
     [Fact]
     public void UserHasAccessToReceipt_ReturnsTrueForLinkedAccountMember()
     {
-        User user = new() { Id = Guid.NewGuid() };
+        User user = CreateUser();
         Account account = CreateAccount(Guid.NewGuid(), Guid.NewGuid());
         account.TryAddMember(user.Id, AccountAccessRole.Viewer, out _, out _);
         Receipt receipt = CreateReceiptWithAccount(account);
@@ -50,7 +50,7 @@ public class ReceiptAccessVerificationServiceTests
     [Fact]
     public void UserHasAccessToReceipt_ReturnsFalseForUnrelatedUser()
     {
-        User user = new() { Id = Guid.NewGuid() };
+        User user = CreateUser();
         Account account = CreateAccount(Guid.NewGuid(), Guid.NewGuid());
         account.TryAddMember(Guid.NewGuid(), AccountAccessRole.Viewer, out _, out _);
         Receipt receipt = CreateReceiptWithAccount(account);
@@ -64,7 +64,7 @@ public class ReceiptAccessVerificationServiceTests
     [Fact]
     public void UserHasAccessToReceipt_ReturnsFalseWhenReceiptHasNoAccountLinks()
     {
-        User user = new() { Id = Guid.NewGuid() };
+        User user = CreateUser();
         Receipt receipt = CreateReceipt(Guid.NewGuid());
         ReceiptAccessVerificationService service = new();
 
@@ -111,5 +111,20 @@ public class ReceiptAccessVerificationServiceTests
         Assert.True(isCreated, error);
         account!.Id = accountId;
         return account;
+    }
+
+    private static User CreateUser()
+    {
+        bool isCreated = User.TryCreate(
+            "user",
+            "User",
+            "password-hash",
+            [Guid.NewGuid()],
+            new DateTime(2026, 1, 1),
+            out User? user,
+            out string? error);
+        Assert.True(isCreated, error);
+        user!.Id = Guid.NewGuid();
+        return user;
     }
 }

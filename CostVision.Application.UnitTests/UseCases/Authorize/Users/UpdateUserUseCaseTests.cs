@@ -96,7 +96,7 @@ public class UpdateUserUseCaseTests
         Guid userId = Guid.NewGuid();
         Guid roleId = Guid.NewGuid();
         User user = CreateUser(userId, "old-login", "Test User", "old-hash", roleId);
-        User conflictUser = new() { Id = Guid.NewGuid(), Login = "new-login" };
+        User conflictUser = TestUserFactory.Create(login: "new-login");
 
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         userRepository

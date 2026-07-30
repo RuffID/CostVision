@@ -33,8 +33,8 @@ public class UpdateAccountMembersUseCaseTests
 
         Mock<IAccountRepository> accountRepository = CreateAccountRepository(account);
         Mock<IUserRepository> userRepository = CreateUsersRepository([
-            new User { Id = updatedUserId, IsActive = true },
-            new User { Id = addedUserId, IsActive = true }
+            TestUserFactory.Create(updatedUserId),
+            TestUserFactory.Create(addedUserId)
         ]);
         Mock<IAccountMemberRepository> accountMemberRepository = new(MockBehavior.Strict);
         accountMemberRepository.Setup(repository => repository.DeleteRange(It.IsAny<IEnumerable<AccountMember>>()))

@@ -22,8 +22,7 @@ public class LoginModelTests
     public async Task OnPostAsync_RedirectsAndSignsInUser_WhenCredentialsAreValid()
     {
         LoginRequest request = new() { Login = "user", Password = "password" };
-        User user = TestUsers.Create();
-        user.Roles.Add(new Role { Name = "Admin", RoleType = RoleType.Admin });
+        User user = TestUsers.Create(roleType: RoleType.Admin);
 
         Mock<IAuthenticateUserUseCase> authenticateUserUseCase = new(MockBehavior.Strict);
         authenticateUserUseCase

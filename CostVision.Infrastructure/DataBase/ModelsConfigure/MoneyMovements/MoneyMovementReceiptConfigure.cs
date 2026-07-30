@@ -39,6 +39,10 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.MoneyMovements
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Metadata.FindNavigation(nameof(MoneyMovementReceipt.CreatedByUser))!
+                .Inverse!
+                .SetPropertyAccessMode(PropertyAccessMode.Field);
+
             builder.HasIndex(e => e.ReceiptId);
             builder.HasIndex(e => e.CreatedByUserId);
         }

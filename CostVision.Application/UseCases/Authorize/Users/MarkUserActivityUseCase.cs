@@ -15,7 +15,9 @@ namespace CostVision.Application.UseCases.Authorize.Users
             if (user == null || !user.IsActive)
                 return ServiceResult<bool>.Fail(404, "Пользователь не найден или неактивен.");
 
-            user.MarkActivity(DateTime.UtcNow);
+            if (!user.TryMarkActivity(DateTime.UtcNow, out string? error))
+                return ServiceResult<bool>.Fail(400, error!);
+
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<bool>.Ok(true);

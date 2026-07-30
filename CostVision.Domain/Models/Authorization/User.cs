@@ -1,6 +1,7 @@
 ﻿using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using EFCoreLibrary.Abstractions.Entity;
+using System.Collections.ObjectModel;
 
 namespace CostVision.Domain.Models.Authorization
 {
@@ -12,43 +13,69 @@ namespace CostVision.Domain.Models.Authorization
         public const int MAX_NAME_LENGTH = 256;
         public const int PASSWORD_HASH_MAX_LENGTH = 512;
 
+        private readonly List<Role> _roles = new();
+        private readonly ReadOnlyCollection<Role> _rolesView;
         private readonly List<UserRole> _userRoles = new();
+        private readonly ReadOnlyCollection<UserRole> _userRolesView;
+        private readonly List<AccountMember> _accountMemberships = new();
+        private readonly ReadOnlyCollection<AccountMember> _accountMembershipsView;
+        private readonly List<Receipt> _createdReceipts = new();
+        private readonly ReadOnlyCollection<Receipt> _createdReceiptsView;
+        private readonly List<ExpenseCategory> _categories = new();
+        private readonly ReadOnlyCollection<ExpenseCategory> _categoriesView;
+        private readonly List<Account> _accounts = new();
+        private readonly ReadOnlyCollection<Account> _accountsView;
+        private readonly List<MoneyMovement> _createdMoneyMovements = new();
+        private readonly ReadOnlyCollection<MoneyMovement> _createdMoneyMovementsView;
+        private readonly List<MoneyMovement> _performedMoneyMovements = new();
+        private readonly ReadOnlyCollection<MoneyMovement> _performedMoneyMovementsView;
+        private readonly List<MoneyMovementReceipt> _createdMoneyMovementReceiptLinks = new();
+        private readonly ReadOnlyCollection<MoneyMovementReceipt> _createdMoneyMovementReceiptLinksView;
 
-        internal User()
+        private User()
         {
+            _rolesView = _roles.AsReadOnly();
+            _userRolesView = _userRoles.AsReadOnly();
+            _accountMembershipsView = _accountMemberships.AsReadOnly();
+            _createdReceiptsView = _createdReceipts.AsReadOnly();
+            _categoriesView = _categories.AsReadOnly();
+            _accountsView = _accounts.AsReadOnly();
+            _createdMoneyMovementsView = _createdMoneyMovements.AsReadOnly();
+            _performedMoneyMovementsView = _performedMoneyMovements.AsReadOnly();
+            _createdMoneyMovementReceiptLinksView = _createdMoneyMovementReceiptLinks.AsReadOnly();
         }
 
         public Guid Id { get; set; }
 
-        public string Login { get; internal set; } = string.Empty;
+        public string Login { get; private set; } = string.Empty;
 
-        public string Name { get; internal set; } = string.Empty;
+        public string Name { get; private set; } = string.Empty;
 
-        public string PasswordHash { get; internal set; } = string.Empty;
+        public string PasswordHash { get; private set; } = string.Empty;
 
-        public bool IsActive { get; internal set; }
+        public bool IsActive { get; private set; }
 
-        public DateTime CreatedAtUtc { get; internal set; }
+        public DateTime CreatedAtUtc { get; private set; }
 
-        public DateTime? LastLoginAtUtc { get; internal set; }
+        public DateTime? LastLoginAtUtc { get; private set; }
 
-        public ICollection<Role> Roles { get; set; } = new List<Role>();
+        public IReadOnlyCollection<Role> Roles => _rolesView;
 
-        public IReadOnlyCollection<UserRole> UserRoles => _userRoles;
+        public IReadOnlyCollection<UserRole> UserRoles => _userRolesView;
 
-        public List<AccountMember> AccountMemberships { get; set; } = new List<AccountMember>();
+        public IReadOnlyCollection<AccountMember> AccountMemberships => _accountMembershipsView;
 
-        public List<Receipt> CreatedReceipts { get; set; } = new List<Receipt>();
+        public IReadOnlyCollection<Receipt> CreatedReceipts => _createdReceiptsView;
 
-        public List<ExpenseCategory> Categories { get; set; } = new List<ExpenseCategory>();
+        public IReadOnlyCollection<ExpenseCategory> Categories => _categoriesView;
 
-        public List<Account> Accounts { get; set; } = new List<Account>();
+        public IReadOnlyCollection<Account> Accounts => _accountsView;
 
-        public List<MoneyMovement> CreatedMoneyMovements { get; set; } = new List<MoneyMovement>();
+        public IReadOnlyCollection<MoneyMovement> CreatedMoneyMovements => _createdMoneyMovementsView;
 
-        public List<MoneyMovement> PerformedMoneyMovements { get; set; } = new List<MoneyMovement>();
+        public IReadOnlyCollection<MoneyMovement> PerformedMoneyMovements => _performedMoneyMovementsView;
 
-        public List<MoneyMovementReceipt> CreatedMoneyMovementReceiptLinks { get; set; } = new List<MoneyMovementReceipt>();
+        public IReadOnlyCollection<MoneyMovementReceipt> CreatedMoneyMovementReceiptLinks => _createdMoneyMovementReceiptLinksView;
 
         /// <summary>
         /// Создаёт допустимого активного пользователя с назначенными ролями.
@@ -92,6 +119,50 @@ namespace CostVision.Domain.Models.Authorization
         }
 
         /// <summary>
+        /// Создаёт допустимого активного пользователя с назначенными ролями.
+        /// </summary>
+        public static bool TryCreate(
+            string login,
+            string name,
+            string passwordHash,
+            IEnumerable<Role> roles,
+            DateTime createdAtUtc,
+            out User? user,
+            out string? error)
+        {
+            user = null;
+            List<Role> normalizedRoles = roles?
+                .Where(role => role != null && role.Id != Guid.Empty)
+                .DistinctBy(role => role.Id)
+                .ToList() ?? new List<Role>();
+
+            if (normalizedRoles.Count == 0)
+            {
+                error = "Роль обязательна.";
+                return false;
+            }
+
+            if (!TryCreate(
+                    login,
+                    name,
+                    passwordHash,
+                    normalizedRoles.Select(role => role.Id),
+                    createdAtUtc,
+                    out user,
+                    out error))
+                return false;
+
+            user!._userRoles.Clear();
+            foreach (Role role in normalizedRoles)
+            {
+                user._roles.Add(role);
+                user._userRoles.Add(UserRole.Create(user, role));
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Атомарно обновляет профиль, хеш пароля и назначенные роли пользователя.
         /// </summary>
         public bool TryUpdate(
@@ -114,6 +185,7 @@ namespace CostVision.Domain.Models.Authorization
 
             HashSet<Guid> desiredRoleIds = normalizedRoleIds.ToHashSet();
             _userRoles.RemoveAll(userRole => !desiredRoleIds.Contains(userRole.RoleId));
+            _roles.RemoveAll(role => !desiredRoleIds.Contains(role.Id));
 
             HashSet<Guid> currentRoleIds = _userRoles.Select(userRole => userRole.RoleId).ToHashSet();
             foreach (Guid roleId in normalizedRoleIds.Where(roleId => !currentRoleIds.Contains(roleId)))
@@ -142,17 +214,25 @@ namespace CostVision.Domain.Models.Authorization
         /// <summary>
         /// Обновляет время последнего успешного входа.
         /// </summary>
-        public void MarkLogin(DateTime loginAtUtc)
+        public bool TryMarkLogin(DateTime loginAtUtc, out string? error)
         {
-            MarkActivity(loginAtUtc);
+            return TryMarkActivity(loginAtUtc, out error);
         }
 
         /// <summary>
         /// Обновляет время последней активности пользователя.
         /// </summary>
-        public void MarkActivity(DateTime activityAtUtc)
+        public bool TryMarkActivity(DateTime activityAtUtc, out string? error)
         {
+            if (activityAtUtc == default)
+            {
+                error = "Дата активности пользователя не заполнена.";
+                return false;
+            }
+
             LastLoginAtUtc = activityAtUtc;
+            error = null;
+            return true;
         }
 
         private static bool TryNormalizeProfile(

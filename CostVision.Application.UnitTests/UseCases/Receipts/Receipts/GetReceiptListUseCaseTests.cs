@@ -17,7 +17,7 @@ public class GetReceiptListUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsReceiptsFromRepository_WhenPeriodIsValid()
     {
-        User currentUser = new() { Id = Guid.NewGuid() };
+        User currentUser = TestUserFactory.Create();
         List<Receipt> receipts = [TestReceiptFactory.Create(Guid.NewGuid(), currentUser.Id)];
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         receiptRepository
@@ -44,7 +44,7 @@ public class GetReceiptListUseCaseTests
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         GetReceiptListUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
 
-        ServiceResult<List<ReceiptDto>> result = await useCase.ExecuteAsync(new User { Id = Guid.NewGuid() }, new DateTime(2026, 2, 1), new DateTime(2026, 1, 1), CancellationToken.None);
+        ServiceResult<List<ReceiptDto>> result = await useCase.ExecuteAsync(TestUserFactory.Create(), new DateTime(2026, 2, 1), new DateTime(2026, 1, 1), CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal(400, result.Error?.StatusCode);
@@ -65,7 +65,7 @@ public class GetReceiptListUseCaseTests
             .ReturnsAsync([]);
         GetReceiptListUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
 
-        ServiceResult<List<ReceiptDto>> result = await useCase.ExecuteAsync(new User { Id = Guid.NewGuid() }, new DateTime(2026, 1, 1), new DateTime(2026, 1, 31), CancellationToken.None);
+        ServiceResult<List<ReceiptDto>> result = await useCase.ExecuteAsync(TestUserFactory.Create(), new DateTime(2026, 1, 1), new DateTime(2026, 1, 31), CancellationToken.None);
 
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
@@ -75,7 +75,7 @@ public class GetReceiptListUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsGroupedAndSortedReceiptDtos_WhenRepositoryReturnsReceipts()
     {
-        User currentUser = new() { Id = Guid.NewGuid() };
+        User currentUser = TestUserFactory.Create();
         DateTime oldDate = new(2026, 1, 3);
         DateTime newDate = new(2026, 1, 5);
         Receipt firstDuplicate = CreateReceipt(currentUser.Id, oldDate, "1", "1", "1");

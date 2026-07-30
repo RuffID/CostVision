@@ -17,7 +17,7 @@ public class GetUserAccountsUseCaseTests
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        User owner = new() { Id = Guid.NewGuid(), Name = "Owner" };
+        User owner = TestUserFactory.Create(name: "Owner");
         Account account = TestAccountFactory.Create(
             accountId,
             name: "Shared",

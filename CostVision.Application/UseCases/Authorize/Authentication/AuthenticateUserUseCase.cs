@@ -26,7 +26,9 @@ namespace CostVision.Application.UseCases.Authorize.Authentication
             if (!user.IsActive)
                 return ServiceResult<User>.Fail(403, "Пользователь заблокирован.");
 
-            user.MarkLogin(DateTime.UtcNow);
+            if (!user.TryMarkLogin(DateTime.UtcNow, out string? error))
+                return ServiceResult<User>.Fail(400, error!);
+
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult<User>.Ok(user);

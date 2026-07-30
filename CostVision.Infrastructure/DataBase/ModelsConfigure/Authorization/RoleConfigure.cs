@@ -18,7 +18,7 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Authorization
 
             builder.Property(e => e.Name)
                 .IsRequired()
-                .HasMaxLength(128);
+                .HasMaxLength(Role.MAX_NAME_LENGTH);
 
             builder.HasIndex(e => e.Name)
                 .IsUnique();
@@ -27,6 +27,12 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Authorization
                 .WithOne(e => e.Role)
                 .HasForeignKey(e => e.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Navigation(e => e.Users)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.Navigation(e => e.UserRoles)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

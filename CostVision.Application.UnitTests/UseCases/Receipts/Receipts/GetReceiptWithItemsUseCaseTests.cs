@@ -15,7 +15,7 @@ public class GetReceiptWithItemsUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsReceipt_WhenUserHasAccess()
     {
-        User currentUser = new() { Id = Guid.NewGuid() };
+        User currentUser = TestUserFactory.Create();
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), currentUser.Id);
 
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
@@ -32,7 +32,7 @@ public class GetReceiptWithItemsUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsUnauthorized_WhenUserHasNoAccess()
     {
-        User currentUser = new() { Id = Guid.NewGuid() };
+        User currentUser = TestUserFactory.Create();
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
 
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
@@ -52,7 +52,7 @@ public class GetReceiptWithItemsUseCaseTests
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         GetReceiptWithItemsUseCase useCase = new(CreateUnitOfWork(null).Object, accessVerification.Object);
 
-        var result = await useCase.ExecuteAsync(Guid.NewGuid(), new User { Id = Guid.NewGuid() }, CancellationToken.None);
+        var result = await useCase.ExecuteAsync(Guid.NewGuid(), TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal(404, result.Error?.StatusCode);
@@ -67,7 +67,7 @@ public class GetReceiptWithItemsUseCaseTests
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         GetReceiptWithItemsUseCase useCase = new(unitOfWork.Object, accessVerification.Object);
 
-        var result = await useCase.ExecuteAsync(Guid.Empty, new User { Id = Guid.NewGuid() }, CancellationToken.None);
+        var result = await useCase.ExecuteAsync(Guid.Empty, TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal(400, result.Error?.StatusCode);

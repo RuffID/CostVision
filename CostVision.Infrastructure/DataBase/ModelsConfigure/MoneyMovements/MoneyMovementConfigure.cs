@@ -60,6 +60,14 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.MoneyMovements
                 .HasForeignKey(e => e.PerformedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Metadata.FindNavigation(nameof(MoneyMovement.CreatedByUser))!
+                .Inverse!
+                .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.Metadata.FindNavigation(nameof(MoneyMovement.PerformedByUser))!
+                .Inverse!
+                .SetPropertyAccessMode(PropertyAccessMode.Field);
+
             builder.HasIndex(e => new { e.AccountId, e.OccurredAt });
             builder.HasIndex(e => new { e.AccountId, e.OccurredAt, e.Amount, e.Type });
             builder.HasIndex(e => e.CreatedByUserId);
