@@ -67,7 +67,7 @@ public class UserSettingsModelTests
         dependencies.UpdateAccountUseCase
             .Setup(useCase => useCase.ExecuteAsync(
                 currentUser.Id,
-                It.Is<Account>(account => account.Id == request.AccountId && account.Name == request.Name && !account.IsArchived),
+                request,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Account>.Ok(new Account { Id = request.AccountId, Name = request.Name }));
 

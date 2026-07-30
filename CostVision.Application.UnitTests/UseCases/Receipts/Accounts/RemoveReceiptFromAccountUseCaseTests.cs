@@ -63,18 +63,19 @@ public class RemoveReceiptFromAccountUseCaseTests
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
+        Account account = new()
+        {
+            Id = accountId,
+            CreatedByUserId = Guid.NewGuid()
+        };
+        account.TryAddMember(userId, AccountAccessRole.Viewer, out _, out _);
         Receipt receipt = new()
         {
             Id = Guid.NewGuid(),
             Accounts = [new ReceiptAccount
             {
                 AccountId = accountId,
-                Account = new Account
-                {
-                    Id = accountId,
-                    CreatedByUserId = Guid.NewGuid(),
-                    Members = [new AccountMember { UserId = userId, Role = AccountAccessRole.Viewer }]
-                }
+                Account = account
             }]
         };
         RemoveReceiptFromAccountUseCase useCase = new(CreateUnitOfWork(CreateReceiptRepository(receipt), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);

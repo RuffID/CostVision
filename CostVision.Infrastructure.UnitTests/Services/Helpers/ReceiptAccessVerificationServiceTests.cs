@@ -1,4 +1,5 @@
 using CostVision.Domain.Models.Authorization;
+using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Infrastructure.Services.Helpers;
 using Xunit;
@@ -48,6 +49,8 @@ public class ReceiptAccessVerificationServiceTests
     public void UserHasAccessToReceipt_ReturnsTrueForLinkedAccountMember()
     {
         User user = new() { Id = Guid.NewGuid() };
+        Account account = new() { CreatedByUserId = Guid.NewGuid() };
+        account.TryAddMember(user.Id, AccountAccessRole.Viewer, out _, out _);
         Receipt receipt = new()
         {
             CreatedByUserId = Guid.NewGuid(),
@@ -55,14 +58,7 @@ public class ReceiptAccessVerificationServiceTests
             [
                 new ReceiptAccount
                 {
-                    Account = new Account
-                    {
-                        CreatedByUserId = Guid.NewGuid(),
-                        Members =
-                        [
-                            new AccountMember { UserId = user.Id }
-                        ]
-                    }
+                    Account = account
                 }
             ]
         };
@@ -77,6 +73,8 @@ public class ReceiptAccessVerificationServiceTests
     public void UserHasAccessToReceipt_ReturnsFalseForUnrelatedUser()
     {
         User user = new() { Id = Guid.NewGuid() };
+        Account account = new() { CreatedByUserId = Guid.NewGuid() };
+        account.TryAddMember(Guid.NewGuid(), AccountAccessRole.Viewer, out _, out _);
         Receipt receipt = new()
         {
             CreatedByUserId = Guid.NewGuid(),
@@ -84,14 +82,7 @@ public class ReceiptAccessVerificationServiceTests
             [
                 new ReceiptAccount
                 {
-                    Account = new Account
-                    {
-                        CreatedByUserId = Guid.NewGuid(),
-                        Members =
-                        [
-                            new AccountMember { UserId = Guid.NewGuid() }
-                        ]
-                    }
+                    Account = account
                 }
             ]
         };

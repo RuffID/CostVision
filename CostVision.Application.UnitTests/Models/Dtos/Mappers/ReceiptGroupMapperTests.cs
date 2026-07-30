@@ -71,12 +71,16 @@ public class ReceiptGroupMapperTests
     private static Account CreateAccount(string name, Guid ownerId, Guid memberId, AccountAccessRole role)
     {
         Guid accountId = Guid.NewGuid();
-        return new Account
+        Account account = new()
         {
             Id = accountId,
             Name = name,
-            CreatedByUserId = ownerId,
-            Members = [new AccountMember { AccountId = accountId, UserId = memberId, Role = role }]
+            CreatedByUserId = ownerId
         };
+
+        if (memberId != ownerId)
+            account.TryAddMember(memberId, role, out _, out _);
+
+        return account;
     }
 }

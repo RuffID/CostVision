@@ -24,13 +24,15 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 return ServiceResult<bool>.Fail(404, "Счёт не найден.");
 
             List<UpdateAccountMemberRequest> desiredMembers = members
-                .Where(member => member.UserId != Guid.Empty && member.UserId != ownerUserId)
                 .GroupBy(member => member.UserId)
                 .Select(group => group.Last())
                 .ToList();
 
-            if (desiredMembers.Any(member => !Enum.IsDefined(typeof(AccountAccessRole), member.Role) || member.Role == AccountAccessRole.Owner))
-                return ServiceResult<bool>.Fail(400, "Можно назначить только роли Viewer или Editor.");
+            foreach (UpdateAccountMemberRequest member in desiredMembers)
+            {
+                if (!account.CanAssignMember(member.UserId, member.Role, out string? error))
+                    return ServiceResult<bool>.Fail(400, error ?? "Некорректные данные участника счёта.");
+            }
 
             List<Guid> desiredUserIds = desiredMembers.Select(member => member.UserId).ToList();
             List<User> availableUsers = desiredUserIds.Count == 0
@@ -63,27 +65,38 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             Dictionary<Guid, AccountAccessRole> desiredRolesByUserId = desiredMembers
                 .ToDictionary(member => member.UserId, member => member.Role);
 
+            List<AccountMember> removedMembers = new();
+            foreach (AccountMember member in membersToRemove)
+            {
+                if (!account.TryRemoveMember(member.UserId, out AccountMember? removedMember, out string? error) || removedMember == null)
+                    return ServiceResult<bool>.Fail(400, error ?? "Не удалось удалить участника счёта.");
+
+                removedMembers.Add(removedMember);
+            }
+
+            foreach (AccountMember member in membersToUpdate)
+            {
+                AccountAccessRole desiredRole = desiredRolesByUserId[member.UserId];
+                if (member.Role != desiredRole && !account.TryChangeMemberRole(member.UserId, desiredRole, out string? error))
+                    return ServiceResult<bool>.Fail(400, error ?? "Не удалось изменить роль участника счёта.");
+            }
+
+            List<AccountMember> addedMembers = new();
+            foreach (Guid userId in userIdsToAdd)
+            {
+                if (!account.TryAddMember(userId, desiredRolesByUserId[userId], out AccountMember? addedMember, out string? error) || addedMember == null)
+                    return ServiceResult<bool>.Fail(400, error ?? "Не удалось добавить участника счёта.");
+
+                addedMembers.Add(addedMember);
+            }
+
             await unitOfWork.ExecuteInTransaction(async () =>
             {
-                if (membersToRemove.Count > 0)
-                    unitOfWork.AccountMember.DeleteRange(membersToRemove);
+                if (removedMembers.Count > 0)
+                    unitOfWork.AccountMember.DeleteRange(removedMembers);
 
-                foreach (AccountMember member in membersToUpdate)
-                {
-                    AccountAccessRole desiredRole = desiredRolesByUserId[member.UserId];
-                    if (member.Role != desiredRole)
-                        member.Role = desiredRole;
-                }
-
-                foreach (Guid userId in userIdsToAdd)
-                {
-                    unitOfWork.AccountMember.Create(new AccountMember
-                    {
-                        AccountId = accountId,
-                        UserId = userId,
-                        Role = desiredRolesByUserId[userId]
-                    });
-                }
+                if (addedMembers.Count > 0)
+                    unitOfWork.AccountMember.CreateRange(addedMembers);
 
                 await Task.CompletedTask;
             }, ct);

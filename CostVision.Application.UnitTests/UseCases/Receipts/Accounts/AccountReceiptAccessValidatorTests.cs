@@ -25,9 +25,9 @@ public class AccountReceiptAccessValidatorTests
         Guid userId = Guid.NewGuid();
         Account account = new()
         {
-            CreatedByUserId = Guid.NewGuid(),
-            Members = [new AccountMember { UserId = userId, Role = AccountAccessRole.Editor }]
+            CreatedByUserId = Guid.NewGuid()
         };
+        account.TryAddMember(userId, AccountAccessRole.Editor, out _, out _);
 
         ServiceResult<bool> result = Validate(account, userId);
 
@@ -51,9 +51,9 @@ public class AccountReceiptAccessValidatorTests
         Guid userId = Guid.NewGuid();
         Account account = new()
         {
-            CreatedByUserId = Guid.NewGuid(),
-            Members = [new AccountMember { UserId = userId, Role = AccountAccessRole.Viewer }]
+            CreatedByUserId = Guid.NewGuid()
         };
+        account.TryAddMember(userId, AccountAccessRole.Viewer, out _, out _);
 
         ServiceResult<bool> result = Validate(account, userId);
 

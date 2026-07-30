@@ -17,17 +17,19 @@ public class GetUserAccountsUseCaseTests
     {
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        List<AccountMember> memberships = [new AccountMember { AccountId = accountId, UserId = userId, Role = AccountAccessRole.Editor }];
-        List<Account> accounts = [new Account
+        Account account = new Account
         {
             Id = accountId,
             Name = "Shared",
             Description = "Groceries",
             ColorHex = "#ABCDEF",
             CreatedByUserId = Guid.NewGuid(),
-            CreatedByUser = new User { Id = Guid.NewGuid(), Name = "Owner" },
-            Members = memberships
-        }];
+            CreatedByUser = new User { Id = Guid.NewGuid(), Name = "Owner" }
+        };
+        account.TryAddMember(userId, AccountAccessRole.Editor, out AccountMember? membership, out _);
+        Assert.NotNull(membership);
+        List<AccountMember> memberships = [membership];
+        List<Account> accounts = [account];
         GetUserAccountsUseCase useCase = new(CreateUnitOfWork(memberships, accounts).Object);
 
         var result = await useCase.ExecuteAsync(userId, includeArchived: false, CancellationToken.None);

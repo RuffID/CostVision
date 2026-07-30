@@ -1,7 +1,6 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
-using CostVision.Application.UseCases.Receipts.Accounts.Helpers;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
 
@@ -11,25 +10,19 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
     {
         public async Task<ServiceResult<Account>> ExecuteAsync(Guid ownerUserId, CreateAccountRequest request, CancellationToken ct)
         {
-            ServiceResult<string> colorHexResult = AccountColorHexNormalizer.Normalize(request.ColorHex);
-            if (!colorHexResult.Success || colorHexResult.Data == null)
-                return ServiceResult<Account>.Fail(colorHexResult.Error!.StatusCode, colorHexResult.Error.Message);
+            bool isCreated = Account.TryCreate(
+                request.Name,
+                request.Description,
+                request.ColorHex,
+                ownerUserId,
+                DateTime.UtcNow,
+                out Account? account,
+                out string? error);
 
-            Account account = new()
-            {
-                Name = request.Name,
-                Description = request.Description,
-                ColorHex = colorHexResult.Data,
-                CreatedAtUtc = DateTime.UtcNow,
-                CreatedByUserId = ownerUserId
-            };
+            if (!isCreated || account == null)
+                return ServiceResult<Account>.Fail(400, error ?? "Не удалось создать счёт.");
 
-            AccountMember ownerMember = new()
-            {
-                UserId = ownerUserId,
-                Account = account,
-                Role = AccountAccessRole.Owner
-            };
+            AccountMember ownerMember = account.Members.Single(member => member.Role == AccountAccessRole.Owner);
 
             await unitOfWork.ExecuteInTransaction(async () =>
             {

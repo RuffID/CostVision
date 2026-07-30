@@ -22,17 +22,12 @@ public class UpdateAccountMembersUseCaseTests
         Guid removedUserId = Guid.NewGuid();
         Guid updatedUserId = Guid.NewGuid();
         Guid addedUserId = Guid.NewGuid();
-        Account account = new()
-        {
-            Id = accountId,
-            CreatedByUserId = ownerUserId,
-            Members =
-            [
-                new AccountMember { AccountId = accountId, UserId = ownerUserId, Role = AccountAccessRole.Owner },
-                new AccountMember { AccountId = accountId, UserId = removedUserId, Role = AccountAccessRole.Editor },
-                new AccountMember { AccountId = accountId, UserId = updatedUserId, Role = AccountAccessRole.Viewer }
-            ]
-        };
+        Account.TryCreate("Основной", null, null, ownerUserId, DateTime.UtcNow, out Account? account, out string? creationError);
+        Assert.NotNull(account);
+        Assert.Null(creationError);
+        account.Id = accountId;
+        account.TryAddMember(removedUserId, AccountAccessRole.Editor, out _, out _);
+        account.TryAddMember(updatedUserId, AccountAccessRole.Viewer, out _, out _);
         List<AccountMember>? removedMembers = null;
         AccountMember? addedMember = null;
 
@@ -44,14 +39,13 @@ public class UpdateAccountMembersUseCaseTests
         Mock<IAccountMemberRepository> accountMemberRepository = new(MockBehavior.Strict);
         accountMemberRepository.Setup(repository => repository.DeleteRange(It.IsAny<IEnumerable<AccountMember>>()))
             .Callback<IEnumerable<AccountMember>>(members => removedMembers = members.ToList());
-        accountMemberRepository.Setup(repository => repository.Create(It.IsAny<AccountMember>()))
-            .Callback<AccountMember>(member => addedMember = member);
+        accountMemberRepository.Setup(repository => repository.CreateRange(It.IsAny<IEnumerable<AccountMember>>()))
+            .Callback<IEnumerable<AccountMember>>(members => addedMember = members.Single());
         Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(accountRepository, userRepository, accountMemberRepository);
         UpdateAccountMembersUseCase useCase = new(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(accountId, ownerUserId,
         [
-            new UpdateAccountMemberRequest { UserId = ownerUserId, Role = AccountAccessRole.Editor },
             new UpdateAccountMemberRequest { UserId = updatedUserId, Role = AccountAccessRole.Editor },
             new UpdateAccountMemberRequest { UserId = addedUserId, Role = AccountAccessRole.Viewer }
         ], CancellationToken.None);

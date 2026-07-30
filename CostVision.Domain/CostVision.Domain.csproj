@@ -4,12 +4,20 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**;artifacts\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="EFCoreLibrary">
       <HintPath>..\libs\EFCoreLibrary.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CostVision.Application.UnitTests" />
+    <InternalsVisibleTo Include="CostVision.Infrastructure.IntegrationTests" />
+    <InternalsVisibleTo Include="CostVision.Infrastructure.UnitTests" />
+    <InternalsVisibleTo Include="CostVision.Web.UnitTests" />
   </ItemGroup>
 
 </Project>

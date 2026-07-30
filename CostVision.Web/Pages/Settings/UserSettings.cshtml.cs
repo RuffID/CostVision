@@ -31,9 +31,6 @@ namespace CostVision.Web.Pages.Settings
 
         public async Task<IActionResult> OnPostCreateAccountAsync([FromBody] CreateAccountRequest request, CancellationToken ct)
         {
-            if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 3)
-                return JsonResultMapper.ToJsonResult(ServiceResult<UserAccountViewModel>.Fail(400, "Название счёта обязательно. Минимум 3 символа."));
-
             ServiceResult<Account> result = await createAccountUseCase.ExecuteAsync(CurrentUser.Id, request, ct);
             if (!result.Success || result.Data == null)
                 return JsonResultMapper.ToJsonResult(result);
@@ -54,22 +51,7 @@ namespace CostVision.Web.Pages.Settings
 
         public async Task<IActionResult> OnPostUpdateAccountAsync([FromBody] UpdateAccountRequest request, CancellationToken ct)
         {
-            if (request.AccountId == Guid.Empty)
-                return JsonResultMapper.ToJsonResult(ServiceResult<UserAccountViewModel>.Fail(400, "Некорректный идентификатор счёта."));
-
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return JsonResultMapper.ToJsonResult(ServiceResult<UserAccountViewModel>.Fail(400, "Название счёта обязательно."));
-
-            Account account = new()
-            {
-                Id = request.AccountId,
-                Name = request.Name,
-                Description = request.Description,
-                ColorHex = request.ColorHex,
-                IsArchived = !request.IsActive
-            };
-
-            ServiceResult<Account> result = await updateAccountUseCase.ExecuteAsync(CurrentUser.Id, account, ct);
+            ServiceResult<Account> result = await updateAccountUseCase.ExecuteAsync(CurrentUser.Id, request, ct);
             if (!result.Success || result.Data == null)
                 return JsonResultMapper.ToJsonResult(result);
 

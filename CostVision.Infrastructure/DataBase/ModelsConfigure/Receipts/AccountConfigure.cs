@@ -41,6 +41,9 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
                 .HasForeignKey(x => x.AccountId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Navigation(x => x.Members)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
             builder.HasMany(x => x.ReceiptLinks)
                 .WithOne(x => x.Account)
                 .HasForeignKey(x => x.AccountId)

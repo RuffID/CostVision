@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
+using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Domain.Models.Receipts;
 using Moq;
@@ -37,23 +38,23 @@ public class UpdateAccountUseCaseTests
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         UpdateAccountUseCase useCase = new(unitOfWork.Object);
 
-        Account requested = new()
+        UpdateAccountRequest request = new()
         {
-            Id = accountId,
+            AccountId = accountId,
             Name = "New",
             Description = "Updated",
             ColorHex = "#a1b2c3",
-            IsArchived = true
+            IsActive = false
         };
 
-        var result = await useCase.ExecuteAsync(ownerUserId, requested, CancellationToken.None);
+        var result = await useCase.ExecuteAsync(ownerUserId, request, CancellationToken.None);
 
         Assert.True(result.Success);
         Assert.Equal("New", current.Name);
         Assert.Equal("Updated", current.Description);
         Assert.Equal("#A1B2C3", current.ColorHex);
         Assert.True(current.IsArchived);
-        Assert.Equal("#A1B2C3", requested.ColorHex);
+        Assert.Same(current, result.Data);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -73,11 +74,12 @@ public class UpdateAccountUseCaseTests
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         UpdateAccountUseCase useCase = new(unitOfWork.Object);
 
-        var result = await useCase.ExecuteAsync(Guid.NewGuid(), new Account
+        var result = await useCase.ExecuteAsync(Guid.NewGuid(), new UpdateAccountRequest
         {
-            Id = Guid.NewGuid(),
+            AccountId = Guid.NewGuid(),
             Name = "New",
-            ColorHex = "#AABBCC"
+            ColorHex = "#AABBCC",
+            IsActive = true
         }, CancellationToken.None);
 
         Assert.False(result.Success);
@@ -85,18 +87,55 @@ public class UpdateAccountUseCaseTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_ReturnsBadRequest_WhenAccountIdIsEmpty()
+    {
+        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        UpdateAccountUseCase useCase = new(unitOfWork.Object);
+
+        var result = await useCase.ExecuteAsync(Guid.NewGuid(), new UpdateAccountRequest
+        {
+            AccountId = Guid.Empty,
+            Name = "New",
+            ColorHex = "#AABBCC",
+            IsActive = true
+        }, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(400, result.Error?.StatusCode);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_ReturnsBadRequest_WhenColorIsInvalid()
     {
+        Guid ownerUserId = Guid.NewGuid();
+        Guid accountId = Guid.NewGuid();
+        Account current = new()
+        {
+            Id = accountId,
+            Name = "Old",
+            ColorHex = "#000000",
+            CreatedByUserId = ownerUserId
+        };
+
         Mock<IAccountRepository> accountRepository = new(MockBehavior.Strict);
+        accountRepository
+            .Setup(repository => repository.GetItemByPredicateAsync(
+                It.IsAny<Expression<Func<Account, bool>>>(),
+                It.IsAny<bool>(),
+                It.IsAny<Func<IQueryable<Account>, IQueryable<Account>>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(current);
+
         Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         UpdateAccountUseCase useCase = new(unitOfWork.Object);
 
-        var result = await useCase.ExecuteAsync(Guid.NewGuid(), new Account
+        var result = await useCase.ExecuteAsync(ownerUserId, new UpdateAccountRequest
         {
-            Id = Guid.NewGuid(),
+            AccountId = accountId,
             Name = "New",
-            ColorHex = "red"
+            ColorHex = "red",
+            IsActive = true
         }, CancellationToken.None);
 
         Assert.False(result.Success);

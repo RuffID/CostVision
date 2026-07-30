@@ -22,9 +22,9 @@ public class GetAccountShareUsersUseCaseTests
         Account account = new()
         {
             Id = Guid.NewGuid(),
-            CreatedByUserId = ownerUserId,
-            Members = [new AccountMember { UserId = selectedUserId, Role = AccountAccessRole.Editor }]
+            CreatedByUserId = ownerUserId
         };
+        account.TryAddMember(selectedUserId, AccountAccessRole.Editor, out _, out _);
         List<User> users =
         [
             new User { Id = selectedUserId, Name = "Beta", Login = "beta", IsActive = true },

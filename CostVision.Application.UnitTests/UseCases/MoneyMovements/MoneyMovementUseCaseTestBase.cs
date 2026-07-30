@@ -101,8 +101,7 @@ public abstract class MoneyMovementUseCaseTestBase
             Id = accountId,
             Name = name,
             ColorHex = "#123456",
-            CreatedByUserId = ownerId,
-            Members = [CreateMember(accountId, ownerId, AccountAccessRole.Owner)]
+            CreatedByUserId = ownerId
         };
     }
 
