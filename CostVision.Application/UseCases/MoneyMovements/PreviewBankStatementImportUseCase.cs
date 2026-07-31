@@ -60,10 +60,13 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
         private static void MarkDuplicates(BankStatementImportPreviewDto preview, List<MoneyMovement> existingMovements)
         {
+            Dictionary<ImportedOperationKey, MoneyMovement> movementsByKey = new();
+            foreach (MoneyMovement movement in existingMovements)
+                movementsByKey.TryAdd(GetImportedOperationKey(movement), movement);
+
             foreach (BankStatementImportPreviewRowDto row in preview.Rows)
             {
-                MoneyMovement? duplicate = existingMovements.FirstOrDefault(movement => IsSameImportedOperation(movement, row));
-                if (duplicate == null)
+                if (!movementsByKey.TryGetValue(GetImportedOperationKey(row), out MoneyMovement? duplicate))
                     continue;
 
                 row.IsDuplicate = true;
@@ -78,11 +81,8 @@ namespace CostVision.Application.UseCases.MoneyMovements
             foreach (BankStatementImportPreviewRowDto row in preview.Rows)
             {
                 string key = BuildRowKey(row);
-                if (!seenRows.ContainsKey(key))
-                {
-                    seenRows[key] = row;
+                if (seenRows.TryAdd(key, row))
                     continue;
-                }
 
                 row.IsDuplicate = true;
             }
@@ -101,6 +101,16 @@ namespace CostVision.Application.UseCases.MoneyMovements
             return $"{row.OccurredAt:O}|{row.Amount}|{(int)row.Type}|{row.ImportComment}";
         }
 
+        private static ImportedOperationKey GetImportedOperationKey(MoneyMovement movement)
+        {
+            return new ImportedOperationKey(movement.OccurredAt, movement.Amount, movement.Type, movement.ImportComment);
+        }
+
+        private static ImportedOperationKey GetImportedOperationKey(BankStatementImportPreviewRowDto row)
+        {
+            return new ImportedOperationKey(row.OccurredAt, row.Amount, row.Type, row.ImportComment);
+        }
+
         private static string BuildEmptyPreviewMessage(IReadOnlyList<string> pages)
         {
             List<string> lines = pages
@@ -115,5 +125,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             return "Не удалось распознать операции в выписке. Первые строки, извлечённые из PDF: " + string.Join(" | ", lines);
         }
+
+        private readonly record struct ImportedOperationKey(DateTime OccurredAt, decimal Amount, MoneyMovementType Type, string? ImportComment);
     }
 }

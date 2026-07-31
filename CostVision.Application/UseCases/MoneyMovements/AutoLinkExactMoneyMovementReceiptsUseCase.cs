@@ -1,4 +1,4 @@
-﻿using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Enums.MoneyMovements;
 using CostVision.Domain.Models.Enums.Receipts;
@@ -73,6 +73,8 @@ namespace CostVision.Application.UseCases.MoneyMovements
             List<MoneyMovementReceipt> links = new();
             HashSet<Guid> linkedMovementIds = new();
             HashSet<Guid> linkedReceiptIds = new();
+            Dictionary<ExactMatchKey, List<MoneyMovement>> movementsByKey = BuildMovementsByKey(movements);
+            Dictionary<ExactMatchKey, List<Receipt>> receiptsByKey = BuildReceiptsByKey(receipts);
             DateTime createdAtUtc = DateTime.UtcNow;
 
             foreach (MoneyMovement movement in movements)
@@ -80,21 +82,15 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 if (linkedMovementIds.Contains(movement.Id))
                     continue;
 
-                List<Receipt> receiptCandidates = receipts
-                    .Where(receipt => !linkedReceiptIds.Contains(receipt.Id) && IsExactMatch(movement, receipt))
-                    .ToList();
-
-                if (receiptCandidates.Count != 1)
+                ExactMatchKey key = GetExactMatchKey(movement);
+                if (!receiptsByKey.TryGetValue(key, out List<Receipt>? receiptCandidates) ||
+                    CountUnlinkedReceipts(receiptCandidates, linkedReceiptIds) != 1)
                     continue;
 
-                Receipt receipt = receiptCandidates[0];
-                int movementCandidateCount = movements.Count(candidate =>
-                    !linkedMovementIds.Contains(candidate.Id) &&
-                    IsExactMatch(candidate, receipt));
-
-                if (movementCandidateCount != 1)
+                if (CountUnlinkedMovements(movementsByKey[key], linkedMovementIds) != 1)
                     continue;
 
+                Receipt receipt = GetUnlinkedReceipt(receiptCandidates, linkedReceiptIds);
                 if (!MoneyMovementReceipt.TryCreate(
                         movement.Id,
                         receipt.Id,
@@ -113,11 +109,87 @@ namespace CostVision.Application.UseCases.MoneyMovements
             return links;
         }
 
-        private static bool IsExactMatch(MoneyMovement movement, Receipt receipt)
+        private static Dictionary<ExactMatchKey, List<MoneyMovement>> BuildMovementsByKey(List<MoneyMovement> movements)
         {
-            return movement.Amount == receipt.TotalSum &&
-                   movement.OccurredAt.Date == receipt.DateTime.Date &&
-                   receipt.Accounts.Any(link => link.AccountId == movement.AccountId);
+            Dictionary<ExactMatchKey, List<MoneyMovement>> movementsByKey = new();
+
+            foreach (MoneyMovement movement in movements)
+            {
+                ExactMatchKey key = GetExactMatchKey(movement);
+                if (!movementsByKey.TryGetValue(key, out List<MoneyMovement>? groupedMovements))
+                {
+                    groupedMovements = new List<MoneyMovement>();
+                    movementsByKey.Add(key, groupedMovements);
+                }
+
+                groupedMovements.Add(movement);
+            }
+
+            return movementsByKey;
         }
+
+        private static Dictionary<ExactMatchKey, List<Receipt>> BuildReceiptsByKey(List<Receipt> receipts)
+        {
+            Dictionary<ExactMatchKey, List<Receipt>> receiptsByKey = new();
+
+            foreach (Receipt receipt in receipts)
+            {
+                foreach (ReceiptAccount accountLink in receipt.Accounts)
+                {
+                    ExactMatchKey key = new(receipt.DateTime.Date, receipt.TotalSum, accountLink.AccountId);
+                    if (!receiptsByKey.TryGetValue(key, out List<Receipt>? groupedReceipts))
+                    {
+                        groupedReceipts = new List<Receipt>();
+                        receiptsByKey.Add(key, groupedReceipts);
+                    }
+
+                    groupedReceipts.Add(receipt);
+                }
+            }
+
+            return receiptsByKey;
+        }
+
+        private static int CountUnlinkedReceipts(List<Receipt> receipts, HashSet<Guid> linkedReceiptIds)
+        {
+            int count = 0;
+            foreach (Receipt receipt in receipts)
+            {
+                if (!linkedReceiptIds.Contains(receipt.Id))
+                    count++;
+            }
+
+            return count;
+        }
+
+        private static int CountUnlinkedMovements(List<MoneyMovement> movements, HashSet<Guid> linkedMovementIds)
+        {
+            int count = 0;
+            foreach (MoneyMovement movement in movements)
+            {
+                if (!linkedMovementIds.Contains(movement.Id))
+                    count++;
+            }
+
+            return count;
+        }
+
+        private static Receipt GetUnlinkedReceipt(List<Receipt> receipts, HashSet<Guid> linkedReceiptIds)
+        {
+            foreach (Receipt receipt in receipts)
+            {
+                if (!linkedReceiptIds.Contains(receipt.Id))
+                    return receipt;
+            }
+
+            throw new InvalidOperationException("Не найден чек для однозначной связи операции.");
+        }
+
+        private static ExactMatchKey GetExactMatchKey(MoneyMovement movement)
+        {
+            return new ExactMatchKey(movement.OccurredAt.Date, movement.Amount, movement.AccountId);
+        }
+
+        private readonly record struct ExactMatchKey(DateTime Date, decimal Amount, Guid AccountId);
     }
 }

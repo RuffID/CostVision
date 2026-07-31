@@ -41,7 +41,7 @@ namespace CostVision.Application.UseCases.Receipts.Products
                     item.Receipt!.StoreId,
                     IsWeighted = IsWeighted(item.ItemsQuantityMeasure)
                 })
-                .Select(group => CreateStorePurchaseDto(group.ToList()))
+                .Select(group => CreateStorePurchaseDto(group))
                 .OrderBy(item => item.StoreName)
                 .ThenBy(item => item.IsWeighted)
                 .ToList();
@@ -49,12 +49,13 @@ namespace CostVision.Application.UseCases.Receipts.Products
             return ServiceResult<List<ProductStorePurchaseDto>>.Ok(result);
         }
 
-        private static ProductStorePurchaseDto CreateStorePurchaseDto(List<ReceiptItem> items)
+        private static ProductStorePurchaseDto CreateStorePurchaseDto(IEnumerable<ReceiptItem> items)
         {
-            bool isWeighted = IsWeighted(items[0].ItemsQuantityMeasure);
+            ReceiptItem firstItem = items.First();
+            bool isWeighted = IsWeighted(firstItem.ItemsQuantityMeasure);
             decimal quantity = items.Sum(item => NormalizeQuantity(item));
             decimal totalSum = items.Sum(item => item.Sum);
-            Store store = items[0].Receipt!.Store!;
+            Store store = firstItem.Receipt!.Store!;
 
             return new ProductStorePurchaseDto
             {

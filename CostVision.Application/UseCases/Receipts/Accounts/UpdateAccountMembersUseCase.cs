@@ -34,7 +34,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                     return ServiceResult<bool>.Fail(400, error ?? "Некорректные данные участника счёта.");
             }
 
-            List<Guid> desiredUserIds = desiredMembers.Select(member => member.UserId).ToList();
+            HashSet<Guid> desiredUserIds = desiredMembers.Select(member => member.UserId).ToHashSet();
             List<User> availableUsers = desiredUserIds.Count == 0
                 ? new List<User>()
                 : await unitOfWork.User.GetItemsByPredicateAsync(user => desiredUserIds.Contains(user.Id) && user.IsActive, asNoTracking: true, ct: ct);

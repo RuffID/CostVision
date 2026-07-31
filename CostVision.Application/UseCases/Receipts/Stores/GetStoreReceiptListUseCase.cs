@@ -103,22 +103,64 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                     .AsSplitQuery(),
                 ct: ct);
 
+            Dictionary<MovementAccountMatchKey, int> movementsByAccount = BuildMovementsByAccount(movements);
+            Dictionary<MovementOwnerMatchKey, int> movementsByOwner = BuildMovementsByOwner(movements);
             foreach (ReceiptDto receipt in receipts)
-            {
-                receipt.AvailableMoneyMovementCount = CountAvailableMoneyMovements(receipt, movements, currentUserId);
-            }
+                receipt.AvailableMoneyMovementCount = CountAvailableMoneyMovements(receipt, movementsByAccount, movementsByOwner, currentUserId);
         }
 
-        private static int CountAvailableMoneyMovements(ReceiptDto receipt, List<MoneyMovement> movements, Guid currentUserId)
+        private static Dictionary<MovementAccountMatchKey, int> BuildMovementsByAccount(List<MoneyMovement> movements)
         {
-            DateTime receiptDate = receipt.DateTime.Date;
-            List<Guid> receiptAccountIds = receipt.Accounts.Select(account => account.Id).ToList();
+            Dictionary<MovementAccountMatchKey, int> movementsByAccount = new();
 
-            return movements.Count(movement =>
-                movement.OccurredAt.Date == receiptDate &&
-                movement.Amount == receipt.TotalSum &&
-                (receiptAccountIds.Contains(movement.AccountId) ||
-                 (receiptAccountIds.Count == 0 && movement.CreatedByUserId == currentUserId)));
+            foreach (MoneyMovement movement in movements)
+            {
+                MovementAccountMatchKey key = new(movement.OccurredAt.Date, movement.Amount, movement.AccountId);
+                movementsByAccount.TryGetValue(key, out int count);
+                movementsByAccount[key] = count + 1;
+            }
+
+            return movementsByAccount;
         }
+
+        private static Dictionary<MovementOwnerMatchKey, int> BuildMovementsByOwner(List<MoneyMovement> movements)
+        {
+            Dictionary<MovementOwnerMatchKey, int> movementsByOwner = new();
+
+            foreach (MoneyMovement movement in movements)
+            {
+                MovementOwnerMatchKey key = new(movement.OccurredAt.Date, movement.Amount, movement.CreatedByUserId);
+                movementsByOwner.TryGetValue(key, out int count);
+                movementsByOwner[key] = count + 1;
+            }
+
+            return movementsByOwner;
+        }
+
+        private static int CountAvailableMoneyMovements(
+            ReceiptDto receipt,
+            Dictionary<MovementAccountMatchKey, int> movementsByAccount,
+            Dictionary<MovementOwnerMatchKey, int> movementsByOwner,
+            Guid currentUserId)
+        {
+            if (receipt.Accounts.Count == 0)
+            {
+                MovementOwnerMatchKey ownerKey = new(receipt.DateTime.Date, receipt.TotalSum, currentUserId);
+                return movementsByOwner.GetValueOrDefault(ownerKey);
+            }
+
+            int count = 0;
+            foreach (ReceiptAccountDto account in receipt.Accounts)
+            {
+                MovementAccountMatchKey accountKey = new(receipt.DateTime.Date, receipt.TotalSum, account.Id);
+                count += movementsByAccount.GetValueOrDefault(accountKey);
+            }
+
+            return count;
+        }
+
+        private readonly record struct MovementAccountMatchKey(DateTime Date, decimal Amount, Guid AccountId);
+
+        private readonly record struct MovementOwnerMatchKey(DateTime Date, decimal Amount, Guid OwnerUserId);
     }
 }

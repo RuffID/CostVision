@@ -52,22 +52,67 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     .AsSplitQuery(),
                 ct: ct);
 
+            Dictionary<ReceiptAccountMatchKey, int> receiptsByAccount = BuildReceiptsByAccount(availableReceipts);
+            Dictionary<ReceiptWithoutAccountMatchKey, int> receiptsWithoutAccount = BuildReceiptsWithoutAccount(availableReceipts);
             List<MoneyMovementDto> result = movements
                 .OrderByDescending(movement => movement.OccurredAt)
-                .Select(movement => movement.MapDto(GetAvailableReceiptCount(movement, availableReceipts)))
+                .Select(movement => movement.MapDto(GetAvailableReceiptCount(movement, receiptsByAccount, receiptsWithoutAccount)))
                 .ToList();
 
             return ServiceResult<List<MoneyMovementDto>>.Ok(result);
         }
 
-        private static int GetAvailableReceiptCount(MoneyMovement movement, List<Receipt> availableReceipts)
+        private static Dictionary<ReceiptAccountMatchKey, int> BuildReceiptsByAccount(List<Receipt> receipts)
         {
-            return availableReceipts.Count(receipt =>
-                receipt.DateTime.Date == movement.OccurredAt.Date &&
-                receipt.TotalSum == movement.Amount &&
-                (movement.AccountId == Guid.Empty
-                    ? receipt.Accounts.Count == 0
-                    : receipt.Accounts.Any(link => link.AccountId == movement.AccountId)));
+            Dictionary<ReceiptAccountMatchKey, int> receiptsByAccount = new();
+
+            foreach (Receipt receipt in receipts)
+            {
+                foreach (ReceiptAccount accountLink in receipt.Accounts)
+                {
+                    ReceiptAccountMatchKey key = new(receipt.DateTime.Date, receipt.TotalSum, accountLink.AccountId);
+                    receiptsByAccount.TryGetValue(key, out int count);
+                    receiptsByAccount[key] = count + 1;
+                }
+            }
+
+            return receiptsByAccount;
         }
+
+        private static Dictionary<ReceiptWithoutAccountMatchKey, int> BuildReceiptsWithoutAccount(List<Receipt> receipts)
+        {
+            Dictionary<ReceiptWithoutAccountMatchKey, int> receiptsWithoutAccount = new();
+
+            foreach (Receipt receipt in receipts)
+            {
+                if (receipt.Accounts.Count != 0)
+                    continue;
+
+                ReceiptWithoutAccountMatchKey key = new(receipt.DateTime.Date, receipt.TotalSum);
+                receiptsWithoutAccount.TryGetValue(key, out int count);
+                receiptsWithoutAccount[key] = count + 1;
+            }
+
+            return receiptsWithoutAccount;
+        }
+
+        private static int GetAvailableReceiptCount(
+            MoneyMovement movement,
+            Dictionary<ReceiptAccountMatchKey, int> receiptsByAccount,
+            Dictionary<ReceiptWithoutAccountMatchKey, int> receiptsWithoutAccount)
+        {
+            if (movement.AccountId == Guid.Empty)
+            {
+                ReceiptWithoutAccountMatchKey withoutAccountKey = new(movement.OccurredAt.Date, movement.Amount);
+                return receiptsWithoutAccount.GetValueOrDefault(withoutAccountKey);
+            }
+
+            ReceiptAccountMatchKey accountKey = new(movement.OccurredAt.Date, movement.Amount, movement.AccountId);
+            return receiptsByAccount.GetValueOrDefault(accountKey);
+        }
+
+        private readonly record struct ReceiptAccountMatchKey(DateTime Date, decimal Amount, Guid AccountId);
+
+        private readonly record struct ReceiptWithoutAccountMatchKey(DateTime Date, decimal Amount);
     }
 }

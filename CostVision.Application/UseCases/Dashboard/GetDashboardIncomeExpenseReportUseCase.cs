@@ -102,9 +102,9 @@ namespace CostVision.Application.UseCases.Dashboard
                         .Any(link => link.Receipt != null && selectedStores.Contains(GetStoreName(link.Receipt!))))
                     .ToList();
 
-            List<DashboardAmountItem> incomeItems = BuildIncomeItems(moneyMovements);
-            List<DashboardAmountItem> expenseItems = BuildExpenseItems(filteredReceipts, filteredMoneyMovements, expenseSource, periodStart, periodEnd);
-            List<DashboardIncomeExpensePointDto> points = BuildPoints(incomeItems, expenseItems, periodStart, request.DateTo.Date, period);
+            Dictionary<DateTime, decimal> incomeAmounts = BuildIncomeAmounts(moneyMovements, period);
+            Dictionary<DateTime, decimal> expenseAmounts = BuildExpenseAmounts(filteredReceipts, filteredMoneyMovements, expenseSource, periodStart, periodEnd, period);
+            List<DashboardIncomeExpensePointDto> points = BuildPoints(incomeAmounts, expenseAmounts, periodStart, request.DateTo.Date, period);
 
             return ServiceResult<DashboardIncomeExpenseReportDto>.Ok(new DashboardIncomeExpenseReportDto
             {
@@ -134,56 +134,64 @@ namespace CostVision.Application.UseCases.Dashboard
             };
         }
 
-        private static List<DashboardAmountItem> BuildIncomeItems(List<MoneyMovement> moneyMovements)
+        private static Dictionary<DateTime, decimal> BuildIncomeAmounts(List<MoneyMovement> moneyMovements, string period)
         {
-            return moneyMovements
-                .Where(movement => movement.Type == MoneyMovementType.Income)
-                .Select(movement => new DashboardAmountItem
-                {
-                    DateTime = movement.OccurredAt,
-                    Amount = movement.Amount
-                })
-                .ToList();
+            Dictionary<DateTime, decimal> amounts = new();
+
+            foreach (MoneyMovement movement in moneyMovements)
+            {
+                if (movement.Type == MoneyMovementType.Income)
+                    AddAmount(amounts, movement.OccurredAt, movement.Amount, period);
+            }
+
+            return amounts;
         }
 
-        private static List<DashboardAmountItem> BuildExpenseItems(List<Receipt> receipts, List<MoneyMovement> moneyMovements, string expenseSource, DateTime periodStart, DateTime periodEnd)
+        private static Dictionary<DateTime, decimal> BuildExpenseAmounts(
+            List<Receipt> receipts,
+            List<MoneyMovement> moneyMovements,
+            string expenseSource,
+            DateTime periodStart,
+            DateTime periodEnd,
+            string period)
         {
-            if (expenseSource == EXPENSE_SOURCE_RECEIPTS)
-                return BuildReceiptExpenseItems(receipts);
+            Dictionary<DateTime, decimal> amounts = new();
 
-            List<MoneyMovement> expenseMovements = moneyMovements
-                .Where(movement => movement.Type == MoneyMovementType.Expense)
-                .ToList();
+            if (expenseSource == EXPENSE_SOURCE_RECEIPTS)
+            {
+                AddReceiptAmounts(amounts, receipts, period);
+                return amounts;
+            }
+
+            foreach (MoneyMovement movement in moneyMovements)
+            {
+                if (movement.Type == MoneyMovementType.Expense)
+                    AddAmount(amounts, movement.OccurredAt, movement.Amount, period);
+            }
 
             if (expenseSource == EXPENSE_SOURCE_MONEY_MOVEMENTS)
-                return BuildMoneyMovementExpenseItems(expenseMovements);
+                return amounts;
 
-            List<DashboardAmountItem> items = BuildMoneyMovementExpenseItems(expenseMovements);
-            items.AddRange(BuildReceiptExpenseItems(receipts.Where(receipt => !HasExpenseMoneyMovementInPeriod(receipt, periodStart, periodEnd)).ToList()));
+            foreach (Receipt receipt in receipts)
+            {
+                if (!HasExpenseMoneyMovementInPeriod(receipt, periodStart, periodEnd))
+                    AddAmount(amounts, receipt.DateTime, receipt.TotalSum, period);
+            }
 
-            return items;
+            return amounts;
         }
 
-        private static List<DashboardAmountItem> BuildReceiptExpenseItems(List<Receipt> receipts)
+        private static void AddReceiptAmounts(Dictionary<DateTime, decimal> amounts, List<Receipt> receipts, string period)
         {
-            return receipts
-                .Select(receipt => new DashboardAmountItem
-                {
-                    DateTime = receipt.DateTime,
-                    Amount = receipt.TotalSum
-                })
-                .ToList();
+            foreach (Receipt receipt in receipts)
+                AddAmount(amounts, receipt.DateTime, receipt.TotalSum, period);
         }
 
-        private static List<DashboardAmountItem> BuildMoneyMovementExpenseItems(List<MoneyMovement> moneyMovements)
+        private static void AddAmount(Dictionary<DateTime, decimal> amounts, DateTime dateTime, decimal amount, string period)
         {
-            return moneyMovements
-                .Select(movement => new DashboardAmountItem
-                {
-                    DateTime = movement.OccurredAt,
-                    Amount = movement.Amount
-                })
-                .ToList();
+            DateTime groupStart = GetGroupStart(dateTime, period);
+            amounts.TryGetValue(groupStart, out decimal currentAmount);
+            amounts[groupStart] = currentAmount + amount;
         }
 
         private static bool HasExpenseMoneyMovementInPeriod(Receipt receipt, DateTime periodStart, DateTime periodEnd)
@@ -195,29 +203,26 @@ namespace CostVision.Application.UseCases.Dashboard
                 link.MoneyMovement.OccurredAt < periodEnd);
         }
 
-        private static List<DashboardIncomeExpensePointDto> BuildPoints(List<DashboardAmountItem> incomeItems, List<DashboardAmountItem> expenseItems, DateTime dateFrom, DateTime dateTo, string period)
+        private static List<DashboardIncomeExpensePointDto> BuildPoints(
+            Dictionary<DateTime, decimal> incomeAmounts,
+            Dictionary<DateTime, decimal> expenseAmounts,
+            DateTime dateFrom,
+            DateTime dateTo,
+            string period)
         {
-            Dictionary<DateTime, List<DashboardAmountItem>> groupedIncomeItems = incomeItems
-                .GroupBy(item => GetGroupStart(item.DateTime, period))
-                .ToDictionary(group => group.Key, group => group.ToList());
-
-            Dictionary<DateTime, List<DashboardAmountItem>> groupedExpenseItems = expenseItems
-                .GroupBy(item => GetGroupStart(item.DateTime, period))
-                .ToDictionary(group => group.Key, group => group.ToList());
-
             List<DashboardIncomeExpensePointDto> points = new();
 
             foreach (DateTime groupStart in EnumeratePeriods(dateFrom, dateTo, period))
             {
-                groupedIncomeItems.TryGetValue(groupStart, out List<DashboardAmountItem>? groupIncomeItems);
-                groupedExpenseItems.TryGetValue(groupStart, out List<DashboardAmountItem>? groupExpenseItems);
+                incomeAmounts.TryGetValue(groupStart, out decimal incomeAmount);
+                expenseAmounts.TryGetValue(groupStart, out decimal expenseAmount);
 
                 points.Add(new DashboardIncomeExpensePointDto
                 {
                     PeriodStart = groupStart,
                     Label = FormatLabel(groupStart, period),
-                    IncomeSum = groupIncomeItems?.Sum(item => item.Amount) ?? 0m,
-                    ExpenseSum = groupExpenseItems?.Sum(item => item.Amount) ?? 0m
+                    IncomeSum = incomeAmount,
+                    ExpenseSum = expenseAmount
                 });
             }
 
@@ -270,10 +275,5 @@ namespace CostVision.Application.UseCases.Dashboard
                 : storeName.Trim();
         }
 
-        private class DashboardAmountItem
-        {
-            public DateTime DateTime { get; set; }
-            public decimal Amount { get; set; }
-        }
     }
 }

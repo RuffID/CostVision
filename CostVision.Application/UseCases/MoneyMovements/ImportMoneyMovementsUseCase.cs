@@ -22,21 +22,23 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return ServiceResult<BankStatementImportResultDto>.Fail(accountAccess.Error!.StatusCode, accountAccess.Error.Message);
 
             BankStatementImportResultDto result = new();
-            List<(BankStatementImportRowRequest Row, MoneyMovement Movement)> validRows =
+            List<ValidImportRow> validRows =
                 ValidateRows(request.AccountId, request.Rows, currentUserId, result);
             if (validRows.Count == 0)
                 return ServiceResult<BankStatementImportResultDto>.Ok(result);
 
             await unitOfWork.ExecuteInTransaction(async () =>
             {
-                foreach ((BankStatementImportRowRequest row, MoneyMovement movement) in validRows)
+                foreach (ValidImportRow validRow in validRows)
                 {
+                    BankStatementImportRowRequest row = validRow.Row;
+                    MoneyMovement movement = validRow.Movement;
                     MoneyMovement? duplicate = await FindDuplicateAsync(request.AccountId, row, movement, ct);
                     if (duplicate != null)
                     {
                         if (!row.ReplaceDuplicate)
                         {
-                            AddError(result, request.Rows.IndexOf(row), "В импорте есть повторяющаяся операция. Строка пропущена.", row.ImportComment);
+                            AddError(result, validRow.Index, "В импорте есть повторяющаяся операция. Строка пропущена.", row.ImportComment);
                             continue;
                         }
 
@@ -49,7 +51,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                                 DateTime.UtcNow,
                                 out string? error))
                         {
-                            AddError(result, request.Rows.IndexOf(row), error!, row.ImportComment);
+                            AddError(result, validRow.Index, error!, row.ImportComment);
                             continue;
                         }
 
@@ -65,14 +67,14 @@ namespace CostVision.Application.UseCases.MoneyMovements
             return ServiceResult<BankStatementImportResultDto>.Ok(result);
         }
 
-        private static List<(BankStatementImportRowRequest Row, MoneyMovement Movement)> ValidateRows(
+        private static List<ValidImportRow> ValidateRows(
             Guid accountId,
             List<BankStatementImportRowRequest> rows,
             Guid currentUserId,
             BankStatementImportResultDto result)
         {
             HashSet<string> keys = new();
-            List<(BankStatementImportRowRequest Row, MoneyMovement Movement)> validRows = new();
+            List<ValidImportRow> validRows = new();
 
             foreach ((BankStatementImportRowRequest row, int index) in rows.Select((row, index) => (row, index)))
             {
@@ -107,7 +109,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     continue;
                 }
 
-                validRows.Add((row, movement!));
+                validRows.Add(new ValidImportRow(index, row, movement!));
             }
 
             return validRows;
@@ -152,5 +154,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 asNoTracking: false,
                 ct: ct);
         }
+
+        private readonly record struct ValidImportRow(int Index, BankStatementImportRowRequest Row, MoneyMovement Movement);
     }
 }
