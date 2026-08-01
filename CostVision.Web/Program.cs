@@ -23,6 +23,18 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 1000_000_000; // 1 gb
 });
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Host.UseDefaultServiceProvider(options =>
+    {
+        // Проверяет Captive Dependency во время выполнения
+        options.ValidateScopes = true;
+
+        // Проверяет корректность всех регистраций при старте приложения
+        options.ValidateOnBuild = true;
+    });
+}
+
 WebApplication app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
