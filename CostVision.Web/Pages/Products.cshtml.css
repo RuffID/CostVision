@@ -1,0 +1,26 @@
+.products-table__receipt-count-column {
+    width: 9rem;
+}
+
+.products-table__average-price-column {
+    width: 10rem;
+}
+
+@media (max-width: 991.98px) {
+    .products-table__name-column {
+        width: 55%;
+    }
+
+    .products-table__receipt-count-column {
+        width: 20%;
+    }
+
+    .products-table__average-price-column {
+        width: 25%;
+    }
+
+    .products-table__sort-button {
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+}

@@ -51,19 +51,19 @@
     </div>
 
     <div id="productsTableContainer" class="table-responsive" data-products-table-container>
-        <table class="table table-bordered table-hover align-middle mb-0" style="table-layout: fixed;" data-table-loading-content>
+        <table class="table table-bordered table-hover align-middle mb-0 products-table" style="table-layout: fixed;" data-table-loading-content>
             <thead class="table-light">
                 <tr>
-                    <th scope="col">
+                    <th scope="col" class="products-table__name-column">
                         <button type="button" id="productsNameSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Наименование ↑</button>
                         <span id="productsNameHelp" data-help-tooltip-host></span>
                     </th>
-                    <th scope="col" class="text-nowrap" style="width: 9rem;">
-                        <button type="button" id="productsReceiptCountSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Количество</button>
+                    <th scope="col" class="products-table__receipt-count-column">
+                        <button type="button" id="productsReceiptCountSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold products-table__sort-button">Количество</button>
                         <span id="productsReceiptCountHelp" data-help-tooltip-host></span>
                     </th>
-                    <th scope="col" class="text-end text-nowrap" style="width: 10rem;">
-                        <button type="button" id="productsAveragePriceSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Средняя цена</button>
+                    <th scope="col" class="text-end products-table__average-price-column">
+                        <button type="button" id="productsAveragePriceSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold products-table__sort-button">Средняя цена</button>
                         <span id="productsAveragePriceHelp" data-help-tooltip-host></span>
                     </th>
                 </tr>

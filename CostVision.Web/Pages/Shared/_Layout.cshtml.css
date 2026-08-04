@@ -129,6 +129,12 @@ button.accept-policy {
   padding-top: 4rem;
 }
 
+@media (max-width: 991.98px) {
+  #mainContent {
+    padding-top: 4rem;
+  }
+}
+
 @media (min-width: 992px) {
   #mainContent {
     width: auto;

@@ -2,6 +2,7 @@ import { requireElementById } from "./dom.js";
 
 const NAVIGATION_EXPANDED_COOKIE_NAME = "mainNavigationExpanded";
 const ONE_YEAR_IN_SECONDS = 31536000;
+const MOBILE_NAVIGATION_MEDIA_QUERY = "(max-width: 991.98px)";
 
 document.addEventListener("DOMContentLoaded", initMainNavigation);
 
@@ -16,7 +17,16 @@ function initMainNavigation(): void {
     toggleButton.addEventListener("click", () => {
         const expanded = !navigation.classList.contains("main-navigation--expanded");
         setNavigationExpanded(navigation, toggleButton, expanded);
-        document.cookie = `${NAVIGATION_EXPANDED_COOKIE_NAME}=${expanded}; path=/; max-age=${ONE_YEAR_IN_SECONDS}; samesite=lax`;
+        saveNavigationExpandedState(expanded);
+    });
+
+    navigation.addEventListener("click", (event) => {
+        if (!window.matchMedia(MOBILE_NAVIGATION_MEDIA_QUERY).matches || !(event.target instanceof Element) || !event.target.closest("a[href]")) {
+            return;
+        }
+
+        setNavigationExpanded(navigation, toggleButton, false);
+        saveNavigationExpandedState(false);
     });
 }
 
@@ -26,4 +36,8 @@ function setNavigationExpanded(navigation: HTMLElement, toggleButton: HTMLButton
     toggleButton.textContent = expanded ? "‹" : "›";
     toggleButton.setAttribute("aria-label", expanded ? "Свернуть меню" : "Развернуть меню");
     toggleButton.setAttribute("aria-expanded", String(expanded));
+}
+
+function saveNavigationExpandedState(expanded: boolean): void {
+    document.cookie = `${NAVIGATION_EXPANDED_COOKIE_NAME}=${expanded}; path=/; max-age=${ONE_YEAR_IN_SECONDS}; samesite=lax`;
 }
