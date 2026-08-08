@@ -36,8 +36,12 @@ namespace CostVision.Infrastructure.Extensions
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddInfrastructureConfig(configuration);
+            services.AddSingleton(TimeProvider.System);
 
-            services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(configuration.GetConnectionString("MSSql")));
+            string connectionString = configuration.GetConnectionString("MSSql")
+                ?? throw new InvalidOperationException("Не задана обязательная строка подключения ConnectionStrings:MSSql.");
+
+            services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(connectionString));
             services.AddScoped<IAppDbContext<ApplicationContext>>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
             services.AddScoped<IAppDbContext<AppDbContextBase>>(sp => new EfDbContextAdapter<AppDbContextBase>(sp.GetRequiredService<ApplicationContext>()));
             services.AddEfCoreBaseRepositories<ApplicationContext>();
@@ -53,7 +57,6 @@ namespace CostVision.Infrastructure.Extensions
             {
                 ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
                 IBackupFilePathBuilder backupFilePathBuilder = sp.GetRequiredService<IBackupFilePathBuilder>();
-                string connectionString = configuration.GetConnectionString("MSSql")!;
                 string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
                 return new BackupService<ApplicationContext>(connectionString, backupFolder, loggerFactory, backupFilePathBuilder);
             });
@@ -88,11 +91,22 @@ namespace CostVision.Infrastructure.Extensions
 
         private static IServiceCollection AddInfrastructureConfig(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<ApiEndpointOptions>(configuration.GetSection(ApiEndpointOptions.SectionName));
-            services.Configure<ProverkachekaOptions>(options =>
-            {
-                options.ProverkachekaApiToken = configuration[ProverkachekaOptions.SectionName]!;
-            });
+            services.AddOptions<ApiEndpointOptions>()
+                .Bind(configuration.GetRequiredSection(ApiEndpointOptions.SectionName))
+                .Validate(
+                    options => Uri.TryCreate(options.ProverkachekaApiUrl, UriKind.Absolute, out _),
+                    $"{ApiEndpointOptions.SectionName}:ProverkachekaApiUrl должен содержать абсолютный URL.")
+                .ValidateOnStart();
+
+            services.AddOptions<ProverkachekaOptions>()
+                .Configure(options =>
+                {
+                    options.ProverkachekaApiToken = configuration[ProverkachekaOptions.SectionName] ?? string.Empty;
+                })
+                .Validate(
+                    options => !string.IsNullOrWhiteSpace(options.ProverkachekaApiToken),
+                    $"Не задана обязательная настройка {ProverkachekaOptions.SectionName}.")
+                .ValidateOnStart();
 
             return services;
         }

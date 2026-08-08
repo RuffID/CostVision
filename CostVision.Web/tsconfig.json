@@ -11,7 +11,7 @@
     "outDir": "wwwroot/dist",
     "allowJs": false,
     "checkJs": false,
-    "strict": false,
+    "strict": true,
     "noEmitOnError": true,
     "removeComments": false,
     "sourceMap": true

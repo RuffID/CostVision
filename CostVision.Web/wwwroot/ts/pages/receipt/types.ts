@@ -78,3 +78,10 @@ export interface ImageSize {
     width: number;
     height: number;
 }
+
+export interface ImageCropArea extends ImageSize {
+    x: number;
+    y: number;
+}
+
+export type ReceiptStatusType = "success" | "warning" | "error";

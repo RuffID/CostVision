@@ -24,10 +24,11 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 
             AccountMember ownerMember = account.Members.Single(member => member.Role == AccountAccessRole.Owner);
 
-            await unitOfWork.ExecuteInTransaction(async () =>
+            await unitOfWork.ExecuteInTransaction(_ =>
             {
                 unitOfWork.Account.Create(account);
                 unitOfWork.AccountMember.Create(ownerMember);
+                return Task.CompletedTask;
             }, ct);
 
             return ServiceResult<UserAccountViewModel>.Ok(new UserAccountViewModel

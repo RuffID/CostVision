@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.UseCases.Receipts.Accounts;
+using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
@@ -30,17 +31,18 @@ public class GetUserAccountsUseCaseTests
         List<Account> accounts = [account];
         GetUserAccountsUseCase useCase = new(CreateUnitOfWork(memberships, accounts).Object);
 
-        var result = await useCase.ExecuteAsync(userId, includeArchived: false, CancellationToken.None);
+        ServiceResult<List<UserAccountViewModel>> result = await useCase.ExecuteAsync(userId, includeArchived: false, CancellationToken.None);
 
-        Assert.Single(result);
-        Assert.Equal(accountId, result[0].Id);
-        Assert.Equal("Shared", result[0].Name);
-        Assert.Equal("Groceries", result[0].Description);
-        Assert.Equal("#ABCDEF", result[0].ColorHex);
-        Assert.True(result[0].IsActive);
-        Assert.False(result[0].CanManage);
-        Assert.Equal("Owner", result[0].OwnerName);
-        Assert.Equal(AccountAccessRole.Editor, result[0].AccessRole);
+        Assert.True(result.Success);
+        UserAccountViewModel accountResult = Assert.Single(result.Data);
+        Assert.Equal(accountId, accountResult.Id);
+        Assert.Equal("Shared", accountResult.Name);
+        Assert.Equal("Groceries", accountResult.Description);
+        Assert.Equal("#ABCDEF", accountResult.ColorHex);
+        Assert.True(accountResult.IsActive);
+        Assert.False(accountResult.CanManage);
+        Assert.Equal("Owner", accountResult.OwnerName);
+        Assert.Equal(AccountAccessRole.Editor, accountResult.AccessRole);
     }
 
     [Fact]
@@ -48,9 +50,10 @@ public class GetUserAccountsUseCaseTests
     {
         GetUserAccountsUseCase useCase = new(CreateUnitOfWork([], []).Object);
 
-        var result = await useCase.ExecuteAsync(Guid.NewGuid(), includeArchived: false, CancellationToken.None);
+        ServiceResult<List<UserAccountViewModel>> result = await useCase.ExecuteAsync(Guid.NewGuid(), includeArchived: false, CancellationToken.None);
 
-        Assert.Empty(result);
+        Assert.True(result.Success);
+        Assert.Empty(result.Data);
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(List<AccountMember> memberships, List<Account> accounts)

@@ -63,7 +63,7 @@ public class AutoLinkExactMoneyMovementReceiptsUseCaseTests : MoneyMovementUseCa
         Assert.NotNull(createdLinks);
         Assert.Equal(movement.Id, createdLinks[0].MoneyMovementId);
         Assert.Equal(matchingReceipt.Id, createdLinks[0].ReceiptId);
-        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

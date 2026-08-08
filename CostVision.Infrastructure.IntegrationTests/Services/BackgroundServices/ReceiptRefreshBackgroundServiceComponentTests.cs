@@ -14,7 +14,7 @@ public class ReceiptRefreshBackgroundServiceComponentTests
     {
         CancellationToken ct = TestContext.Current.CancellationToken;
         SequenceScheduler scheduler = new(1);
-        FakeRefreshReceiptsWithoutItemsUseCase refreshUseCase = new(_ => Task.CompletedTask);
+        FakeRefreshPendingReceiptsUseCase refreshUseCase = new(_ => Task.CompletedTask);
         await using ServiceProvider serviceProvider = CreateServiceProvider(refreshUseCase);
         ListLoggerProvider loggerProvider = new();
         using ILoggerFactory loggerFactory = CreateLoggerFactory(loggerProvider);
@@ -40,7 +40,7 @@ public class ReceiptRefreshBackgroundServiceComponentTests
         SequenceScheduler scheduler = new(2);
         TaskCompletionSource secondExecution = new(TaskCreationOptions.RunContinuationsAsynchronously);
         int executionCount = 0;
-        FakeRefreshReceiptsWithoutItemsUseCase refreshUseCase = new(_ =>
+        FakeRefreshPendingReceiptsUseCase refreshUseCase = new(_ =>
         {
             executionCount++;
 
@@ -73,7 +73,7 @@ public class ReceiptRefreshBackgroundServiceComponentTests
     {
         CancellationToken ct = TestContext.Current.CancellationToken;
         SequenceScheduler scheduler = new(0);
-        FakeRefreshReceiptsWithoutItemsUseCase refreshUseCase = new(_ => Task.CompletedTask);
+        FakeRefreshPendingReceiptsUseCase refreshUseCase = new(_ => Task.CompletedTask);
         await using ServiceProvider serviceProvider = CreateServiceProvider(refreshUseCase);
         using ILoggerFactory loggerFactory = LoggerFactory.Create(static _ => { });
         ReceiptRefreshBackgroundService service = new(
@@ -88,7 +88,7 @@ public class ReceiptRefreshBackgroundServiceComponentTests
         Assert.Equal(0, refreshUseCase.ExecuteCount);
     }
 
-    private static ServiceProvider CreateServiceProvider(IRefreshReceiptsWithoutItemsUseCase refreshUseCase)
+    private static ServiceProvider CreateServiceProvider(IRefreshPendingReceiptsUseCase refreshUseCase)
     {
         ServiceCollection services = new();
         services.AddScoped(_ => refreshUseCase);
@@ -120,7 +120,7 @@ public class ReceiptRefreshBackgroundServiceComponentTests
         }
     }
 
-    private sealed class FakeRefreshReceiptsWithoutItemsUseCase(Func<CancellationToken, Task> execute) : IRefreshReceiptsWithoutItemsUseCase
+    private sealed class FakeRefreshPendingReceiptsUseCase(Func<CancellationToken, Task> execute) : IRefreshPendingReceiptsUseCase
     {
         public int ExecuteCount { get; private set; }
 

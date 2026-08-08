@@ -21,7 +21,11 @@ public class UserSettingsModelTests
         Dependencies dependencies = new();
         dependencies.GetUserAccountsUseCase
             .Setup(useCase => useCase.ExecuteAsync(currentUser.Id, true, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new UserAccountViewModel { Id = Guid.NewGuid(), Name = "Main" }]);
+            .ReturnsAsync(ServiceResult<List<UserAccountViewModel>>.Ok(
+                new List<UserAccountViewModel>
+                {
+                    new() { Id = Guid.NewGuid(), Name = "Main" }
+                }));
 
         UserSettingsModel model = dependencies.CreateModel(currentUser);
 

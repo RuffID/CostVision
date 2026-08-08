@@ -55,11 +55,11 @@ namespace CostVision.Application.UseCases.MoneyMovements
             }
 
             MoneyMovementDto? createdDto = null;
-            await unitOfWork.ExecuteInTransaction(async () =>
+            await unitOfWork.ExecuteInTransaction(async transactionCt =>
             {
                 unitOfWork.MoneyMovement.Create(newMovement);
-                await unitOfWork.SaveChangesAsync(ct);
-                await TryAutoLinkExactReceiptAsync(newMovement, currentUserId, ct);
+                await unitOfWork.SaveChangesAsync(transactionCt);
+                await TryAutoLinkExactReceiptAsync(newMovement, currentUserId, transactionCt);
 
                 MoneyMovement? created = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
                     item => item.Id == newMovement.Id,
@@ -67,7 +67,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     include: query => query
                         .Include(item => item.Account)
                         .Include(item => item.PerformedByUser),
-                    ct: ct);
+                    ct: transactionCt);
 
                 if (created == null)
                     throw new InvalidOperationException("Не удалось загрузить созданную операцию.");

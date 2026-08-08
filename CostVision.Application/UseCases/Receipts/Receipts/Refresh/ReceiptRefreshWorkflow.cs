@@ -5,9 +5,60 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
 {
-    public class ReceiptRefreshWorkflow(IUnitOfWork unitOfWork, IExternalReceiptProvider externalReceiptProvider) : IReceiptRefreshWorkflow
+    public class ReceiptRefreshWorkflow(
+        IUnitOfWork unitOfWork,
+        IExternalReceiptProvider externalReceiptProvider,
+        TimeProvider timeProvider) : IReceiptRefreshWorkflow
     {
         public async Task<ServiceResult<Receipt>> RefreshAsync(Receipt receipt, CancellationToken ct)
+        {
+            DateTime attemptedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+            ServiceResult<Receipt> result = await ApplyRefreshAsync(receipt, attemptedAtUtc, ct);
+            if (!result.Success)
+                return result;
+
+            if (!receipt.TryCompleteRefresh(attemptedAtUtc, registerAttempt: false, out string? completionError))
+                throw new InvalidOperationException(completionError);
+
+            await unitOfWork.SaveChangesAsync(ct);
+            return result;
+        }
+
+        public async Task<ServiceResult<Receipt>> RefreshScheduledAsync(
+            Receipt receipt,
+            DateTime attemptedAtUtc,
+            DateTime nextAttemptAtUtc,
+            CancellationToken ct)
+        {
+            if (!receipt.CanAttemptRefresh(attemptedAtUtc, ReceiptRefreshPolicy.MAX_ATTEMPTS))
+                throw new InvalidOperationException("Фоновая попытка обновления чека запущена вне расписания.");
+
+            if (nextAttemptAtUtc <= attemptedAtUtc)
+                throw new InvalidOperationException("Следующая фоновая попытка должна быть запланирована позже текущей.");
+
+            ServiceResult<Receipt> result = await ApplyRefreshAsync(receipt, attemptedAtUtc, ct);
+            if (!result.Success)
+            {
+                if (!receipt.TryRegisterRefreshFailure(
+                        result.Error.Message,
+                        attemptedAtUtc,
+                        nextAttemptAtUtc,
+                        ReceiptRefreshPolicy.MAX_ATTEMPTS,
+                        out string? failureError))
+                    throw new InvalidOperationException(failureError);
+
+                await unitOfWork.SaveChangesAsync(ct);
+                return result;
+            }
+
+            if (!receipt.TryCompleteRefresh(attemptedAtUtc, registerAttempt: true, out string? completionError))
+                throw new InvalidOperationException(completionError);
+
+            await unitOfWork.SaveChangesAsync(ct);
+            return result;
+        }
+
+        private async Task<ServiceResult<Receipt>> ApplyRefreshAsync(Receipt receipt, DateTime updatedAtUtc, CancellationToken ct)
         {
             ServiceResult<Receipt> externalReceiptResult = await externalReceiptProvider.GetReceiptAsync(receipt, ct);
             if (!externalReceiptResult.Success)
@@ -37,23 +88,10 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
                 refreshedItems.Add(item!);
             }
 
-            if (!receipt.TryRefreshFrom(externalReceiptResult.Data, store, refreshedItems, DateTime.UtcNow, out string? refreshError))
+            if (!receipt.TryRefreshFrom(externalReceiptResult.Data, store, refreshedItems, updatedAtUtc, out string? refreshError))
                 return ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, $"Внешний источник вернул некорректные данные чека: {refreshError}");
 
-            await unitOfWork.SaveChangesAsync(ct);
             return ServiceResult<Receipt>.Ok(receipt);
-        }
-
-        public async Task<Receipt> TryRefreshCreatedReceiptAsync(Receipt receipt, CancellationToken ct)
-        {
-            ServiceResult<Receipt> refreshResult = await RefreshAsync(receipt, ct);
-            return refreshResult.Success ? refreshResult.Data : receipt;
-        }
-
-        public async Task TryRefreshCreatedReceiptsAsync(IEnumerable<Receipt> receipts, CancellationToken ct)
-        {
-            foreach (Receipt receipt in receipts)
-                await TryRefreshCreatedReceiptAsync(receipt, ct);
         }
 
         private async Task<Product> ResolveProductAsync(Product? sourceProduct, IDictionary<string, Product> productCache, CancellationToken ct)

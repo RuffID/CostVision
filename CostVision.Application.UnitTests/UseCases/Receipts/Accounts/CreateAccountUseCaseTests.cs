@@ -49,7 +49,7 @@ public class CreateAccountUseCaseTests
         Assert.Equal(ownerUserId, createdMember.UserId);
         Assert.Same(createdAccount, createdMember.Account);
         Assert.Equal(AccountAccessRole.Owner, createdMember.Role);
-        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -74,8 +74,8 @@ public class CreateAccountUseCaseTests
         Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.AccountMember).Returns(accountMemberRepository.Object);
-        unitOfWork.Setup(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<Task>, CancellationToken>((action, _) => action());
+        unitOfWork.Setup(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>((action, ct) => action(ct));
 
         return unitOfWork;
     }

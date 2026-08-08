@@ -23,8 +23,8 @@ namespace CostVision.Web.Pages.Settings
 
         public async Task<IActionResult> OnGetAccountsAsync(bool includeInactive = false, CancellationToken ct = default)
         {
-            List<UserAccountViewModel> accounts = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeInactive, ct);
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
+            ServiceResult<List<UserAccountViewModel>> result = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeInactive, ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostCreateAccountAsync([FromBody] CreateAccountRequest request, CancellationToken ct)

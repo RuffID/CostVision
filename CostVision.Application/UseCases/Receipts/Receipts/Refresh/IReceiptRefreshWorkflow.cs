@@ -7,8 +7,10 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
     {
         Task<ServiceResult<Receipt>> RefreshAsync(Receipt receipt, CancellationToken ct);
 
-        Task<Receipt> TryRefreshCreatedReceiptAsync(Receipt receipt, CancellationToken ct);
-
-        Task TryRefreshCreatedReceiptsAsync(IEnumerable<Receipt> receipts, CancellationToken ct);
+        Task<ServiceResult<Receipt>> RefreshScheduledAsync(
+            Receipt receipt,
+            DateTime attemptedAtUtc,
+            DateTime nextAttemptAtUtc,
+            CancellationToken ct);
     }
 }

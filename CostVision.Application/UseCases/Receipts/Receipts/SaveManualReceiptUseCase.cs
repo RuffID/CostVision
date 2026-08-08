@@ -3,7 +3,6 @@ using CostVision.Application.Models.Dtos.Mappers;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Accounts;
-using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +11,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 {
     public class SaveManualReceiptUseCase(
         IUnitOfWork unitOfWork,
-        IValidateReceiptCreationAccessUseCase validateReceiptCreationAccessUseCase,
-        IReceiptRefreshWorkflow receiptRefreshWorkflow) : ISaveManualReceiptUseCase
+        IValidateReceiptCreationAccessUseCase validateReceiptCreationAccessUseCase) : ISaveManualReceiptUseCase
     {
         public async Task<ServiceResult<AddReceiptManualResponse>> ExecuteAsync(ReceiptManualCreateRequest request, Guid currentUserId, CancellationToken ct)
         {
@@ -86,15 +84,21 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                             existingLinkError ?? "Не удалось добавить чек на выбранный счёт.");
                     }
 
-                    unitOfWork.ReceiptAccount.Create(link!);
-                    await unitOfWork.SaveChangesAsync(ct);
+                    Receipt? linkedReceipt = null;
+                    await unitOfWork.ExecuteInTransaction(async transactionCt =>
+                    {
+                        unitOfWork.ReceiptAccount.Create(link!);
+                        await unitOfWork.SaveChangesAsync(transactionCt);
+                        linkedReceipt = await LoadReceiptWithAccountsAsync(existingReceipt.Id, transactionCt);
+                    }, ct);
 
-                    Receipt linkedReceipt = await LoadReceiptWithAccountsAsync(existingReceipt.Id, ct);
                     return ServiceResult<AddReceiptManualResponse>.Ok(new AddReceiptManualResponse
                     {
                         Outcome = ManualReceiptOutcome.AddedToAccount,
                         Message = "Чек уже существовал и был добавлен на выбранный счёт.",
-                        Receipt = linkedReceipt.MapReceiptDto(currentUserId)
+                        Receipt = (linkedReceipt
+                            ?? throw new InvalidOperationException("Транзакция добавления чека на счёт завершилась без результата."))
+                            .MapReceiptDto(currentUserId)
                     });
                 }
 
@@ -117,12 +121,11 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 
             unitOfWork.Receipt.Create(receipt);
             await unitOfWork.SaveChangesAsync(ct);
-            Receipt refreshedReceipt = await receiptRefreshWorkflow.TryRefreshCreatedReceiptAsync(receipt, ct);
 
             return ServiceResult<AddReceiptManualResponse>.Ok(new AddReceiptManualResponse
             {
                 Outcome = ManualReceiptOutcome.Created,
-                Receipt = refreshedReceipt.MapReceiptDto(currentUserId)
+                Receipt = receipt.MapReceiptDto(currentUserId)
             });
         }
 

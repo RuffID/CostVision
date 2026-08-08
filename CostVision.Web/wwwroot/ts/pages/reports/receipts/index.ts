@@ -462,7 +462,7 @@ async function refreshReceipt(receiptId: string, cardElement: HTMLElement, butto
         updateReceiptCardFromDto(cardElement, data, formatCurrency);
     } catch (error) {
         console.error(error);
-        alert(error?.message ?? error);
+        alert(getErrorMessage(error));
     } finally {
         buttonElement.disabled = false;
         buttonElement.textContent = originalText;
@@ -867,7 +867,7 @@ async function onConfirmMoveReceiptToAccount(): Promise<void> {
         renderReceiptList(applyReceiptFilters(pageState.receipts));
     } catch (error) {
         console.error(error);
-        showMoveReceiptAccountAlert(error && error.message ? error.message : 'Не удалось перенести чек в другой счёт.');
+        showMoveReceiptAccountAlert(getErrorMessage(error, 'Не удалось перенести чек в другой счёт.'));
     } finally {
         confirmMoveReceiptAccountButton.textContent = originalText;
         updateMoveReceiptActionState();
@@ -891,6 +891,10 @@ function closeMoveReceiptAccountModal(): void {
     moveReceiptSourceAccountElement.style.border = '';
 
     moveReceiptAccountBootstrapModal.hide();
+}
+
+function getErrorMessage(error: unknown, fallback = 'Не удалось выполнить операцию.'): string {
+    return error instanceof Error ? error.message : fallback;
 }
 
 function getSelectedMoveReceiptTargetOption(): HTMLOptionElement | null {

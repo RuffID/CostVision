@@ -23,25 +23,25 @@ namespace CostVision.Infrastructure.DataBase.Repositories
     {
         public IUserRepository User { get; } = user;
         public IRoleRepository Role { get; } = role;
-        public IAccountRepository Account { get; set; } = account;
-        public IReceiptRepository Receipt { get; set; } = receipt;
-        public IReceiptItemRepository ReceiptItem { get; set; } = receiptItem;
-        public IStoreRepository Store { get; set; } = store;
-        public IProductRepository Product { get; set; } = product;
-        public IReceiptAccountRepository ReceiptAccount { get; set; } = receiptAccount;
-        public IAccountMemberRepository AccountMember { get; set; } = accountMember;
-        public IMoneyMovementRepository MoneyMovement { get; set; } = moneyMovement;
-        public IMoneyMovementReceiptRepository MoneyMovementReceipt { get; set; } = moneyMovementReceipt;
+        public IAccountRepository Account { get; } = account;
+        public IReceiptRepository Receipt { get; } = receipt;
+        public IReceiptItemRepository ReceiptItem { get; } = receiptItem;
+        public IStoreRepository Store { get; } = store;
+        public IProductRepository Product { get; } = product;
+        public IReceiptAccountRepository ReceiptAccount { get; } = receiptAccount;
+        public IAccountMemberRepository AccountMember { get; } = accountMember;
+        public IMoneyMovementRepository MoneyMovement { get; } = moneyMovement;
+        public IMoneyMovementReceiptRepository MoneyMovementReceipt { get; } = moneyMovementReceipt;
 
         public Task SaveChangesAsync(CancellationToken ct = default) => context.SaveChanges(ct);
 
-        public async Task ExecuteInTransaction(Func<Task> action, CancellationToken ct = default)
+        public async Task ExecuteInTransaction(Func<CancellationToken, Task> action, CancellationToken ct = default)
         {
             await using IDbContextTransaction transaction = await context.Database.BeginTransactionAsync(ct);
 
             try
             {
-                await action();
+                await action(ct);
                 await SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
             }

@@ -1,12 +1,14 @@
+using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
+
 namespace CostVision.Infrastructure.Services.BackgroundServices
 {
-    public class MidnightReceiptRefreshBackgroundScheduler : IReceiptRefreshBackgroundScheduler
+    public class MidnightReceiptRefreshBackgroundScheduler(TimeProvider timeProvider) : IReceiptRefreshBackgroundScheduler
     {
         public Task WaitForNextRunAsync(CancellationToken ct)
         {
-            DateTime nowLocal = DateTime.Now;
-            DateTime nextRunLocal = nowLocal.Date.AddDays(1);
-            TimeSpan delay = nextRunLocal - nowLocal;
+            DateTime nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+            DateTime nextRunUtc = ReceiptRefreshPolicy.GetNextDailyRunUtc(timeProvider);
+            TimeSpan delay = nextRunUtc - nowUtc;
 
             if (delay < TimeSpan.Zero)
                 delay = TimeSpan.Zero;

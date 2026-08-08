@@ -54,8 +54,8 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetAccountsAsync(CancellationToken ct)
         {
-            List<UserAccountViewModel> accounts = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeArchived: false, ct);
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
+            ServiceResult<List<UserAccountViewModel>> result = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeArchived: false, ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostOpenReceiptAsync([FromBody] OpenReceiptRequest request, CancellationToken ct)

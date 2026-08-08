@@ -48,7 +48,8 @@ public class SqlServerContainerFixture : IAsyncLifetime
         Dictionary<string, string?> values = new()
         {
             ["ConnectionStrings:MSSql"] = ConnectionString,
-            ["Proverkacheka:ApiToken"] = "integration-tests"
+            ["ApiEndpoints:ProverkachekaApiUrl"] = "https://integration-tests.invalid",
+            ["ProverkachekaApiToken"] = "integration-tests"
         };
 
         IConfiguration configuration = new ConfigurationBuilder()

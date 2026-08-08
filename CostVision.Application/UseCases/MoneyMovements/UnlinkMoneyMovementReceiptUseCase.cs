@@ -28,7 +28,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (link == null)
                 return ServiceResult.Fail(ServiceErrorType.NotFound, "Связь операции и чека не найдена.");
 
-            await unitOfWork.ExecuteInTransaction(() =>
+            await unitOfWork.ExecuteInTransaction(_ =>
             {
                 unitOfWork.MoneyMovementReceipt.Delete(link);
                 return Task.CompletedTask;

@@ -90,7 +90,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 addedMembers.Add(addedMember);
             }
 
-            await unitOfWork.ExecuteInTransaction(async () =>
+            await unitOfWork.ExecuteInTransaction(_ =>
             {
                 if (removedMembers.Count > 0)
                     unitOfWork.AccountMember.DeleteRange(removedMembers);
@@ -98,7 +98,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 if (addedMembers.Count > 0)
                     unitOfWork.AccountMember.CreateRange(addedMembers);
 
-                await Task.CompletedTask;
+                return Task.CompletedTask;
             }, ct);
 
             return ServiceResult.Ok();

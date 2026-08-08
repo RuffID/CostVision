@@ -34,8 +34,8 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetAccountsAsync(CancellationToken ct)
         {
-            List<UserAccountViewModel> accounts = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeArchived: false, ct);
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
+            ServiceResult<List<UserAccountViewModel>> result = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeArchived: false, ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetReceiptListAsync([FromQuery] GetReceiptListRequest request, CancellationToken ct)
@@ -59,9 +59,6 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostDeleteReceiptAsync([FromBody] DeleteReceiptRequest request, CancellationToken ct)
         {
-            if (request.ReceiptId == Guid.Empty)
-                return JsonResultMapper.ToJsonResult(ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор чека."));
-
             ServiceResult serviceResult = await deleteReceiptUseCase.ExecuteAsync(request.ReceiptId, CurrentUser, ct);
             return JsonResultMapper.ToJsonResult(serviceResult);
         }

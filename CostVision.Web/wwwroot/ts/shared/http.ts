@@ -17,20 +17,21 @@ export type ServiceResultWithData<TData> = {
 } | ServiceFailure;
 
 export async function sendJsonRequest<TResponse = unknown>(url: string, method = "GET", headers: JsonHeaders = {}, body: JsonRequestBody = null): Promise<TResponse> {
+    const requestHeaders: JsonHeaders = { ...headers };
     const options: RequestInit = {
         method: method,
-        headers: headers
+        headers: requestHeaders
     };
 
     if (body !== null) {
-        if (typeof body === "object" && !(body instanceof FormData)) {
+        if (isBodyInit(body)) {
+            options.body = body;
+        } else {
             options.body = JSON.stringify(body);
 
-            if (!headers["Content-Type"]) {
-                headers["Content-Type"] = "application/json";
+            if (!requestHeaders["Content-Type"]) {
+                requestHeaders["Content-Type"] = "application/json";
             }
-        } else {
-            options.body = body;
         }
     }
 
@@ -115,4 +116,14 @@ function isServiceFailure(value: unknown): value is ServiceFailure {
 
     const candidate = value as Record<string, unknown>;
     return candidate.success === false && typeof candidate.message === "string" && candidate.message.trim().length > 0;
+}
+
+function isBodyInit(value: BodyInit | object): value is BodyInit {
+    return typeof value === "string" ||
+        value instanceof Blob ||
+        value instanceof FormData ||
+        value instanceof URLSearchParams ||
+        value instanceof ArrayBuffer ||
+        ArrayBuffer.isView(value) ||
+        (typeof ReadableStream !== "undefined" && value instanceof ReadableStream);
 }

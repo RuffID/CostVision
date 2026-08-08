@@ -65,6 +65,12 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
             builder.Property(x => x.NumberKkt)
                 .HasMaxLength(64);
 
+            builder.Property(x => x.RefreshStatus)
+                .IsRequired();
+
+            builder.Property(x => x.LastRefreshError)
+                .HasMaxLength(Receipt.MAX_REFRESH_ERROR_LENGTH);
+
             builder.HasOne(x => x.CreatedByUser)
                 .WithMany(x => x.CreatedReceipts)
                 .HasForeignKey(x => x.CreatedByUserId)
@@ -114,6 +120,8 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
                 .IsUnique();
 
             builder.HasIndex(x => x.StoreId);
+
+            builder.HasIndex(x => new { x.RefreshStatus, x.NextRefreshAttemptAtUtc });
         }
     }
 }

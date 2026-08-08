@@ -19,7 +19,7 @@ interface Html5QrcodeCamera {
 
 interface Html5QrcodeConfig {
     fps?: number;
-    qrbox?: { width: number; height: number };
+    qrbox?: { width: number; height: number } | ((viewfinderWidth: number, viewfinderHeight: number) => { width: number; height: number });
     aspectRatio?: number;
     disableFlip?: boolean;
 }
@@ -44,6 +44,7 @@ interface Html5QrcodeInstance {
     ): Promise<void>;
     stop(): Promise<void>;
     scanFile(file: File, showImage?: boolean): Promise<string>;
+    scanFileV2(file: File, showImage?: boolean): Promise<{ decodedText: string }>;
 }
 
 interface Html5QrcodeConstructor {

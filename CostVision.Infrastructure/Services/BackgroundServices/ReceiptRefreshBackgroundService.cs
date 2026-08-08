@@ -22,10 +22,10 @@ namespace CostVision.Infrastructure.Services.BackgroundServices
                         break;
 
                     using IServiceScope scope = serviceProvider.CreateScope();
-                    IRefreshReceiptsWithoutItemsUseCase refreshReceiptsWithoutItemsUseCase = scope.ServiceProvider.GetRequiredService<IRefreshReceiptsWithoutItemsUseCase>();
+                    IRefreshPendingReceiptsUseCase refreshPendingReceiptsUseCase = scope.ServiceProvider.GetRequiredService<IRefreshPendingReceiptsUseCase>();
 
                     logger.LogInformation("[Class:{ClassName}] The update of receipts from the API has been launched.", nameof(ReceiptRefreshBackgroundService));
-                    await refreshReceiptsWithoutItemsUseCase.ExecuteAsync(stoppingToken);
+                    await refreshPendingReceiptsUseCase.ExecuteAsync(stoppingToken);
                 }
                 catch (TaskCanceledException)
                 {

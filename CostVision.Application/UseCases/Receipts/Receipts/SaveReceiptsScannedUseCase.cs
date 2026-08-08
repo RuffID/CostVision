@@ -4,7 +4,6 @@ using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.Models.Services.Receipts;
 using CostVision.Application.UseCases.Receipts.Accounts;
-using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 
@@ -13,8 +12,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
     public class SaveReceiptsScannedUseCase(
         IUnitOfWork unitOfWork,
         IValidateReceiptCreationAccessUseCase validateReceiptCreationAccessUseCase,
-        IQrParser qrParser,
-        IReceiptRefreshWorkflow receiptRefreshWorkflow) : ISaveReceiptsScannedUseCase
+        IQrParser qrParser) : ISaveReceiptsScannedUseCase
     {
         public async Task<ServiceResult<AddReceiptScanResponse>> ExecuteAsync(QrScanRequest request, Guid currentUserId, CancellationToken ct)
         {
@@ -30,7 +28,6 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 
             int scannedCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.DecodedText));
             int addedCount = 0;
-            List<Receipt> createdReceipts = new();
 
             foreach (QrScanResult result in request.Results)
             {
@@ -130,15 +127,11 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 }
 
                 unitOfWork.Receipt.Create(receipt);
-                createdReceipts.Add(receipt);
                 addedCount++;
             }
 
             if (addedCount > 0)
-            {
                 await unitOfWork.SaveChangesAsync(ct);
-                await receiptRefreshWorkflow.TryRefreshCreatedReceiptsAsync(createdReceipts, ct);
-            }
 
             int errorCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.ErrorMessage));
 

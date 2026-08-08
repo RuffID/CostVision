@@ -87,12 +87,16 @@ export interface MoveReceiptAccountAction {
 
 export type DeleteReceiptActionType = "delete-receipt" | "remove-from-account";
 
-export interface PendingDeleteAction {
-    type: DeleteReceiptActionType;
+export type PendingDeleteAction = {
+    type: "delete-receipt";
     receiptId: string;
     cardElement: HTMLElement | null;
-    accountId?: string;
-}
+} | {
+    type: "remove-from-account";
+    receiptId: string;
+    cardElement: HTMLElement | null;
+    accountId: string;
+};
 
 export interface ReceiptDateRange {
     dateFrom: Date;

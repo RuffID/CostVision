@@ -348,6 +348,13 @@ namespace CostVision.Infrastructure.DataBase.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<DateTime?>("LastRefreshAttemptAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastRefreshError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<decimal?>("Nds0")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -364,11 +371,20 @@ namespace CostVision.Infrastructure.DataBase.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("NextRefreshAttemptAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("NumberKkt")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
                     b.Property<int>("OperationType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RefreshAttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RefreshStatus")
                         .HasColumnType("int");
 
                     b.Property<string>("Region")
@@ -402,6 +418,8 @@ namespace CostVision.Infrastructure.DataBase.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("StoreId");
+
+                    b.HasIndex("RefreshStatus", "NextRefreshAttemptAtUtc");
 
                     b.HasIndex("FiscalDriveNumber", "FiscalDocumentNumber", "FiscalSign");
 

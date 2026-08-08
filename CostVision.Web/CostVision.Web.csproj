@@ -7,6 +7,8 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <AssemblyName>CostVision.Web</AssemblyName>
     <RootNamespace>CostVision.Web</RootNamespace>
+    <TypeScriptToolsVersion>6.0.3</TypeScriptToolsVersion>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
     <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**;artifacts\**</DefaultItemExcludes>
   </PropertyGroup>
 

@@ -216,13 +216,17 @@ public sealed class TestWebApplication : IDisposable
 
     private static string GetWebProjectPath()
     {
-        return Path.GetFullPath(Path.Combine(
-            AppContext.BaseDirectory,
-            "..",
-            "..",
-            "..",
-            "..",
-            "CostVision.Web"));
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory != null)
+        {
+            string projectPath = Path.Combine(directory.FullName, "CostVision.Web");
+            if (File.Exists(Path.Combine(projectPath, "CostVision.Web.csproj")))
+                return projectPath;
+
+            directory = directory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Не удалось найти каталог проекта CostVision.Web.");
     }
 
     private static User CreateActiveUser()
@@ -276,9 +280,9 @@ public sealed class TestWebApplication : IDisposable
 
     private sealed class FakeGetUserAccountsUseCase : IGetUserAccountsUseCase
     {
-        public Task<List<UserAccountViewModel>> ExecuteAsync(Guid userId, bool includeArchived, CancellationToken ct)
+        public Task<ServiceResult<List<UserAccountViewModel>>> ExecuteAsync(Guid userId, bool includeArchived, CancellationToken ct)
         {
-            return Task.FromResult(new List<UserAccountViewModel>());
+            return Task.FromResult(ServiceResult<List<UserAccountViewModel>>.Ok(new List<UserAccountViewModel>()));
         }
     }
 }

@@ -59,7 +59,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (links.Count == 0)
                 return ServiceResult<int>.Ok(0);
 
-            await unitOfWork.ExecuteInTransaction(() =>
+            await unitOfWork.ExecuteInTransaction(_ =>
             {
                 unitOfWork.MoneyMovementReceipt.CreateRange(links);
                 return Task.CompletedTask;

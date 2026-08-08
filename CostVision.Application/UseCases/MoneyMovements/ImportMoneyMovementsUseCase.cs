@@ -27,13 +27,13 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (validRows.Count == 0)
                 return ServiceResult<BankStatementImportResultDto>.Ok(result);
 
-            await unitOfWork.ExecuteInTransaction(async () =>
+            await unitOfWork.ExecuteInTransaction(async transactionCt =>
             {
                 foreach (ValidImportRow validRow in validRows)
                 {
                     BankStatementImportRowRequest row = validRow.Row;
                     MoneyMovement movement = validRow.Movement;
-                    MoneyMovement? duplicate = await FindDuplicateAsync(request.AccountId, row, movement, ct);
+                    MoneyMovement? duplicate = await FindDuplicateAsync(request.AccountId, row, movement, transactionCt);
                     if (duplicate != null)
                     {
                         if (!row.ReplaceDuplicate)

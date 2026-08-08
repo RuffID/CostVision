@@ -1,9 +1,10 @@
 using CostVision.Application.Models.Requests.Receipts;
+using CostVision.Application.Models.Responses.Results;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public interface IGetUserAccountsUseCase
     {
-        Task<List<UserAccountViewModel>> ExecuteAsync(Guid userId, bool includeArchived, CancellationToken ct);
+        Task<ServiceResult<List<UserAccountViewModel>>> ExecuteAsync(Guid userId, bool includeArchived, CancellationToken ct);
     }
 }

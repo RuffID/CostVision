@@ -1,6 +1,7 @@
 using CostVision.Application.Abstractions.DataBase;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Domain.Models.Receipts;
+using EFCoreLibrary.Abstractions.Database;
 using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -11,7 +12,7 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
         ICreateItemRepository<Store, AppDbContextBase> createRepository,
         IGetItemByIdRepository<Store, Guid, AppDbContextBase> getItemByIdRepository,
         IGetItemByPredicateRepository<Store, AppDbContextBase> getItemByPredicateRepository,
-        ApplicationContext context) : IStoreRepository
+        IAppDbContext<AppDbContextBase> context) : IStoreRepository
     {
         public Task<Store?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<Store>, IQueryable<Store>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);

@@ -13,6 +13,7 @@ namespace CostVision.Domain.Models.Receipts
         public const int MAX_USER_INN_LENGTH = 32;
         public const int MAX_KKT_ID_LENGTH = 64;
         public const int MAX_REGION_LENGTH = 32;
+        public const int MAX_REFRESH_ERROR_LENGTH = 1000;
 
         private readonly List<ReceiptItem> _items = new();
         private readonly ReadOnlyCollection<ReceiptItem> _itemsView;
@@ -130,6 +131,16 @@ namespace CostVision.Domain.Models.Receipts
 
         public DateTime? UpdatedAtUtc { get; private set; }
 
+        public ReceiptRefreshStatus RefreshStatus { get; private set; } = ReceiptRefreshStatus.Pending;
+
+        public int RefreshAttemptCount { get; private set; }
+
+        public DateTime? LastRefreshAttemptAtUtc { get; private set; }
+
+        public DateTime? NextRefreshAttemptAtUtc { get; private set; }
+
+        public string? LastRefreshError { get; private set; }
+
         /// <summary>
         /// Создаёт чек с допустимыми обязательными реквизитами.
         /// </summary>
@@ -196,8 +207,97 @@ namespace CostVision.Domain.Models.Receipts
                 OperationType = operationType,
                 TotalSum = totalSum,
                 CreatedByUserId = createdByUserId,
-                CreatedAtUtc = createdAtUtc
+                CreatedAtUtc = createdAtUtc,
+                RefreshStatus = ReceiptRefreshStatus.Pending
             };
+            return true;
+        }
+
+        /// <summary>
+        /// Проверяет, наступило ли время следующей фоновой попытки обновления.
+        /// </summary>
+        public bool CanAttemptRefresh(DateTime utcNow, int maxAttempts)
+        {
+            return utcNow != default &&
+                   maxAttempts > 0 &&
+                   RefreshStatus == ReceiptRefreshStatus.Pending &&
+                   RefreshAttemptCount < maxAttempts &&
+                   (!NextRefreshAttemptAtUtc.HasValue || NextRefreshAttemptAtUtc.Value <= utcNow);
+        }
+
+        /// <summary>
+        /// Регистрирует неудачную фоновую попытку и завершает обработку после достижения лимита.
+        /// </summary>
+        public bool TryRegisterRefreshFailure(
+            string? errorMessage,
+            DateTime attemptedAtUtc,
+            DateTime nextAttemptAtUtc,
+            int maxAttempts,
+            out string? error)
+        {
+            if (!CanAttemptRefresh(attemptedAtUtc, maxAttempts))
+            {
+                error = "Фоновая попытка обновления чека сейчас недоступна.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(errorMessage))
+            {
+                error = "Причина ошибки обновления чека не указана.";
+                return false;
+            }
+
+            if (nextAttemptAtUtc <= attemptedAtUtc)
+            {
+                error = "Дата следующей попытки должна быть позже текущей попытки.";
+                return false;
+            }
+
+            string normalizedErrorMessage = errorMessage.Trim();
+            RefreshAttemptCount++;
+            LastRefreshAttemptAtUtc = attemptedAtUtc;
+            LastRefreshError = normalizedErrorMessage[..Math.Min(normalizedErrorMessage.Length, MAX_REFRESH_ERROR_LENGTH)];
+
+            if (RefreshAttemptCount >= maxAttempts)
+            {
+                RefreshStatus = ReceiptRefreshStatus.Failed;
+                NextRefreshAttemptAtUtc = null;
+            }
+            else
+            {
+                RefreshStatus = ReceiptRefreshStatus.Pending;
+                NextRefreshAttemptAtUtc = nextAttemptAtUtc;
+            }
+
+            error = null;
+            return true;
+        }
+
+        /// <summary>
+        /// Завершает обновление чека и при необходимости учитывает фоновую попытку.
+        /// </summary>
+        public bool TryCompleteRefresh(DateTime attemptedAtUtc, bool registerAttempt, out string? error)
+        {
+            if (attemptedAtUtc == default)
+            {
+                error = "Дата попытки обновления чека не заполнена.";
+                return false;
+            }
+
+            if (registerAttempt && RefreshStatus != ReceiptRefreshStatus.Pending)
+            {
+                error = "Фоновую попытку можно завершить только для чека, ожидающего обновления.";
+                return false;
+            }
+
+            if (registerAttempt)
+                RefreshAttemptCount++;
+
+            LastRefreshAttemptAtUtc = attemptedAtUtc;
+            NextRefreshAttemptAtUtc = null;
+            LastRefreshError = null;
+            RefreshStatus = ReceiptRefreshStatus.Completed;
+            error = null;
             return true;
         }
 

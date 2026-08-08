@@ -23,8 +23,8 @@ namespace CostVision.Web.Pages
 
         public async Task<IActionResult> OnGetAccountsAsync(CancellationToken ct)
         {
-            List<UserAccountViewModel> accounts = await getUserAccountsForReceiptCreationUseCase.ExecuteAsync(CurrentUser.Id, ct);
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<UserAccountViewModel>>.Ok(accounts));
+            ServiceResult<List<UserAccountViewModel>> result = await getUserAccountsForReceiptCreationUseCase.ExecuteAsync(CurrentUser.Id, ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostAsync([FromBody] QrScanRequest request, CancellationToken ct)

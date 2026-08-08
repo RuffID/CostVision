@@ -58,7 +58,7 @@ public class UpdateAccountMembersUseCaseTests
         Assert.Equal(accountId, addedMember.AccountId);
         Assert.Equal(addedUserId, addedMember.UserId);
         Assert.Equal(AccountAccessRole.Viewer, addedMember.Role);
-        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -146,8 +146,8 @@ public class UpdateAccountMembersUseCaseTests
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.User).Returns(userRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.AccountMember).Returns(accountMemberRepository.Object);
-        unitOfWork.Setup(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<Task>, CancellationToken>((action, _) => action());
+        unitOfWork.Setup(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>((action, ct) => action(ct));
         return unitOfWork;
     }
 }

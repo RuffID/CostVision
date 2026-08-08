@@ -1,6 +1,6 @@
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
-    public interface IRefreshReceiptsWithoutItemsUseCase
+    public interface IRefreshPendingReceiptsUseCase
     {
         Task ExecuteAsync(CancellationToken ct);
     }

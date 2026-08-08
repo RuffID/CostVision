@@ -45,7 +45,7 @@ public class DeleteMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         Assert.True(result.Success);
         linkRepository.Verify(repository => repository.DeleteRange(It.Is<IEnumerable<MoneyMovementReceipt>>(links => links.Single() == link)), Times.Once);
         moneyMovementRepository.Verify(repository => repository.Delete(movement), Times.Once);
-        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

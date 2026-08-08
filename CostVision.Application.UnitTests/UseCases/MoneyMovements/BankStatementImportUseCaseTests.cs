@@ -174,7 +174,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
         Assert.Equal("card", createdMovement.Comment);
         Assert.Equal("purchase", createdMovement.ImportComment);
         Assert.Equal(MoneyMovementSource.BankStatementImport, createdMovement.Source);
-        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

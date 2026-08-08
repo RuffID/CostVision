@@ -86,7 +86,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         Assert.Equal(performerId, createdMovement.PerformedByUserId);
         Assert.Equal(MoneyMovementSource.Manual, createdMovement.Source);
         Assert.Equal("Card", result.Data?.AccountName);
-        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 

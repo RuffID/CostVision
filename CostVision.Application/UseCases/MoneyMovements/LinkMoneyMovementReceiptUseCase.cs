@@ -57,7 +57,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     out string? error))
                 return ServiceResult.Fail(ServiceErrorType.Validation, error!);
 
-            await unitOfWork.ExecuteInTransaction(() =>
+            await unitOfWork.ExecuteInTransaction(_ =>
             {
                 unitOfWork.MoneyMovementReceipt.Create(link!);
 

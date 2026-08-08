@@ -26,7 +26,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (movement == null)
                 return ServiceResult.Fail(ServiceErrorType.NotFound, "Операция не найдена в счёте.");
 
-            await unitOfWork.ExecuteInTransaction(() =>
+            await unitOfWork.ExecuteInTransaction(_ =>
             {
                 if (movement.ReceiptLinks.Count > 0)
                     unitOfWork.MoneyMovementReceipt.DeleteRange(movement.ReceiptLinks);

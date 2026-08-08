@@ -1,5 +1,6 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Requests.Receipts;
+using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
@@ -8,12 +9,12 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public class GetUserAccountsUseCase(IUnitOfWork unitOfWork) : IGetUserAccountsUseCase
     {
-        public async Task<List<UserAccountViewModel>> ExecuteAsync(Guid userId, bool includeArchived, CancellationToken ct)
+        public async Task<ServiceResult<List<UserAccountViewModel>>> ExecuteAsync(Guid userId, bool includeArchived, CancellationToken ct)
         {
             List<AccountMember> memberships = await unitOfWork.AccountMember.GetItemsByPredicateAsync(membership => membership.UserId == userId, asNoTracking: true, ct: ct);
             List<Guid> accountIds = memberships.Select(membership => membership.AccountId).Distinct().ToList();
             if (accountIds.Count == 0)
-                return new List<UserAccountViewModel>();
+                return ServiceResult<List<UserAccountViewModel>>.Ok(new List<UserAccountViewModel>());
 
             List<Account> accounts = await unitOfWork.Account.GetItemsByPredicateAsync(
                 account => (includeArchived || !account.IsArchived) &&
@@ -25,7 +26,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 .GroupBy(membership => membership.AccountId)
                 .ToDictionary(group => group.Key, group => group.Select(membership => membership.Role).First());
 
-            return accounts.Select(account => new UserAccountViewModel
+            List<UserAccountViewModel> result = accounts.Select(account => new UserAccountViewModel
             {
                 Id = account.Id,
                 Name = account.Name,
@@ -36,6 +37,8 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 OwnerName = account.CreatedByUser!.Name,
                 AccessRole = rolesByAccountId[account.Id]
             }).ToList();
+
+            return ServiceResult<List<UserAccountViewModel>>.Ok(result);
         }
     }
 }
