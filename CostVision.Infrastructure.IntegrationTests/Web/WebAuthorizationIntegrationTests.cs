@@ -3,7 +3,7 @@ using System.Text.Json;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Infrastructure.IntegrationTests.Web.Helpers;
 using CostVision.Infrastructure.IntegrationTests.Web.Models;
-using CostVision.Infrastructure.Services.Middleware;
+using CostVision.Web.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -146,8 +146,8 @@ public class WebAuthorizationIntegrationTests : IDisposable
 
         await using Stream stream = await response.Content.ReadAsStreamAsync(ct);
         using JsonDocument json = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-        Assert.Equal("Internal server error", json.RootElement.GetProperty("error").GetString());
-        Assert.False(string.IsNullOrWhiteSpace(json.RootElement.GetProperty("traceId").GetString()));
+        Assert.False(json.RootElement.GetProperty("success").GetBoolean());
+        Assert.Equal("Внутренняя ошибка сервера.", json.RootElement.GetProperty("message").GetString());
     }
 
     public void Dispose()

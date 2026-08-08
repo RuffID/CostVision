@@ -17,7 +17,6 @@ namespace CostVision.Web.Pages
     [LoadUser]
     public class AddReceiptModel(
         IGetUserAccountsForReceiptCreationUseCase getUserAccountsForReceiptCreationUseCase,
-        IValidateReceiptCreationAccessUseCase validateReceiptCreationAccessUseCase,
         ISaveReceiptsScannedUseCase saveReceiptsScannedUseCase,
         ISaveManualReceiptUseCase saveManualReceiptUseCase) : PageModel, IHasCurrentUser
     {
@@ -31,17 +30,11 @@ namespace CostVision.Web.Pages
 
         public async Task<IActionResult> OnPostAsync([FromBody] QrScanRequest request, CancellationToken ct)
         {
-            if (request.Results.Count == 0)
-                return JsonResultMapper.ToJsonResult(ServiceResult<AddReceiptScanResponse>.Fail(400, "Нет данных для обработки."));
+            ServiceResult<ReceiptScanResultSummary> result = await saveReceiptsScannedUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            if (!result.Success || result.Data == null)
+                return JsonResultMapper.ToJsonResult(result);
 
-            if (request.AccountId != Guid.Empty)
-            {
-                ServiceResult<bool> accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(request.AccountId, CurrentUser.Id, ct);
-                if (!accessResult.Success)
-                    return JsonResultMapper.ToJsonResult(accessResult);
-            }
-
-            ReceiptScanResultSummary summary = await saveReceiptsScannedUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ReceiptScanResultSummary summary = result.Data;
 
             AddReceiptScanResponse data = new()
             {
@@ -56,20 +49,17 @@ namespace CostVision.Web.Pages
 
         public async Task<IActionResult> OnPostManualAsync([FromBody] ReceiptManualCreateRequest input, CancellationToken ct)
         {
-            if (input.AccountId != Guid.Empty)
-            {
-                ServiceResult<bool> accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(input.AccountId, CurrentUser.Id, ct);
-                if (!accessResult.Success)
-                    return JsonResultMapper.ToJsonResult(accessResult);
-            }
+            ServiceResult<ManualReceiptResult> result = await saveManualReceiptUseCase.ExecuteAsync(input, CurrentUser.Id, ct);
+            if (!result.Success || result.Data == null)
+                return JsonResultMapper.ToJsonResult(result);
 
-            ManualReceiptResult result = await saveManualReceiptUseCase.ExecuteAsync(input, CurrentUser.Id, ct);
-            ReceiptDto? receiptDto = result.Receipt?.MapReceiptDto();
+            ManualReceiptResult manualResult = result.Data;
+            ReceiptDto? receiptDto = manualResult.Receipt?.MapReceiptDto();
 
             AddReceiptManualResponse data = new()
             {
-                IsCreated = result.IsCreated,
-                Message = result.ErrorMessage,
+                IsCreated = manualResult.IsCreated,
+                Message = manualResult.ErrorMessage,
                 Receipt = receiptDto
             };
 

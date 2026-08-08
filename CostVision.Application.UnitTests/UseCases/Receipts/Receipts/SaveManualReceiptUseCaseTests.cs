@@ -2,7 +2,9 @@ using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
+using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.Models.Services.Receipts;
+using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
@@ -14,6 +16,30 @@ namespace CostVision.Application.UnitTests.UseCases.Receipts.Receipts;
 
 public class SaveManualReceiptUseCaseTests
 {
+    [Fact]
+    public async Task ExecuteAsync_ReturnsAccessError_BeforeSavingReceipt()
+    {
+        Guid accountId = Guid.NewGuid();
+        Guid userId = Guid.NewGuid();
+        Mock<IValidateReceiptCreationAccessUseCase> accessUseCase = new(MockBehavior.Strict);
+        accessUseCase.Setup(item => item.ExecuteAsync(accountId, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult<bool>.Fail(403, "Нет доступа."));
+        SaveManualReceiptUseCase useCase = new(
+            new Mock<IUnitOfWork>(MockBehavior.Strict).Object,
+            accessUseCase.Object,
+            new Mock<IReceiptRefreshWorkflow>(MockBehavior.Strict).Object);
+
+        ServiceResult<ManualReceiptResult> result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
+        {
+            AccountId = accountId,
+            Receipt = CreateInput()
+        }, userId, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal("Нет доступа.", result.Error?.Message);
+    }
+
     [Fact]
     public async Task ExecuteAsync_CreatesManualReceiptLinksAccountAndRunsRefreshWorkflow()
     {
@@ -27,20 +53,21 @@ public class SaveManualReceiptUseCaseTests
         refreshWorkflow.Setup(workflow => workflow.TryRefreshCreatedReceiptAsync(It.IsAny<Receipt>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Receipt receipt, CancellationToken _) => receipt);
         Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict));
-        SaveManualReceiptUseCase useCase = new(unitOfWork.Object, refreshWorkflow.Object);
+        SaveManualReceiptUseCase useCase = new(unitOfWork.Object, CreateAccessUseCase().Object, refreshWorkflow.Object);
 
-        var result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
+        ServiceResult<ManualReceiptResult> result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
         {
             AccountId = accountId,
             Receipt = CreateInput()
         }, userId, CancellationToken.None);
 
-        Assert.True(result.IsCreated);
-        Assert.Null(result.ErrorMessage);
+        Assert.True(result.Success);
+        Assert.True(result.Data?.IsCreated);
+        Assert.Null(result.Data?.ErrorMessage);
         Assert.NotNull(createdReceipt);
         Assert.Equal(userId, createdReceipt.CreatedByUserId);
         Assert.Equal(accountId, createdReceipt.Accounts.Single().AccountId);
-        Assert.Same(createdReceipt, result.Receipt);
+        Assert.Same(createdReceipt, result.Data?.Receipt);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         refreshWorkflow.Verify(workflow => workflow.TryRefreshCreatedReceiptAsync(createdReceipt, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -55,17 +82,18 @@ public class SaveManualReceiptUseCaseTests
         Mock<IReceiptAccountRepository> receiptAccountRepository = new(MockBehavior.Strict);
         receiptAccountRepository.Setup(repository => repository.Create(It.IsAny<ReceiptAccount>()));
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
-        SaveManualReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository, receiptAccountRepository).Object, refreshWorkflow.Object);
+        SaveManualReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository, receiptAccountRepository).Object, CreateAccessUseCase().Object, refreshWorkflow.Object);
 
-        var result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
+        ServiceResult<ManualReceiptResult> result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
         {
             AccountId = accountId,
             Receipt = CreateInput()
         }, Guid.NewGuid(), CancellationToken.None);
 
-        Assert.True(result.IsCreated);
-        Assert.Same(loadedReceipt, result.Receipt);
-        Assert.NotNull(result.ErrorMessage);
+        Assert.True(result.Success);
+        Assert.True(result.Data?.IsCreated);
+        Assert.Same(loadedReceipt, result.Data?.Receipt);
+        Assert.NotNull(result.Data?.ErrorMessage);
         receiptAccountRepository.Verify(repository => repository.Create(It.Is<ReceiptAccount>(link => link.AccountId == accountId && link.ReceiptId == existingReceipt.Id)), Times.Once);
     }
 
@@ -76,17 +104,18 @@ public class SaveManualReceiptUseCaseTests
         Receipt loadedReceipt = TestReceiptFactory.Create(existingReceipt.Id);
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepositoryForSequence(existingReceipt, loadedReceipt);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
-        SaveManualReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, refreshWorkflow.Object);
+        SaveManualReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, CreateAccessUseCase().Object, refreshWorkflow.Object);
 
-        var result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
+        ServiceResult<ManualReceiptResult> result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
         {
             AccountId = Guid.NewGuid(),
             Receipt = CreateInput()
         }, Guid.NewGuid(), CancellationToken.None);
 
-        Assert.False(result.IsCreated);
-        Assert.Same(loadedReceipt, result.Receipt);
-        Assert.NotNull(result.ErrorMessage);
+        Assert.True(result.Success);
+        Assert.False(result.Data?.IsCreated);
+        Assert.Same(loadedReceipt, result.Data?.Receipt);
+        Assert.NotNull(result.Data?.ErrorMessage);
     }
 
     private static ManualReceiptInput CreateInput()
@@ -123,5 +152,13 @@ public class SaveManualReceiptUseCaseTests
         unitOfWork.Setup(unitOfWork => unitOfWork.ReceiptAccount).Returns(receiptAccountRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         return unitOfWork;
+    }
+
+    private static Mock<IValidateReceiptCreationAccessUseCase> CreateAccessUseCase()
+    {
+        Mock<IValidateReceiptCreationAccessUseCase> useCase = new(MockBehavior.Strict);
+        useCase.Setup(item => item.ExecuteAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+        return useCase;
     }
 }

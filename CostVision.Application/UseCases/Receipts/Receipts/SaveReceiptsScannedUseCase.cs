@@ -1,17 +1,33 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.Service.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
+using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.Models.Services.Receipts;
+using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
-    public class SaveReceiptsScannedUseCase(IUnitOfWork unitOfWork, IQrParser qrParser, IReceiptRefreshWorkflow receiptRefreshWorkflow) : ISaveReceiptsScannedUseCase
+    public class SaveReceiptsScannedUseCase(
+        IUnitOfWork unitOfWork,
+        IValidateReceiptCreationAccessUseCase validateReceiptCreationAccessUseCase,
+        IQrParser qrParser,
+        IReceiptRefreshWorkflow receiptRefreshWorkflow) : ISaveReceiptsScannedUseCase
     {
-        public async Task<ReceiptScanResultSummary> ExecuteAsync(QrScanRequest request, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult<ReceiptScanResultSummary>> ExecuteAsync(QrScanRequest request, Guid currentUserId, CancellationToken ct)
         {
+            if (request.Results.Count == 0)
+                return ServiceResult<ReceiptScanResultSummary>.Fail(400, "Нет данных для обработки.");
+
+            if (request.AccountId != Guid.Empty)
+            {
+                ServiceResult<bool> accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(request.AccountId, currentUserId, ct);
+                if (!accessResult.Success)
+                    return ServiceResult<ReceiptScanResultSummary>.Fail(accessResult.Error!.StatusCode, accessResult.Error.Message);
+            }
+
             int scannedCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.DecodedText));
             int addedCount = 0;
             List<Receipt> createdReceipts = new();
@@ -126,13 +142,13 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 
             int errorCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.ErrorMessage));
 
-            return new ReceiptScanResultSummary
+            return ServiceResult<ReceiptScanResultSummary>.Ok(new ReceiptScanResultSummary
             {
                 ScannedCount = scannedCount,
                 AddedToDbCount = addedCount,
                 ErrorCount = errorCount,
                 Results = request.Results
-            };
+            });
         }
 
         private Task<Receipt?> FindExistingReceiptAsync(string fiscalDocumentNumber, string fiscalDriveNumber, string fiscalSign, decimal totalSum, DateTime dateTime, ReceiptOperationType operationType, Guid currentUserId, CancellationToken ct)

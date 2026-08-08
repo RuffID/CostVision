@@ -1,5 +1,6 @@
 using CostVision.Application.Extensions;
 using CostVision.Infrastructure.Extensions;
+using CostVision.Web.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.OpenApi;
@@ -14,6 +15,7 @@ namespace CostVision.Web.Extensions
         {
             services.AddApplication();
             services.AddInfrastructure(builder.Configuration);
+            services.AddTransient<ExceptionHandlingMiddleware>();
             services.AddControllers();
             services.AddLogging();
             services.AddAuthorization();

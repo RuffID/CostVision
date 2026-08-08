@@ -54,22 +54,29 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     return ServiceResult<MoneyMovementDto>.Fail(400, "Исполнитель операции должен быть участником счёта.");
             }
 
-            unitOfWork.MoneyMovement.Create(newMovement);
-            await unitOfWork.SaveChangesAsync(ct);
-            await TryAutoLinkExactReceiptAsync(newMovement, currentUserId, ct);
+            MoneyMovementDto? createdDto = null;
+            await unitOfWork.ExecuteInTransaction(async () =>
+            {
+                unitOfWork.MoneyMovement.Create(newMovement);
+                await unitOfWork.SaveChangesAsync(ct);
+                await TryAutoLinkExactReceiptAsync(newMovement, currentUserId, ct);
 
-            MoneyMovement? created = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
-                item => item.Id == newMovement.Id,
-                asNoTracking: true,
-                include: query => query
-                    .Include(item => item.Account)
-                    .Include(item => item.PerformedByUser),
-                ct: ct);
+                MoneyMovement? created = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
+                    item => item.Id == newMovement.Id,
+                    asNoTracking: true,
+                    include: query => query
+                        .Include(item => item.Account)
+                        .Include(item => item.PerformedByUser),
+                    ct: ct);
 
-            if (created == null)
-                return ServiceResult<MoneyMovementDto>.Fail(500, "Не удалось загрузить созданную операцию.");
+                if (created == null)
+                    throw new InvalidOperationException("Не удалось загрузить созданную операцию.");
 
-            return ServiceResult<MoneyMovementDto>.Ok(created.MapDto());
+                createdDto = created.MapDto();
+            }, ct);
+
+            return ServiceResult<MoneyMovementDto>.Ok(createdDto
+                ?? throw new InvalidOperationException("Транзакция создания операции завершилась без результата."));
         }
 
         private async Task TryAutoLinkExactReceiptAsync(MoneyMovement movement, Guid currentUserId, CancellationToken ct)
@@ -126,8 +133,6 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 throw new InvalidOperationException(error!);
 
             unitOfWork.MoneyMovementReceipt.Create(link!);
-
-            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

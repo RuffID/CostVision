@@ -23,7 +23,7 @@ public class AddReceiptModelTests
         Dependencies dependencies = new();
         dependencies.SaveManualReceiptUseCase
             .Setup(useCase => useCase.ExecuteAsync(request, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ManualReceiptResult { IsCreated = true });
+            .ReturnsAsync(ServiceResult<ManualReceiptResult>.Ok(new ManualReceiptResult { IsCreated = true }));
 
         AddReceiptModel model = dependencies.CreateModel(currentUser);
 
@@ -47,7 +47,7 @@ public class AddReceiptModelTests
         Dependencies dependencies = new();
         dependencies.SaveReceiptsScannedUseCase
             .Setup(useCase => useCase.ExecuteAsync(request, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ReceiptScanResultSummary { ScannedCount = 1, AddedToDbCount = 1 });
+            .ReturnsAsync(ServiceResult<ReceiptScanResultSummary>.Ok(new ReceiptScanResultSummary { ScannedCount = 1, AddedToDbCount = 1 }));
 
         AddReceiptModel model = dependencies.CreateModel(currentUser);
 
@@ -67,9 +67,9 @@ public class AddReceiptModelTests
         ReceiptManualCreateRequest request = new() { AccountId = Guid.NewGuid() };
 
         Dependencies dependencies = new();
-        dependencies.ValidateReceiptCreationAccessUseCase
-            .Setup(useCase => useCase.ExecuteAsync(request.AccountId, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Fail(403, "Нет доступа."));
+        dependencies.SaveManualReceiptUseCase
+            .Setup(useCase => useCase.ExecuteAsync(request, currentUser.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult<ManualReceiptResult>.Fail(403, "Нет доступа."));
 
         AddReceiptModel model = dependencies.CreateModel(currentUser);
 
@@ -77,15 +77,12 @@ public class AddReceiptModelTests
 
         JsonResult json = Assert.IsType<JsonResult>(result);
         JsonResultAssert.Failure(json, 403, "Нет доступа.");
-        dependencies.SaveManualReceiptUseCase.Verify(
-            useCase => useCase.ExecuteAsync(It.IsAny<ReceiptManualCreateRequest>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        dependencies.SaveManualReceiptUseCase.VerifyAll();
     }
 
     private sealed class Dependencies
     {
         public Mock<IGetUserAccountsForReceiptCreationUseCase> GetUserAccountsForReceiptCreationUseCase { get; } = new(MockBehavior.Strict);
-        public Mock<IValidateReceiptCreationAccessUseCase> ValidateReceiptCreationAccessUseCase { get; } = new(MockBehavior.Strict);
         public Mock<ISaveReceiptsScannedUseCase> SaveReceiptsScannedUseCase { get; } = new(MockBehavior.Strict);
         public Mock<ISaveManualReceiptUseCase> SaveManualReceiptUseCase { get; } = new(MockBehavior.Strict);
 
@@ -93,7 +90,6 @@ public class AddReceiptModelTests
         {
             return new AddReceiptModel(
                 GetUserAccountsForReceiptCreationUseCase.Object,
-                ValidateReceiptCreationAccessUseCase.Object,
                 SaveReceiptsScannedUseCase.Object,
                 SaveManualReceiptUseCase.Object)
             {

@@ -63,7 +63,8 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
             accountMemberRepository: accountMemberRepository,
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository,
-            setupSaveChanges: true);
+            setupSaveChanges: true,
+            setupTransaction: true);
         CreateMoneyMovementUseCase useCase = new(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(new CreateMoneyMovementRequest
@@ -85,6 +86,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         Assert.Equal(performerId, createdMovement.PerformedByUserId);
         Assert.Equal(MoneyMovementSource.Manual, createdMovement.Source);
         Assert.Equal("Card", result.Data?.AccountName);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()), Times.Once);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -148,7 +150,8 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
             moneyMovementRepository: moneyMovementRepository,
             moneyMovementReceiptRepository: linkRepository,
             receiptRepository: receiptRepository,
-            setupSaveChanges: true).Object);
+            setupSaveChanges: true,
+            setupTransaction: true).Object);
 
         var result = await useCase.ExecuteAsync(new CreateMoneyMovementRequest
         {

@@ -17,7 +17,6 @@ using CostVision.Infrastructure.Services.Api;
 using CostVision.Infrastructure.Services.BackgroundServices;
 using CostVision.Infrastructure.Services.DataBase;
 using CostVision.Infrastructure.Services.Helpers;
-using CostVision.Infrastructure.Services.Middleware;
 using CostVision.Infrastructure.Services.MoneyMovements;
 using CostVision.Infrastructure.Services.Receipts;
 using EFCoreLibrary.Abstractions.Database;
@@ -37,8 +36,6 @@ namespace CostVision.Infrastructure.Extensions
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddInfrastructureConfig(configuration);
-
-            services.AddTransient<ExceptionHandlingMiddleware>();
 
             services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(configuration.GetConnectionString("MSSql")));
             services.AddScoped<IAppDbContext<ApplicationContext>>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
