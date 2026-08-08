@@ -45,7 +45,7 @@ public class RefreshReceiptsWithoutItemsUseCaseTests
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
         refreshWorkflow
             .Setup(workflow => workflow.RefreshAsync(failedReceipt, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<Receipt>.Fail(502, "External API error"));
+            .ReturnsAsync(ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, "External API error"));
         refreshWorkflow
             .Setup(workflow => workflow.RefreshAsync(successfulReceipt, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Receipt>.Ok(successfulReceipt));

@@ -5,6 +5,6 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public interface IDeleteMoneyMovementUseCase
     {
-        Task<ServiceResult<bool>> ExecuteAsync(DeleteMoneyMovementRequest request, Guid currentUserId, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(DeleteMoneyMovementRequest request, Guid currentUserId, CancellationToken ct);
     }
 }

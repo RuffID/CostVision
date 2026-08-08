@@ -24,7 +24,7 @@ namespace CostVision.Application.UseCases.Receipts.Stores
             string? groupKey = string.IsNullOrWhiteSpace(request.GroupKey) ? null : request.GroupKey.Trim();
 
             if (!storeId.HasValue && groupKey == null)
-                return ServiceResult<StoreReceiptListDto>.Fail(400, "Не задан магазин для просмотра чеков.");
+                return ServiceResult<StoreReceiptListDto>.Fail(ServiceErrorType.Validation, "Не задан магазин для просмотра чеков.");
 
             Expression<Func<Receipt, bool>> predicate = receipt =>
                 receipt.Store != null &&

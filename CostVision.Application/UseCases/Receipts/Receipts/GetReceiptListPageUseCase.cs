@@ -16,8 +16,8 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         {
             ServiceResult<List<ReceiptDto>> receiptListResult = await getReceiptListUseCase.ExecuteAsync(currentUser, request.DateFrom, request.DateTo, ct);
 
-            if (!receiptListResult.Success || receiptListResult.Data == null)
-                return ServiceResult<ReceiptListDto>.Fail(receiptListResult.Error!.StatusCode, receiptListResult.Error.Message);
+            if (!receiptListResult.Success)
+                return receiptListResult.PropagateFailure<ReceiptListDto>();
 
             List<ReceiptDto> receipts = receiptListResult.Data;
             receipts = ApplyFilters(receipts, request);

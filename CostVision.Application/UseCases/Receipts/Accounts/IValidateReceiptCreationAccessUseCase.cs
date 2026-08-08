@@ -4,6 +4,6 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public interface IValidateReceiptCreationAccessUseCase
     {
-        Task<ServiceResult<bool>> ExecuteAsync(Guid accountId, Guid userId, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(Guid accountId, Guid userId, CancellationToken ct);
     }
 }

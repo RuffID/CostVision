@@ -37,7 +37,9 @@ public class AuthenticateUserUseCaseTests
         DateTime afterLoginAtUtc = DateTime.UtcNow;
 
         Assert.True(result.Success);
-        Assert.Same(user, result.Data);
+        Assert.Equal(user.Id, result.Data?.Id);
+        Assert.Equal(user.Name, result.Data?.Name);
+        Assert.Equal(user.Roles.Select(role => role.RoleType), result.Data?.Roles);
         Assert.NotNull(user.LastLoginAtUtc);
         Assert.InRange(user.LastLoginAtUtc.Value, beforeLoginAtUtc, afterLoginAtUtc);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -65,7 +67,7 @@ public class AuthenticateUserUseCaseTests
         var result = await useCase.ExecuteAsync(new LoginRequest { Login = "user", Password = "bad" }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(401, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Unauthorized, result.Error?.Type);
     }
 
     [Fact]
@@ -91,7 +93,7 @@ public class AuthenticateUserUseCaseTests
         var result = await useCase.ExecuteAsync(new LoginRequest { Login = "user", Password = "password" }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
         Assert.Null(user.LastLoginAtUtc);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -106,6 +108,6 @@ public class AuthenticateUserUseCaseTests
         var result = await useCase.ExecuteAsync(new LoginRequest { Login = " ", Password = " " }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 }

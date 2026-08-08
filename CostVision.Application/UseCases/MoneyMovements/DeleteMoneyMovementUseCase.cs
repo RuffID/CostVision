@@ -9,14 +9,14 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class DeleteMoneyMovementUseCase(IUnitOfWork unitOfWork) : IDeleteMoneyMovementUseCase
     {
-        public async Task<ServiceResult<bool>> ExecuteAsync(DeleteMoneyMovementRequest request, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult> ExecuteAsync(DeleteMoneyMovementRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.MoneyMovementId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор операции.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции.");
 
             ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId, currentUserId, ct);
             if (!access.Success)
-                return ServiceResult<bool>.Fail(access.Error!.StatusCode, access.Error.Message);
+                return access.PropagateFailure();
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
                 item => item.Id == request.MoneyMovementId && item.AccountId == request.AccountId,
@@ -24,7 +24,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (movement == null)
-                return ServiceResult<bool>.Fail(404, "Операция не найдена в счёте.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Операция не найдена в счёте.");
 
             await unitOfWork.ExecuteInTransaction(() =>
             {
@@ -35,7 +35,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return Task.CompletedTask;
             }, ct);
 
-            return ServiceResult<bool>.Ok(true);
+            return ServiceResult.Ok();
         }
     }
 }

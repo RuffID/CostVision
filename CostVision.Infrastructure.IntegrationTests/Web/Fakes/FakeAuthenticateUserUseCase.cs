@@ -1,20 +1,26 @@
+using CostVision.Application.Models.Dtos.Authorization;
 using CostVision.Application.Models.Requests.Authorize;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Authorize.Authentication;
 using CostVision.Domain.Models.Authorization;
-using Microsoft.AspNetCore.Http;
 
 namespace CostVision.Infrastructure.IntegrationTests.Web.Fakes;
 
 public sealed class FakeAuthenticateUserUseCase(User activeUser) : IAuthenticateUserUseCase
 {
-    public Task<ServiceResult<User>> ExecuteAsync(LoginRequest request, CancellationToken ct)
+    public Task<ServiceResult<AuthenticatedUserDto>> ExecuteAsync(LoginRequest request, CancellationToken ct)
     {
-        ServiceResult<User> result = request.Login switch
+        AuthenticatedUserDto user = new()
         {
-            "active" when request.Password == "password" => ServiceResult<User>.Ok(activeUser),
-            "blocked" => ServiceResult<User>.Fail(StatusCodes.Status403Forbidden, "User is blocked."),
-            _ => ServiceResult<User>.Fail(StatusCodes.Status401Unauthorized, "Invalid credentials.")
+            Id = activeUser.Id,
+            Name = activeUser.Name,
+            Roles = activeUser.Roles.Select(role => role.RoleType).ToList()
+        };
+        ServiceResult<AuthenticatedUserDto> result = request.Login switch
+        {
+            "active" when request.Password == "password" => ServiceResult<AuthenticatedUserDto>.Ok(user),
+            "blocked" => ServiceResult<AuthenticatedUserDto>.Fail(ServiceErrorType.Forbidden, "User is blocked."),
+            _ => ServiceResult<AuthenticatedUserDto>.Fail(ServiceErrorType.Unauthorized, "Invalid credentials.")
         };
 
         return Task.FromResult(result);

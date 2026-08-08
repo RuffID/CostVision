@@ -12,8 +12,8 @@ namespace CostVision.Application.UseCases.Authorize.Users
         public async Task<ServiceResult> ExecuteAsync(UserUpsertRequest request, CancellationToken ct)
         {
             ServiceResult<List<Guid>> validationResult = UserUpsertRequestValidator.ValidateUpsertRequest(request, requirePassword: true);
-            if (!validationResult.Success || validationResult.Data == null)
-                return ServiceResult.Fail(validationResult.Error!.StatusCode, validationResult.Error.Message);
+            if (!validationResult.Success)
+                return validationResult.PropagateFailure();
 
             string normalizedLogin = request.Login.Trim().ToUpperInvariant();
             User? existingUser = await unitOfWork.User.GetItemByPredicateAsync(
@@ -21,7 +21,7 @@ namespace CostVision.Application.UseCases.Authorize.Users
                 asNoTracking: true,
                 ct: ct);
             if (existingUser != null)
-                return ServiceResult.Fail(409, "Пользователь с таким логином уже существует");
+                return ServiceResult.Fail(ServiceErrorType.Conflict, "Пользователь с таким логином уже существует");
 
             if (!User.TryCreate(
                     request.Login,
@@ -31,7 +31,7 @@ namespace CostVision.Application.UseCases.Authorize.Users
                     DateTime.UtcNow,
                     out User? user,
                     out string? error))
-                return ServiceResult.Fail(400, error!);
+                return ServiceResult.Fail(ServiceErrorType.Validation, error!);
 
             unitOfWork.User.Create(user!);
             await unitOfWork.SaveChangesAsync(ct);

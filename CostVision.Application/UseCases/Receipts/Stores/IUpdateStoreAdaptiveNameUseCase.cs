@@ -5,6 +5,6 @@ namespace CostVision.Application.UseCases.Receipts.Stores
 {
     public interface IUpdateStoreAdaptiveNameUseCase
     {
-        Task<ServiceResult<bool>> ExecuteAsync(UpdateStoreAdaptiveNameRequest request, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(UpdateStoreAdaptiveNameRequest request, CancellationToken ct);
     }
 }

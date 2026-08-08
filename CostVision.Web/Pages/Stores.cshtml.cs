@@ -1,4 +1,4 @@
-using CostVision.Application.Models.Dtos.Mappers;
+using CostVision.Web.Mappers;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.MoneyMovements;
@@ -9,7 +9,6 @@ using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Application.UseCases.Receipts.Stores;
 using CostVision.Domain.Models.Authorization;
-using CostVision.Domain.Models.Receipts;
 using CostVision.Web.Abstractions.Entity;
 using CostVision.Web.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
@@ -49,7 +48,7 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostUpdateAdaptiveNameAsync([FromBody] UpdateStoreAdaptiveNameRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await updateStoreAdaptiveNameUseCase.ExecuteAsync(request, ct);
+            ServiceResult result = await updateStoreAdaptiveNameUseCase.ExecuteAsync(request, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
@@ -61,47 +60,25 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostOpenReceiptAsync([FromBody] OpenReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<Receipt> result = await getReceiptWithItemsUseCase.ExecuteAsync(request.ReceiptId, CurrentUser, ct);
-
-            if (!result.Success || result.Data == null)
-                return JsonResultMapper.ToJsonResult(result);
-
-            List<ReceiptItemDto> items = result.Data.Items
-                .Select(i => new ReceiptItemDto
-                {
-                    Name = i.Product?.Name ?? "-",
-                    Quantity = i.Quantity,
-                    Price = i.Price,
-                    Sum = i.Sum
-                })
-                .ToList();
-
-            ReceiptDto receiptDto = result.Data.MapReceiptDto(CurrentUser.Id);
-            receiptDto.Items = items;
-
-            return JsonResultMapper.ToJsonResult(ServiceResult<ReceiptDto>.Ok(receiptDto));
+            ServiceResult<ReceiptDto> result = await getReceiptWithItemsUseCase.ExecuteAsync(request.ReceiptId, CurrentUser, ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostRefreshReceiptAsync([FromBody] RefreshReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<Receipt> result = await refreshReceiptFromApiUseCase.ExecuteAsync(request.ReceiptId, CurrentUser, ct);
-
-            if (!result.Success || result.Data == null)
-                return JsonResultMapper.ToJsonResult(result);
-
-            ReceiptDto receiptDto = result.Data.MapReceiptDto(CurrentUser.Id);
-            return JsonResultMapper.ToJsonResult(ServiceResult<ReceiptDto>.Ok(receiptDto));
+            ServiceResult<ReceiptDto> result = await refreshReceiptFromApiUseCase.ExecuteAsync(request.ReceiptId, CurrentUser, ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostMoveReceiptToAccountAsync([FromBody] MoveReceiptToAccountRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> serviceResult = await moveReceiptToAccountUseCase.ExecuteAsync(request.SourceAccountId, request.TargetAccountId, request.ReceiptId, CurrentUser.Id, ct);
+            ServiceResult serviceResult = await moveReceiptToAccountUseCase.ExecuteAsync(request.SourceAccountId, request.TargetAccountId, request.ReceiptId, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(serviceResult);
         }
 
         public async Task<JsonResult> OnPostRemoveReceiptFromAccountAsync([FromBody] RemoveReceiptFromAccountRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> serviceResult = await removeReceiptFromAccountUseCase.ExecuteAsync(request.AccountId, request.ReceiptId, CurrentUser.Id, ct);
+            ServiceResult serviceResult = await removeReceiptFromAccountUseCase.ExecuteAsync(request.AccountId, request.ReceiptId, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(serviceResult);
         }
 
@@ -119,13 +96,13 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostLinkMoneyMovementAsync([FromBody] LinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await linkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await linkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUnlinkMoneyMovementAsync([FromBody] UnlinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await unlinkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await unlinkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
     }

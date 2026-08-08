@@ -8,7 +8,7 @@ import { isImageFile } from "./imageProcessing.js";
 import { submitManualReceiptAsync } from "./manualReceipt.js";
 import { getStatusClassName } from "./receiptStatusRender.js";
 import { submitQrScanAsync } from "./qrScanner.js";
-import { DecodedQrFileResult, ImageDebugInfo, ImageSize, ManualReceiptPayload, QrScanPayload, QrScanResult } from "./types.js";
+import { DecodedQrFileResult, ImageDebugInfo, ImageSize, ManualReceiptOutcome, ManualReceiptPayload, QrScanPayload, QrScanResult } from "./types.js";
 
 let qrScanForm;
 let qrScanResultsContainer;
@@ -897,33 +897,21 @@ function initManualCheckValidation() {
             };
 
             const responseData = await submitManualReceiptAsync(payload, antiForgeryToken);
-            if (responseData.isCreated) {
+            if (responseData.outcome === ManualReceiptOutcome.Created || responseData.outcome === ManualReceiptOutcome.AddedToAccount) {
                 qrScanClearManualDraft(fnInput, fdInput, fpInput, sumInput, dateInput, typeSelect);
-                qrScanRenderManualStatus("Чек добавлен в систему", "success");
+                const successMessage = responseData.outcome === ManualReceiptOutcome.AddedToAccount
+                    ? responseData.message
+                    : "Чек добавлен в систему";
+                qrScanRenderManualStatus(successMessage, "success");
                 if (resultMessage) {
-                    resultMessage.textContent = "Чек добавлен в систему";
+                    resultMessage.textContent = successMessage;
                     resultMessage.classList.remove("text-danger");
                     resultMessage.classList.add("text-success");
                 }
-            } else if (responseData.isCreated === false) {
-                // Ошибка создания: выводит текст из message, если он есть
-                const msg =
-                    (typeof responseData.message === "string" && responseData.message.trim().length > 0)
-                        ? responseData.message
-                        : "Указаны некорректные данные чека";
-
-                const statusType = /уже\s+(есть|существ)/i.test(msg) ? "warning" : "error";
-                qrScanRenderManualStatus(msg, statusType);
-                if (resultMessage) {
-                    resultMessage.textContent = msg;
-                    resultMessage.classList.remove("text-success");
-                    resultMessage.classList.add("text-danger");
-                }
             } else {
-                // Непредвиденный формат ответа
-                qrScanRenderManualStatus("Указаны некорректные данные чека", "error");
+                qrScanRenderManualStatus(responseData.message, "warning");
                 if (resultMessage) {
-                    resultMessage.textContent = "Указаны некорректные данные чека";
+                    resultMessage.textContent = responseData.message;
                     resultMessage.classList.remove("text-success");
                     resultMessage.classList.add("text-danger");
                 }

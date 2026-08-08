@@ -5,6 +5,6 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public interface IUpdateMoneyMovementCommentUseCase
     {
-        Task<ServiceResult<bool>> ExecuteAsync(UpdateMoneyMovementCommentRequest request, Guid currentUserId, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(UpdateMoneyMovementCommentRequest request, Guid currentUserId, CancellationToken ct);
     }
 }

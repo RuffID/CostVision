@@ -5,6 +5,6 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 {
     public interface IDeleteReceiptUseCase
     {
-        Task<ServiceResult<bool>> ExecuteAsync(Guid receiptId, User currentUser, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(Guid receiptId, User currentUser, CancellationToken ct);
     }
 }

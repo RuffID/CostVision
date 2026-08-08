@@ -24,7 +24,7 @@ public class MarkUserActivityUseCaseTests
         var result = await useCase.ExecuteAsync(userId, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.True(result.Data);
+        Assert.Null(result.Error);
         Assert.NotNull(user.LastLoginAtUtc);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -42,7 +42,7 @@ public class MarkUserActivityUseCaseTests
         var result = await useCase.ExecuteAsync(userId, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
     [Fact]
@@ -54,6 +54,6 @@ public class MarkUserActivityUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.Empty, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 }

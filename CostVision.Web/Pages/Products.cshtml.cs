@@ -1,4 +1,4 @@
-using CostVision.Application.Models.Dtos.Mappers;
+using CostVision.Web.Mappers;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
@@ -30,7 +30,7 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostUpdateAdaptiveNameAsync([FromBody] UpdateProductAdaptiveNameRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await updateProductAdaptiveNameUseCase.ExecuteAsync(request, ct);
+            ServiceResult result = await updateProductAdaptiveNameUseCase.ExecuteAsync(request, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 

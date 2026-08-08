@@ -8,25 +8,25 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class UnlinkMoneyMovementReceiptUseCase(IUnitOfWork unitOfWork) : IUnlinkMoneyMovementReceiptUseCase
     {
-        public async Task<ServiceResult<bool>> ExecuteAsync(UnlinkMoneyMovementReceiptRequest request, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult> ExecuteAsync(UnlinkMoneyMovementReceiptRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.MoneyMovementId == Guid.Empty || request.ReceiptId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор операции или чека.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции или чека.");
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByIdAsync(request.MoneyMovementId, asNoTracking: true, ct: ct);
             if (movement == null)
-                return ServiceResult<bool>.Fail(404, "Операция не найдена.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Операция не найдена.");
 
             ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, movement.AccountId, currentUserId, ct);
             if (!access.Success)
-                return ServiceResult<bool>.Fail(access.Error!.StatusCode, access.Error.Message);
+                return access.PropagateFailure();
 
             MoneyMovementReceipt? link = await unitOfWork.MoneyMovementReceipt.GetItemByPredicateAsync(
                 item => item.MoneyMovementId == request.MoneyMovementId && item.ReceiptId == request.ReceiptId,
                 ct: ct);
 
             if (link == null)
-                return ServiceResult<bool>.Fail(404, "Связь операции и чека не найдена.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Связь операции и чека не найдена.");
 
             await unitOfWork.ExecuteInTransaction(() =>
             {
@@ -34,7 +34,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return Task.CompletedTask;
             }, ct);
 
-            return ServiceResult<bool>.Ok(true);
+            return ServiceResult.Ok();
         }
     }
 }

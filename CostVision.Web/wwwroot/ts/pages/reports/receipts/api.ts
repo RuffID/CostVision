@@ -1,11 +1,10 @@
-import { buildJsonHeaders, ServiceResultWithData, sendJsonRequest, unwrapServiceResult } from "../../../shared/http.js";
+import { buildJsonHeaders, ServiceResult, ServiceResultWithData, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess } from "../../../shared/http.js";
 import { AvailableAccountDto, GetReceiptMoneyMovementCandidatesRequest, LinkReceiptMoneyMovementRequest, ReceiptDto, ReceiptList, ReceiptMoneyMovementDto } from "./types.js";
 
 type ReceiptListResponse = ServiceResultWithData<ReceiptList>;
 type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
 type AvailableAccountsResponse = ServiceResultWithData<AvailableAccountDto[]>;
 type ReceiptMoneyMovementListResponse = ServiceResultWithData<ReceiptMoneyMovementDto[]>;
-type BooleanResponse = ServiceResultWithData<boolean>;
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
 export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string | null): Promise<ReceiptList> {
@@ -44,19 +43,19 @@ export async function refreshReceiptApi(receiptId: string, forgeryToken: string 
     return unwrapServiceResult(response);
 }
 
-export async function deleteReceiptApi(receiptId: string, forgeryToken: string | null): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>(
+export async function deleteReceiptApi(receiptId: string, forgeryToken: string | null): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>(
         "?handler=DeleteReceipt",
         "POST",
         buildJsonHeaders(forgeryToken),
         { receiptId: receiptId }
     );
 
-    return unwrapServiceResult(response);
+    unwrapServiceSuccess(response);
 }
 
-export async function moveReceiptToAccountApi(receiptId: string, sourceAccountId: string, targetAccountId: string, forgeryToken: string | null): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>(
+export async function moveReceiptToAccountApi(receiptId: string, sourceAccountId: string, targetAccountId: string, forgeryToken: string | null): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>(
         "?handler=MoveReceiptToAccount",
         "POST",
         buildJsonHeaders(forgeryToken),
@@ -67,11 +66,11 @@ export async function moveReceiptToAccountApi(receiptId: string, sourceAccountId
         }
     );
 
-    return unwrapServiceResult(response);
+    unwrapServiceSuccess(response);
 }
 
-export async function removeReceiptFromAccountApi(receiptId: string, accountId: string, forgeryToken: string | null): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>(
+export async function removeReceiptFromAccountApi(receiptId: string, accountId: string, forgeryToken: string | null): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>(
         "?handler=RemoveReceiptFromAccount",
         "POST",
         buildJsonHeaders(forgeryToken),
@@ -81,7 +80,7 @@ export async function removeReceiptFromAccountApi(receiptId: string, accountId: 
         }
     );
 
-    return unwrapServiceResult(response);
+    unwrapServiceSuccess(response);
 }
 
 export async function loadLinkedMoneyMovementsApi(receiptId: string, forgeryToken: string | null): Promise<ReceiptMoneyMovementDto[]> {
@@ -119,12 +118,12 @@ export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMov
     return unwrapServiceResult(response);
 }
 
-export async function linkReceiptMoneyMovementApi(request: LinkReceiptMoneyMovementRequest, forgeryToken: string | null): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>("?handler=LinkMoneyMovement", "POST", buildJsonHeaders(forgeryToken), request);
-    return unwrapServiceResult(response);
+export async function linkReceiptMoneyMovementApi(request: LinkReceiptMoneyMovementRequest, forgeryToken: string | null): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>("?handler=LinkMoneyMovement", "POST", buildJsonHeaders(forgeryToken), request);
+    unwrapServiceSuccess(response);
 }
 
-export async function unlinkReceiptMoneyMovementApi(request: LinkReceiptMoneyMovementRequest, forgeryToken: string | null): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>("?handler=UnlinkMoneyMovement", "POST", buildJsonHeaders(forgeryToken), request);
-    return unwrapServiceResult(response);
+export async function unlinkReceiptMoneyMovementApi(request: LinkReceiptMoneyMovementRequest, forgeryToken: string | null): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>("?handler=UnlinkMoneyMovement", "POST", buildJsonHeaders(forgeryToken), request);
+    unwrapServiceSuccess(response);
 }

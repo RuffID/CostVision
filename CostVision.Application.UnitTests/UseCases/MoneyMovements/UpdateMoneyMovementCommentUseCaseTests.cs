@@ -97,7 +97,7 @@ public class UpdateMoneyMovementCommentUseCaseTests : MoneyMovementUseCaseTestBa
             Comment = "comment"
         }, userId, CancellationToken.None);
 
-        Assert.Equal(400, tooLongResult.Error?.StatusCode);
-        Assert.Equal(404, missingResult.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, tooLongResult.Error?.Type);
+        Assert.Equal(ServiceErrorType.NotFound, missingResult.Error?.Type);
     }
 }

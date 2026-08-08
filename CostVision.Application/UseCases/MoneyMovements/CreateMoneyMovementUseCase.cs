@@ -28,7 +28,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     DateTime.UtcNow,
                     out MoneyMovement? movement,
                     out string? error))
-                return ServiceResult<MoneyMovementDto>.Fail(400, error!);
+                return ServiceResult<MoneyMovementDto>.Fail(ServiceErrorType.Validation, error!);
 
             MoneyMovement newMovement = movement!;
 
@@ -38,10 +38,10 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (membership == null)
-                return ServiceResult<MoneyMovementDto>.Fail(404, "Счёт не найден или доступ к нему отсутствует.");
+                return ServiceResult<MoneyMovementDto>.Fail(ServiceErrorType.NotFound, "Счёт не найден или доступ к нему отсутствует.");
 
             if (membership.Role == AccountAccessRole.Viewer)
-                return ServiceResult<MoneyMovementDto>.Fail(403, "Недостаточно прав для добавления операции в этот счёт.");
+                return ServiceResult<MoneyMovementDto>.Fail(ServiceErrorType.Forbidden, "Недостаточно прав для добавления операции в этот счёт.");
 
             if (performedByUserId != currentUserId)
             {
@@ -51,7 +51,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     ct: ct);
 
                 if (performedByMembership == null)
-                    return ServiceResult<MoneyMovementDto>.Fail(400, "Исполнитель операции должен быть участником счёта.");
+                    return ServiceResult<MoneyMovementDto>.Fail(ServiceErrorType.Validation, "Исполнитель операции должен быть участником счёта.");
             }
 
             MoneyMovementDto? createdDto = null;

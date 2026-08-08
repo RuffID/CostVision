@@ -48,16 +48,16 @@ public class MoneyMovementsModelTests
             .ReturnsAsync(ServiceResult<MoneyMovementDto>.Ok(new MoneyMovementDto { Id = Guid.NewGuid() }));
         dependencies.MoneyMovementsPageUseCase
             .Setup(useCase => useCase.DeleteAsync(deleteRequest, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+            .ReturnsAsync(ServiceResult.Ok());
         dependencies.MoneyMovementsPageUseCase
             .Setup(useCase => useCase.MoveToAccountAsync(moveRequest, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+            .ReturnsAsync(ServiceResult.Ok());
 
         MoneyMovementsModel model = dependencies.CreateModel(currentUser);
 
         JsonResultAssert.Data<MoneyMovementDto>(await model.OnPostCreateAsync(createRequest, CancellationToken.None));
-        JsonResultAssert.Data<bool>(await model.OnPostDeleteAsync(deleteRequest, CancellationToken.None));
-        JsonResultAssert.Data<bool>(await model.OnPostMoveToAccountAsync(moveRequest, CancellationToken.None));
+        JsonResultAssert.Success(await model.OnPostDeleteAsync(deleteRequest, CancellationToken.None));
+        JsonResultAssert.Success(await model.OnPostMoveToAccountAsync(moveRequest, CancellationToken.None));
         dependencies.MoneyMovementsPageUseCase.VerifyAll();
     }
 
@@ -71,15 +71,15 @@ public class MoneyMovementsModelTests
         Dependencies dependencies = new();
         dependencies.MoneyMovementsPageUseCase
             .Setup(useCase => useCase.LinkReceiptAsync(linkRequest, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+            .ReturnsAsync(ServiceResult.Ok());
         dependencies.MoneyMovementsPageUseCase
             .Setup(useCase => useCase.UnlinkReceiptAsync(unlinkRequest, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+            .ReturnsAsync(ServiceResult.Ok());
 
         MoneyMovementsModel model = dependencies.CreateModel(currentUser);
 
-        JsonResultAssert.Data<bool>(await model.OnPostLinkReceiptAsync(linkRequest, CancellationToken.None));
-        JsonResultAssert.Data<bool>(await model.OnPostUnlinkReceiptAsync(unlinkRequest, CancellationToken.None));
+        JsonResultAssert.Success(await model.OnPostLinkReceiptAsync(linkRequest, CancellationToken.None));
+        JsonResultAssert.Success(await model.OnPostUnlinkReceiptAsync(unlinkRequest, CancellationToken.None));
         dependencies.MoneyMovementsPageUseCase.VerifyAll();
     }
 

@@ -8,16 +8,16 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public class MoveReceiptToAccountUseCase(IUnitOfWork unitOfWork) : IMoveReceiptToAccountUseCase
     {
-        public async Task<ServiceResult<bool>> ExecuteAsync(Guid sourceAccountId, Guid targetAccountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult> ExecuteAsync(Guid sourceAccountId, Guid targetAccountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
         {
             if (receiptId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор чека.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор чека.");
 
             if (targetAccountId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор счёта.");
 
             if (sourceAccountId != Guid.Empty && sourceAccountId == targetAccountId)
-                return ServiceResult<bool>.Fail(400, "Счёт назначения должен отличаться от исходного счёта.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Счёт назначения должен отличаться от исходного счёта.");
 
             Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
                 receipt => receipt.Id == receiptId,
@@ -29,29 +29,29 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                     .AsSplitQuery(),
                 ct: ct);
             if (receipt == null)
-                return ServiceResult<bool>.Fail(404, "Чек не найден.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Чек не найден.");
 
             if (receipt.CreatedByUserId != currentUserId)
-                return ServiceResult<bool>.Fail(403, "Можно изменять только собственный чек.");
+                return ServiceResult.Fail(ServiceErrorType.Forbidden, "Можно изменять только собственный чек.");
 
             ReceiptAccount? sourceLink = sourceAccountId == Guid.Empty
                 ? null
                 : receipt.Accounts.FirstOrDefault(link => link.AccountId == sourceAccountId);
             if (sourceAccountId != Guid.Empty && sourceLink == null)
-                return ServiceResult<bool>.Fail(404, "Чек не привязан к выбранному исходному счёту.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Чек не привязан к выбранному исходному счёту.");
 
             if (receipt.Accounts.Any(link => link.AccountId == targetAccountId))
-                return ServiceResult<bool>.Fail(409, "Чек уже привязан к счёту назначения.");
+                return ServiceResult.Fail(ServiceErrorType.Conflict, "Чек уже привязан к счёту назначения.");
 
             Account? sourceAccount = sourceLink?.Account;
             if (sourceAccountId != Guid.Empty && sourceAccount == null)
-                return ServiceResult<bool>.Fail(404, "Исходный счёт не найден.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Исходный счёт не найден.");
 
             if (sourceAccount != null)
             {
-                ServiceResult<bool> sourceAccessResult = AccountReceiptAccessValidator.ValidateModificationAccess(sourceAccount, currentUserId);
+                ServiceResult sourceAccessResult = AccountReceiptAccessValidator.ValidateModificationAccess(sourceAccount, currentUserId);
                 if (!sourceAccessResult.Success)
-                    return ServiceResult<bool>.Fail(sourceAccessResult.Error!.StatusCode, sourceAccessResult.Error.Message);
+                    return sourceAccessResult.PropagateFailure();
             }
 
             Account? targetAccount = await unitOfWork.Account.GetItemByPredicateAsync(
@@ -60,11 +60,11 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 include: query => query.Include(account => account.Members),
                 ct: ct);
             if (targetAccount == null)
-                return ServiceResult<bool>.Fail(404, "Счёт назначения не найден.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Счёт назначения не найден.");
 
-            ServiceResult<bool> targetAccessResult = AccountReceiptAccessValidator.ValidateModificationAccess(targetAccount, currentUserId);
+            ServiceResult targetAccessResult = AccountReceiptAccessValidator.ValidateModificationAccess(targetAccount, currentUserId);
             if (!targetAccessResult.Success)
-                return ServiceResult<bool>.Fail(targetAccessResult.Error!.StatusCode, targetAccessResult.Error.Message);
+                return targetAccessResult.PropagateFailure();
 
             Receipt? duplicateReceiptInTargetAccount = await unitOfWork.Receipt.GetItemByPredicateAsync(item =>
                 item.Id != receiptId &&
@@ -79,7 +79,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 ct: ct);
 
             if (duplicateReceiptInTargetAccount != null)
-                return ServiceResult<bool>.Fail(409, "В счёте назначения уже есть такой же чек.");
+                return ServiceResult.Fail(ServiceErrorType.Conflict, "В счёте назначения уже есть такой же чек.");
 
             if (!receipt.TryMoveAccount(
                     sourceAccountId,
@@ -87,7 +87,9 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                     out ReceiptAccount? removedLink,
                     out ReceiptAccount? targetLink,
                     out string? moveError))
-                return ServiceResult<bool>.Fail(409, moveError!);
+                return ServiceResult.Fail(
+                    ServiceErrorType.Conflict,
+                    moveError ?? throw new InvalidOperationException("Доменная операция не вернула причину отказа."));
 
             if (sourceLink != null)
                 unitOfWork.ReceiptAccount.Delete(removedLink!);
@@ -96,7 +98,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 
             await unitOfWork.SaveChangesAsync(ct);
 
-            return ServiceResult<bool>.Ok(true);
+            return ServiceResult.Ok();
         }
     }
 }

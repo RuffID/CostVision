@@ -7,24 +7,24 @@ namespace CostVision.Application.UseCases.Receipts.Stores
 {
     public class UpdateStoreAdaptiveNameUseCase(IUnitOfWork unitOfWork) : IUpdateStoreAdaptiveNameUseCase
     {
-        public async Task<ServiceResult<bool>> ExecuteAsync(UpdateStoreAdaptiveNameRequest request, CancellationToken ct)
+        public async Task<ServiceResult> ExecuteAsync(UpdateStoreAdaptiveNameRequest request, CancellationToken ct)
         {
             if (request.StoreId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Магазин не указан.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Магазин не указан.");
 
             if (!Store.TryNormalizeAdaptiveName(request.AdaptiveName, out string? adaptiveName, out string? error))
-                return ServiceResult<bool>.Fail(400, error!);
+                return ServiceResult.Fail(ServiceErrorType.Validation, error!);
 
             Store? store = await unitOfWork.Store.GetItemByIdAsync(request.StoreId, ct: ct);
             if (store == null)
-                return ServiceResult<bool>.Fail(404, "Магазин не найден.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Магазин не найден.");
 
             if (!store.TryUpdateAdaptiveName(adaptiveName, out error))
-                return ServiceResult<bool>.Fail(400, error!);
+                return ServiceResult.Fail(ServiceErrorType.Validation, error!);
 
             await unitOfWork.SaveChangesAsync(ct);
 
-            return ServiceResult<bool>.Ok(true);
+            return ServiceResult.Ok();
         }
     }
 }

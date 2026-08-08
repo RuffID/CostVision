@@ -23,13 +23,13 @@ namespace CostVision.Application.UseCases.Dashboard
         public async Task<ServiceResult<DashboardIncomeExpenseReportDto>> ExecuteAsync(User currentUser, DashboardIncomeExpenseReportRequest request, CancellationToken ct)
         {
             if (request.DateTo.Date < request.DateFrom.Date)
-                return ServiceResult<DashboardIncomeExpenseReportDto>.Fail(400, "Дата окончания периода не может быть меньше даты начала.");
+                return ServiceResult<DashboardIncomeExpenseReportDto>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
 
             if (!IsSupportedPeriod(request.Period))
-                return ServiceResult<DashboardIncomeExpenseReportDto>.Fail(400, "Некорректная группировка отчёта.");
+                return ServiceResult<DashboardIncomeExpenseReportDto>.Fail(ServiceErrorType.Validation, "Некорректная группировка отчёта.");
 
             if (!IsSupportedExpenseSource(request.ExpenseSource))
-                return ServiceResult<DashboardIncomeExpenseReportDto>.Fail(400, "Некорректный источник расходов.");
+                return ServiceResult<DashboardIncomeExpenseReportDto>.Fail(ServiceErrorType.Validation, "Некорректный источник расходов.");
 
             string period = request.Period;
             string expenseSource = request.ExpenseSource;

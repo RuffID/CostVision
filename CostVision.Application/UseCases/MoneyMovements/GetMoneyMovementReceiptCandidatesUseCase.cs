@@ -18,7 +18,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult<List<MoneyMovementReceiptDto>>> ExecuteAsync(GetMoneyMovementReceiptCandidatesRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.MoneyMovementId == Guid.Empty)
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(400, "Некорректный идентификатор операции.");
+                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции.");
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
                 item => item.Id == request.MoneyMovementId &&
@@ -31,7 +31,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (movement == null)
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(404, "Операция не найдена или доступ к ней отсутствует.");
+                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.NotFound, "Операция не найдена или доступ к ней отсутствует.");
 
             DateTime? dateFrom = request.DateFrom?.Date;
             DateTime? dateToExclusive = request.DateTo?.Date.AddDays(1);
@@ -40,7 +40,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             {
                 decimal timeWindowHours = request.TimeWindowHours.GetValueOrDefault(DEFAULT_TIME_WINDOW_HOURS);
                 if (timeWindowHours < 0)
-                    return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(400, "Допуск по времени не может быть отрицательным.");
+                    return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Допуск по времени не может быть отрицательным.");
 
                 double timeWindowMinutes = (double)(timeWindowHours * MINUTES_PER_HOUR);
                 dateFrom = movement.OccurredAt.AddMinutes(-timeWindowMinutes);
@@ -48,11 +48,11 @@ namespace CostVision.Application.UseCases.MoneyMovements
             }
 
             if (dateFrom.HasValue && dateToExclusive.HasValue && dateToExclusive.Value < dateFrom.Value)
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(400, "Дата окончания периода не может быть меньше даты начала.");
+                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
 
             decimal amountTolerance = request.AmountTolerance.GetValueOrDefault(DEFAULT_AMOUNT_TOLERANCE);
             if (amountTolerance < 0)
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(400, "Допуск по сумме не может быть отрицательным.");
+                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Допуск по сумме не может быть отрицательным.");
 
             List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
                 receipt => (!dateFrom.HasValue || receipt.DateTime >= dateFrom.Value) &&

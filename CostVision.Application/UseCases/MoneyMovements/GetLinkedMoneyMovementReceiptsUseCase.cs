@@ -12,7 +12,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult<List<MoneyMovementReceiptDto>>> ExecuteAsync(Guid moneyMovementId, Guid currentUserId, CancellationToken ct)
         {
             if (moneyMovementId == Guid.Empty)
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(400, "Некорректный идентификатор операции.");
+                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции.");
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
                 item => item.Id == moneyMovementId &&
@@ -25,7 +25,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (movement == null)
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(404, "Операция не найдена или доступ к ней отсутствует.");
+                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.NotFound, "Операция не найдена или доступ к ней отсутствует.");
 
             List<MoneyMovementReceipt> links = await unitOfWork.MoneyMovementReceipt.GetItemsByPredicateAsync(
                 link => link.MoneyMovementId == moneyMovementId,

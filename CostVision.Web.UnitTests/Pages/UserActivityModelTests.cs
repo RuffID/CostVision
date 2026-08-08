@@ -19,7 +19,7 @@ public class UserActivityModelTests
         Mock<IMarkUserActivityUseCase> markUserActivityUseCase = new(MockBehavior.Strict);
         markUserActivityUseCase
             .Setup(useCase => useCase.ExecuteAsync(currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+            .ReturnsAsync(ServiceResult.Ok());
 
         UserActivityModel model = new(markUserActivityUseCase.Object)
         {
@@ -28,7 +28,7 @@ public class UserActivityModelTests
 
         JsonResult json = await model.OnPostPingAsync(CancellationToken.None);
 
-        JsonResultAssert.Data<bool>(json);
+        JsonResultAssert.Success(json);
         markUserActivityUseCase.VerifyAll();
     }
 

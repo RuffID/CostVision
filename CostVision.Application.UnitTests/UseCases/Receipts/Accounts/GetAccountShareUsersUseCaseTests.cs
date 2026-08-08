@@ -46,7 +46,7 @@ public class GetAccountShareUsersUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(Account? account, List<User> users)

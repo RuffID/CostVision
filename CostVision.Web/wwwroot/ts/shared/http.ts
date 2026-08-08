@@ -2,14 +2,19 @@ export type JsonHeaders = Record<string, string>;
 
 export type JsonRequestBody = BodyInit | object | null;
 
-export interface ServiceResult {
-    success: boolean;
-    message?: string;
-}
+export type ServiceFailure = {
+    success: false;
+    message: string;
+};
 
-export interface ServiceResultWithData<TData> extends ServiceResult {
-    data?: TData;
-}
+export type ServiceResult = {
+    success: true;
+} | ServiceFailure;
+
+export type ServiceResultWithData<TData> = {
+    success: true;
+    data: TData;
+} | ServiceFailure;
 
 export async function sendJsonRequest<TResponse = unknown>(url: string, method = "GET", headers: JsonHeaders = {}, body: JsonRequestBody = null): Promise<TResponse> {
     const options: RequestInit = {
@@ -29,25 +34,16 @@ export async function sendJsonRequest<TResponse = unknown>(url: string, method =
         }
     }
 
-    let response = await fetch(url, options);
+    const response = await fetch(url, options);
 
     if (!response.ok) {
-        let errorText = await response.text();
-        let message;
-
-        try {
-            const parsed = JSON.parse(errorText);
-            message = (parsed && parsed.message) ? parsed.message : errorText;
-        }
-        catch {
-            message = errorText || ("HTTP error " + response.status);
-        }
-
-        throw new Error(message);
+        const errorText = await response.text();
+        throw new Error(extractErrorMessage(errorText, response.status));
     }
 
-    let text = await response.text();
-    if (!text || text.trim() === "") return {} as TResponse;
+    const text = await response.text();
+    if (!text.trim())
+        throw new Error("Сервер вернул пустой ответ.");
 
     try {
         return JSON.parse(text) as TResponse;
@@ -84,15 +80,39 @@ export function buildFormHeaders(forgeryToken: string | null): JsonHeaders {
 }
 
 export function unwrapServiceResult<TData>(result: ServiceResultWithData<TData>): TData {
-    if (!result.success) {
-        throw new Error(result.message || "Ошибка выполнения запроса.");
+    if (result.success === false) {
+        throw new Error(result.message);
     }
 
-    return result.data as TData;
+    return result.data;
 }
 
 export function unwrapServiceSuccess(result: ServiceResult): void {
-    if (!result.success) {
-        throw new Error(result.message || "Ошибка выполнения запроса.");
+    if (result.success === false) {
+        throw new Error(result.message);
     }
+}
+
+function extractErrorMessage(text: string, status: number): string {
+    if (!text.trim())
+        return "HTTP error " + status;
+
+    try {
+        const parsed: unknown = JSON.parse(text);
+        if (isServiceFailure(parsed))
+            return parsed.message;
+    }
+    catch {
+        return text;
+    }
+
+    return text;
+}
+
+function isServiceFailure(value: unknown): value is ServiceFailure {
+    if (typeof value !== "object" || value === null)
+        return false;
+
+    const candidate = value as Record<string, unknown>;
+    return candidate.success === false && typeof candidate.message === "string" && candidate.message.trim().length > 0;
 }

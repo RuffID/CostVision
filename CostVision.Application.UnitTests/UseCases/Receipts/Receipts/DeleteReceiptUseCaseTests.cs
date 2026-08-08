@@ -29,7 +29,7 @@ public class DeleteReceiptUseCaseTests
         var result = await useCase.ExecuteAsync(receiptId, TestUserFactory.Create(userId), CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.True(result.Data);
+        Assert.Null(result.Error);
         receiptRepository.Verify(repository => repository.Delete(receipt), Times.Once);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -50,7 +50,7 @@ public class DeleteReceiptUseCaseTests
         var result = await useCase.ExecuteAsync(receiptId, TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class DeleteReceiptUseCaseTests
         var result = await useCase.ExecuteAsync(receiptId, TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class DeleteReceiptUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.Empty, TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository)

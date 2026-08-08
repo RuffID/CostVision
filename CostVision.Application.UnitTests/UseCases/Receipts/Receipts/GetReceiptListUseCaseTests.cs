@@ -47,7 +47,7 @@ public class GetReceiptListUseCaseTests
         ServiceResult<List<ReceiptDto>> result = await useCase.ExecuteAsync(TestUserFactory.Create(), new DateTime(2026, 2, 1), new DateTime(2026, 1, 1), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     [Fact]

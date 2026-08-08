@@ -23,7 +23,7 @@ public class AddReceiptModelTests
         Dependencies dependencies = new();
         dependencies.SaveManualReceiptUseCase
             .Setup(useCase => useCase.ExecuteAsync(request, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<ManualReceiptResult>.Ok(new ManualReceiptResult { IsCreated = true }));
+            .ReturnsAsync(ServiceResult<AddReceiptManualResponse>.Ok(new AddReceiptManualResponse { Outcome = ManualReceiptOutcome.Created }));
 
         AddReceiptModel model = dependencies.CreateModel(currentUser);
 
@@ -31,7 +31,7 @@ public class AddReceiptModelTests
 
         JsonResult json = Assert.IsType<JsonResult>(result);
         AddReceiptManualResponse response = JsonResultAssert.Data<AddReceiptManualResponse>(json);
-        Assert.True(response.IsCreated);
+        Assert.Equal(ManualReceiptOutcome.Created, response.Outcome);
         dependencies.SaveManualReceiptUseCase.VerifyAll();
     }
 
@@ -47,7 +47,7 @@ public class AddReceiptModelTests
         Dependencies dependencies = new();
         dependencies.SaveReceiptsScannedUseCase
             .Setup(useCase => useCase.ExecuteAsync(request, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<ReceiptScanResultSummary>.Ok(new ReceiptScanResultSummary { ScannedCount = 1, AddedToDbCount = 1 }));
+            .ReturnsAsync(ServiceResult<AddReceiptScanResponse>.Ok(new AddReceiptScanResponse { ScannedCount = 1, AddedToDbCount = 1 }));
 
         AddReceiptModel model = dependencies.CreateModel(currentUser);
 
@@ -69,7 +69,7 @@ public class AddReceiptModelTests
         Dependencies dependencies = new();
         dependencies.SaveManualReceiptUseCase
             .Setup(useCase => useCase.ExecuteAsync(request, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<ManualReceiptResult>.Fail(403, "Нет доступа."));
+            .ReturnsAsync(ServiceResult<AddReceiptManualResponse>.Fail(ServiceErrorType.Forbidden, "Нет доступа."));
 
         AddReceiptModel model = dependencies.CreateModel(currentUser);
 

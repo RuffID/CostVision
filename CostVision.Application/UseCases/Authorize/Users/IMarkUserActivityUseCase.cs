@@ -4,6 +4,6 @@ namespace CostVision.Application.UseCases.Authorize.Users
 {
     public interface IMarkUserActivityUseCase
     {
-        Task<ServiceResult<bool>> ExecuteAsync(Guid userId, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(Guid userId, CancellationToken ct);
     }
 }

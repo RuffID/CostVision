@@ -69,7 +69,7 @@ public class GetMoneyMovementListUseCaseTests : MoneyMovementUseCaseTestBase
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), new DateTime(2026, 5, 2), new DateTime(2026, 5, 1), null, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     [Fact]

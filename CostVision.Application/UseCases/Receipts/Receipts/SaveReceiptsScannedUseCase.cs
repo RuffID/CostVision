@@ -16,16 +16,16 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         IQrParser qrParser,
         IReceiptRefreshWorkflow receiptRefreshWorkflow) : ISaveReceiptsScannedUseCase
     {
-        public async Task<ServiceResult<ReceiptScanResultSummary>> ExecuteAsync(QrScanRequest request, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult<AddReceiptScanResponse>> ExecuteAsync(QrScanRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.Results.Count == 0)
-                return ServiceResult<ReceiptScanResultSummary>.Fail(400, "Нет данных для обработки.");
+                return ServiceResult<AddReceiptScanResponse>.Fail(ServiceErrorType.Validation, "Нет данных для обработки.");
 
             if (request.AccountId != Guid.Empty)
             {
-                ServiceResult<bool> accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(request.AccountId, currentUserId, ct);
+                ServiceResult accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(request.AccountId, currentUserId, ct);
                 if (!accessResult.Success)
-                    return ServiceResult<ReceiptScanResultSummary>.Fail(accessResult.Error!.StatusCode, accessResult.Error.Message);
+                    return accessResult.PropagateFailure<AddReceiptScanResponse>();
             }
 
             int scannedCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.DecodedText));
@@ -142,7 +142,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 
             int errorCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.ErrorMessage));
 
-            return ServiceResult<ReceiptScanResultSummary>.Ok(new ReceiptScanResultSummary
+            return ServiceResult<AddReceiptScanResponse>.Ok(new AddReceiptScanResponse
             {
                 ScannedCount = scannedCount,
                 AddedToDbCount = addedCount,

@@ -35,12 +35,12 @@ public class UserSettingsModelTests
     {
         User currentUser = TestUsers.Create();
         CreateAccountRequest request = new() { Name = "Main" };
-        Account account = CreateAccount(Guid.NewGuid(), currentUser.Id, "Main");
+        UserAccountViewModel account = new() { Id = Guid.NewGuid(), Name = "Main" };
 
         Dependencies dependencies = new();
         dependencies.CreateAccountUseCase
             .Setup(useCase => useCase.ExecuteAsync(currentUser.Id, request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<Account>.Ok(account));
+            .ReturnsAsync(ServiceResult<UserAccountViewModel>.Ok(account));
 
         UserSettingsModel model = dependencies.CreateModel(currentUser);
 
@@ -69,7 +69,7 @@ public class UserSettingsModelTests
                 currentUser.Id,
                 request,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<Account>.Ok(CreateAccount(request.AccountId, currentUser.Id, request.Name)));
+            .ReturnsAsync(ServiceResult<UserAccountViewModel>.Ok(new UserAccountViewModel { Id = request.AccountId, Name = request.Name }));
 
         UserSettingsModel model = dependencies.CreateModel(currentUser);
 

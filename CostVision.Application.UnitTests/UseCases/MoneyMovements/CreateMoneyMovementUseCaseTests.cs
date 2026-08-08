@@ -168,12 +168,12 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
     }
 
     [Theory]
-    [InlineData(0, 400)]
-    [InlineData(100, 404)]
-    public async Task CreateMoneyMovement_ReturnsError_WhenAmountOrAccountAccessIsInvalid(decimal amount, int expectedStatusCode)
+    [InlineData(0, ServiceErrorType.Validation)]
+    [InlineData(100, ServiceErrorType.NotFound)]
+    public async Task CreateMoneyMovement_ReturnsError_WhenAmountOrAccountAccessIsInvalid(decimal amount, ServiceErrorType expectedErrorType)
     {
         Guid accountId = Guid.NewGuid();
-        Mock<IAccountMemberRepository> accountMemberRepository = expectedStatusCode == 404
+        Mock<IAccountMemberRepository> accountMemberRepository = expectedErrorType == ServiceErrorType.NotFound
             ? CreateAccountMemberRepositorySequence([(AccountMember?)null])
             : CreateAccountMemberRepositorySequence([]);
         CreateMoneyMovementUseCase useCase = new(CreateUnitOfWork(
@@ -188,16 +188,17 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         }, Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(expectedStatusCode, result.Error?.StatusCode);
+        Assert.Equal(expectedErrorType, result.Error?.Type);
     }
 
     [Fact]
     public async Task CreateMoneyMovement_ReturnsForbidden_WhenAccountRoleIsViewer()
     {
+        Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         Mock<IAccountMemberRepository> accountMemberRepository = CreateAccountMemberRepositorySequence(
         [
-            CreateMember(accountId, Guid.NewGuid(), AccountAccessRole.Viewer)
+            CreateMember(accountId, userId, AccountAccessRole.Viewer)
         ]);
         CreateMoneyMovementUseCase useCase = new(CreateUnitOfWork(
             accountMemberRepository: accountMemberRepository,
@@ -208,10 +209,10 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
             AccountId = accountId,
             Amount = 10,
             OccurredAt = new DateTime(2026, 5, 10)
-        }, Guid.NewGuid(), CancellationToken.None);
+        }, userId, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
     }
 
     [Fact]
@@ -229,6 +230,6 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         }, Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 }

@@ -66,7 +66,7 @@ public class RemoveReceiptFromAccountUseCaseTests
         var result = await useCase.ExecuteAsync(accountId, receipt.Id, userId, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class RemoveReceiptFromAccountUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
     private static Mock<IReceiptRepository> CreateReceiptRepository(Receipt? receipt)

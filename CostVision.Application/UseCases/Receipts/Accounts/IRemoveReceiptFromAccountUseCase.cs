@@ -4,6 +4,6 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public interface IRemoveReceiptFromAccountUseCase
     {
-        Task<ServiceResult<bool>> ExecuteAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct);
     }
 }

@@ -8,12 +8,12 @@ namespace CostVision.Application.Models.Responses.Results
     public class AddReceiptManualResponse
     {
         /// <summary>
-        /// Признак успешного создания чека.
+        /// Бизнес-исход операции.
         /// </summary>
-        public bool IsCreated { get; set; }
+        public ManualReceiptOutcome Outcome { get; set; }
 
         /// <summary>
-        /// Сообщение об ошибке или пояснение результата.
+        /// Пояснение бизнес-исхода.
         /// </summary>
         public string? Message { get; set; }
 

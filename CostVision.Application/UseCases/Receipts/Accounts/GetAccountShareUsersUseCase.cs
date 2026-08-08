@@ -13,7 +13,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
         public async Task<ServiceResult<List<AccountShareUserDto>>> ExecuteAsync(Guid accountId, Guid ownerUserId, CancellationToken ct)
         {
             if (accountId == Guid.Empty)
-                return ServiceResult<List<AccountShareUserDto>>.Fail(400, "Некорректный идентификатор счёта.");
+                return ServiceResult<List<AccountShareUserDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор счёта.");
 
             Account? account = await unitOfWork.Account.GetItemByPredicateAsync(
                 account => account.Id == accountId && account.CreatedByUserId == ownerUserId,
@@ -21,7 +21,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 include: query => query.Include(account => account.Members),
                 ct: ct);
             if (account == null)
-                return ServiceResult<List<AccountShareUserDto>>.Fail(404, "Счёт не найден.");
+                return ServiceResult<List<AccountShareUserDto>>.Fail(ServiceErrorType.NotFound, "Счёт не найден.");
 
             Dictionary<Guid, AccountAccessRole> selectedUsers = account.Members
                 .Where(member => member.UserId != ownerUserId)

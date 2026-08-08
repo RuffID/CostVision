@@ -1,4 +1,5 @@
-using CostVision.Domain.Models.Authorization;
+using CostVision.Application.Models.Dtos.Authorization;
+using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Application.Models.Requests.Authorize;
 using CostVision.Application.Models.Responses.Results;
 using Microsoft.AspNetCore.Authentication;
@@ -27,14 +28,14 @@ namespace CostVision.Web.Pages
                 return Page();
             }
 
-            ServiceResult<User> authenticationResult = await authenticateUserUseCase.ExecuteAsync(Input, ct);
-            if (!authenticationResult.Success || authenticationResult.Data == null)
+            ServiceResult<AuthenticatedUserDto> authenticationResult = await authenticateUserUseCase.ExecuteAsync(Input, ct);
+            if (!authenticationResult.Success)
             {
-                ErrorMessage = authenticationResult.Error?.Message ?? "Неверный логин или пароль.";
+                ErrorMessage = authenticationResult.Error.Message;
                 return Page();
             }
 
-            User user = authenticationResult.Data;
+            AuthenticatedUserDto user = authenticationResult.Data;
 
             List<Claim> claims =
             [
@@ -42,8 +43,8 @@ namespace CostVision.Web.Pages
                 new(ClaimTypes.Name, user.Name)
             ];
 
-            foreach (Role role in user.Roles)
-                claims.Add(new Claim(ClaimTypes.Role, role.RoleType.ToString()));
+            foreach (RoleType role in user.Roles)
+                claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
 
             ClaimsIdentity claimsIdentity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal claimsPrincipal = new(claimsIdentity);

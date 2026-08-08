@@ -1,4 +1,4 @@
-using CostVision.Application.Models.Dtos.Mappers;
+using CostVision.Web.Mappers;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Authorize.Users;
 using CostVision.Domain.Models.Authorization;
@@ -17,7 +17,7 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostPingAsync(CancellationToken ct)
         {
-            ServiceResult<bool> result = await markUserActivityUseCase.ExecuteAsync(CurrentUser.Id, ct);
+            ServiceResult result = await markUserActivityUseCase.ExecuteAsync(CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
     }

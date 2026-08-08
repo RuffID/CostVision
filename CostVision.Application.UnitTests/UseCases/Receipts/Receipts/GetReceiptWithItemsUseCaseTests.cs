@@ -26,11 +26,11 @@ public class GetReceiptWithItemsUseCaseTests
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Same(receipt, result.Data);
+        Assert.Equal(receipt.Id, result.Data?.Id);
     }
 
     [Fact]
-    public async Task ExecuteAsync_ReturnsUnauthorized_WhenUserHasNoAccess()
+    public async Task ExecuteAsync_ReturnsForbidden_WhenUserHasNoAccess()
     {
         User currentUser = TestUserFactory.Create();
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
@@ -43,7 +43,7 @@ public class GetReceiptWithItemsUseCaseTests
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(401, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class GetReceiptWithItemsUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class GetReceiptWithItemsUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.Empty, TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(Receipt? receipt)

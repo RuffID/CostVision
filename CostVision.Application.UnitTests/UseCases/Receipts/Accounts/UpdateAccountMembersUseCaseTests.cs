@@ -77,7 +77,7 @@ public class UpdateAccountMembersUseCaseTests
         ], CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class UpdateAccountMembersUseCaseTests
         ], CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class UpdateAccountMembersUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), [], CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
     private static Mock<IAccountRepository> CreateAccountRepository(Account? account)

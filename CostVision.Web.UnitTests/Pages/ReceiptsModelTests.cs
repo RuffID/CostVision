@@ -56,7 +56,11 @@ public class ReceiptsModelTests
         Dependencies dependencies = new();
         dependencies.GetReceiptWithItemsUseCase
             .Setup(useCase => useCase.ExecuteAsync(receiptId, currentUser, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<Receipt>.Ok(receipt));
+            .ReturnsAsync(ServiceResult<ReceiptDto>.Ok(new ReceiptDto
+            {
+                Id = receiptId,
+                Items = [new ReceiptItemDto { Name = "Milk", Quantity = 2, Price = 10, Sum = 20 }]
+            }));
 
         ReceiptsModel model = dependencies.CreateModel(currentUser);
 
@@ -76,13 +80,13 @@ public class ReceiptsModelTests
         Dependencies dependencies = new();
         dependencies.DeleteReceiptUseCase
             .Setup(useCase => useCase.ExecuteAsync(receiptId, currentUser, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+            .ReturnsAsync(ServiceResult.Ok());
 
         ReceiptsModel model = dependencies.CreateModel(currentUser);
 
         JsonResult json = await model.OnPostDeleteReceiptAsync(new DeleteReceiptRequest { ReceiptId = receiptId }, CancellationToken.None);
 
-        JsonResultAssert.Data<bool>(json);
+        JsonResultAssert.Success(json);
         dependencies.DeleteReceiptUseCase.VerifyAll();
     }
 
@@ -100,13 +104,13 @@ public class ReceiptsModelTests
         Dependencies dependencies = new();
         dependencies.MoveReceiptToAccountUseCase
             .Setup(useCase => useCase.ExecuteAsync(request.SourceAccountId, request.TargetAccountId, request.ReceiptId, currentUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+            .ReturnsAsync(ServiceResult.Ok());
 
         ReceiptsModel model = dependencies.CreateModel(currentUser);
 
         JsonResult json = await model.OnPostMoveReceiptToAccountAsync(request, CancellationToken.None);
 
-        JsonResultAssert.Data<bool>(json);
+        JsonResultAssert.Success(json);
         dependencies.MoveReceiptToAccountUseCase.VerifyAll();
     }
 
@@ -120,7 +124,7 @@ public class ReceiptsModelTests
         Dependencies dependencies = new();
         dependencies.RefreshReceiptFromApiUseCase
             .Setup(useCase => useCase.ExecuteAsync(receiptId, currentUser, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<Receipt>.Ok(receipt));
+            .ReturnsAsync(ServiceResult<ReceiptDto>.Ok(new ReceiptDto { Id = receipt.Id }));
 
         ReceiptsModel model = dependencies.CreateModel(currentUser);
 

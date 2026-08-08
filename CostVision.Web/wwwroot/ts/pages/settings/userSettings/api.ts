@@ -1,4 +1,4 @@
-import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult } from "../../../shared/http.js";
+import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess } from "../../../shared/http.js";
 import { AccountDto, AccountPayload, AccountResponse, AccountsResponse, AccountUpdatePayload, ShareCandidateDto, ShareCandidatesResponse, ShareMembersPayload, UpdateMembersResponse } from "./models.js";
 
 export async function loadAccountsRequestAsync(includeInactive: boolean): Promise<AccountDto[]> {
@@ -24,5 +24,5 @@ export async function loadShareCandidatesRequestAsync(antiForgeryToken: string |
 
 export async function updateMembersAsync(antiForgeryToken: string | null, payload: ShareMembersPayload): Promise<void> {
     const response = await sendJsonRequest<UpdateMembersResponse>("?handler=UpdateMembers", "POST", buildJsonHeaders(antiForgeryToken), payload);
-    unwrapServiceResult(response);
+    unwrapServiceSuccess(response);
 }

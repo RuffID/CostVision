@@ -1,4 +1,4 @@
-﻿using CostVision.Application.Models.Dtos.Mappers;
+﻿using CostVision.Web.Mappers;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.MoneyMovements;
@@ -58,31 +58,31 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostMoveToAccountAsync([FromBody] MoveMoneyMovementToAccountRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await moneyMovementsPageUseCase.MoveToAccountAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await moneyMovementsPageUseCase.MoveToAccountAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostDeleteAsync([FromBody] DeleteMoneyMovementRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await moneyMovementsPageUseCase.DeleteAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await moneyMovementsPageUseCase.DeleteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUpdateCommentAsync([FromBody] UpdateMoneyMovementCommentRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await moneyMovementsPageUseCase.UpdateCommentAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await moneyMovementsPageUseCase.UpdateCommentAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostLinkReceiptAsync([FromBody] LinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await moneyMovementsPageUseCase.LinkReceiptAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await moneyMovementsPageUseCase.LinkReceiptAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUnlinkReceiptAsync([FromBody] UnlinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<bool> result = await moneyMovementsPageUseCase.UnlinkReceiptAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await moneyMovementsPageUseCase.UnlinkReceiptAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 

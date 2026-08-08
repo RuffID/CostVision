@@ -25,21 +25,21 @@ public class SaveReceiptsScannedUseCaseTests
         Guid userId = Guid.NewGuid();
         Mock<IValidateReceiptCreationAccessUseCase> accessUseCase = new(MockBehavior.Strict);
         accessUseCase.Setup(item => item.ExecuteAsync(accountId, userId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Fail(403, "Нет доступа."));
+            .ReturnsAsync(ServiceResult.Fail(ServiceErrorType.Forbidden, "Нет доступа."));
         SaveReceiptsScannedUseCase useCase = new(
             new Mock<IUnitOfWork>(MockBehavior.Strict).Object,
             accessUseCase.Object,
             new Mock<IQrParser>(MockBehavior.Strict).Object,
             new Mock<IReceiptRefreshWorkflow>(MockBehavior.Strict).Object);
 
-        ServiceResult<ReceiptScanResultSummary> result = await useCase.ExecuteAsync(new QrScanRequest
+        ServiceResult<AddReceiptScanResponse> result = await useCase.ExecuteAsync(new QrScanRequest
         {
             AccountId = accountId,
             Results = [new QrScanResult { DecodedText = "qr" }]
         }, userId, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
         Assert.Equal("Нет доступа.", result.Error?.Message);
     }
 
@@ -59,7 +59,7 @@ public class SaveReceiptsScannedUseCaseTests
             .Returns(Task.CompletedTask);
         SaveReceiptsScannedUseCase useCase = new(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, CreateAccessUseCase().Object, qrParser.Object, refreshWorkflow.Object);
 
-        ServiceResult<ReceiptScanResultSummary> result = await useCase.ExecuteAsync(new QrScanRequest
+        ServiceResult<AddReceiptScanResponse> result = await useCase.ExecuteAsync(new QrScanRequest
         {
             AccountId = accountId,
             Results = [new QrScanResult { DecodedText = "qr" }]
@@ -84,7 +84,7 @@ public class SaveReceiptsScannedUseCaseTests
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
         SaveReceiptsScannedUseCase useCase = new(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, CreateAccessUseCase().Object, qrParser.Object, refreshWorkflow.Object);
 
-        ServiceResult<ReceiptScanResultSummary> result = await useCase.ExecuteAsync(new QrScanRequest
+        ServiceResult<AddReceiptScanResponse> result = await useCase.ExecuteAsync(new QrScanRequest
         {
             Results = [new QrScanResult { DecodedText = "bad" }]
         }, Guid.NewGuid(), CancellationToken.None);
@@ -111,7 +111,7 @@ public class SaveReceiptsScannedUseCaseTests
             .Returns(Task.CompletedTask);
         SaveReceiptsScannedUseCase useCase = new(CreateUnitOfWork(receiptRepository, receiptAccountRepository).Object, CreateAccessUseCase().Object, qrParser.Object, refreshWorkflow.Object);
 
-        ServiceResult<ReceiptScanResultSummary> result = await useCase.ExecuteAsync(new QrScanRequest
+        ServiceResult<AddReceiptScanResponse> result = await useCase.ExecuteAsync(new QrScanRequest
         {
             AccountId = accountId,
             Results = [new QrScanResult { DecodedText = "qr" }]
@@ -162,7 +162,7 @@ public class SaveReceiptsScannedUseCaseTests
     {
         Mock<IValidateReceiptCreationAccessUseCase> useCase = new(MockBehavior.Strict);
         useCase.Setup(item => item.ExecuteAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+            .ReturnsAsync(ServiceResult.Ok());
         return useCase;
     }
 }

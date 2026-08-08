@@ -77,7 +77,7 @@ public class CreateUserUseCaseTests
         }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(409, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Conflict, result.Error?.Type);
     }
 
     [Fact]
@@ -96,6 +96,6 @@ public class CreateUserUseCaseTests
         }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 }

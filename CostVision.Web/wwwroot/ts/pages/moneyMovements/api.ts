@@ -1,4 +1,4 @@
-import { buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, type ServiceResultWithData } from "../../shared/http.js";
+import { buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
 import type { BankStatementImportBankDto, BankStatementImportPreviewDto, BankStatementImportResultDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, GetMoneyMovementReceiptCandidatesRequest, LinkMoneyMovementReceiptRequest, MoneyMovementDto, MoneyMovementReceiptDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UnlinkMoneyMovementReceiptRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel, ReceiptDto } from "./types.js";
 
 type AccountListResponse = ServiceResultWithData<UserAccountViewModel[]>;
@@ -8,7 +8,6 @@ type MoneyMovementListResponse = ServiceResultWithData<MoneyMovementDto[]>;
 type MoneyMovementResponse = ServiceResultWithData<MoneyMovementDto>;
 type MoneyMovementReceiptListResponse = ServiceResultWithData<MoneyMovementReceiptDto[]>;
 type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
-type BooleanResponse = ServiceResultWithData<boolean>;
 type ImportResultResponse = ServiceResultWithData<BankStatementImportResultDto>;
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
@@ -40,22 +39,22 @@ export async function createMoneyMovement(forgeryToken: string | null, request: 
     return unwrapServiceResult<MoneyMovementDto>(response);
 }
 
-export async function moveMoneyMovementToAccount(forgeryToken: string | null, request: MoveMoneyMovementToAccountRequest): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>("?handler=MoveToAccount", "POST", buildJsonHeaders(forgeryToken), {
+export async function moveMoneyMovementToAccount(forgeryToken: string | null, request: MoveMoneyMovementToAccountRequest): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>("?handler=MoveToAccount", "POST", buildJsonHeaders(forgeryToken), {
         ...request,
         sourceAccountId: request.sourceAccountId || EMPTY_GUID
     });
-    return unwrapServiceResult<boolean>(response);
+    unwrapServiceSuccess(response);
 }
 
-export async function deleteMoneyMovement(forgeryToken: string | null, request: DeleteMoneyMovementRequest): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>("?handler=Delete", "POST", buildJsonHeaders(forgeryToken), request);
-    return unwrapServiceResult<boolean>(response);
+export async function deleteMoneyMovement(forgeryToken: string | null, request: DeleteMoneyMovementRequest): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>("?handler=Delete", "POST", buildJsonHeaders(forgeryToken), request);
+    unwrapServiceSuccess(response);
 }
 
-export async function updateMoneyMovementComment(forgeryToken: string | null, request: UpdateMoneyMovementCommentRequest): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>("?handler=UpdateComment", "POST", buildJsonHeaders(forgeryToken), request);
-    return unwrapServiceResult<boolean>(response);
+export async function updateMoneyMovementComment(forgeryToken: string | null, request: UpdateMoneyMovementCommentRequest): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>("?handler=UpdateComment", "POST", buildJsonHeaders(forgeryToken), request);
+    unwrapServiceSuccess(response);
 }
 
 export async function loadLinkedReceipts(forgeryToken: string | null, moneyMovementId: string): Promise<MoneyMovementReceiptDto[]> {
@@ -104,14 +103,14 @@ export async function openReceipt(forgeryToken: string | null, receiptId: string
     return unwrapServiceResult<ReceiptDto>(response);
 }
 
-export async function linkMoneyMovementReceipt(forgeryToken: string | null, request: LinkMoneyMovementReceiptRequest): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>("?handler=LinkReceipt", "POST", buildJsonHeaders(forgeryToken), request);
-    return unwrapServiceResult<boolean>(response);
+export async function linkMoneyMovementReceipt(forgeryToken: string | null, request: LinkMoneyMovementReceiptRequest): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>("?handler=LinkReceipt", "POST", buildJsonHeaders(forgeryToken), request);
+    unwrapServiceSuccess(response);
 }
 
-export async function unlinkMoneyMovementReceipt(forgeryToken: string | null, request: UnlinkMoneyMovementReceiptRequest): Promise<boolean> {
-    const response = await sendJsonRequest<BooleanResponse>("?handler=UnlinkReceipt", "POST", buildJsonHeaders(forgeryToken), request);
-    return unwrapServiceResult<boolean>(response);
+export async function unlinkMoneyMovementReceipt(forgeryToken: string | null, request: UnlinkMoneyMovementReceiptRequest): Promise<void> {
+    const response = await sendJsonRequest<ServiceResult>("?handler=UnlinkReceipt", "POST", buildJsonHeaders(forgeryToken), request);
+    unwrapServiceSuccess(response);
 }
 
 export async function previewBankStatementImport(forgeryToken: string | null, bankId: string, accountId: string, file: File): Promise<BankStatementImportPreviewDto> {

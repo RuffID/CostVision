@@ -23,7 +23,7 @@ public class UserUpsertRequestValidatorTests
         }, requirePassword: true);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public class UserUpsertRequestValidatorTests
         }, requirePassword: true);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     [Theory]
@@ -62,7 +62,7 @@ public class UserUpsertRequestValidatorTests
         }, requirePassword: true);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     [Fact]
@@ -95,9 +95,9 @@ public class UserUpsertRequestValidatorTests
         Assert.False(longLoginResult.Success);
         Assert.False(longNameResult.Success);
         Assert.False(longPasswordResult.Success);
-        Assert.Equal(400, longLoginResult.Error?.StatusCode);
-        Assert.Equal(400, longNameResult.Error?.StatusCode);
-        Assert.Equal(400, longPasswordResult.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, longLoginResult.Error?.Type);
+        Assert.Equal(ServiceErrorType.Validation, longNameResult.Error?.Type);
+        Assert.Equal(ServiceErrorType.Validation, longPasswordResult.Error?.Type);
     }
 
     [Fact]

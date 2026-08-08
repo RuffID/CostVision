@@ -54,11 +54,21 @@ export interface ManualReceiptPayload {
     accountId: string;
 }
 
-export interface ManualReceiptResponse {
-    isCreated: boolean;
-    message?: string | null;
-    receipt?: unknown;
+export enum ManualReceiptOutcome {
+    Created,
+    AddedToAccount,
+    AlreadyExists,
+    AlreadyExistsInAccount
 }
+
+export type ManualReceiptResponse = {
+    outcome: ManualReceiptOutcome.Created;
+    receipt: unknown;
+} | {
+    outcome: ManualReceiptOutcome.AddedToAccount | ManualReceiptOutcome.AlreadyExists | ManualReceiptOutcome.AlreadyExistsInAccount;
+    message: string;
+    receipt: unknown;
+};
 
 export interface DecodedQrFileResult {
     decodedText: string;

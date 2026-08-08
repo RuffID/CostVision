@@ -13,7 +13,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         public async Task<ServiceResult<List<ReceiptDto>>> ExecuteAsync(User currentUser, DateTime dateFrom, DateTime dateTo, CancellationToken ct)
         {
             if (dateTo.Date < dateFrom.Date)
-                return ServiceResult<List<ReceiptDto>>.Fail(400, "Дата окончания периода не может быть меньше даты начала.");
+                return ServiceResult<List<ReceiptDto>>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
 
             DateTime periodStart = dateFrom.Date;
             DateTime periodEnd = dateTo.Date.AddDays(1);

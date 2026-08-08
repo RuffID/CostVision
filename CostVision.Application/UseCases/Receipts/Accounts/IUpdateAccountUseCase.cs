@@ -6,6 +6,6 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public interface IUpdateAccountUseCase
     {
-        Task<ServiceResult<Account>> ExecuteAsync(Guid ownerUserId, UpdateAccountRequest request, CancellationToken ct);
+        Task<ServiceResult<UserAccountViewModel>> ExecuteAsync(Guid ownerUserId, UpdateAccountRequest request, CancellationToken ct);
     }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Infrastructure.Abstractions.Api;
@@ -49,7 +50,7 @@ public class ExternalReceiptProviderTests
         var result = await provider.GetReceiptAsync(CreateSourceReceipt(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(500, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.ExternalService, result.Error?.Type);
     }
 
     [Fact]
@@ -68,7 +69,7 @@ public class ExternalReceiptProviderTests
         var result = await provider.GetReceiptAsync(CreateSourceReceipt(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(500, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.ExternalService, result.Error?.Type);
         Assert.Contains("bad receipt", result.Error?.Message);
     }
 
@@ -88,7 +89,7 @@ public class ExternalReceiptProviderTests
         var result = await provider.GetReceiptAsync(CreateSourceReceipt(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(500, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.ExternalService, result.Error?.Type);
     }
 
     [Fact]

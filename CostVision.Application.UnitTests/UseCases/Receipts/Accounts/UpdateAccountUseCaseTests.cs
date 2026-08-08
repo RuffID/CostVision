@@ -48,7 +48,9 @@ public class UpdateAccountUseCaseTests
         Assert.Equal("Updated", current.Description);
         Assert.Equal("#A1B2C3", current.ColorHex);
         Assert.True(current.IsArchived);
-        Assert.Same(current, result.Data);
+        Assert.Equal(current.Id, result.Data?.Id);
+        Assert.Equal("Updated", result.Data?.Description);
+        Assert.False(result.Data?.IsActive);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -77,7 +79,7 @@ public class UpdateAccountUseCaseTests
         }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
     [Fact]
@@ -95,7 +97,7 @@ public class UpdateAccountUseCaseTests
         }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     [Fact]
@@ -127,6 +129,6 @@ public class UpdateAccountUseCaseTests
         }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 }

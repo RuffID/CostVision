@@ -83,6 +83,6 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
         }, userId, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 }

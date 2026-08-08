@@ -103,7 +103,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
         }, userId, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(409, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Conflict, result.Error?.Type);
     }
 
     [Fact]
@@ -142,8 +142,8 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
         var missingMovementResult = await missingMovementUseCase.ExecuteAsync(new LinkMoneyMovementReceiptRequest { MoneyMovementId = movementId, ReceiptId = Guid.NewGuid() }, userId, CancellationToken.None);
         var missingReceiptResult = await missingReceiptUseCase.ExecuteAsync(new LinkMoneyMovementReceiptRequest { MoneyMovementId = movementId, ReceiptId = Guid.NewGuid() }, userId, CancellationToken.None);
 
-        Assert.Equal(404, missingMovementResult.Error?.StatusCode);
-        Assert.Equal(404, missingReceiptResult.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, missingMovementResult.Error?.Type);
+        Assert.Equal(ServiceErrorType.NotFound, missingReceiptResult.Error?.Type);
     }
 
     [Fact]
@@ -211,6 +211,6 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
         var result = await useCase.ExecuteAsync(new UnlinkMoneyMovementReceiptRequest { MoneyMovementId = movement.Id, ReceiptId = Guid.NewGuid() }, userId, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 }

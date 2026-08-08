@@ -7,10 +7,10 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public class ValidateReceiptCreationAccessUseCase(IUnitOfWork unitOfWork) : IValidateReceiptCreationAccessUseCase
     {
-        public async Task<ServiceResult<bool>> ExecuteAsync(Guid accountId, Guid userId, CancellationToken ct)
+        public async Task<ServiceResult> ExecuteAsync(Guid accountId, Guid userId, CancellationToken ct)
         {
             if (accountId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор счёта.");
 
             AccountMember? membership = await unitOfWork.AccountMember.GetItemByPredicateAsync(
                 member => member.AccountId == accountId && member.UserId == userId,
@@ -18,12 +18,12 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 ct: ct);
 
             if (membership == null)
-                return ServiceResult<bool>.Fail(404, "Счёт не найден или доступ к нему отсутствует.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Счёт не найден или доступ к нему отсутствует.");
 
             if (membership.Role == AccountAccessRole.Viewer)
-                return ServiceResult<bool>.Fail(403, "Недостаточно прав для добавления чеков в этот счёт.");
+                return ServiceResult.Fail(ServiceErrorType.Forbidden, "Недостаточно прав для добавления чеков в этот счёт.");
 
-            return ServiceResult<bool>.Ok(true);
+            return ServiceResult.Ok();
         }
     }
 }

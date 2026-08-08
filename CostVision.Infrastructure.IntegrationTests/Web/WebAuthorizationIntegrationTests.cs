@@ -82,7 +82,7 @@ public class WebAuthorizationIntegrationTests : IDisposable
     {
         CancellationToken ct = TestContext.Current.CancellationToken;
         AuthenticatedContext context = await _app.LoginAsync();
-        _app.MarkUserActivity.Result = ServiceResult<bool>.Ok(true);
+        _app.MarkUserActivity.Result = ServiceResult.Ok();
 
         HttpResponseMessage response = await _app.PostUserActivityPingAsync(context);
 
@@ -93,7 +93,7 @@ public class WebAuthorizationIntegrationTests : IDisposable
         JsonElement root = json.RootElement;
 
         Assert.True(root.GetProperty("success").GetBoolean());
-        Assert.True(root.GetProperty("data").GetBoolean());
+        Assert.False(root.TryGetProperty("data", out _));
         Assert.Equal(_app.ActiveUser.Id, _app.MarkUserActivity.LastUserId);
     }
 
@@ -102,7 +102,7 @@ public class WebAuthorizationIntegrationTests : IDisposable
     {
         CancellationToken ct = TestContext.Current.CancellationToken;
         AuthenticatedContext context = await _app.LoginAsync();
-        _app.MarkUserActivity.Result = ServiceResult<bool>.Fail(StatusCodes.Status403Forbidden, "Denied");
+        _app.MarkUserActivity.Result = ServiceResult.Fail(ServiceErrorType.Forbidden, "Denied");
 
         HttpResponseMessage response = await _app.PostUserActivityPingAsync(context);
 

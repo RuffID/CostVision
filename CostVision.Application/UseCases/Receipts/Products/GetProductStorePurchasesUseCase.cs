@@ -13,7 +13,7 @@ namespace CostVision.Application.UseCases.Receipts.Products
         public async Task<ServiceResult<List<ProductStorePurchaseDto>>> ExecuteAsync(GetProductStorePurchasesRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.ProductId == Guid.Empty)
-                return ServiceResult<List<ProductStorePurchaseDto>>.Fail(400, "Товар не указан.");
+                return ServiceResult<List<ProductStorePurchaseDto>>.Fail(ServiceErrorType.Validation, "Товар не указан.");
 
             List<ReceiptItem> receiptItems = await unitOfWork.ReceiptItem.GetItemsByPredicateAsync(
                 item => item.ProductId == request.ProductId &&

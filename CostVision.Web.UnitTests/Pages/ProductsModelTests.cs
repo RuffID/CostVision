@@ -50,7 +50,7 @@ public class ProductsModelTests
         Mock<IUpdateProductAdaptiveNameUseCase> updateProductAdaptiveNameUseCase = new(MockBehavior.Strict);
         updateProductAdaptiveNameUseCase
             .Setup(useCase => useCase.ExecuteAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<bool>.Ok(true));
+            .ReturnsAsync(ServiceResult.Ok());
 
         ProductsModel model = new(getProductListUseCase.Object, getProductStorePurchasesUseCase.Object, getUserAccountsUseCase.Object, updateProductAdaptiveNameUseCase.Object)
         {
@@ -59,7 +59,7 @@ public class ProductsModelTests
 
         JsonResult json = await model.OnPostUpdateAdaptiveNameAsync(request, CancellationToken.None);
 
-        JsonResultAssert.Data<bool>(json);
+        JsonResultAssert.Success(json);
         updateProductAdaptiveNameUseCase.VerifyAll();
     }
 }

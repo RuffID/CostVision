@@ -16,7 +16,7 @@ namespace CostVision.Application.UseCases.Authorize.Users
                 include: query => query.Include(user => user.UserRoles),
                 ct: ct);
             if (user == null)
-                return ServiceResult<UserEditDto>.Fail(404, "Пользователь не найден");
+                return ServiceResult<UserEditDto>.Fail(ServiceErrorType.NotFound, "Пользователь не найден");
 
             UserEditDto dto = new()
             {

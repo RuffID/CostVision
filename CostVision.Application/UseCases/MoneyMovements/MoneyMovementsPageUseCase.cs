@@ -6,7 +6,6 @@ using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Domain.Models.Authorization;
-using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
@@ -59,48 +58,40 @@ namespace CostVision.Application.UseCases.MoneyMovements
             return createMoneyMovementUseCase.ExecuteAsync(request, userId, ct);
         }
 
-        public Task<ServiceResult<bool>> MoveToAccountAsync(MoveMoneyMovementToAccountRequest request, Guid userId, CancellationToken ct)
+        public Task<ServiceResult> MoveToAccountAsync(MoveMoneyMovementToAccountRequest request, Guid userId, CancellationToken ct)
         {
             return moveMoneyMovementToAccountUseCase.ExecuteAsync(request, userId, ct);
         }
 
-        public Task<ServiceResult<bool>> DeleteAsync(DeleteMoneyMovementRequest request, Guid userId, CancellationToken ct)
+        public Task<ServiceResult> DeleteAsync(DeleteMoneyMovementRequest request, Guid userId, CancellationToken ct)
         {
             return deleteMoneyMovementUseCase.ExecuteAsync(request, userId, ct);
         }
 
-        public Task<ServiceResult<bool>> UpdateCommentAsync(UpdateMoneyMovementCommentRequest request, Guid userId, CancellationToken ct)
+        public Task<ServiceResult> UpdateCommentAsync(UpdateMoneyMovementCommentRequest request, Guid userId, CancellationToken ct)
         {
             return updateMoneyMovementCommentUseCase.ExecuteAsync(request, userId, ct);
         }
 
-        public Task<ServiceResult<bool>> LinkReceiptAsync(LinkMoneyMovementReceiptRequest request, Guid userId, CancellationToken ct)
+        public Task<ServiceResult> LinkReceiptAsync(LinkMoneyMovementReceiptRequest request, Guid userId, CancellationToken ct)
         {
             return linkMoneyMovementReceiptUseCase.ExecuteAsync(request, userId, ct);
         }
 
-        public Task<ServiceResult<bool>> UnlinkReceiptAsync(UnlinkMoneyMovementReceiptRequest request, Guid userId, CancellationToken ct)
+        public Task<ServiceResult> UnlinkReceiptAsync(UnlinkMoneyMovementReceiptRequest request, Guid userId, CancellationToken ct)
         {
             return unlinkMoneyMovementReceiptUseCase.ExecuteAsync(request, userId, ct);
         }
 
         public async Task<ServiceResult<ReceiptDto>> OpenReceiptAsync(OpenReceiptRequest request, User currentUser, CancellationToken ct)
         {
-            ServiceResult<Receipt> result = await getReceiptWithItemsUseCase.ExecuteAsync(request.ReceiptId, currentUser, ct);
-
-            if (!result.Success)
-                return ServiceResult<ReceiptDto>.Fail(result.Error!.StatusCode, result.Error.Message);
-
-            if (result.Data == null)
-                return ServiceResult<ReceiptDto>.Fail(404, "Чек не найден.");
-
-            return ServiceResult<ReceiptDto>.Ok(result.Data.MapReceiptDto(currentUser.Id));
+            return await getReceiptWithItemsUseCase.ExecuteAsync(request.ReceiptId, currentUser, ct);
         }
 
         public Task<ServiceResult<BankStatementImportPreviewDto>> PreviewImportAsync(PreviewBankStatementImportPageRequest request, Guid userId, CancellationToken ct)
         {
             if (request.FileStream == null || request.FileLength == 0)
-                return Task.FromResult(ServiceResult<BankStatementImportPreviewDto>.Fail(400, "Выберите файл выписки."));
+                return Task.FromResult(ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, "Выберите файл выписки."));
 
             return previewBankStatementImportUseCase.ExecuteAsync(request.BankId, request.AccountId, request.FileName, request.FileStream, userId, ct);
         }

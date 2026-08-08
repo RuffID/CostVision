@@ -1,7 +1,7 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Models.Dtos.Mappers;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
-using CostVision.Application.Models.Services.Receipts;
 using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
@@ -15,13 +15,13 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         IValidateReceiptCreationAccessUseCase validateReceiptCreationAccessUseCase,
         IReceiptRefreshWorkflow receiptRefreshWorkflow) : ISaveManualReceiptUseCase
     {
-        public async Task<ServiceResult<ManualReceiptResult>> ExecuteAsync(ReceiptManualCreateRequest request, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult<AddReceiptManualResponse>> ExecuteAsync(ReceiptManualCreateRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.AccountId != Guid.Empty)
             {
-                ServiceResult<bool> accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(request.AccountId, currentUserId, ct);
+                ServiceResult accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(request.AccountId, currentUserId, ct);
                 if (!accessResult.Success)
-                    return ServiceResult<ManualReceiptResult>.Fail(accessResult.Error!.StatusCode, accessResult.Error.Message);
+                    return accessResult.PropagateFailure<AddReceiptManualResponse>();
             }
 
             if (!Receipt.TryCreate(
@@ -36,11 +36,9 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                     out Receipt? createdReceipt,
                     out string? creationError))
             {
-                return ServiceResult<ManualReceiptResult>.Ok(new ManualReceiptResult
-                {
-                    IsCreated = false,
-                    ErrorMessage = creationError
-                });
+                return ServiceResult<AddReceiptManualResponse>.Fail(
+                    ServiceErrorType.Validation,
+                    creationError ?? "Некорректные данные чека.");
             }
 
             Receipt receipt = createdReceipt!;
@@ -58,11 +56,12 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 
             if (existingReceiptInAccount != null)
             {
-                return ServiceResult<ManualReceiptResult>.Ok(new ManualReceiptResult
+                Receipt loadedReceipt = await LoadReceiptWithAccountsAsync(existingReceiptInAccount.Id, ct);
+                return ServiceResult<AddReceiptManualResponse>.Ok(new AddReceiptManualResponse
                 {
-                    IsCreated = false,
-                    ErrorMessage = "Такой чек уже есть на выбранном счёте.",
-                    Receipt = await LoadReceiptWithAccountsAsync(existingReceiptInAccount.Id, ct)
+                    Outcome = ManualReceiptOutcome.AlreadyExistsInAccount,
+                    Message = "Такой чек уже есть на выбранном счёте.",
+                    Receipt = loadedReceipt.MapReceiptDto(currentUserId)
                 });
             }
 
@@ -80,70 +79,63 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
             {
                 if (request.AccountId != Guid.Empty)
                 {
-                    if (!existingReceipt.TryAddAccount(request.AccountId, out ReceiptAccount? link, out string? linkError))
+                    if (!existingReceipt.TryAddAccount(request.AccountId, out ReceiptAccount? link, out string? existingLinkError))
                     {
-                        return ServiceResult<ManualReceiptResult>.Ok(new ManualReceiptResult
-                        {
-                            IsCreated = false,
-                            ErrorMessage = linkError,
-                            Receipt = existingReceipt
-                        });
+                        return ServiceResult<AddReceiptManualResponse>.Fail(
+                            ServiceErrorType.Validation,
+                            existingLinkError ?? "Не удалось добавить чек на выбранный счёт.");
                     }
 
                     unitOfWork.ReceiptAccount.Create(link!);
                     await unitOfWork.SaveChangesAsync(ct);
 
                     Receipt linkedReceipt = await LoadReceiptWithAccountsAsync(existingReceipt.Id, ct);
-
-                    return ServiceResult<ManualReceiptResult>.Ok(new ManualReceiptResult
+                    return ServiceResult<AddReceiptManualResponse>.Ok(new AddReceiptManualResponse
                     {
-                        IsCreated = true,
-                        ErrorMessage = "Чек уже существовал и был добавлен на выбранный счёт.",
-                        Receipt = linkedReceipt
+                        Outcome = ManualReceiptOutcome.AddedToAccount,
+                        Message = "Чек уже существовал и был добавлен на выбранный счёт.",
+                        Receipt = linkedReceipt.MapReceiptDto(currentUserId)
                     });
                 }
 
-                return ServiceResult<ManualReceiptResult>.Ok(new ManualReceiptResult
+                Receipt loadedReceipt = await LoadReceiptWithAccountsAsync(existingReceipt.Id, ct);
+                return ServiceResult<AddReceiptManualResponse>.Ok(new AddReceiptManualResponse
                 {
-                    IsCreated = false,
-                    ErrorMessage = "Такой чек уже существует в базе.",
-                    Receipt = await LoadReceiptWithAccountsAsync(existingReceipt.Id, ct)
+                    Outcome = ManualReceiptOutcome.AlreadyExists,
+                    Message = "Такой чек уже существует в базе.",
+                    Receipt = loadedReceipt.MapReceiptDto(currentUserId)
                 });
             }
 
-            if (request.AccountId != Guid.Empty)
+            if (request.AccountId != Guid.Empty &&
+                !receipt.TryAddAccount(request.AccountId, out _, out string? linkError))
             {
-                if (!receipt.TryAddAccount(request.AccountId, out _, out string? linkError))
-                {
-                    return ServiceResult<ManualReceiptResult>.Ok(new ManualReceiptResult
-                    {
-                        IsCreated = false,
-                        ErrorMessage = linkError
-                    });
-                }
+                return ServiceResult<AddReceiptManualResponse>.Fail(
+                    ServiceErrorType.Validation,
+                    linkError ?? "Не удалось добавить чек на выбранный счёт.");
             }
 
             unitOfWork.Receipt.Create(receipt);
             await unitOfWork.SaveChangesAsync(ct);
             Receipt refreshedReceipt = await receiptRefreshWorkflow.TryRefreshCreatedReceiptAsync(receipt, ct);
 
-            return ServiceResult<ManualReceiptResult>.Ok(new ManualReceiptResult
+            return ServiceResult<AddReceiptManualResponse>.Ok(new AddReceiptManualResponse
             {
-                IsCreated = true,
-                Receipt = refreshedReceipt
+                Outcome = ManualReceiptOutcome.Created,
+                Receipt = refreshedReceipt.MapReceiptDto(currentUserId)
             });
         }
 
         private Task<Receipt?> FindExistingReceiptAsync(string fiscalDocumentNumber, string fiscalDriveNumber, string fiscalSign, decimal totalSum, DateTime dateTime, ReceiptOperationType operationType, Guid currentUserId, CancellationToken ct)
         {
             return unitOfWork.Receipt.GetItemByPredicateAsync(
-                r => r.FiscalDocumentNumber == fiscalDocumentNumber &&
-                     r.FiscalDriveNumber == fiscalDriveNumber &&
-                     r.FiscalSign == fiscalSign &&
-                     r.TotalSum == totalSum &&
-                     r.DateTime == dateTime &&
-                     r.CreatedByUserId == currentUserId &&
-                     r.OperationType == operationType,
+                receipt => receipt.FiscalDocumentNumber == fiscalDocumentNumber &&
+                           receipt.FiscalDriveNumber == fiscalDriveNumber &&
+                           receipt.FiscalSign == fiscalSign &&
+                           receipt.TotalSum == totalSum &&
+                           receipt.DateTime == dateTime &&
+                           receipt.CreatedByUserId == currentUserId &&
+                           receipt.OperationType == operationType,
                 asNoTracking: false,
                 ct: ct);
         }
@@ -151,13 +143,13 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         private Task<Receipt?> FindExistingReceiptInAccountAsync(string fiscalDocumentNumber, string fiscalDriveNumber, string fiscalSign, decimal totalSum, DateTime dateTime, ReceiptOperationType operationType, Guid accountId, CancellationToken ct)
         {
             return unitOfWork.Receipt.GetItemByPredicateAsync(
-                r => r.FiscalDocumentNumber == fiscalDocumentNumber &&
-                     r.FiscalDriveNumber == fiscalDriveNumber &&
-                     r.FiscalSign == fiscalSign &&
-                     r.TotalSum == totalSum &&
-                     r.DateTime == dateTime &&
-                     r.OperationType == operationType &&
-                     r.Accounts.Any(link => link.AccountId == accountId),
+                receipt => receipt.FiscalDocumentNumber == fiscalDocumentNumber &&
+                           receipt.FiscalDriveNumber == fiscalDriveNumber &&
+                           receipt.FiscalSign == fiscalSign &&
+                           receipt.TotalSum == totalSum &&
+                           receipt.DateTime == dateTime &&
+                           receipt.OperationType == operationType &&
+                           receipt.Accounts.Any(link => link.AccountId == accountId),
                 asNoTracking: true,
                 ct: ct);
         }
@@ -165,10 +157,10 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         private async Task<Receipt> LoadReceiptWithAccountsAsync(Guid receiptId, CancellationToken ct)
         {
             Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
-                receipt => receipt.Id == receiptId,
+                item => item.Id == receiptId,
                 asNoTracking: true,
                 include: query => query
-                    .Include(receipt => receipt.Accounts)
+                    .Include(item => item.Accounts)
                         .ThenInclude(link => link.Account)
                     .AsSplitQuery(),
                 ct: ct);

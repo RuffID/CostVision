@@ -28,6 +28,6 @@ public class AuthenticateUserAdditionalTests
         var result = await useCase.ExecuteAsync(new LoginRequest { Login = "missing", Password = "password" }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(401, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Unauthorized, result.Error?.Type);
     }
 }

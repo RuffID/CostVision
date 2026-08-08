@@ -1,9 +1,7 @@
-import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, type ServiceResultWithData } from "./http.js";
+import { buildJsonHeaders, sendJsonRequest, unwrapServiceSuccess, type ServiceResult } from "./http.js";
 import { getRequestVerificationToken } from "./verificationToken.js";
 
 const ACTIVITY_PING_INTERVAL_MS = 60000;
-
-type ActivityPingResponse = ServiceResultWithData<boolean>;
 
 let antiForgeryToken: string | null = null;
 
@@ -21,8 +19,8 @@ function initUserActivityPing(): void {
 
 async function sendActivityPing(): Promise<void> {
     try {
-        const response = await sendJsonRequest<ActivityPingResponse>("/user-activity?handler=Ping", "POST", buildJsonHeaders(antiForgeryToken));
-        unwrapServiceResult(response);
+        const response = await sendJsonRequest<ServiceResult>("/user-activity?handler=Ping", "POST", buildJsonHeaders(antiForgeryToken));
+        unwrapServiceSuccess(response);
     } catch (error) {
         console.error("Не удалось обновить последнюю активность пользователя.", error);
     }

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CostVision.Application.Models.Dtos.Authorization;
 using CostVision.Application.Models.Requests.Authorize;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Authorize.Authentication;
@@ -23,11 +24,12 @@ public class LoginModelTests
     {
         LoginRequest request = new() { Login = "user", Password = "password" };
         User user = TestUsers.Create(roleType: RoleType.Admin);
+        AuthenticatedUserDto authenticatedUser = new() { Id = user.Id, Name = user.Name, Roles = [RoleType.Admin] };
 
         Mock<IAuthenticateUserUseCase> authenticateUserUseCase = new(MockBehavior.Strict);
         authenticateUserUseCase
             .Setup(useCase => useCase.ExecuteAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<User>.Ok(user));
+            .ReturnsAsync(ServiceResult<AuthenticatedUserDto>.Ok(authenticatedUser));
 
         FakeAuthenticationService authenticationService = new();
         LoginModel model = CreateModel(authenticateUserUseCase.Object, authenticationService);
@@ -51,7 +53,7 @@ public class LoginModelTests
         Mock<IAuthenticateUserUseCase> authenticateUserUseCase = new(MockBehavior.Strict);
         authenticateUserUseCase
             .Setup(useCase => useCase.ExecuteAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<User>.Fail(400, "Неверный логин или пароль."));
+            .ReturnsAsync(ServiceResult<AuthenticatedUserDto>.Fail(ServiceErrorType.Unauthorized, "Неверный логин или пароль."));
 
         LoginModel model = CreateModel(authenticateUserUseCase.Object, new FakeAuthenticationService());
         model.Input = request;

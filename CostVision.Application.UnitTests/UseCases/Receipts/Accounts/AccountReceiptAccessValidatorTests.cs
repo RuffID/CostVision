@@ -14,7 +14,7 @@ public class AccountReceiptAccessValidatorTests
         Guid userId = Guid.NewGuid();
         Account account = TestAccountFactory.Create(ownerUserId: userId);
 
-        ServiceResult<bool> result = Validate(account, userId);
+        ServiceResult result = Validate(account, userId);
 
         Assert.True(result.Success);
     }
@@ -26,7 +26,7 @@ public class AccountReceiptAccessValidatorTests
         Account account = TestAccountFactory.Create();
         account.TryAddMember(userId, AccountAccessRole.Editor, out _, out _);
 
-        ServiceResult<bool> result = Validate(account, userId);
+        ServiceResult result = Validate(account, userId);
 
         Assert.True(result.Success);
     }
@@ -36,10 +36,10 @@ public class AccountReceiptAccessValidatorTests
     {
         Account account = TestAccountFactory.Create();
 
-        ServiceResult<bool> result = Validate(account, Guid.NewGuid());
+        ServiceResult result = Validate(account, Guid.NewGuid());
 
         Assert.False(result.Success);
-        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
     }
 
     [Fact]
@@ -49,17 +49,17 @@ public class AccountReceiptAccessValidatorTests
         Account account = TestAccountFactory.Create();
         account.TryAddMember(userId, AccountAccessRole.Viewer, out _, out _);
 
-        ServiceResult<bool> result = Validate(account, userId);
+        ServiceResult result = Validate(account, userId);
 
         Assert.False(result.Success);
-        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
     }
 
-    private static ServiceResult<bool> Validate(Account account, Guid userId)
+    private static ServiceResult Validate(Account account, Guid userId)
     {
         Type type = typeof(CostVision.Application.UseCases.Receipts.Accounts.CreateAccountUseCase).Assembly
             .GetType("CostVision.Application.UseCases.Receipts.Accounts.Helpers.AccountReceiptAccessValidator")!;
         MethodInfo method = type.GetMethod("ValidateModificationAccess", BindingFlags.Public | BindingFlags.Static)!;
-        return (ServiceResult<bool>)method.Invoke(null, [account, userId])!;
+        return (ServiceResult)method.Invoke(null, [account, userId])!;
     }
 }

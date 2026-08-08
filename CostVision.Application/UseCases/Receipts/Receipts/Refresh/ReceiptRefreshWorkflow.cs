@@ -10,8 +10,8 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
         public async Task<ServiceResult<Receipt>> RefreshAsync(Receipt receipt, CancellationToken ct)
         {
             ServiceResult<Receipt> externalReceiptResult = await externalReceiptProvider.GetReceiptAsync(receipt, ct);
-            if (!externalReceiptResult.Success || externalReceiptResult.Data == null)
-                return ServiceResult<Receipt>.Fail(externalReceiptResult.Error!.StatusCode, externalReceiptResult.Error.Message);
+            if (!externalReceiptResult.Success)
+                return externalReceiptResult.PropagateFailure<Receipt>();
 
             Store? store = await ResolveStoreAsync(externalReceiptResult.Data.Store, ct);
 
@@ -32,13 +32,13 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
                         sourceItem.CategoryId,
                         out ReceiptItem? item,
                         out string? itemError))
-                    return ServiceResult<Receipt>.Fail(500, $"Внешний источник вернул некорректную позицию чека: {itemError}");
+                    return ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, $"Внешний источник вернул некорректную позицию чека: {itemError}");
 
                 refreshedItems.Add(item!);
             }
 
             if (!receipt.TryRefreshFrom(externalReceiptResult.Data, store, refreshedItems, DateTime.UtcNow, out string? refreshError))
-                return ServiceResult<Receipt>.Fail(500, $"Внешний источник вернул некорректные данные чека: {refreshError}");
+                return ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, $"Внешний источник вернул некорректные данные чека: {refreshError}");
 
             await unitOfWork.SaveChangesAsync(ct);
             return ServiceResult<Receipt>.Ok(receipt);
@@ -46,15 +46,8 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
 
         public async Task<Receipt> TryRefreshCreatedReceiptAsync(Receipt receipt, CancellationToken ct)
         {
-            try
-            {
-                ServiceResult<Receipt> refreshResult = await RefreshAsync(receipt, ct);
-                return refreshResult.Success && refreshResult.Data != null ? refreshResult.Data : receipt;
-            }
-            catch
-            {
-                return receipt;
-            }
+            ServiceResult<Receipt> refreshResult = await RefreshAsync(receipt, ct);
+            return refreshResult.Success ? refreshResult.Data : receipt;
         }
 
         public async Task TryRefreshCreatedReceiptsAsync(IEnumerable<Receipt> receipts, CancellationToken ct)

@@ -13,7 +13,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult<int>> ExecuteAsync(Guid currentUserId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct)
         {
             if (dateTo.Date < dateFrom.Date)
-                return ServiceResult<int>.Fail(400, "Дата окончания периода не может быть меньше даты начала.");
+                return ServiceResult<int>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
 
             DateTime periodStart = dateFrom.Date;
             DateTime periodEnd = dateTo.Date.AddDays(1);

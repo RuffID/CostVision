@@ -1,6 +1,6 @@
 using CostVision.Domain.Models.Authorization;
 using CostVision.Application.Models.Dtos.Authorization;
-using CostVision.Application.Models.Dtos.Mappers;
+using CostVision.Web.Mappers;
 using CostVision.Application.Models.Requests.Authorize;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Web.Authorize.Attributes;
@@ -38,21 +38,8 @@ namespace CostVision.Web.Pages.Settings
 
         public async Task<IActionResult> OnGetRoleListAsync(CancellationToken ct = default)
         {
-            ServiceResult<List<Role>> result = await getRoleListUseCase.ExecuteAsync(ct);
-            if (!result.Success || result.Data == null)
-                return JsonResultMapper.ToJsonResult(result);
-
-            List<RoleDto> dto = result.Data
-                .OrderBy(x => x.Name)
-                .Select(x => new RoleDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    RoleType = x.RoleType
-                })
-                .ToList();
-
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<RoleDto>>.Ok(dto));
+            ServiceResult<List<RoleDto>> result = await getRoleListUseCase.ExecuteAsync(ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostCreateAsync([FromBody] UserUpsertRequest dto, CancellationToken ct = default)

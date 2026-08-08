@@ -6,7 +6,7 @@ namespace CostVision.Application.UnitTests.Models.Responses.Results;
 public class ServiceResultTests
 {
     [Fact]
-    public void Ok_CreatesSuccessfulNonGenericResult()
+    public void Ok_CreatesPayloadlessSuccessWithoutError()
     {
         ServiceResult result = ServiceResult.Ok();
 
@@ -14,21 +14,27 @@ public class ServiceResultTests
         Assert.Null(result.Error);
     }
 
-    [Fact]
-    public void Fail_CreatesFailureWithStatusAndMessage()
+    [Theory]
+    [InlineData(ServiceErrorType.Validation)]
+    [InlineData(ServiceErrorType.Unauthorized)]
+    [InlineData(ServiceErrorType.Forbidden)]
+    [InlineData(ServiceErrorType.NotFound)]
+    [InlineData(ServiceErrorType.Conflict)]
+    [InlineData(ServiceErrorType.ExternalService)]
+    public void Fail_PreservesSemanticErrorWithoutPayload(ServiceErrorType errorType)
     {
-        ServiceResult result = ServiceResult.Fail(404, "Not found");
+        ServiceResult<string> result = ServiceResult<string>.Fail(errorType, "Error");
 
         Assert.False(result.Success);
-        Assert.NotNull(result.Error);
-        Assert.Equal(404, result.Error.StatusCode);
-        Assert.Equal("Not found", result.Error.Message);
+        Assert.Null(result.Data);
+        Assert.Equal(errorType, result.Error?.Type);
+        Assert.Equal("Error", result.Error?.Message);
     }
 
     [Fact]
-    public void GenericOk_CreatesSuccessfulResultWithPayload()
+    public void GenericOk_CreatesSuccessWithRequiredPayloadAndWithoutError()
     {
-        var payload = new { Name = "payload" };
+        object payload = new();
 
         ServiceResult<object> result = ServiceResult<object>.Ok(payload);
 
@@ -38,14 +44,35 @@ public class ServiceResultTests
     }
 
     [Fact]
-    public void GenericFail_CreatesFailureWithDefaultPayload()
+    public void GenericOk_RejectsNullPayload()
     {
-        ServiceResult<string> result = ServiceResult<string>.Fail(400, "Bad request");
+        Assert.Throws<ArgumentNullException>(() => ServiceResult<string>.Ok(null!));
+    }
 
-        Assert.False(result.Success);
-        Assert.Null(result.Data);
-        Assert.NotNull(result.Error);
-        Assert.Equal(400, result.Error.StatusCode);
-        Assert.Equal("Bad request", result.Error.Message);
+    [Fact]
+    public void PropagateFailure_TransfersSameErrorAcrossResultTypes()
+    {
+        ServiceError error = new(ServiceErrorType.Conflict, "Conflict");
+        ServiceResult<int> source = ServiceResult<int>.Fail(error);
+
+        ServiceResult<string> target = source.PropagateFailure<string>();
+
+        Assert.False(target.Success);
+        Assert.Same(error, target.Error);
+        Assert.Null(target.Data);
+    }
+
+    [Fact]
+    public void PropagateFailure_RejectsSuccessfulResult()
+    {
+        ServiceResult<int> result = ServiceResult<int>.Ok(1);
+
+        Assert.Throws<InvalidOperationException>(() => result.PropagateFailure<string>());
+    }
+
+    [Fact]
+    public void ServiceError_RejectsBlankMessage()
+    {
+        Assert.Throws<ArgumentException>(() => new ServiceError(ServiceErrorType.Validation, " "));
     }
 }

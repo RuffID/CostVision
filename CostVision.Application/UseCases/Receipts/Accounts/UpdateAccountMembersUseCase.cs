@@ -10,10 +10,10 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public class UpdateAccountMembersUseCase(IUnitOfWork unitOfWork) : IUpdateAccountMembersUseCase
     {
-        public async Task<ServiceResult<bool>> ExecuteAsync(Guid accountId, Guid ownerUserId, IReadOnlyCollection<UpdateAccountMemberRequest> members, CancellationToken ct)
+        public async Task<ServiceResult> ExecuteAsync(Guid accountId, Guid ownerUserId, IReadOnlyCollection<UpdateAccountMemberRequest> members, CancellationToken ct)
         {
             if (accountId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор счёта.");
 
             Account? account = await unitOfWork.Account.GetItemByPredicateAsync(
                 account => account.Id == accountId && account.CreatedByUserId == ownerUserId,
@@ -21,7 +21,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 include: query => query.Include(account => account.Members),
                 ct: ct);
             if (account == null)
-                return ServiceResult<bool>.Fail(404, "Счёт не найден.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Счёт не найден.");
 
             List<UpdateAccountMemberRequest> desiredMembers = members
                 .GroupBy(member => member.UserId)
@@ -31,7 +31,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             foreach (UpdateAccountMemberRequest member in desiredMembers)
             {
                 if (!account.CanAssignMember(member.UserId, member.Role, out string? error))
-                    return ServiceResult<bool>.Fail(400, error ?? "Некорректные данные участника счёта.");
+                    return ServiceResult.Fail(ServiceErrorType.Validation, error ?? "Некорректные данные участника счёта.");
             }
 
             HashSet<Guid> desiredUserIds = desiredMembers.Select(member => member.UserId).ToHashSet();
@@ -40,7 +40,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 : await unitOfWork.User.GetItemsByPredicateAsync(user => desiredUserIds.Contains(user.Id) && user.IsActive, asNoTracking: true, ct: ct);
 
             if (availableUsers.Count != desiredUserIds.Count)
-                return ServiceResult<bool>.Fail(400, "Один или несколько выбранных пользователей недоступны.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Один или несколько выбранных пользователей недоступны.");
 
             List<AccountMember> currentMembers = account.Members
                 .Where(member => member.UserId != ownerUserId)
@@ -69,7 +69,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             foreach (AccountMember member in membersToRemove)
             {
                 if (!account.TryRemoveMember(member.UserId, out AccountMember? removedMember, out string? error) || removedMember == null)
-                    return ServiceResult<bool>.Fail(400, error ?? "Не удалось удалить участника счёта.");
+                    return ServiceResult.Fail(ServiceErrorType.Validation, error ?? "Не удалось удалить участника счёта.");
 
                 removedMembers.Add(removedMember);
             }
@@ -78,14 +78,14 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
             {
                 AccountAccessRole desiredRole = desiredRolesByUserId[member.UserId];
                 if (member.Role != desiredRole && !account.TryChangeMemberRole(member.UserId, desiredRole, out string? error))
-                    return ServiceResult<bool>.Fail(400, error ?? "Не удалось изменить роль участника счёта.");
+                    return ServiceResult.Fail(ServiceErrorType.Validation, error ?? "Не удалось изменить роль участника счёта.");
             }
 
             List<AccountMember> addedMembers = new();
             foreach (Guid userId in userIdsToAdd)
             {
                 if (!account.TryAddMember(userId, desiredRolesByUserId[userId], out AccountMember? addedMember, out string? error) || addedMember == null)
-                    return ServiceResult<bool>.Fail(400, error ?? "Не удалось добавить участника счёта.");
+                    return ServiceResult.Fail(ServiceErrorType.Validation, error ?? "Не удалось добавить участника счёта.");
 
                 addedMembers.Add(addedMember);
             }
@@ -101,7 +101,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 await Task.CompletedTask;
             }, ct);
 
-            return ServiceResult<bool>.Ok(true);
+            return ServiceResult.Ok();
         }
     }
 }

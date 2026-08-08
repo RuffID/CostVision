@@ -13,7 +13,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult<List<ReceiptMoneyMovementDto>>> ExecuteAsync(Guid receiptId, Guid currentUserId, CancellationToken ct)
         {
             if (receiptId == Guid.Empty)
-                return ServiceResult<List<ReceiptMoneyMovementDto>>.Fail(400, "Некорректный идентификатор чека.");
+                return ServiceResult<List<ReceiptMoneyMovementDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор чека.");
 
             Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
                 item => item.Id == receiptId &&
@@ -29,7 +29,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (receipt == null)
-                return ServiceResult<List<ReceiptMoneyMovementDto>>.Fail(404, "Чек не найден или доступ к нему отсутствует.");
+                return ServiceResult<List<ReceiptMoneyMovementDto>>.Fail(ServiceErrorType.NotFound, "Чек не найден или доступ к нему отсутствует.");
 
             List<MoneyMovementReceipt> links = await unitOfWork.MoneyMovementReceipt.GetItemsByPredicateAsync(
                 link => link.ReceiptId == receiptId,

@@ -70,7 +70,7 @@ public class MoveReceiptToAccountUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), receiptId, Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class MoveReceiptToAccountUseCaseTests
         var result = await useCase.ExecuteAsync(sourceAccountId, targetAccountId, receiptId, userId, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(409, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Conflict, result.Error?.Type);
     }
 
     private static Receipt CreateReceipt(Guid receiptId, Guid createdByUserId)

@@ -62,10 +62,10 @@ export function loadStoreAvailableAccounts(): Promise<AvailableAccountDto[]> {
     return loadAvailableAccountsApi(getRequestVerificationToken());
 }
 
-export function moveStoreReceiptToAccount(receiptId: string, sourceAccountId: string, targetAccountId: string): Promise<boolean> {
+export function moveStoreReceiptToAccount(receiptId: string, sourceAccountId: string, targetAccountId: string): Promise<void> {
     return moveReceiptToAccountApi(receiptId, sourceAccountId, targetAccountId, getRequestVerificationToken());
 }
 
-export function removeStoreReceiptFromAccount(receiptId: string, accountId: string): Promise<boolean> {
+export function removeStoreReceiptFromAccount(receiptId: string, accountId: string): Promise<void> {
     return removeReceiptFromAccountApi(receiptId, accountId, getRequestVerificationToken());
 }

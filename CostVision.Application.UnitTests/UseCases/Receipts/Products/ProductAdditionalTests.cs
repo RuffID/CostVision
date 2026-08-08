@@ -50,7 +50,7 @@ public class ProductAdditionalTests
         }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IProductRepository> productRepository)

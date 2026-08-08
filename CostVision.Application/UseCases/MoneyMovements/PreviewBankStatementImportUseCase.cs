@@ -17,22 +17,22 @@ namespace CostVision.Application.UseCases.MoneyMovements
         {
             IBankStatementParser? parser = parserRegistry.FindByBankId(bankId);
             if (parser == null || !parser.IsConfigured)
-                return ServiceResult<BankStatementImportPreviewDto>.Fail(400, "Для выбранного банка импорт пока не настроен.");
+                return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, "Для выбранного банка импорт пока не настроен.");
 
             if (!parser.CanParseFile(fileName))
-                return ServiceResult<BankStatementImportPreviewDto>.Fail(400, $"Загрузите файл выписки в формате: {parser.Description}.");
+                return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, $"Загрузите файл выписки в формате: {parser.Description}.");
 
             ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, accountId, currentUserId, ct);
             if (!accountAccess.Success)
-                return ServiceResult<BankStatementImportPreviewDto>.Fail(accountAccess.Error!.StatusCode, accountAccess.Error.Message);
+                return accountAccess.PropagateFailure<BankStatementImportPreviewDto>();
 
             IReadOnlyList<string> pages = await pdfTextExtractor.ExtractPagesAsync(fileStream, ct);
             if (pages.Count == 0 || pages.All(string.IsNullOrWhiteSpace))
-                return ServiceResult<BankStatementImportPreviewDto>.Fail(400, "В PDF не найден текстовый слой. Загрузите выписку с распознаваемым текстом.");
+                return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, "В PDF не найден текстовый слой. Загрузите выписку с распознаваемым текстом.");
 
             BankStatementImportPreviewDto preview = parser.Parse(accountId, pages);
             if (preview.Rows.Count == 0 && preview.Errors.Count == 0)
-                return ServiceResult<BankStatementImportPreviewDto>.Fail(400, BuildEmptyPreviewMessage(pages));
+                return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, BuildEmptyPreviewMessage(pages));
 
             MarkDuplicates(preview, await LoadExistingImportedMovementsAsync(accountId, preview.Rows, ct));
             MarkPreviewDuplicates(preview);

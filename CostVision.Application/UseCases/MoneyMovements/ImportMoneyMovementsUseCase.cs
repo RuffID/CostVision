@@ -12,14 +12,14 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult<BankStatementImportResultDto>> ExecuteAsync(SaveBankStatementImportRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.AccountId == Guid.Empty)
-                return ServiceResult<BankStatementImportResultDto>.Fail(400, "Выберите счёт для импорта.");
+                return ServiceResult<BankStatementImportResultDto>.Fail(ServiceErrorType.Validation, "Выберите счёт для импорта.");
 
             if (request.Rows.Count == 0)
-                return ServiceResult<BankStatementImportResultDto>.Fail(400, "Нет строк для импорта.");
+                return ServiceResult<BankStatementImportResultDto>.Fail(ServiceErrorType.Validation, "Нет строк для импорта.");
 
             ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId, currentUserId, ct);
             if (!accountAccess.Success)
-                return ServiceResult<BankStatementImportResultDto>.Fail(accountAccess.Error!.StatusCode, accountAccess.Error.Message);
+                return accountAccess.PropagateFailure<BankStatementImportResultDto>();
 
             BankStatementImportResultDto result = new();
             List<ValidImportRow> validRows =

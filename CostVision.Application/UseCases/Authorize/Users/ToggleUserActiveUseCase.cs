@@ -10,7 +10,7 @@ namespace CostVision.Application.UseCases.Authorize.Users
         {
             User? user = await unitOfWork.User.GetItemByIdAsync(id, ct: ct);
             if (user == null)
-                return ServiceResult<bool>.Fail(404, "Пользователь не найден");
+                return ServiceResult<bool>.Fail(ServiceErrorType.NotFound, "Пользователь не найден");
 
             if (user.IsActive)
                 user.Deactivate();

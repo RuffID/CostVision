@@ -37,7 +37,8 @@ public class CreateAccountUseCaseTests
         }, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Same(createdAccount, result.Data);
+        Assert.Equal("Food", result.Data?.Name);
+        Assert.Equal(AccountAccessRole.Owner, result.Data?.AccessRole);
         Assert.NotNull(createdAccount);
         Assert.Equal("Food", createdAccount.Name);
         Assert.Equal("Shared groceries", createdAccount.Description);
@@ -65,7 +66,7 @@ public class CreateAccountUseCaseTests
         }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IAccountRepository> accountRepository, Mock<IAccountMemberRepository> accountMemberRepository)

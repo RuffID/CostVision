@@ -20,7 +20,7 @@ public class ValidateReceiptCreationAccessUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.True(result.Data);
+        Assert.Null(result.Error);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class ValidateReceiptCreationAccessUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(403, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class ValidateReceiptCreationAccessUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class ValidateReceiptCreationAccessUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.Empty, Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(AccountMember? membership)

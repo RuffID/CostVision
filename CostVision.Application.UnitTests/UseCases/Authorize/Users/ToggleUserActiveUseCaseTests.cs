@@ -65,6 +65,6 @@ public class ToggleUserActiveUseCaseTests
         var result = await useCase.ExecuteAsync(userId, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 }

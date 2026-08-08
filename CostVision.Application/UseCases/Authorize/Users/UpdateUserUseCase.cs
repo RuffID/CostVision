@@ -13,11 +13,11 @@ namespace CostVision.Application.UseCases.Authorize.Users
         public async Task<ServiceResult> ExecuteAsync(UserUpsertRequest request, CancellationToken ct)
         {
             if (!request.Id.HasValue)
-                return ServiceResult.Fail(400, "Некорректный id пользователя.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный id пользователя.");
 
             ServiceResult<List<Guid>> validationResult = UserUpsertRequestValidator.ValidateUpsertRequest(request, requirePassword: false);
-            if (!validationResult.Success || validationResult.Data == null)
-                return ServiceResult.Fail(validationResult.Error!.StatusCode, validationResult.Error.Message);
+            if (!validationResult.Success)
+                return validationResult.PropagateFailure();
 
             User? user = await unitOfWork.User.GetItemByPredicateAsync(
                 user => user.Id == request.Id.Value,
@@ -25,7 +25,7 @@ namespace CostVision.Application.UseCases.Authorize.Users
                 include: query => query.Include(user => user.UserRoles),
                 ct: ct);
             if (user == null)
-                return ServiceResult.Fail(404, "Пользователь не найден.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Пользователь не найден.");
 
             string normalizedLogin = request.Login.Trim().ToUpperInvariant();
             if (!string.Equals(user.Login, request.Login.Trim(), StringComparison.OrdinalIgnoreCase))
@@ -35,7 +35,7 @@ namespace CostVision.Application.UseCases.Authorize.Users
                     asNoTracking: true,
                     ct: ct);
                 if (conflictUser != null && conflictUser.Id != user.Id)
-                    return ServiceResult.Fail(409, "Пользователь с таким логином уже существует.");
+                    return ServiceResult.Fail(ServiceErrorType.Conflict, "Пользователь с таким логином уже существует.");
             }
 
             string? passwordHash = string.IsNullOrWhiteSpace(request.Password)
@@ -48,7 +48,7 @@ namespace CostVision.Application.UseCases.Authorize.Users
                     passwordHash,
                     validationResult.Data,
                     out string? error))
-                return ServiceResult.Fail(400, error!);
+                return ServiceResult.Fail(ServiceErrorType.Validation, error!);
 
             await unitOfWork.SaveChangesAsync(ct);
 

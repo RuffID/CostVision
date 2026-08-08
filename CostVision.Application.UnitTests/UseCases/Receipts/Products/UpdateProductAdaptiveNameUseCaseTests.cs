@@ -86,7 +86,7 @@ public class UpdateProductAdaptiveNameUseCaseTests
         }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class UpdateProductAdaptiveNameUseCaseTests
         }, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IProductRepository> productRepository)

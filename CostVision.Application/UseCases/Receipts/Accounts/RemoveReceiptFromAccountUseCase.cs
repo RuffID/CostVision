@@ -8,13 +8,13 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public class RemoveReceiptFromAccountUseCase(IUnitOfWork unitOfWork) : IRemoveReceiptFromAccountUseCase
     {
-        public async Task<ServiceResult<bool>> ExecuteAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult> ExecuteAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
         {
             if (receiptId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор чека.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор чека.");
 
             if (accountId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор счёта.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор счёта.");
 
             Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
                 receipt => receipt.Id == receiptId,
@@ -26,34 +26,36 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                     .AsSplitQuery(),
                 ct: ct);
             if (receipt == null)
-                return ServiceResult<bool>.Fail(404, "Чек не найден.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Чек не найден.");
 
             ReceiptAccount? link = receipt.Accounts.FirstOrDefault(item => item.AccountId == accountId);
             if (link == null)
-                return ServiceResult<bool>.Fail(404, "Чек не привязан к выбранному счёту.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Чек не привязан к выбранному счёту.");
 
             Account? account = link.Account;
             if (account == null)
-                return ServiceResult<bool>.Fail(404, "Счёт не найден.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Счёт не найден.");
 
-            ServiceResult<bool> accountAccessResult = AccountReceiptAccessValidator.ValidateModificationAccess(account, currentUserId);
+            ServiceResult accountAccessResult = AccountReceiptAccessValidator.ValidateModificationAccess(account, currentUserId);
             if (!accountAccessResult.Success)
-                return ServiceResult<bool>.Fail(accountAccessResult.Error!.StatusCode, accountAccessResult.Error.Message);
+                return accountAccessResult.PropagateFailure();
 
             if (receipt.Accounts.Count < 2)
             {
                 unitOfWork.Receipt.Delete(receipt);
                 await unitOfWork.SaveChangesAsync(ct);
-                return ServiceResult<bool>.Ok(true);
+                return ServiceResult.Ok();
             }
 
             if (!receipt.TryRemoveAccount(accountId, out ReceiptAccount? removedLink, out string? removeError))
-                return ServiceResult<bool>.Fail(409, removeError!);
+                return ServiceResult.Fail(
+                    ServiceErrorType.Conflict,
+                    removeError ?? throw new InvalidOperationException("Доменная операция не вернула причину отказа."));
 
             unitOfWork.ReceiptAccount.Delete(removedLink!);
             await unitOfWork.SaveChangesAsync(ct);
 
-            return ServiceResult<bool>.Ok(true);
+            return ServiceResult.Ok();
         }
     }
 }

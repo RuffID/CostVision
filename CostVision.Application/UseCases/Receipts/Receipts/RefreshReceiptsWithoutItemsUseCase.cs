@@ -28,11 +28,11 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 }
 
                 logger.LogWarning(
-                    "[Method:{MethodName}] Failed to refresh receipt {ReceiptId} without items from external API. StatusCode: {StatusCode}. Error: {ErrorMessage}",
+                    "[Method:{MethodName}] Failed to refresh receipt {ReceiptId} without items from external API. ErrorType: {ErrorType}. Error: {ErrorMessage}",
                     nameof(ExecuteAsync),
                     receipt.Id,
-                    result.Error?.StatusCode,
-                    result.Error?.Message);
+                    result.Error.Type,
+                    result.Error.Message);
             }
 
             if (countUpdatedReceipts > 0)

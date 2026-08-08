@@ -1,5 +1,5 @@
 using CostVision.Application.Models.Dtos.Dashboard;
-using CostVision.Application.Models.Dtos.Mappers;
+using CostVision.Web.Mappers;
 using CostVision.Application.Models.Requests.Dashboard;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;

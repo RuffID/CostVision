@@ -5,6 +5,6 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public interface ILinkMoneyMovementReceiptUseCase
     {
-        Task<ServiceResult<bool>> ExecuteAsync(LinkMoneyMovementReceiptRequest request, Guid currentUserId, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(LinkMoneyMovementReceiptRequest request, Guid currentUserId, CancellationToken ct);
     }
 }

@@ -79,14 +79,14 @@ public class ReceiptRefreshWorkflowTests
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
         Mock<IExternalReceiptProvider> externalReceiptProvider = new(MockBehavior.Strict);
         externalReceiptProvider.Setup(provider => provider.GetReceiptAsync(receipt, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<Receipt>.Fail(502, "Provider error"));
+            .ReturnsAsync(ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, "Provider error"));
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
         ReceiptRefreshWorkflow workflow = new(CreateUnitOfWork(productRepository, null).Object, externalReceiptProvider.Object);
 
         var result = await workflow.RefreshAsync(receipt, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(502, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.ExternalService, result.Error?.Type);
     }
 
     private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IProductRepository> productRepository, Mock<IStoreRepository>? storeRepository)

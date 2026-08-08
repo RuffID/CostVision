@@ -29,11 +29,11 @@ public class RefreshReceiptFromApiUseCaseTests
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Same(receipt, result.Data);
+        Assert.Equal(receipt.Id, result.Data?.Id);
     }
 
     [Fact]
-    public async Task ExecuteAsync_ReturnsUnauthorized_WhenUserHasNoAccess()
+    public async Task ExecuteAsync_ReturnsForbidden_WhenUserHasNoAccess()
     {
         User currentUser = TestUserFactory.Create();
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
@@ -45,7 +45,7 @@ public class RefreshReceiptFromApiUseCaseTests
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(401, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Forbidden, result.Error?.Type);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class RefreshReceiptFromApiUseCaseTests
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), TestUserFactory.Create(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(404, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
 
@@ -71,13 +71,13 @@ public class RefreshReceiptFromApiUseCaseTests
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(true);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
         refreshWorkflow.Setup(workflow => workflow.RefreshAsync(receipt, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<Receipt>.Fail(502, "Provider error"));
+            .ReturnsAsync(ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, "Provider error"));
         RefreshReceiptFromApiUseCase useCase = new(CreateUnitOfWork(receipt).Object, accessVerification.Object, refreshWorkflow.Object);
 
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(502, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.ExternalService, result.Error?.Type);
     }
     private static Mock<IUnitOfWork> CreateUnitOfWork(Receipt? receipt)
     {

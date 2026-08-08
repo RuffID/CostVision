@@ -8,16 +8,16 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class UpdateMoneyMovementCommentUseCase(IUnitOfWork unitOfWork) : IUpdateMoneyMovementCommentUseCase
     {
-        public async Task<ServiceResult<bool>> ExecuteAsync(UpdateMoneyMovementCommentRequest request, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult> ExecuteAsync(UpdateMoneyMovementCommentRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.MoneyMovementId == Guid.Empty)
-                return ServiceResult<bool>.Fail(400, "Некорректный идентификатор операции.");
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции.");
 
             if (request.AccountId.HasValue && request.AccountId.Value != Guid.Empty)
             {
                 ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId.Value, currentUserId, ct);
                 if (!access.Success)
-                    return ServiceResult<bool>.Fail(access.Error!.StatusCode, access.Error.Message);
+                    return access.PropagateFailure();
             }
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
@@ -28,14 +28,14 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (movement == null)
-                return ServiceResult<bool>.Fail(404, "Операция не найдена в счёте.");
+                return ServiceResult.Fail(ServiceErrorType.NotFound, "Операция не найдена в счёте.");
 
             if (!movement.TryUpdateComment(request.Comment, out string? error))
-                return ServiceResult<bool>.Fail(400, error!);
+                return ServiceResult.Fail(ServiceErrorType.Validation, error!);
 
             await unitOfWork.SaveChangesAsync(ct);
 
-            return ServiceResult<bool>.Ok(true);
+            return ServiceResult.Ok();
         }
     }
 }

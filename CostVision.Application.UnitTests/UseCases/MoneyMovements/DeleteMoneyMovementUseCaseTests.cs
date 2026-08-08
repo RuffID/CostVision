@@ -73,7 +73,7 @@ public class DeleteMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         var missingResult = await missingMovementUseCase.ExecuteAsync(new DeleteMoneyMovementRequest { MoneyMovementId = Guid.NewGuid(), AccountId = accountId }, userId, CancellationToken.None);
         var forbiddenResult = await forbiddenUseCase.ExecuteAsync(new DeleteMoneyMovementRequest { MoneyMovementId = Guid.NewGuid(), AccountId = accountId }, userId, CancellationToken.None);
 
-        Assert.Equal(404, missingResult.Error?.StatusCode);
-        Assert.Equal(403, forbiddenResult.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.NotFound, missingResult.Error?.Type);
+        Assert.Equal(ServiceErrorType.Forbidden, forbiddenResult.Error?.Type);
     }
 }

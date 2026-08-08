@@ -4,6 +4,6 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public interface IMoveReceiptToAccountUseCase
     {
-        Task<ServiceResult<bool>> ExecuteAsync(Guid sourceAccountId, Guid targetAccountId, Guid receiptId, Guid currentUserId, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(Guid sourceAccountId, Guid targetAccountId, Guid receiptId, Guid currentUserId, CancellationToken ct);
     }
 }

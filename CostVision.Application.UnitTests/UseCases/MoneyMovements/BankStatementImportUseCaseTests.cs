@@ -103,7 +103,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
         var result = await useCase.ExecuteAsync("test", Guid.NewGuid(), "statement.txt", new MemoryStream([1]), Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal(400, result.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
     [Fact]
@@ -124,8 +124,8 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
         var unknownBankResult = await unknownBankUseCase.ExecuteAsync("unknown", accountId, "statement.pdf", new MemoryStream([1]), userId, CancellationToken.None);
         var emptyPdfResult = await emptyPdfUseCase.ExecuteAsync("test", accountId, "statement.pdf", new MemoryStream([1]), userId, CancellationToken.None);
 
-        Assert.Equal(400, unknownBankResult.Error?.StatusCode);
-        Assert.Equal(400, emptyPdfResult.Error?.StatusCode);
+        Assert.Equal(ServiceErrorType.Validation, unknownBankResult.Error?.Type);
+        Assert.Equal(ServiceErrorType.Validation, emptyPdfResult.Error?.Type);
     }
 
     [Fact]

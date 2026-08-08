@@ -21,15 +21,15 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
         Task<ServiceResult<MoneyMovementDto>> CreateAsync(CreateMoneyMovementRequest request, Guid userId, CancellationToken ct);
 
-        Task<ServiceResult<bool>> MoveToAccountAsync(MoveMoneyMovementToAccountRequest request, Guid userId, CancellationToken ct);
+        Task<ServiceResult> MoveToAccountAsync(MoveMoneyMovementToAccountRequest request, Guid userId, CancellationToken ct);
 
-        Task<ServiceResult<bool>> DeleteAsync(DeleteMoneyMovementRequest request, Guid userId, CancellationToken ct);
+        Task<ServiceResult> DeleteAsync(DeleteMoneyMovementRequest request, Guid userId, CancellationToken ct);
 
-        Task<ServiceResult<bool>> UpdateCommentAsync(UpdateMoneyMovementCommentRequest request, Guid userId, CancellationToken ct);
+        Task<ServiceResult> UpdateCommentAsync(UpdateMoneyMovementCommentRequest request, Guid userId, CancellationToken ct);
 
-        Task<ServiceResult<bool>> LinkReceiptAsync(LinkMoneyMovementReceiptRequest request, Guid userId, CancellationToken ct);
+        Task<ServiceResult> LinkReceiptAsync(LinkMoneyMovementReceiptRequest request, Guid userId, CancellationToken ct);
 
-        Task<ServiceResult<bool>> UnlinkReceiptAsync(UnlinkMoneyMovementReceiptRequest request, Guid userId, CancellationToken ct);
+        Task<ServiceResult> UnlinkReceiptAsync(UnlinkMoneyMovementReceiptRequest request, Guid userId, CancellationToken ct);
 
         Task<ServiceResult<ReceiptDto>> OpenReceiptAsync(OpenReceiptRequest request, User currentUser, CancellationToken ct);
 

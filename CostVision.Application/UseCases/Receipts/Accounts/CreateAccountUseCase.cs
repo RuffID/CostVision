@@ -8,7 +8,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
 {
     public class CreateAccountUseCase(IUnitOfWork unitOfWork) : ICreateAccountUseCase
     {
-        public async Task<ServiceResult<Account>> ExecuteAsync(Guid ownerUserId, CreateAccountRequest request, CancellationToken ct)
+        public async Task<ServiceResult<UserAccountViewModel>> ExecuteAsync(Guid ownerUserId, CreateAccountRequest request, CancellationToken ct)
         {
             bool isCreated = Account.TryCreate(
                 request.Name,
@@ -20,7 +20,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 out string? error);
 
             if (!isCreated || account == null)
-                return ServiceResult<Account>.Fail(400, error ?? "Не удалось создать счёт.");
+                return ServiceResult<UserAccountViewModel>.Fail(ServiceErrorType.Validation, error ?? "Не удалось создать счёт.");
 
             AccountMember ownerMember = account.Members.Single(member => member.Role == AccountAccessRole.Owner);
 
@@ -30,7 +30,16 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 unitOfWork.AccountMember.Create(ownerMember);
             }, ct);
 
-            return ServiceResult<Account>.Ok(account);
+            return ServiceResult<UserAccountViewModel>.Ok(new UserAccountViewModel
+            {
+                Id = account.Id,
+                Name = account.Name,
+                Description = account.Description,
+                ColorHex = account.ColorHex,
+                IsActive = !account.IsArchived,
+                CanManage = true,
+                AccessRole = AccountAccessRole.Owner
+            });
         }
     }
 }
