@@ -9,11 +9,14 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using CostVision.Application.UseCases.Authorize.Roles;
 using CostVision.Application.UseCases.Authorize.Users;
 using CostVision.Web.Abstractions.Entity;
+using Microsoft.AspNetCore.Authorization;
+using CostVision.Web.Authorize;
 
 namespace CostVision.Web.Pages.Settings
 {
     [CookieAuthorize]
     [LoadUser]
+    [Authorize(Policy = AuthorizationPolicies.ADMIN)]
     public class UsersModel(
         IGetUserListUseCase getUserListUseCase,
         IGetUserUseCase getUserUseCase,

@@ -9,8 +9,6 @@ namespace CostVision.Web.Authorize.Attributes
     public class LoadUserAttribute : Attribute, IAsyncPageFilter, IOrderedFilter
     {
         public int Order { get; set; } = 1;
-        private const string CURRENT_USER_ITEM_KEY = "CurrentUser";
-
         public Task OnPageHandlerSelectionAsync(PageHandlerSelectedContext context)
         {
             return Task.CompletedTask;
@@ -21,7 +19,7 @@ namespace CostVision.Web.Authorize.Attributes
             PageModel? page = context.HandlerInstance as PageModel;
             if (page is IHasCurrentUser target)
             {
-                if (context.HttpContext.Items[CURRENT_USER_ITEM_KEY] is User user)
+                if (context.HttpContext.Items[CurrentUserHttpContextItemKeys.CURRENT_USER] is User user)
                 {
                     target.CurrentUser = user;
                 }

@@ -1,4 +1,3 @@
-using CostVision.Application.Models.Dtos.Mappers;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.MoneyMovements;

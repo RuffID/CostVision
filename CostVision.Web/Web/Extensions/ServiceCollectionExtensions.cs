@@ -1,8 +1,10 @@
 using CostVision.Application.Extensions;
 using CostVision.Infrastructure.Extensions;
+using CostVision.Web.Authorize;
 using CostVision.Web.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -18,14 +20,23 @@ namespace CostVision.Web.Extensions
             services.AddTransient<ExceptionHandlingMiddleware>();
             services.AddControllers();
             services.AddLogging();
-            services.AddAuthorization();
+            services.AddHttpContextAccessor();
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy(AuthorizationPolicies.ADMIN, policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+                    policy.Requirements.Add(new AdminAccessRequirement());
+                });
+            });
+            services.AddScoped<IAuthorizationHandler, AdminAccessHandler>();
 
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(options =>
             {
                 options.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Title = "Моё API",
+                    Title = "My API",
                     Version = "v1"
                 });
             });

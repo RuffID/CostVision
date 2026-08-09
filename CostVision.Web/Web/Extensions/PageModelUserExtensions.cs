@@ -1,5 +1,6 @@
 using CostVision.Domain.Models.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using CostVision.Web.Authorize;
 
 namespace CostVision.Web.Extensions
 {
@@ -7,7 +8,7 @@ namespace CostVision.Web.Extensions
     {
         public static User GetCurrentUser(this PageModel page)
         {
-            object? value = page.HttpContext.Items["CurrentUser"];
+            object? value = page.HttpContext.Items[CurrentUserHttpContextItemKeys.CURRENT_USER];
 
             if (value is User user)
                 return user;
