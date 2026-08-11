@@ -1,6 +1,7 @@
 using CostVision.Application.Models.Dtos.Mappers;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Enums.MoneyMovements;
+using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using Xunit;
@@ -108,7 +109,7 @@ public class ReceiptMapperTests
 
     private static void AddItem(Receipt receipt, Product product, decimal quantity, decimal price, decimal sum)
     {
-        Assert.True(ReceiptItem.TryCreate(price, quantity, sum, 0, default, default, default, product, null, out ReceiptItem? item, out string? error), error);
+        Assert.True(ReceiptItem.TryCreate(price, quantity, sum, 0, PaymentType.FullPayment, ProductType.Product, QuantityMeasureType.Piece, product, null, out ReceiptItem? item, out string? error), error);
         Assert.True(receipt.TryAddItem(item!, out error), error);
     }
 }

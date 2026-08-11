@@ -74,7 +74,9 @@ public class WebAuthorizationIntegrationTests : IDisposable
         HttpResponseMessage response = await _app.Client.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Equal("login", response.Headers.Location?.OriginalString);
+        Uri location = Assert.IsType<Uri>(response.Headers.Location);
+        Assert.Equal("/login", location.AbsolutePath);
+        Assert.Equal("?ReturnUrl=%2F", location.Query);
     }
 
     [Fact]

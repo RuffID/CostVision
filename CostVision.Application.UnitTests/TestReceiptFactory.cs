@@ -100,7 +100,7 @@ internal static class TestReceiptFactory
             quantity,
             sum,
             0,
-            PaymentType.Electronic,
+            PaymentType.FullPayment,
             ProductType.Product,
             QuantityMeasureType.Piece,
             product,

@@ -5,6 +5,7 @@ using CostVision.Application.UseCases.MoneyMovements;
 using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Domain.Models.Authorization;
+using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Web.Pages;
 using CostVision.Web.UnitTests.Helpers;
@@ -50,7 +51,7 @@ public class ReceiptsModelTests
         Assert.Null(storeError);
         Receipt receipt = CreateReceipt(receiptId, currentUser.Id, new DateTime(2026, 5, 1), store);
         Assert.True(Product.TryCreate("Milk", "MILK", out Product? product, out string? productError), productError);
-        Assert.True(ReceiptItem.TryCreate(10, 2, 20, 0, default, default, default, product!, null, out ReceiptItem? item, out string? itemError), itemError);
+        Assert.True(ReceiptItem.TryCreate(10, 2, 20, 0, PaymentType.FullPayment, ProductType.Product, QuantityMeasureType.Piece, product!, null, out ReceiptItem? item, out string? itemError), itemError);
         Assert.True(receipt.TryAddItem(item!, out itemError), itemError);
 
         Dependencies dependencies = new();
@@ -142,7 +143,7 @@ public class ReceiptsModelTests
             "fd",
             "fp",
             dateTime,
-            CostVision.Domain.Models.Enums.Receipts.ReceiptOperationType.Income,
+            ReceiptOperationType.Income,
             100,
             createdByUserId,
             new DateTime(2026, 1, 1),

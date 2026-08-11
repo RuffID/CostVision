@@ -94,11 +94,11 @@ public class ReceiptTests
     {
         Receipt receipt = CreateReceipt();
         Product originalProduct = TestReceiptFactory.CreateProduct("Old");
-        Assert.True(ReceiptItem.TryCreate(10, 1, 10, 0, default, default, default, originalProduct, null, out ReceiptItem? originalItem, out string? error), error);
+        Assert.True(ReceiptItem.TryCreate(10, 1, 10, 0, PaymentType.FullPayment, ProductType.Product, QuantityMeasureType.Piece, originalProduct, null, out ReceiptItem? originalItem, out string? error), error);
         Assert.True(receipt.TryAddItem(originalItem!, out error), error);
         Receipt source = CreateReceipt("new-fn", "new-fd", "new-fp", 20);
         Product sourceProduct = TestReceiptFactory.CreateProduct("Source");
-        Assert.True(ReceiptItem.TryCreate(20, 1, 20, 0, default, default, default, sourceProduct, null, out ReceiptItem? sourceItem, out error), error);
+        Assert.True(ReceiptItem.TryCreate(20, 1, 20, 0, PaymentType.FullPayment, ProductType.Product, QuantityMeasureType.Piece, sourceProduct, null, out ReceiptItem? sourceItem, out error), error);
         Assert.True(source.TryAddItem(sourceItem!, out error), error);
 
         bool success = receipt.TryRefreshFrom(

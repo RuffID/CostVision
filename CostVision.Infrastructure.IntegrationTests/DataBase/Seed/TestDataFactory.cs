@@ -85,7 +85,7 @@ public static class TestDataFactory
             1,
             100,
             0,
-            PaymentType.Electronic,
+            PaymentType.FullPayment,
             ProductType.Product,
             QuantityMeasureType.Piece,
             product,

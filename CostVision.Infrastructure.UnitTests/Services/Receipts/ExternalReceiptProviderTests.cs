@@ -182,8 +182,8 @@ public class ExternalReceiptProviderTests
                             Price = 12345,
                             Sum = 12345,
                             Quantity = 1,
-                            PaymentType = PaymentType.Electronic,
-                            ProductType = ProductType.Product,
+                            PaymentTypeCode = (int)PaymentType.FullPayment,
+                            ProductTypeCode = (int)ProductType.Product,
                             ItemsQuantityMeasure = QuantityMeasureType.Piece
                         }
                     ]

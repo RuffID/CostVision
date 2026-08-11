@@ -21,7 +21,7 @@ public class ReceiptRefreshWorkflowTests
         Assert.Null(oldStoreError);
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), store: oldStore);
         Product oldProduct = TestReceiptFactory.CreateProduct("Old");
-        Assert.True(ReceiptItem.TryCreate(1, 1, 1, 0, default, default, default, oldProduct, null, out ReceiptItem? oldItem, out string? oldItemError), oldItemError);
+        Assert.True(ReceiptItem.TryCreate(1, 1, 1, 0, PaymentType.FullPayment, ProductType.Product, QuantityMeasureType.Piece, oldProduct, null, out ReceiptItem? oldItem, out string? oldItemError), oldItemError);
         Assert.True(receipt.TryAddItem(oldItem!, out oldItemError), oldItemError);
         Product sourceProduct = TestReceiptFactory.CreateProduct("Milk");
         Store.TryCreate("New", "NEW", "Address", "ADDRESS", out Store? sourceStore, out string? sourceStoreError);
@@ -29,7 +29,7 @@ public class ReceiptRefreshWorkflowTests
         Assert.Null(sourceStoreError);
         Assert.True(Receipt.TryCreate("fn", "fd", "fp", new DateTime(2026, 1, 1), ReceiptOperationType.Income, 20, Guid.NewGuid(), new DateTime(2026, 1, 1), out Receipt? externalReceipt, out string? receiptError), receiptError);
         externalReceipt!.AssignStore(sourceStore);
-        Assert.True(ReceiptItem.TryCreate(10, 2, 20, 0, default, default, default, sourceProduct, null, out ReceiptItem? sourceItem, out string? itemError), itemError);
+        Assert.True(ReceiptItem.TryCreate(10, 2, 20, 0, PaymentType.FullPayment, ProductType.Product, QuantityMeasureType.Piece, sourceProduct, null, out ReceiptItem? sourceItem, out string? itemError), itemError);
         Assert.True(externalReceipt.TryAddItem(sourceItem!, out itemError), itemError);
         Product? createdProduct = null;
         Store? createdStore = null;

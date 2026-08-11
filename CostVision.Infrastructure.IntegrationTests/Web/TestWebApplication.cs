@@ -164,6 +164,7 @@ public sealed class TestWebApplication : IDisposable
             .SetApplicationName("CostVision.Web.IntegrationTests");
 
         services.AddSingleton<IAuthenticateUserUseCase>(_authenticateUser);
+        services.AddSingleton<IGetActiveUserForRequestUseCase, GetActiveUserForRequestUseCase>();
         services.AddSingleton<IMarkUserActivityUseCase>(MarkUserActivity);
         services.AddSingleton<IGetDashboardIncomeExpenseReportUseCase, FakeDashboardIncomeExpenseReportUseCase>();
         services.AddSingleton<IGetUserAccountsUseCase, FakeGetUserAccountsUseCase>();

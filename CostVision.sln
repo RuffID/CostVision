@@ -18,6 +18,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Infrastructure.I
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CostVision.Web.UnitTests", "CostVision.Web.UnitTests\CostVision.Web.UnitTests.csproj", "{9013C67C-45CB-4F42-B1C0-E55EB8D3F3CE}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documents", "Documents", "{B7535D20-2A49-4662-9E5B-2149CAAC4DD8}"
+	ProjectSection(SolutionItems) = preProject
+		Documents\README.md = Documents\README.md
+		Documents\architecture.md = Documents\architecture.md
+		Documents\accounts-and-access.md = Documents\accounts-and-access.md
+		Documents\receipts-and-products.md = Documents\receipts-and-products.md
+		Documents\money-movements.md = Documents\money-movements.md
+		Documents\web-interface.md = Documents\web-interface.md
+		Documents\data-access.md = Documents\data-access.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

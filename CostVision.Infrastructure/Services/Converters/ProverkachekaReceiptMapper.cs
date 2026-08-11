@@ -1,3 +1,4 @@
+using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Infrastructure.Models.Responses.ProverkachekaApi;
 
@@ -45,13 +46,16 @@ namespace CostVision.Infrastructure.Services.Converters
 
         public static ReceiptItem MapToReceiptItem(this ProverkachekaItem item, Product product, Guid? categoryId = null)
         {
+            PaymentType paymentType = (PaymentType)item.PaymentTypeCode;
+            ProductType productType = (ProductType)item.ProductTypeCode;
+
             if (!ReceiptItem.TryCreate(
                     item.Price / 100m,
                     item.Quantity,
                     item.Sum / 100m,
                     item.Nds,
-                    item.PaymentType,
-                    item.ProductType,
+                    paymentType,
+                    productType,
                     item.ItemsQuantityMeasure,
                     product,
                     categoryId,

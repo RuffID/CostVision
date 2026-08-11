@@ -85,8 +85,8 @@ public class ProverkachekaReceiptMapperTests
             Sum = 3998,
             Quantity = 2,
             Nds = 6,
-            PaymentType = PaymentType.Electronic,
-            ProductType = ProductType.Service,
+            PaymentTypeCode = (int)PaymentType.FullPayment,
+            ProductTypeCode = (int)ProductType.Service,
             ItemsQuantityMeasure = QuantityMeasureType.Piece
         };
 
@@ -99,7 +99,7 @@ public class ProverkachekaReceiptMapperTests
         Assert.Equal(39.98m, result.Sum);
         Assert.Equal(2, result.Quantity);
         Assert.Equal(6, result.Nds);
-        Assert.Equal(PaymentType.Electronic, result.PaymentType);
+        Assert.Equal(PaymentType.FullPayment, result.PaymentType);
         Assert.Equal(ProductType.Service, result.ProductType);
         Assert.Equal(QuantityMeasureType.Piece, result.ItemsQuantityMeasure);
     }

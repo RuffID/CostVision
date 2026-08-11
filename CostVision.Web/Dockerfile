@@ -36,7 +36,7 @@ RUN npm run build:ts
 # Этот этап используется для публикации проекта службы, который будет скопирован на последний этап
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN --mount=type=cache,target=/root/.nuget/packages dotnet publish "./CostVision.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish --no-restore /p:UseAppHost=false /p:SkipFrontendBuild=true
+RUN --mount=type=cache,target=/root/.nuget/packages dotnet publish "./CostVision.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:SkipFrontendBuild=true
 
 # Этот этап используется в рабочей среде или при запуске из VS в обычном режиме (по умолчанию, когда конфигурация отладки не используется)
 FROM base AS final

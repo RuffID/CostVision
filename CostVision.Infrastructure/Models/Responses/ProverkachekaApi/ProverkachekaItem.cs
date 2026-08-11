@@ -1,4 +1,5 @@
 using CostVision.Domain.Models.Enums.Receipts;
+using System.Text.Json.Serialization;
 
 namespace CostVision.Infrastructure.Models.Responses.ProverkachekaApi
 {
@@ -22,11 +23,13 @@ namespace CostVision.Infrastructure.Models.Responses.ProverkachekaApi
         // Количество товара
         public decimal Quantity { get; set; }
 
-        // Тип оплаты
-        public PaymentType PaymentType { get; set; }
+        // Признак способа расчёта (тег 1214 ФФД)
+        [JsonPropertyName("paymentType")]
+        public int PaymentTypeCode { get; set; }
 
-        // Тип товара
-        public ProductType ProductType { get; set; }
+        // Признак предмета расчёта (тег 1212 ФФД)
+        [JsonPropertyName("productType")]
+        public int ProductTypeCode { get; set; }
 
         // Мера количества
         public QuantityMeasureType ItemsQuantityMeasure { get; set; }
