@@ -1,4 +1,4 @@
-﻿using CostVision.Web.Extensions;
+using CostVision.Web.Extensions;
 using CostVision.Web.Middleware;
 using Serilog;
 
@@ -35,6 +35,7 @@ if (builder.Environment.IsDevelopment())
 
 WebApplication app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 await app.InitializeDatabaseAsync();

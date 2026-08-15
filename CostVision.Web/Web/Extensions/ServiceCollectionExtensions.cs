@@ -15,6 +15,7 @@ namespace CostVision.Web.Extensions
     {
         public static IServiceCollection ConfigureServices(this IServiceCollection services, WebApplicationBuilder builder)
         {
+            services.AddForwardedHeadersConfiguration(builder.Configuration);
             services.AddApplication();
             services.AddInfrastructure(builder.Configuration);
             services.AddTransient<ExceptionHandlingMiddleware>();
