@@ -1,0 +1,29 @@
+<Solution>
+  <Folder Name="/Documents/">
+    <File Path="Documents/Technical requirements.md" />
+  </Folder>
+  <Folder Name="/Documents/Technical/">
+    <File Path="Documents/Technical/README.md" />
+    <File Path="Documents/Technical/01-system-overview.md" />
+    <File Path="Documents/Technical/02-architecture.md" />
+    <File Path="Documents/Technical/03-authorization-and-accounts.md" />
+    <File Path="Documents/Technical/04-receipts-and-catalogs.md" />
+    <File Path="Documents/Technical/05-money-movements-and-reporting.md" />
+    <File Path="Documents/Technical/06-web-data-and-operations.md" />
+    <File Path="Documents/Technical/07-testing-and-maintenance.md" />
+  </Folder>
+  <Folder Name="/libs/">
+    <File Path="libs/EFCoreLibrary.dll" />
+    <File Path="libs/HttpClientLibrary.dll" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CostVision.Application.UnitTests/CostVision.Application.UnitTests.csproj" />
+    <Project Path="tests/CostVision.Infrastructure.IntegrationTests/CostVision.Infrastructure.IntegrationTests.csproj" />
+    <Project Path="tests/CostVision.Infrastructure.UnitTests/CostVision.Infrastructure.UnitTests.csproj" />
+    <Project Path="tests/CostVision.Web.UnitTests/CostVision.Web.UnitTests.csproj" />
+  </Folder>
+  <Project Path="CostVision.Application/CostVision.Application.csproj" />
+  <Project Path="CostVision.Domain/CostVision.Domain.csproj" />
+  <Project Path="CostVision.Infrastructure/CostVision.Infrastructure.csproj" />
+  <Project Path="CostVision.Web/CostVision.Web.csproj" />
+</Solution>

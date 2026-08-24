@@ -15,19 +15,15 @@
   <ItemGroup>
     <Compile Remove="certs\**" />
     <Compile Remove="keys-windows\**" />
-    <Compile Remove="Libs\**" />
     <Compile Remove="Logs\**" />
     <Content Remove="certs\**" />
     <Content Remove="keys-windows\**" />
-    <Content Remove="Libs\**" />
     <Content Remove="Logs\**" />
     <EmbeddedResource Remove="certs\**" />
     <EmbeddedResource Remove="keys-windows\**" />
-    <EmbeddedResource Remove="Libs\**" />
     <EmbeddedResource Remove="Logs\**" />
     <None Remove="certs\**" />
     <None Remove="keys-windows\**" />
-    <None Remove="Libs\**" />
     <None Remove="Logs\**" />
   </ItemGroup>
 

@@ -23,13 +23,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CostVision.Web\CostVision.Web.csproj" />
-    <ProjectReference Include="..\CostVision.Infrastructure\CostVision.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\CostVision.Web\CostVision.Web.csproj" />
+    <ProjectReference Include="..\..\CostVision.Infrastructure\CostVision.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="EFCoreLibrary">
-      <HintPath>..\libs\EFCoreLibrary.dll</HintPath>
+      <HintPath>..\..\libs\EFCoreLibrary.dll</HintPath>
     </Reference>
   </ItemGroup>
 
