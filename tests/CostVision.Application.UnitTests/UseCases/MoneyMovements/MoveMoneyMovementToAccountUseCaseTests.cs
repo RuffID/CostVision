@@ -16,6 +16,7 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
     [Fact]
     public async Task MoveMoneyMovementToAccount_ChangesAccount_WhenBothAccountsAreEditable()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid sourceAccountId = Guid.NewGuid();
         Guid targetAccountId = Guid.NewGuid();
@@ -30,7 +31,7 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
             .Setup(repository => repository.GetItemByPredicateAsync(
                 It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
                 false,
-                null,
+                It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(movement);
         Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(
@@ -39,6 +40,7 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
             setupSaveChanges: true);
         MoveMoneyMovementToAccountUseCase useCase = new(unitOfWork.Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new MoveMoneyMovementToAccountRequest
         {
             MoneyMovementId = movement.Id,
@@ -46,6 +48,7 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
             TargetAccountId = targetAccountId
         }, userId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.Equal(targetAccountId, movement.AccountId);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -54,6 +57,7 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
     [Fact]
     public async Task MoveMoneyMovementToAccount_ReturnsNotFound_WhenMovementIsMissing()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid sourceAccountId = Guid.NewGuid();
         Guid targetAccountId = Guid.NewGuid();
@@ -67,7 +71,7 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
             .Setup(repository => repository.GetItemByPredicateAsync(
                 It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
                 false,
-                null,
+                It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((MoneyMovement?)null);
         MoveMoneyMovementToAccountUseCase useCase = new(CreateUnitOfWork(
@@ -75,6 +79,7 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
             moneyMovementRepository: moneyMovementRepository,
             setupSaveChanges: true).Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new MoveMoneyMovementToAccountRequest
         {
             MoneyMovementId = Guid.NewGuid(),
@@ -82,6 +87,7 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
             TargetAccountId = targetAccountId
         }, userId, CancellationToken.None);
 
+        // Assert
         Assert.False(result.Success);
         Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }

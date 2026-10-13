@@ -4,6 +4,7 @@ using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
@@ -12,15 +13,40 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult> ExecuteAsync(LinkMoneyMovementReceiptRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.MoneyMovementId == Guid.Empty || request.ReceiptId == Guid.Empty)
+            {
                 return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции или чека.");
+            }
+
+            ServiceResult? result = null;
+            try
+            {
+                await unitOfWork.ExecuteInTransaction(async transactionCt =>
+                {
+                    result = await LinkAsync(request, currentUserId, transactionCt);
+                }, IsolationLevel.Serializable, ct);
+            }
+            catch (ReceiptWriteConflictException)
+            {
+                return ServiceResult.Fail(ServiceErrorType.Conflict, "Конкурентная привязка отменена. Повторите запрос.");
+            }
+
+            return result ?? throw new InvalidOperationException("Транзакция привязки завершилась без результата.");
+        }
+
+        private async Task<ServiceResult> LinkAsync(LinkMoneyMovementReceiptRequest request, Guid currentUserId, CancellationToken ct)
+        {
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByIdAsync(request.MoneyMovementId, asNoTracking: true, ct: ct);
             if (movement == null)
+            {
                 return ServiceResult.Fail(ServiceErrorType.NotFound, "Операция не найдена.");
+            }
 
             ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, movement.AccountId, currentUserId, ct);
             if (!access.Success)
+            {
                 return access.PropagateFailure();
+            }
 
             Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
                 item => item.Id == request.ReceiptId &&
@@ -38,7 +64,9 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (receipt == null)
+            {
                 return ServiceResult.Fail(ServiceErrorType.NotFound, "Чек не найден или доступ к нему отсутствует.");
+            }
 
             MoneyMovementReceipt? existingLink = await unitOfWork.MoneyMovementReceipt.GetItemByPredicateAsync(
                 link => link.MoneyMovementId == request.MoneyMovementId && link.ReceiptId == request.ReceiptId,
@@ -46,7 +74,9 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (existingLink != null)
+            {
                 return ServiceResult.Fail(ServiceErrorType.Conflict, "Чек уже привязан к операции.");
+            }
 
             if (!MoneyMovementReceipt.TryCreate(
                     request.MoneyMovementId,
@@ -55,14 +85,12 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     DateTime.UtcNow,
                     out MoneyMovementReceipt? link,
                     out string? error))
-                return ServiceResult.Fail(ServiceErrorType.Validation, error!);
-
-            await unitOfWork.ExecuteInTransaction(_ =>
             {
-                unitOfWork.MoneyMovementReceipt.Create(link!);
+                return ServiceResult.Fail(ServiceErrorType.Validation, error!);
+            }
 
-                return Task.CompletedTask;
-            }, ct);
+            unitOfWork.MoneyMovementReceipt.Create(link!);
+            await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult.Ok();
         }

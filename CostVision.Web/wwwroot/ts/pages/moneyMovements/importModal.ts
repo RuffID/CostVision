@@ -3,7 +3,7 @@ import { initFileDropzone } from "../../shared/dropzone.js";
 import { importMoneyMovements, previewBankStatementImport } from "./api.js";
 import { renderImportErrors, renderImportPreview, renderImportSummary } from "./render.js";
 import type { MoneyMovementsState } from "./state.js";
-import type { BankStatementImportPreviewRowDto, BankStatementImportRowRequest, SaveBankStatementImportRequest } from "./types.js";
+import type { BankStatementImportLineErrorDto, BankStatementImportPreviewRowDto, BankStatementImportResultDto, BankStatementImportRowRequest, SaveBankStatementImportRequest } from "./types.js";
 import type { MoneyMovementsUi } from "./ui.js";
 
 export interface MoneyMovementImportModalController {
@@ -19,7 +19,19 @@ export interface MoneyMovementImportModalOptions {
 }
 
 export function initMoneyMovementImportModalController(options: MoneyMovementImportModalOptions): MoneyMovementImportModalController {
-    const { ui, state, importModal, getForgeryToken, reloadMovements } = options;
+    const { ui, state, getForgeryToken, reloadMovements } = options;
+    let saving = false;
+    let previewing = false;
+    let lastResult: BankStatementImportResultDto | null = null;
+    let previewAccountId: string | null = null;
+    let recognitionErrors: BankStatementImportLineErrorDto[] = [];
+
+    // Окно остаётся открытым, чтобы итог был виден и исправлялись только непринятые строки.
+    ui.importModal.addEventListener("hide.bs.modal", event => {
+        if (saving || previewing) {
+            event.preventDefault();
+        }
+    });
 
     initFileDropzone({
         dropzone: ui.importDropzone,
@@ -52,15 +64,26 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
     }
 
     function setImportFile(file: File): void {
+        if (saving || previewing) {
+            return;
+        }
+
         state.selectedImportFile = file;
         ui.importFileName.textContent = file.name;
         state.importRows = [];
         state.importErrors = [];
+        lastResult = null;
+        previewAccountId = null;
+        recognitionErrors = [];
         renderState();
         hideImportAlert();
     }
 
     async function handleImportPreviewClick(): Promise<void> {
+        if (saving || previewing) {
+            return;
+        }
+
         try {
             hideImportAlert();
 
@@ -76,27 +99,37 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
                 throw new Error("Выберите счёт для импорта.");
             }
 
-            ui.importPreviewButton.disabled = true;
+            previewing = true;
+            updateImportBusyState();
             ui.importPreviewButton.textContent = "Распознавание...";
 
-            const preview = await previewBankStatementImport(getForgeryToken(), ui.importBankSelect.value, ui.importAccountSelect.value, state.selectedImportFile);
+            const accountId = ui.importAccountSelect.value;
+            const preview = await previewBankStatementImport(getForgeryToken(), ui.importBankSelect.value, accountId, state.selectedImportFile);
+            previewAccountId = preview.accountId;
+            lastResult = null;
             state.importRows = preview.rows.map(row => ({
                 ...row,
                 replaceDuplicate: false
             }));
             state.importErrors = preview.errors;
+            recognitionErrors = preview.errors;
             renderState();
         }
         catch (error) {
             showImportAlert(getErrorMessage(error));
         }
         finally {
-            ui.importPreviewButton.disabled = false;
+            previewing = false;
+            updateImportBusyState();
             ui.importPreviewButton.textContent = "Предпросмотр";
         }
     }
 
     async function handleImportSaveClick(): Promise<void> {
+        if (saving || previewing || ui.importSaveButton.disabled) {
+            return;
+        }
+
         try {
             hideImportAlert();
 
@@ -106,11 +139,33 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
             }
 
             const request = readImportRequest();
-            ui.importSaveButton.disabled = true;
+            const submittedRows = getRowsForImport().map(row => ({ ...row }));
+            saving = true;
+            updateImportBusyState();
             ui.importSaveButton.textContent = "Импорт...";
 
-            await importMoneyMovements(getForgeryToken(), request);
-            importModal.hide();
+            const result = await importMoneyMovements(getForgeryToken(), request);
+            // Номера ошибок относятся к отправленному пакету, а не к исходному PDF.
+            const rejected = new Set(result.errors.map(error => error.lineNumber - 1));
+            const acceptedIds = new Set(submittedRows.filter((_, index) => !rejected.has(index)).map(row => row.clientRowId));
+            state.importRows = state.importRows.filter(row => !acceptedIds.has(row.clientRowId));
+            for (const error of result.errors) {
+                if (error.canReplaceDuplicate === true) {
+                    const failedRow = findImportRow(submittedRows[error.lineNumber - 1].clientRowId);
+                    if (failedRow) {
+                        failedRow.isDuplicate = true;
+                        failedRow.duplicateMoneyMovementId = error.duplicateMoneyMovementId;
+                        failedRow.replaceDuplicate = false;
+                    }
+                }
+            }
+            state.importErrors = [...recognitionErrors, ...result.errors.map(error => ({
+                ...error,
+                lineNumber: submittedRows[error.lineNumber - 1].sourceLineNumber
+            }))];
+            state.hideDuplicateImportRows = false;
+            lastResult = result;
+            renderState();
             await reloadMovements();
         }
         catch (error) {
@@ -118,11 +173,17 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
             updateImportSaveState();
         }
         finally {
+            saving = false;
+            updateImportBusyState();
+            updateImportSaveState();
             ui.importSaveButton.textContent = "Импортировать";
         }
     }
 
     function handleImportPreviewInput(event: Event): void {
+        if (saving || previewing) {
+            return;
+        }
         const target = event.target;
         if (!(target instanceof HTMLTextAreaElement)) {
             return;
@@ -141,6 +202,9 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
     }
 
     function handleImportPreviewChange(event: Event): void {
+        if (saving || previewing) {
+            return;
+        }
         const target = event.target;
         if (!(target instanceof HTMLInputElement)) {
             return;
@@ -160,6 +224,9 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
     }
 
     function handleImportPreviewContainerClick(event: MouseEvent): void {
+        if (saving || previewing) {
+            return;
+        }
         const target = event.target;
         if (!(target instanceof Element)) {
             return;
@@ -176,6 +243,9 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
     }
 
     function handleToggleDuplicateReplacementsChange(): void {
+        if (saving || previewing) {
+            return;
+        }
         for (const row of state.importRows) {
             if (row.isDuplicate) {
                 row.replaceDuplicate = ui.importToggleDuplicateReplacementsInput.checked;
@@ -186,6 +256,9 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
     }
 
     function handleSkipDuplicatesChange(): void {
+        if (saving || previewing) {
+            return;
+        }
         if (ui.importSkipDuplicatesInput.checked) {
             for (const row of state.importRows) {
                 if (row.isDuplicate) {
@@ -198,6 +271,9 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
     }
 
     function handleToggleDuplicatesClick(): void {
+        if (saving || previewing) {
+            return;
+        }
         state.hideDuplicateImportRows = !state.hideDuplicateImportRows;
         renderState();
     }
@@ -205,6 +281,10 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
     function readImportRequest(): SaveBankStatementImportRequest {
         if (!ui.importAccountSelect.value) {
             throw new Error("Выберите счёт для импорта.");
+        }
+
+        if (previewAccountId !== null && previewAccountId !== ui.importAccountSelect.value) {
+            throw new Error("Счёт изменён после предпросмотра. Выполните предпросмотр для выбранного счёта.");
         }
 
         const importRows = getRowsForImport();
@@ -236,6 +316,9 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
         renderImportPreview(ui.importPreview, visibleRows);
         renderImportErrors(ui.importErrors, state.importErrors);
         renderImportSummary(ui.importSummary, state.importRows);
+        if (lastResult !== null) {
+            ui.importSummary.textContent = `Создано: ${lastResult.createdCount}. Обновлено: ${lastResult.updatedCount}. Ошибок: ${lastResult.errorCount}. Осталось строк: ${state.importRows.length}.`;
+        }
         updateImportPreviewControls();
         updateImportSaveState();
     }
@@ -251,13 +334,33 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
         ui.importToggleDuplicateReplacementsInput.indeterminate = !ui.importSkipDuplicatesInput.checked && hasDuplicates && checkedDuplicateCount > 0 && checkedDuplicateCount < duplicateRows.length;
         ui.importToggleDuplicatesButton.disabled = !hasDuplicates;
         ui.importToggleDuplicatesButton.textContent = state.hideDuplicateImportRows ? "Показать повторяющиеся" : "Скрыть повторяющиеся";
+        if (saving || previewing) {
+            ui.importSkipDuplicatesInput.disabled = true;
+            ui.importToggleDuplicateReplacementsInput.disabled = true;
+            ui.importToggleDuplicatesButton.disabled = true;
+        }
     }
 
     function updateImportSaveState(): void {
         const rowsForImport = getRowsForImport();
         const hasRows = rowsForImport.length > 0;
         const hasUnresolvedDuplicates = !ui.importSkipDuplicatesInput.checked && rowsForImport.some(row => row.isDuplicate && row.replaceDuplicate !== true);
-        ui.importSaveButton.disabled = !hasRows || hasUnresolvedDuplicates;
+        ui.importSaveButton.disabled = saving || previewing || !hasRows || hasUnresolvedDuplicates;
+    }
+
+    function updateImportBusyState(): void {
+        const busy = saving || previewing;
+        ui.importPreviewButton.disabled = busy;
+        ui.importAccountSelect.disabled = busy;
+        ui.importBankSelect.disabled = busy;
+        ui.importFileInput.disabled = busy;
+        ui.importToggleDuplicateReplacementsInput.disabled = busy;
+        ui.importSkipDuplicatesInput.disabled = busy;
+        ui.importToggleDuplicatesButton.disabled = busy;
+        if (!busy) {
+            updateImportPreviewControls();
+        }
+        updateImportSaveState();
     }
 
     function getRowsForImport(): BankStatementImportPreviewRowDto[] {
@@ -286,6 +389,9 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
         state.importRows = [];
         state.importErrors = [];
         state.hideDuplicateImportRows = false;
+        lastResult = null;
+        previewAccountId = null;
+        recognitionErrors = [];
         hideImportAlert();
         renderState();
     }

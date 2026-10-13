@@ -3,12 +3,11 @@ using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.MoneyMovements.Helpers;
-using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Enums.MoneyMovements;
-using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
@@ -55,27 +54,35 @@ namespace CostVision.Application.UseCases.MoneyMovements
             }
 
             MoneyMovementDto? createdDto = null;
-            await unitOfWork.ExecuteInTransaction(async transactionCt =>
+            try
             {
-                unitOfWork.MoneyMovement.Create(newMovement);
-                await unitOfWork.SaveChangesAsync(transactionCt);
-                await TryAutoLinkExactReceiptAsync(newMovement, currentUserId, transactionCt);
-
-                MoneyMovement? created = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
-                    item => item.Id == newMovement.Id,
-                    asNoTracking: true,
-                    include: query => query
-                        .Include(item => item.Account)
-                        .Include(item => item.PerformedByUser),
-                    ct: transactionCt);
-
-                if (created == null)
+                await unitOfWork.ExecuteInTransaction(async transactionCt =>
                 {
-                    throw new InvalidOperationException("Не удалось загрузить созданную операцию.");
-                }
+                    unitOfWork.MoneyMovement.Create(newMovement);
+                    await unitOfWork.SaveChangesAsync(transactionCt);
+                    await TryAutoLinkExactReceiptAsync(newMovement, currentUserId, transactionCt);
 
-                createdDto = created.MapDto(currentUserId);
-            }, ct);
+                    MoneyMovement? created = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
+                        item => item.Id == newMovement.Id,
+                        asNoTracking: true,
+                        include: query => query
+                            .Include(item => item.Account)
+                            .Include(item => item.PerformedByUser),
+                        ct: transactionCt);
+
+                    if (created == null)
+                    {
+                        throw new InvalidOperationException("Не удалось загрузить созданную операцию.");
+                    }
+
+                    createdDto = created.MapDto(currentUserId);
+                }, IsolationLevel.Serializable, ct);
+            }
+            catch (ReceiptWriteConflictException)
+            {
+                return ServiceResult<MoneyMovementDto>.Fail(ServiceErrorType.Conflict,
+                    "Конкурентное создание операции отменено. Повторите запрос.");
+            }
 
             return ServiceResult<MoneyMovementDto>.Ok(createdDto
                 ?? throw new InvalidOperationException("Транзакция создания операции завершилась без результата."));
@@ -91,58 +98,15 @@ namespace CostVision.Application.UseCases.MoneyMovements
             DateTime periodStart = movement.OccurredAt.Date;
             DateTime periodEnd = periodStart.AddDays(1);
 
-            List<Receipt> receiptCandidates = await unitOfWork.Receipt.GetItemsByPredicateAsync(
-                receipt => receipt.DateTime >= periodStart &&
-                           receipt.DateTime < periodEnd &&
-                           receipt.TotalSum == movement.Amount &&
-                           receipt.OperationType == ReceiptOperationType.Income &&
-                           !receipt.MoneyMovementLinks.Any() &&
-                           receipt.Accounts.Any(link => link.AccountId == movement.AccountId) &&
-                           (receipt.CreatedByUserId == currentUserId ||
-                            receipt.Accounts.Any(link => link.Account!.CreatedByUserId == currentUserId) ||
-                            receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUserId))),
-                asNoTracking: true,
-                include: query => query
-                    .Include(receipt => receipt.Accounts)
-                        .ThenInclude(link => link.Account)
-                            .ThenInclude(account => account!.Members)
-                    .Include(receipt => receipt.MoneyMovementLinks)
-                    .AsSplitQuery(),
-                ct: ct);
-
-            if (receiptCandidates.Count != 1)
+            List<MoneyMovementReceipt> links = await ExactMoneyMovementReceiptMatcher.LoadAndBuildAsync(
+                unitOfWork, currentUserId, periodStart, periodEnd, movement.AccountId, movement.Id, ct);
+            if (links.Count == 0)
             {
                 return;
             }
 
-            List<MoneyMovement> movementCandidates = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
-                item => item.AccountId == movement.AccountId &&
-                        item.OccurredAt >= periodStart &&
-                        item.OccurredAt < periodEnd &&
-                        item.Amount == movement.Amount &&
-                        item.Type == MoneyMovementType.Expense &&
-                        !item.ReceiptLinks.Any(),
-                asNoTracking: true,
-                include: query => query.Include(item => item.ReceiptLinks),
-                ct: ct);
-
-            if (movementCandidates.Count != 1 || movementCandidates[0].Id != movement.Id)
-            {
-                return;
-            }
-
-            if (!MoneyMovementReceipt.TryCreate(
-                    movement.Id,
-                    receiptCandidates[0].Id,
-                    currentUserId,
-                    DateTime.UtcNow,
-                    out MoneyMovementReceipt? link,
-                    out string? error))
-            {
-                throw new InvalidOperationException(error!);
-            }
-
-            unitOfWork.MoneyMovementReceipt.Create(link!);
+            unitOfWork.MoneyMovementReceipt.CreateRange(links);
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

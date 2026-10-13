@@ -4,6 +4,7 @@ using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Enums.MoneyMovements;
 using CostVision.Domain.Models.MoneyMovements;
+using System.Data;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
@@ -12,57 +13,104 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult<BankStatementImportResultDto>> ExecuteAsync(SaveBankStatementImportRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.AccountId == Guid.Empty)
+            {
                 return ServiceResult<BankStatementImportResultDto>.Fail(ServiceErrorType.Validation, "Выберите счёт для импорта.");
+            }
 
             if (request.Rows.Count == 0)
+            {
                 return ServiceResult<BankStatementImportResultDto>.Fail(ServiceErrorType.Validation, "Нет строк для импорта.");
+            }
 
             ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId, currentUserId, ct, requireActive: true);
             if (!accountAccess.Success)
+            {
                 return accountAccess.PropagateFailure<BankStatementImportResultDto>();
+            }
 
             BankStatementImportResultDto result = new();
             List<ValidImportRow> validRows =
                 ValidateRows(request.AccountId, request.Rows, currentUserId, result);
             if (validRows.Count == 0)
-                return ServiceResult<BankStatementImportResultDto>.Ok(result);
-
-            await unitOfWork.ExecuteInTransaction(async transactionCt =>
             {
-                foreach (ValidImportRow validRow in validRows)
+                return ServiceResult<BankStatementImportResultDto>.Ok(result);
+            }
+
+            try
+            {
+                await unitOfWork.ExecuteInTransaction(async transactionCt =>
                 {
-                    BankStatementImportRowRequest row = validRow.Row;
-                    MoneyMovement movement = validRow.Movement;
-                    MoneyMovement? duplicate = await FindDuplicateAsync(request.AccountId, row, movement, transactionCt);
-                    if (duplicate != null)
+                    Dictionary<BankStatementRowKey, MoneyMovement> accepted = new();
+                    foreach (ValidImportRow validRow in validRows)
                     {
-                        if (!row.ReplaceDuplicate)
+                        BankStatementImportRowRequest row = validRow.Row;
+                        MoneyMovement movement = validRow.Movement;
+                        BankStatementRowKey key = BankStatementRowKey.From(movement);
+                        accepted.TryGetValue(key, out MoneyMovement? duplicate);
+                        if (duplicate == null)
                         {
-                            AddError(result, validRow.Index, "В импорте есть повторяющаяся операция. Строка пропущена.", row.ImportComment);
+                            List<MoneyMovement> duplicates = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
+                                key.InAccount(request.AccountId), asNoTracking: false, ct: transactionCt);
+                            if (duplicates.Count > 1)
+                            {
+                                AddError(result, validRow.Index, "Найдено несколько операций с ключом строки. Требуется ручная сверка.", row.ImportComment);
+                                continue;
+                            }
+
+                            duplicate = duplicates.SingleOrDefault();
+                        }
+
+                        if (row.DuplicateMoneyMovementId.HasValue &&
+                            (duplicate == null || duplicate.Id != row.DuplicateMoneyMovementId.Value))
+                        {
+                            AddError(result, validRow.Index, "Выбранная операция больше не совпадает со строкой выписки. Повторите предпросмотр.", row.ImportComment);
                             continue;
                         }
 
-                        if (!duplicate.TryReplaceFromBankStatement(
-                                movement.Amount,
-                                movement.Type,
-                                movement.OccurredAt,
-                                movement.Comment,
-                                movement.ImportComment,
-                                DateTime.UtcNow,
-                                out string? error))
+                        if (duplicate != null)
                         {
-                            AddError(result, validRow.Index, error!, row.ImportComment);
+                            // SQL-колляция может сравнивать строки иначе, чем типизированный ключ.
+                            if (BankStatementRowKey.From(duplicate) != key || duplicate.AccountId != request.AccountId ||
+                                duplicate.Source != MoneyMovementSource.BankStatementImport)
+                            {
+                                AddError(result, validRow.Index, "Ключ существующей операции не совпадает со строкой выписки.", row.ImportComment);
+                                continue;
+                            }
+
+                            if (!row.ReplaceDuplicate)
+                            {
+                                AddError(result, validRow.Index, "В импорте есть повторяющаяся операция. Строка пропущена.", row.ImportComment, duplicate);
+                                continue;
+                            }
+
+                            if (!duplicate.TryReplaceFromBankStatement(movement.Amount, movement.Type, movement.OccurredAt,
+                                    movement.Comment, movement.ImportComment, DateTime.UtcNow, out string? error))
+                            {
+                                AddError(result, validRow.Index, error!, row.ImportComment);
+                                continue;
+                            }
+
+                            accepted[key] = duplicate;
+                            result.UpdatedCount++;
                             continue;
                         }
 
-                        result.UpdatedCount++;
-                        continue;
+                        unitOfWork.MoneyMovement.Create(movement);
+                        accepted.Add(key, movement);
+                        result.CreatedCount++;
                     }
 
-                    unitOfWork.MoneyMovement.Create(movement);
-                    result.CreatedCount++;
-                }
-            }, ct);
+                    if (result.CreatedCount + result.UpdatedCount > 0)
+                    {
+                        await unitOfWork.SaveChangesAsync(transactionCt);
+                    }
+                }, IsolationLevel.Serializable, ct);
+            }
+            catch (ReceiptWriteConflictException)
+            {
+                return ServiceResult<BankStatementImportResultDto>.Fail(ServiceErrorType.Conflict,
+                    "Конкурентный импорт отменён. Обновите данные и повторите запрос.");
+            }
 
             return ServiceResult<BankStatementImportResultDto>.Ok(result);
         }
@@ -73,11 +121,16 @@ namespace CostVision.Application.UseCases.MoneyMovements
             Guid currentUserId,
             BankStatementImportResultDto result)
         {
-            HashSet<string> keys = new();
             List<ValidImportRow> validRows = new();
 
             foreach ((BankStatementImportRowRequest row, int index) in rows.Select((row, index) => (row, index)))
             {
+                if (row.Amount != decimal.Round(row.Amount, 2) || row.Amount >= 10000000000000000m)
+                {
+                    AddError(result, index, "Сумма строки должна точно помещаться в денежное поле 18,2 без округления.", row.ImportComment);
+                    continue;
+                }
+
                 if (!MoneyMovement.TryCreateBankStatementImport(
                         accountId,
                         row.Amount,
@@ -94,65 +147,30 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     continue;
                 }
 
-                BankStatementImportPreviewRowDto previewRow = new()
-                {
-                    OccurredAt = row.OccurredAt,
-                    Amount = row.Amount,
-                    Type = row.Type,
-                    ImportComment = row.ImportComment
-                };
-
-                string key = PreviewBankStatementImportUseCase.BuildRowKey(previewRow);
-                if (!keys.Add(key) && !row.ReplaceDuplicate)
-                {
-                    AddError(result, index, "В попытке импорта есть повторяющаяся строка. Строка пропущена.", row.ImportComment);
-                    continue;
-                }
-
                 validRows.Add(new ValidImportRow(index, row, movement!));
             }
 
             return validRows;
         }
 
-        private static void AddError(BankStatementImportResultDto result, int rowIndex, string message, string? rawText)
+        private static void AddError(BankStatementImportResultDto result, int rowIndex, string message, string? rawText, MoneyMovement? duplicate = null)
         {
-            result.Errors.Add(new BankStatementImportLineErrorDto
+            BankStatementImportLineErrorDto error = new()
             {
                 LineNumber = rowIndex + 1,
                 Message = message,
-                RawText = rawText ?? string.Empty
-            });
+                RawText = rawText ?? string.Empty,
+                CanReplaceDuplicate = duplicate != null
+            };
 
-            result.ErrorCount = result.Errors.Count;
-        }
-
-        private async Task<MoneyMovement?> FindDuplicateAsync(
-            Guid accountId,
-            BankStatementImportRowRequest row,
-            MoneyMovement importedMovement,
-            CancellationToken ct)
-        {
-            if (row.DuplicateMoneyMovementId.HasValue)
+            if (duplicate != null && duplicate.Id != Guid.Empty)
             {
-                MoneyMovement? duplicateById = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
-                    movement => movement.Id == row.DuplicateMoneyMovementId.Value && movement.AccountId == accountId,
-                    asNoTracking: false,
-                    ct: ct);
-
-                if (duplicateById != null)
-                    return duplicateById;
+                error.DuplicateMoneyMovementId = duplicate.Id;
             }
 
-            return await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
-                movement => movement.AccountId == accountId &&
-                            movement.Source == MoneyMovementSource.BankStatementImport &&
-                            movement.OccurredAt == importedMovement.OccurredAt &&
-                            movement.Amount == importedMovement.Amount &&
-                            movement.Type == importedMovement.Type &&
-                            movement.ImportComment == importedMovement.ImportComment,
-                asNoTracking: false,
-                ct: ct);
+            result.Errors.Add(error);
+
+            result.ErrorCount = result.Errors.Count;
         }
 
         private readonly record struct ValidImportRow(int Index, BankStatementImportRowRequest Row, MoneyMovement Movement);

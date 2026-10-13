@@ -7,5 +7,9 @@ namespace CostVision.Application.Models.Dtos.MoneyMovements
         public string Message { get; set; } = string.Empty;
 
         public string RawText { get; set; } = string.Empty;
+
+        public bool CanReplaceDuplicate { get; set; }
+
+        public Guid? DuplicateMoneyMovementId { get; set; }
     }
 }

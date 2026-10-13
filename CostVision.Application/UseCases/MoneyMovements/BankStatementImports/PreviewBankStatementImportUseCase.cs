@@ -60,29 +60,34 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
         private static void MarkDuplicates(BankStatementImportPreviewDto preview, List<MoneyMovement> existingMovements)
         {
-            Dictionary<ImportedOperationKey, MoneyMovement> movementsByKey = new();
-            foreach (MoneyMovement movement in existingMovements)
-                movementsByKey.TryAdd(GetImportedOperationKey(movement), movement);
+            Dictionary<BankStatementRowKey, List<MoneyMovement>> movementsByKey = existingMovements
+                .GroupBy(BankStatementRowKey.From).ToDictionary(group => group.Key, group => group.ToList());
 
             foreach (BankStatementImportPreviewRowDto row in preview.Rows)
             {
-                if (!movementsByKey.TryGetValue(GetImportedOperationKey(row), out MoneyMovement? duplicate))
+                if (!movementsByKey.TryGetValue(BuildRowKey(row), out List<MoneyMovement>? duplicates))
+                {
                     continue;
+                }
 
                 row.IsDuplicate = true;
-                row.DuplicateMoneyMovementId = duplicate.Id;
+                if (duplicates.Count == 1)
+                {
+                    row.DuplicateMoneyMovementId = duplicates[0].Id;
+                }
             }
         }
 
         private static void MarkPreviewDuplicates(BankStatementImportPreviewDto preview)
         {
-            Dictionary<string, BankStatementImportPreviewRowDto> seenRows = new();
+            HashSet<BankStatementRowKey> seenRows = new();
 
             foreach (BankStatementImportPreviewRowDto row in preview.Rows)
             {
-                string key = BuildRowKey(row);
-                if (seenRows.TryAdd(key, row))
+                if (seenRows.Add(BuildRowKey(row)))
+                {
                     continue;
+                }
 
                 row.IsDuplicate = true;
             }
@@ -90,25 +95,12 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
         internal static bool IsSameImportedOperation(MoneyMovement movement, BankStatementImportPreviewRowDto row)
         {
-            return movement.OccurredAt == row.OccurredAt &&
-                   movement.Amount == row.Amount &&
-                   movement.Type == row.Type &&
-                   string.Equals(movement.ImportComment, row.ImportComment, StringComparison.Ordinal);
+            return BankStatementRowKey.From(movement) == BuildRowKey(row);
         }
 
-        internal static string BuildRowKey(BankStatementImportPreviewRowDto row)
+        internal static BankStatementRowKey BuildRowKey(BankStatementImportPreviewRowDto row)
         {
-            return $"{row.OccurredAt:O}|{row.Amount}|{(int)row.Type}|{row.ImportComment}";
-        }
-
-        private static ImportedOperationKey GetImportedOperationKey(MoneyMovement movement)
-        {
-            return new ImportedOperationKey(movement.OccurredAt, movement.Amount, movement.Type, movement.ImportComment);
-        }
-
-        private static ImportedOperationKey GetImportedOperationKey(BankStatementImportPreviewRowDto row)
-        {
-            return new ImportedOperationKey(row.OccurredAt, row.Amount, row.Type, row.ImportComment);
+            return new(row.OccurredAt, row.Amount, row.Type, row.ImportComment.Trim());
         }
 
         private static string BuildEmptyPreviewMessage(IReadOnlyList<string> pages)
@@ -126,6 +118,5 @@ namespace CostVision.Application.UseCases.MoneyMovements
             return "Не удалось распознать операции в выписке. Первые строки, извлечённые из PDF: " + string.Join(" | ", lines);
         }
 
-        private readonly record struct ImportedOperationKey(DateTime OccurredAt, decimal Amount, MoneyMovementType Type, string? ImportComment);
     }
 }

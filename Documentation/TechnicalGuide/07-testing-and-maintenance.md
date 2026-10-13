@@ -84,8 +84,10 @@ Entity configuration меняется вместе с Domain-моделью и i
 - При запуске нескольких web-экземпляров нужен общий Data Protection key ring, а фоновые задания требуют отдельной координации.
 - Startup автоматически применяет migrations и поэтому требует у runtime SQL-user прав на backup и изменение схемы.
 - Категории расходов покрыты Domain/EF-моделью, но не имеют пользовательского use case и страницы.
-- Отдельных тестов расчёта dashboard и собственного набора frontend-тестов в текущем дереве нет.
+- Отдельных тестов расчёта dashboard пока нет. Изолированный frontend-набор для importModal находится в tests/Frontend; остальные браузерные потоки им не закрыты.
 - TestWebApplication собирает отдельный тестовый HTTP-конвейер: его успех сам по себе не подтверждает production-композицию Program.cs.
 - Существующие тесты не закрывают все дефекты аудита: новые регрессионные сценарии перечислены в соответствующих этапах плана.
 
 Stage02RegressionTests проверяет реальные предикаты доступных покупок, назначаемых ролей, входа и списков счетов на доменных графах, результат и отсутствие мутации/записи при отказе. AuthenticationPasswordCompatibilityTests использует настоящий Hasher и подставное хранение для create/update/login; Web unit tests проверяют передачу CurrentUser.Id и стандартный отказ. Фактические команды, результаты и открытая SQL-/браузерная приёмка указаны в [этапе 02](../Plans/project-refactoring-2026-10-13/02-catalogs-and-user-validation.md).
+
+Stage04RegressionTests выполняет настоящие предикаты над сохранённым набором без pending Create до SaveChanges, проверяет результаты строк и состояние операций/связей. Stage04MoneyPersistenceTests проверяет EF metadata и перевод настоящего предиката импорта без SQL-выполнения. Frontend-тесты запускаются после `npm run build:ts` командой `node --experimental-strip-types --test tests/Frontend/moneyMovementImport.test.mts` с подставным DOM/fetch. Фактические результаты и незакрытая конкурентная SQL-/браузерная приёмка находятся в [этапе 04](../Plans/project-refactoring-2026-10-13/04-money-movement-integrity.md).

@@ -32,7 +32,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return ServiceResult<AccountMember>.Fail(ServiceErrorType.NotFound, "Счёт не найден или доступ к нему отсутствует.");
             }
 
-            if (membership.Role == AccountAccessRole.Viewer)
+            if (membership.Role != AccountAccessRole.Owner && membership.Role != AccountAccessRole.Editor)
             {
                 return ServiceResult<AccountMember>.Fail(ServiceErrorType.Forbidden, "Недостаточно прав для изменения операций в этом счёте.");
             }

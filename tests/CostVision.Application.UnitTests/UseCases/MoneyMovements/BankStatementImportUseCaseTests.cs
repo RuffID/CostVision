@@ -131,17 +131,20 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task ImportMoneyMovements_CreatesValidRowsInTransaction()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         MoneyMovement? createdMovement = null;
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
-            .Setup(repository => repository.GetItemByPredicateAsync(
+            .Setup(repository => repository.GetItemsByPredicateAsync(
                 It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
                 false,
                 null,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((MoneyMovement?)null);
+            .ReturnsAsync([]);
         moneyMovementRepository.Setup(repository => repository.Create(It.IsAny<MoneyMovement>()))
             .Callback<MoneyMovement>(movement => createdMovement = movement);
         Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(
@@ -150,6 +153,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             setupTransaction: true);
         ImportMoneyMovementsUseCase useCase = new(unitOfWork.Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new SaveBankStatementImportRequest
         {
             AccountId = accountId,
@@ -166,6 +170,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             ]
         }, userId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.Equal(1, result.Data?.CreatedCount);
         Assert.Equal(0, result.Data?.ErrorCount);
@@ -174,28 +179,34 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
         Assert.Equal("card", createdMovement.Comment);
         Assert.Equal("purchase", createdMovement.ImportComment);
         Assert.Equal(MoneyMovementSource.BankStatementImport, createdMovement.Source);
-        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), System.Data.IsolationLevel.Serializable, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task ImportMoneyMovements_ReplacesDuplicate_WhenRequested()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
-        MoneyMovement duplicate = CreateMovement(Guid.NewGuid(), accountId, 50, new DateTime(2026, 5, 9), userId);
+        MoneyMovement duplicate = TestMoneyMovementFactory.CreateBankStatementImport(
+            accountId: accountId, amount: 100, occurredAt: new DateTime(2026, 5, 10), userId: userId,
+            type: MoneyMovementType.Income, importComment: "salary", comment: "old");
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
         moneyMovementRepository
-            .Setup(repository => repository.GetItemByPredicateAsync(
+            .Setup(repository => repository.GetItemsByPredicateAsync(
                 It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
                 false,
                 null,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(duplicate);
+            .ReturnsAsync([duplicate]);
         ImportMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             setupTransaction: true).Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new SaveBankStatementImportRequest
         {
             AccountId = accountId,
@@ -208,17 +219,20 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
                     OccurredAt = new DateTime(2026, 5, 10),
                     Amount = 100,
                     Type = MoneyMovementType.Income,
-                    ImportComment = "salary"
+                    ImportComment = "salary",
+                    Comment = "new"
                 }
             ]
         }, userId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.Equal(1, result.Data?.UpdatedCount);
         Assert.Equal(0, result.Data?.ErrorCount);
         Assert.Equal(100, duplicate.Amount);
         Assert.Equal(MoneyMovementType.Income, duplicate.Type);
         Assert.Equal("salary", duplicate.ImportComment);
+        Assert.Equal("new", duplicate.Comment);
         Assert.NotNull(duplicate.UpdatedAtUtc);
     }
 
@@ -248,6 +262,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task ImportMoneyMovements_SkipsDuplicateWithoutReplace()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
 
@@ -261,12 +276,14 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
         Mock<IMoneyMovementRepository> moneyMovementRepository = CreateMoneyMovementRepository();
 
         moneyMovementRepository
-            .Setup(repository => repository.GetItemByPredicateAsync(
+            .Setup(repository => repository.GetItemsByPredicateAsync(
                 It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
                 false,
                 null,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(duplicate);
+            .ReturnsAsync([duplicate]);
 
         ImportMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
@@ -276,6 +293,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
         string importComment = duplicate.ImportComment ?? throw new InvalidOperationException(
         "У тестовой импортированной операции отсутствует исходный комментарий.");
 
+        // Act
         var result = await useCase.ExecuteAsync(new SaveBankStatementImportRequest
         {
             AccountId = accountId,
@@ -291,6 +309,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             ]
         }, userId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.Equal(0, result.Data?.CreatedCount);
         Assert.Equal(0, result.Data?.UpdatedCount);

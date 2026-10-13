@@ -249,7 +249,7 @@ namespace CostVision.Domain.Models.MoneyMovements
         }
 
         /// <summary>
-        /// Заменяет данные операции значениями из банковской выписки.
+        /// Обновляет комментарий импортной операции при полном совпадении ключа выписки.
         /// </summary>
         public bool TryReplaceFromBankStatement(
             decimal amount,
@@ -260,6 +260,12 @@ namespace CostVision.Domain.Models.MoneyMovements
             DateTime updatedAtUtc,
             out string? error)
         {
+            if (Source != MoneyMovementSource.BankStatementImport)
+            {
+                error = "Замена допустима только для импортированной операции.";
+                return false;
+            }
+
             if (amount <= 0)
             {
                 error = "Сумма импортируемой операции должна быть больше нуля.";
@@ -278,7 +284,16 @@ namespace CostVision.Domain.Models.MoneyMovements
                     out string? normalizedComment,
                     out error) ||
                 !TryNormalizeImportComment(importComment, out string normalizedImportComment, out error))
+            {
                 return false;
+            }
+
+            if (Amount != normalizedAmount || Type != type || OccurredAt != occurredAt ||
+                !string.Equals(ImportComment, normalizedImportComment, StringComparison.Ordinal))
+            {
+                error = "Ключ импортированной операции не совпадает со строкой выписки.";
+                return false;
+            }
 
             if (updatedAtUtc == default)
             {
@@ -286,12 +301,7 @@ namespace CostVision.Domain.Models.MoneyMovements
                 return false;
             }
 
-            Amount = normalizedAmount;
-            Type = type;
-            OccurredAt = occurredAt;
             Comment = normalizedComment;
-            ImportComment = normalizedImportComment;
-            Source = MoneyMovementSource.BankStatementImport;
             UpdatedAtUtc = updatedAtUtc;
             return true;
         }

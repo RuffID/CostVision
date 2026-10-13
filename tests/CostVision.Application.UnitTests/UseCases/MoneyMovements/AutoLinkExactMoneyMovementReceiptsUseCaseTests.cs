@@ -16,6 +16,7 @@ public class AutoLinkExactMoneyMovementReceiptsUseCaseTests : MoneyMovementUseCa
     [Fact]
     public async Task AutoLinkExactMoneyMovementReceipts_CreatesOnlyUnambiguousLinks()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         DateTime date = new(2026, 5, 10);
@@ -56,14 +57,16 @@ public class AutoLinkExactMoneyMovementReceiptsUseCaseTests : MoneyMovementUseCa
             setupTransaction: true);
         AutoLinkExactMoneyMovementReceiptsUseCase useCase = new(unitOfWork.Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(userId, date, date, accountId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.Equal(1, result.Data);
         Assert.NotNull(createdLinks);
         Assert.Equal(movement.Id, createdLinks[0].MoneyMovementId);
         Assert.Equal(matchingReceipt.Id, createdLinks[0].ReceiptId);
-        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), System.Data.IsolationLevel.Serializable, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

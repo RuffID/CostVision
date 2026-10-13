@@ -125,6 +125,8 @@ export interface BankStatementImportLineErrorDto {
     lineNumber: number;
     message: string;
     rawText: string;
+    canReplaceDuplicate?: boolean;
+    duplicateMoneyMovementId?: string | null;
 }
 
 export interface BankStatementImportRowRequest {

@@ -98,7 +98,7 @@ export function renderImportErrors(container: HTMLElement, errors: BankStatement
 
     const title = document.createElement("div");
     title.classList.add("fw-semibold", "mb-2");
-    title.textContent = "Ошибки распознавания";
+    title.textContent = "Ошибки строк импорта";
     container.append(title);
 
     const list = document.createElement("div");
@@ -365,7 +365,7 @@ function createDuplicateControl(row: BankStatementImportPreviewRowDto): HTMLElem
     const label = document.createElement("label");
     label.classList.add("form-check-label", "text-warning");
     label.htmlFor = input.id;
-    label.textContent = "Повтор: заменить существующую";
+    label.textContent = "Повтор: обновить пользовательский комментарий";
 
     wrapper.append(input, label);
     return wrapper;

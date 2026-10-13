@@ -43,12 +43,23 @@ public abstract class MoneyMovementUseCaseTestBase
         if (receiptRepository != null)
             unitOfWork.Setup(item => item.Receipt).Returns(receiptRepository.Object);
 
-        if (setupSaveChanges)
+        if (setupSaveChanges || setupTransaction)
+        {
             unitOfWork.Setup(item => item.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        }
 
         if (setupTransaction)
+        {
             unitOfWork.Setup(item => item.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
                 .Returns<Func<CancellationToken, Task>, CancellationToken>((action, ct) => action(ct));
+        }
+
+        if (setupTransaction || setupSaveChanges)
+        {
+            unitOfWork.Setup(item => item.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(),
+                    System.Data.IsolationLevel.Serializable, It.IsAny<CancellationToken>()))
+                .Returns<Func<CancellationToken, Task>, System.Data.IsolationLevel, CancellationToken>((action, isolation, ct) => action(ct));
+        }
 
         return unitOfWork;
     }

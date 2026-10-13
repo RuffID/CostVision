@@ -17,6 +17,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task LinkMoneyMovementReceipt_CreatesLink_WhenAccessAndAccountMatch()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
@@ -52,12 +53,14 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
             setupTransaction: true);
         LinkMoneyMovementReceiptUseCase useCase = new(unitOfWork.Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new LinkMoneyMovementReceiptRequest
         {
             MoneyMovementId = movement.Id,
             ReceiptId = receipt.Id
         }, userId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.NotNull(createdLink);
         Assert.Equal(movement.Id, createdLink.MoneyMovementId);
@@ -67,6 +70,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task LinkMoneyMovementReceipt_ReturnsConflict_WhenLinkAlreadyExists()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         MoneyMovement movement = CreateMovement(Guid.NewGuid(), accountId, 100, DateTime.Today, userId);
@@ -94,14 +98,17 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository,
-            moneyMovementReceiptRepository: linkRepository).Object);
+            moneyMovementReceiptRepository: linkRepository,
+            setupTransaction: true).Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new LinkMoneyMovementReceiptRequest
         {
             MoneyMovementId = movement.Id,
             ReceiptId = Guid.NewGuid()
         }, userId, CancellationToken.None);
 
+        // Assert
         Assert.False(result.Success);
         Assert.Equal(ServiceErrorType.Conflict, result.Error?.Type);
     }
@@ -109,6 +116,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task LinkMoneyMovementReceipt_ReturnsNotFound_WhenMovementOrReceiptIsMissing()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         Guid movementId = Guid.NewGuid();
@@ -119,7 +127,8 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
         LinkMoneyMovementReceiptUseCase missingMovementUseCase = new(CreateUnitOfWork(
             moneyMovementRepository: missingMovementRepository,
             receiptRepository: CreateReceiptRepository(),
-            moneyMovementReceiptRepository: CreateMoneyMovementReceiptRepository()).Object);
+            moneyMovementReceiptRepository: CreateMoneyMovementReceiptRepository(),
+            setupTransaction: true).Object);
         MoneyMovement movement = CreateMovement(movementId, accountId, 100, DateTime.Today, userId);
         Mock<IMoneyMovementRepository> movementRepository = CreateMoneyMovementRepository();
         movementRepository
@@ -137,11 +146,14 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: movementRepository,
             receiptRepository: missingReceiptRepository,
-            moneyMovementReceiptRepository: CreateMoneyMovementReceiptRepository()).Object);
+            moneyMovementReceiptRepository: CreateMoneyMovementReceiptRepository(),
+            setupTransaction: true).Object);
 
+        // Act
         var missingMovementResult = await missingMovementUseCase.ExecuteAsync(new LinkMoneyMovementReceiptRequest { MoneyMovementId = movementId, ReceiptId = Guid.NewGuid() }, userId, CancellationToken.None);
         var missingReceiptResult = await missingReceiptUseCase.ExecuteAsync(new LinkMoneyMovementReceiptRequest { MoneyMovementId = movementId, ReceiptId = Guid.NewGuid() }, userId, CancellationToken.None);
 
+        // Assert
         Assert.Equal(ServiceErrorType.NotFound, missingMovementResult.Error?.Type);
         Assert.Equal(ServiceErrorType.NotFound, missingReceiptResult.Error?.Type);
     }

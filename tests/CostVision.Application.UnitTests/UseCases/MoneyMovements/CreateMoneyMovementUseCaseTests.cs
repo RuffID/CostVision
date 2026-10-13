@@ -19,6 +19,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task CreateMoneyMovement_CreatesManualMovement_WhenRequestIsValid()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         Guid performerId = Guid.NewGuid();
@@ -50,6 +51,11 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(loadedMovement);
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository();
+        moneyMovementRepository
+            .Setup(repository => repository.GetItemsByPredicateAsync(
+                It.IsAny<Expression<Func<MoneyMovement, bool>>>(), It.IsAny<int>(), It.IsAny<int?>(), true,
+                It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         receiptRepository
             .Setup(repository => repository.GetItemsByPredicateAsync(
                 It.IsAny<Expression<Func<Receipt, bool>>>(),
@@ -67,6 +73,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
             setupTransaction: true);
         CreateMoneyMovementUseCase useCase = new(unitOfWork.Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new CreateMoneyMovementRequest
         {
             AccountId = accountId,
@@ -76,6 +83,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
             PerformedByUserId = performerId
         }, userId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.NotNull(createdMovement);
         Assert.Equal(accountId, createdMovement.AccountId);
@@ -86,13 +94,14 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         Assert.Equal(performerId, createdMovement.PerformedByUserId);
         Assert.Equal(MoneyMovementSource.Manual, createdMovement.Source);
         Assert.Equal("Card", result.Data?.AccountName);
-        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), System.Data.IsolationLevel.Serializable, It.IsAny<CancellationToken>()), Times.Once);
         unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task CreateMoneyMovement_CreatesExactReceiptLink_WhenSingleCandidateExists()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         Guid movementId = Guid.NewGuid();
@@ -143,8 +152,8 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([receipt]);
         Mock<IMoneyMovementReceiptRepository> linkRepository = CreateMoneyMovementReceiptRepository();
-        linkRepository.Setup(repository => repository.Create(It.IsAny<MoneyMovementReceipt>()))
-            .Callback<MoneyMovementReceipt>(link => createdLink = link);
+        linkRepository.Setup(repository => repository.CreateRange(It.IsAny<IEnumerable<MoneyMovementReceipt>>()))
+            .Callback<IEnumerable<MoneyMovementReceipt>>(links => createdLink = Assert.Single(links));
         CreateMoneyMovementUseCase useCase = new(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
@@ -153,6 +162,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
             setupSaveChanges: true,
             setupTransaction: true).Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new CreateMoneyMovementRequest
         {
             AccountId = accountId,
@@ -160,6 +170,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
             OccurredAt = occurredAt
         }, userId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.NotNull(createdMovement);
         Assert.NotNull(createdLink);
