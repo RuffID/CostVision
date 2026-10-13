@@ -1,0 +1,48 @@
+# Web-слой и HTTP-контракты
+
+## Путь пользовательского действия
+
+Razor-страница отдаёт каркас интерфейса, клиентский модуль загружает данные через именованный обработчик. PageModel принимает запрос, получает текущего пользователя, вызывает сценарий Application и преобразует результат в JSON. Финансовые права должны проверяться внутри сценария независимо от видимости кнопок.
+
+[Program.cs](../../CostVision.Web/Program.cs) включает forwarded headers, обработку исключений, проверку базы, обработчик ошибок для production, Swagger, статические файлы, маршрутизацию, аутентификацию и авторизацию; затем отображает Razor Pages и controllers. Фактические пользовательские сценарии находятся в PageModel.
+
+## Карта страниц
+
+| Страница | Ответственность |
+|---|---|
+| [Index](../../CostVision.Web/Pages/Index.cshtml.cs) | Доступные счета и отчёт доходов/расходов |
+| [AddReceipt](../../CostVision.Web/Pages/AddReceipt.cshtml.cs) | Выбор счёта, QR-пакет и ручное создание |
+| [Receipts](../../CostVision.Web/Pages/Receipts.cshtml.cs) | Список и детали чеков, обновление, перенос, удаление и сверка |
+| [MoneyMovements](../../CostVision.Web/Pages/MoneyMovements.cshtml.cs) | Операции, кандидаты, связи, предпросмотр и сохранение выписки |
+| [Products](../../CostVision.Web/Pages/Products.cshtml.cs) | Каталог товаров, покупки и адаптивные названия |
+| [Stores](../../CostVision.Web/Pages/Stores.cshtml.cs) | Магазины, их чеки и действия с ними |
+| [UserSettings](../../CostVision.Web/Pages/Settings/UserSettings.cshtml.cs) | Счета и совместный доступ |
+| [Users](../../CostVision.Web/Pages/Settings/Users.cshtml.cs) | Административное управление пользователями |
+
+Вход и выход обслуживают Login и Logout. [UserActivity](../../CostVision.Web/Pages/UserActivity.cshtml.cs) использует маршрут `/user-activity`; обработчик Ping отмечает активность. Стандартные имена остальных маршрутов приводятся к нижнему регистру в настройках Razor Pages.
+
+## Пользователь и защита запросов
+
+Cookie содержит идентичность, а request-фильтры загружают актуального активного пользователя. Общая политика Admin защищает управление пользователями. Эта политика не даёт автоматически прав на чужие счета.
+
+Layout выдаёт antiforgery-токен. TypeScript передаёт его через заголовок `RequestVerificationToken` для изменяющих запросов. JSON-формы и загрузка файлов используют разные заголовки: при FormData браузер сам задаёт multipart boundary.
+
+Новый обработчик не должен переносить бизнес-проверки в PageModel. Он передаёт идентификатор текущего пользователя в use case и сохраняет единый формат ответа.
+
+## Ответы и ошибки
+
+[JsonResultMapper](../../CostVision.Web/Web/Mappers/JsonResultMapper.cs) формирует:
+
+| Результат | Содержимое |
+|---|---|
+| Успех без данных | `{ success: true }` |
+| Успех с данными | `{ success: true, data: ... }` |
+| Ожидаемая ошибка | `{ success: false, message: ... }` |
+
+Ошибки Validation, Unauthorized, Forbidden, NotFound, Conflict и ExternalService соответствуют HTTP 400, 401, 403, 404, 409 и 502. Неизвестный тип ошибки вызывает исключение.
+
+[ExceptionHandlingMiddleware](../../CostVision.Web/Web/Middleware/ExceptionHandlingMiddleware.cs) журналирует путь и TraceId. Неожиданная ошибка возвращает HTTP 500 с общим сообщением; OperationCanceledException преобразуется в 499. Границы отмены, уже начатого ответа и cookie-редиректа требуют самостоятельной проверки при изменении HTTP-контракта.
+
+## Границы текущей реализации
+
+Успешный HTTP-ответ импорта может содержать ошибки отдельных строк: клиент должен обрабатывать данные результата, а не только `success`. Отдельная массовая сверка существует в Application, но не подключена к PageModel. Пропуски фильтрации финансовых данных описаны в плане; наличие фильтра авторизации на странице их не закрывает.

@@ -1,16 +1,58 @@
 <Solution>
-  <Folder Name="/Documents/">
-    <File Path="Documents/Technical requirements.md" />
+  <Folder Name="/Documentation/">
+    <File Path="Documentation/README.md" />
   </Folder>
-  <Folder Name="/Documents/Technical/">
-    <File Path="Documents/Technical/README.md" />
-    <File Path="Documents/Technical/01-system-overview.md" />
-    <File Path="Documents/Technical/02-architecture.md" />
-    <File Path="Documents/Technical/03-authorization-and-accounts.md" />
-    <File Path="Documents/Technical/04-receipts-and-catalogs.md" />
-    <File Path="Documents/Technical/05-money-movements-and-reporting.md" />
-    <File Path="Documents/Technical/06-web-data-and-operations.md" />
-    <File Path="Documents/Technical/07-testing-and-maintenance.md" />
+  <Folder Name="/Documentation/Business/">
+    <File Path="Documentation/Business/README.md" />
+    <File Path="Documentation/Business/01-product-overview.md" />
+    <File Path="Documentation/Business/02-users-and-access.md" />
+    <File Path="Documentation/Business/03-accounts-and-sharing.md" />
+    <File Path="Documentation/Business/04-receipts.md" />
+    <File Path="Documentation/Business/05-products-and-stores.md" />
+    <File Path="Documentation/Business/06-money-movements.md" />
+    <File Path="Documentation/Business/07-bank-statement-import.md" />
+    <File Path="Documentation/Business/08-reconciliation-and-reports.md" />
+  </Folder>
+  <Folder Name="/Documentation/Plans/">
+    <File Path="Documentation/Plans/README.md" />
+  </Folder>
+  <Folder Name="/Documentation/Plans/project-refactoring-2026-10-13/">
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/README.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/00-audit-baseline.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/01-financial-data-access.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/02-catalogs-and-user-validation.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/03-receipt-identity-and-deduplication.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/04-money-movement-integrity.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/05-report-calculation.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/06-receipt-refresh.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/07-bounded-read-queries.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/08-application-and-persistence-boundaries.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/09-web-and-http-contracts.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/10-frontend-request-coordination.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/11-frontend-decomposition.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/12-qr-scanning-and-browser-storage.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/13-modal-stack-and-accessibility.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/14-startup-and-configuration.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/15-build-tests-and-final-acceptance.md" />
+  </Folder>
+  <Folder Name="/Documentation/TechnicalGuide/">
+    <File Path="Documentation/TechnicalGuide/README.md" />
+    <File Path="Documentation/TechnicalGuide/01-system-overview.md" />
+    <File Path="Documentation/TechnicalGuide/02-architecture.md" />
+    <File Path="Documentation/TechnicalGuide/03-authorization-and-accounts.md" />
+    <File Path="Documentation/TechnicalGuide/04-receipts-and-catalogs.md" />
+    <File Path="Documentation/TechnicalGuide/05-money-movements-and-reporting.md" />
+    <File Path="Documentation/TechnicalGuide/06-web-layer.md" />
+    <File Path="Documentation/TechnicalGuide/07-testing-and-maintenance.md" />
+    <File Path="Documentation/TechnicalGuide/08-frontend.md" />
+    <File Path="Documentation/TechnicalGuide/09-data-and-persistence.md" />
+    <File Path="Documentation/TechnicalGuide/10-integrations.md" />
+    <File Path="Documentation/TechnicalGuide/11-configuration-and-operations.md" />
+    <File Path="Documentation/TechnicalGuide/12-source-map-and-maintenance.md" />
+  </Folder>
+  <Folder Name="/SolutionItems/">
+    <File Path="AGENTS.md" />
+    <File Path="README.md" />
   </Folder>
   <Folder Name="/libs/">
     <File Path="libs/EFCoreLibrary.dll" />
