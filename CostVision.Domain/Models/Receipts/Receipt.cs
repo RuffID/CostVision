@@ -540,17 +540,19 @@ namespace CostVision.Domain.Models.Receipts
         }
 
         /// <summary>
-        /// Возвращает доменный ключ идентичности чека.
+        /// Возвращает идентичность документа без автора копии и связей со счетами.
+        /// </summary>
+        public ReceiptIdentity GetIdentity()
+        {
+            return new ReceiptIdentity(this);
+        }
+
+        /// <summary>
+        /// Возвращает строковый ключ идентичности чека без зависимости от культуры.
         /// </summary>
         public string GetIdentityKey()
         {
-            return string.Join('|',
-                FiscalDriveNumber,
-                FiscalDocumentNumber,
-                FiscalSign,
-                DateTime.Ticks,
-                TotalSum,
-                (int)OperationType);
+            return GetIdentity().ToInvariantKey();
         }
 
         /// <summary>

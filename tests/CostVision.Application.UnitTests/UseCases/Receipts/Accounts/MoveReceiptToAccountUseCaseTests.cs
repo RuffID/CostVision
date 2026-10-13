@@ -125,6 +125,7 @@ public class MoveReceiptToAccountUseCaseTests
     private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IAccountRepository> accountRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)
     {
         Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        TestUnitOfWorkFactory.SetupReceiptTransaction(unitOfWork);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.ReceiptAccount).Returns(receiptAccountRepository.Object);

@@ -4,11 +4,19 @@ using Moq;
 using System.Linq.Expressions;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Enums.Authorization;
+using System.Data;
 
 namespace CostVision.Application.UnitTests;
 
 internal static class TestUnitOfWorkFactory
 {
+    public static void SetupReceiptTransaction(Mock<IUnitOfWork> work)
+    {
+        work.Setup(item => item.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(),
+            IsolationLevel.Serializable, It.IsAny<CancellationToken>()))
+            .Returns((Func<CancellationToken, Task> action, IsolationLevel isolation, CancellationToken ct) => action(ct));
+    }
+
     public static Mock<IUnitOfWork> CreateWithUserRepository(Mock<IUserRepository> userRepository, List<Guid>? existingRoleIds = null)
     {
         List<Role> roles = [];

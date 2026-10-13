@@ -8,6 +8,8 @@ IUnitOfWork объединяет репозитории, сохранение и
 
 Изменение сигнатур согласовать с Infrastructure UnitOfWork и фабрикой тестового UoW. Не обходить общую транзакционную границу отдельным контекстом.
 
+Перегрузка ExecuteInTransaction с IsolationLevel выполняет только action и commit: SaveChangesAsync явно вызывает сценарий. Прежняя перегрузка сохраняет автоматический SaveChanges после action. Для проверки и записи чеков применяется Serializable. ReceiptWriteConflictException — ожидаемый известный конфликт хранения; Application преобразует его в ServiceErrorType.Conflict, не перехватывая произвольные ошибки как дубли.
+
 ## Проверка
 
 Подходящие изолированные проверки находятся в tests/CostVision.Application.UnitTests. Собирать конкретный затронутый .csproj по корневым правилам; mock-репозитории не подтверждают SQL.

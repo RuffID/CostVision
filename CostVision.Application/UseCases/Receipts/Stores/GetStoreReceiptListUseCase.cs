@@ -51,7 +51,7 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                 ct: ct);
 
             List<ReceiptDto> allItems = receipts
-                .GroupBy(receipt => receipt.GetIdentityKey())
+                .GroupBy(receipt => receipt.GetIdentity())
                 .Select(receiptGroup => receiptGroup.MapReceiptGroupDto(currentUserId))
                 .OrderByDescending(receipt => receipt.DateTime)
                 .ToList();

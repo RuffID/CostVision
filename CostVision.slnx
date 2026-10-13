@@ -22,6 +22,7 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/01-financial-data-access.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/02-catalogs-and-user-validation.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/03-receipt-identity-and-deduplication.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-04-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/04-money-movement-integrity.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/05-report-calculation.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/06-receipt-refresh.md" />

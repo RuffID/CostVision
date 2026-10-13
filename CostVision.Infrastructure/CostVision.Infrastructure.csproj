@@ -40,4 +40,8 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="CostVision.Infrastructure.UnitTests" />
+  </ItemGroup>
+
 </Project>

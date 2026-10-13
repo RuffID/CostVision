@@ -1,11 +1,14 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.Service.Receipts;
+using CostVision.Application.Extensions;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.Models.Services.Receipts;
 using CostVision.Application.UseCases.Receipts.Accounts;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
@@ -17,44 +20,76 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         public async Task<ServiceResult<AddReceiptScanResponse>> ExecuteAsync(QrScanRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.Results.Count == 0)
+            {
                 return ServiceResult<AddReceiptScanResponse>.Fail(ServiceErrorType.Validation, "Нет данных для обработки.");
+            }
 
             if (request.AccountId != Guid.Empty)
             {
                 ServiceResult accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(request.AccountId, currentUserId, ct);
                 if (!accessResult.Success)
+                {
                     return accessResult.PropagateFailure<AddReceiptScanResponse>();
+                }
             }
 
-            int scannedCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.DecodedText));
+            AddReceiptScanResponse? response = null;
+            List<ReceiptAccount> addedLinks = [];
+            try
+            {
+                await unitOfWork.ExecuteInTransaction(async transactionCt =>
+                {
+                    response = await ProcessBatchAsync(request, currentUserId, addedLinks, transactionCt);
+                }, IsolationLevel.Serializable, ct);
+            }
+            catch (ReceiptWriteConflictException conflict)
+            {
+                UndoAddedLinks(addedLinks);
+                return ServiceResult<AddReceiptScanResponse>.Fail(ServiceErrorType.Conflict, conflict.Message);
+            }
+            catch
+            {
+                UndoAddedLinks(addedLinks);
+                throw;
+            }
+
+            return ServiceResult<AddReceiptScanResponse>.Ok(response
+                ?? throw new InvalidOperationException("Транзакция обработки QR завершилась без результата."));
+        }
+
+        private async Task<AddReceiptScanResponse> ProcessBatchAsync(
+            QrScanRequest request, Guid currentUserId, List<ReceiptAccount> addedLinks, CancellationToken ct)
+        {
+            int scannedCount = request.Results.Count(row => !string.IsNullOrWhiteSpace(row.DecodedText));
             int addedCount = 0;
+            Dictionary<(ReceiptIdentity Identity, Guid AuthorId), Receipt> authorCopies = [];
+            HashSet<(ReceiptIdentity Identity, Guid AccountId)> accountDocuments = [];
 
             foreach (QrScanResult result in request.Results)
             {
-                if (string.IsNullOrEmpty(result.DecodedText))
+                if (string.IsNullOrWhiteSpace(result.DecodedText))
+                {
                     continue;
+                }
 
+                result.ErrorMessage = null;
                 result.Parsed = qrParser.Parse(result.DecodedText);
-
                 if (result.Parsed == null)
                 {
                     result.ErrorMessage = "Не удалось разобрать данные QR-кода.";
                     continue;
                 }
 
-                if (string.IsNullOrEmpty(result.Parsed.FiscalDocumentNumber) ||
-                    string.IsNullOrEmpty(result.Parsed.FiscalDriveNumber) ||
-                    string.IsNullOrEmpty(result.Parsed.FiscalSign) ||
-                    result.Parsed.DateTime == DateTime.MinValue ||
-                    result.Parsed.Sum == null ||
-                    result.Parsed.OperationType == null)
+                if (result.Parsed.Sum == null || result.Parsed.OperationType == null)
                 {
                     result.ErrorMessage = "В данных QR-кода отсутствуют обязательные поля фискального чека.";
                     continue;
                 }
 
                 if (string.IsNullOrWhiteSpace(result.FileName))
+                {
                     result.FileName = "Browser file";
+                }
 
                 if (!Receipt.TryCreate(
                         result.Parsed.FiscalDriveNumber,
@@ -73,38 +108,41 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 }
 
                 Receipt receipt = createdReceipt!;
-                Receipt? existingReceiptInAccount = request.AccountId == Guid.Empty
-                    ? null
-                    : await FindExistingReceiptInAccountAsync(
-                        receipt.FiscalDocumentNumber,
-                        receipt.FiscalDriveNumber,
-                        receipt.FiscalSign,
-                        receipt.TotalSum,
-                        receipt.DateTime,
-                        receipt.OperationType,
-                        request.AccountId,
-                        ct);
-
-                if (existingReceiptInAccount != null)
+                ReceiptIdentity identity = receipt.GetIdentity();
+                if (request.AccountId != Guid.Empty)
                 {
-                    result.ErrorMessage = "Такой чек уже есть на выбранном счёте.";
-                    continue;
+                    bool existsInAccount = accountDocuments.Contains((identity, request.AccountId));
+                    if (!existsInAccount)
+                    {
+                        Receipt? accountReceipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
+                            identity.InAccount(request.AccountId), asNoTracking: true, ct: ct);
+                        existsInAccount = accountReceipt != null;
+                    }
+
+                    if (existsInAccount)
+                    {
+                        accountDocuments.Add((identity, request.AccountId));
+                        result.ErrorMessage = "Такой чек уже есть на выбранном счёте.";
+                        continue;
+                    }
                 }
 
-                Receipt? existingReceipt = await FindExistingReceiptAsync(
-                    receipt.FiscalDocumentNumber,
-                    receipt.FiscalDriveNumber,
-                    receipt.FiscalSign,
-                    receipt.TotalSum,
-                    receipt.DateTime,
-                    receipt.OperationType,
-                    currentUserId,
-                    ct);
+                bool cached = authorCopies.TryGetValue((identity, currentUserId), out Receipt? existingReceipt);
+                if (!cached)
+                {
+                    existingReceipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
+                        identity.ForAuthorCopy(currentUserId), asNoTracking: false,
+                        include: query => query.Include(item => item.Accounts), ct: ct);
+                }
 
                 if (existingReceipt != null)
                 {
+                    authorCopies[(identity, currentUserId)] = existingReceipt;
                     if (request.AccountId == Guid.Empty)
+                    {
+                        result.ErrorMessage = "Такой чек уже существует у автора.";
                         continue;
+                    }
 
                     if (!existingReceipt.TryAddAccount(request.AccountId, out ReceiptAccount? link, out string? linkError))
                     {
@@ -112,64 +150,53 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                         continue;
                     }
 
+                    addedLinks.Add(link!);
                     unitOfWork.ReceiptAccount.Create(link!);
+                    accountDocuments.Add((identity, request.AccountId));
                     addedCount++;
                     continue;
                 }
 
                 if (request.AccountId != Guid.Empty)
                 {
-                    if (!receipt.TryAddAccount(request.AccountId, out _, out string? linkError))
+                    if (!receipt.TryAddAccount(request.AccountId, out ReceiptAccount? link, out string? linkError))
                     {
                         result.ErrorMessage = linkError;
                         continue;
                     }
+
+                    addedLinks.Add(link!);
+                    accountDocuments.Add((identity, request.AccountId));
                 }
 
                 unitOfWork.Receipt.Create(receipt);
+                authorCopies.Add((identity, currentUserId), receipt);
                 addedCount++;
             }
 
             if (addedCount > 0)
+            {
                 await unitOfWork.SaveChangesAsync(ct);
+            }
 
-            int errorCount = request.Results.Count(r => !string.IsNullOrWhiteSpace(r.ErrorMessage));
-
-            return ServiceResult<AddReceiptScanResponse>.Ok(new AddReceiptScanResponse
+            return new AddReceiptScanResponse
             {
                 ScannedCount = scannedCount,
                 AddedToDbCount = addedCount,
-                ErrorCount = errorCount,
+                ErrorCount = request.Results.Count(row => !string.IsNullOrWhiteSpace(row.ErrorMessage)),
                 Results = request.Results
-            });
+            };
         }
 
-        private Task<Receipt?> FindExistingReceiptAsync(string fiscalDocumentNumber, string fiscalDriveNumber, string fiscalSign, decimal totalSum, DateTime dateTime, ReceiptOperationType operationType, Guid currentUserId, CancellationToken ct)
+        private static void UndoAddedLinks(List<ReceiptAccount> links)
         {
-            return unitOfWork.Receipt.GetItemByPredicateAsync(
-                r => r.FiscalDocumentNumber == fiscalDocumentNumber &&
-                     r.FiscalDriveNumber == fiscalDriveNumber &&
-                     r.FiscalSign == fiscalSign &&
-                     r.TotalSum == totalSum &&
-                     r.DateTime == dateTime &&
-                     r.CreatedByUserId == currentUserId &&
-                     r.OperationType == operationType,
-                asNoTracking: false,
-                ct: ct);
-        }
-
-        private Task<Receipt?> FindExistingReceiptInAccountAsync(string fiscalDocumentNumber, string fiscalDriveNumber, string fiscalSign, decimal totalSum, DateTime dateTime, ReceiptOperationType operationType, Guid accountId, CancellationToken ct)
-        {
-            return unitOfWork.Receipt.GetItemByPredicateAsync(
-                r => r.FiscalDocumentNumber == fiscalDocumentNumber &&
-                     r.FiscalDriveNumber == fiscalDriveNumber &&
-                     r.FiscalSign == fiscalSign &&
-                     r.TotalSum == totalSum &&
-                     r.DateTime == dateTime &&
-                     r.OperationType == operationType &&
-                     r.Accounts.Any(link => link.AccountId == accountId),
-                asNoTracking: true,
-                ct: ct);
+            foreach (ReceiptAccount link in links)
+            {
+                if (!link.Receipt!.TryRemoveAccount(link.AccountId, out _, out string? error))
+                {
+                    throw new InvalidOperationException(error);
+                }
+            }
         }
     }
 }
