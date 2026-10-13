@@ -5,6 +5,8 @@ using CostVision.Application.UseCases.MoneyMovements.Helpers;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
+using CostVision.Application.Extensions;
+using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
@@ -13,17 +15,18 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult<List<MoneyMovementDto>>> ExecuteAsync(Guid currentUserId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct)
         {
             if (dateTo < dateFrom)
+            {
                 return ServiceResult<List<MoneyMovementDto>>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
+            }
 
             DateTime periodEnd = dateTo.Date.AddDays(1);
 
-            List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
-                movement => movement.OccurredAt >= dateFrom.Date &&
+            Expression<Func<MoneyMovement, bool>> movementPredicate = movement => movement.OccurredAt >= dateFrom.Date &&
                             movement.OccurredAt < periodEnd &&
-                            (!accountId.HasValue || movement.AccountId == accountId.Value) &&
-                            (movement.CreatedByUserId == currentUserId ||
-                             movement.Account!.CreatedByUserId == currentUserId ||
-                             movement.Account.Members.Any(member => member.UserId == currentUserId)),
+                            (!accountId.HasValue || movement.AccountId == accountId.Value);
+
+            List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
+                movementPredicate.WithAccountReadAccess(movement => movement.Account, currentUserId),
                 asNoTracking: true,
                 include: query => query
                     .Include(movement => movement.Account)
@@ -32,16 +35,20 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     .Include(movement => movement.ReceiptLinks)
                         .ThenInclude(link => link.Receipt)
                             .ThenInclude(receipt => receipt!.Store)
+                    .Include(movement => movement.ReceiptLinks)
+                        .ThenInclude(link => link.Receipt)
+                            .ThenInclude(receipt => receipt!.Accounts)
+                                .ThenInclude(link => link.Account)
+                                    .ThenInclude(account => account!.Members)
                     .AsSplitQuery(),
                 ct: ct);
 
-            List<Receipt> availableReceipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
-                receipt => receipt.DateTime >= dateFrom.Date &&
+            Expression<Func<Receipt, bool>> receiptPredicate = receipt => receipt.DateTime >= dateFrom.Date &&
                            receipt.DateTime < periodEnd &&
-                           !receipt.MoneyMovementLinks.Any() &&
-                           (receipt.CreatedByUserId == currentUserId ||
-                            receipt.Accounts.Any(link => link.Account!.CreatedByUserId == currentUserId) ||
-                            receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUserId))),
+                           !receipt.MoneyMovementLinks.Any();
+
+            List<Receipt> availableReceipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
+                receiptPredicate.WithReceiptReadAccess(receipt => receipt, currentUserId),
                 asNoTracking: true,
                 include: query => query
                     .Include(receipt => receipt.Store)
@@ -56,7 +63,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             Dictionary<ReceiptWithoutAccountMatchKey, int> receiptsWithoutAccount = BuildReceiptsWithoutAccount(availableReceipts);
             List<MoneyMovementDto> result = movements
                 .OrderByDescending(movement => movement.OccurredAt)
-                .Select(movement => movement.MapDto(GetAvailableReceiptCount(movement, receiptsByAccount, receiptsWithoutAccount)))
+                .Select(movement => movement.MapDto(currentUserId, GetAvailableReceiptCount(movement, receiptsByAccount, receiptsWithoutAccount)))
                 .ToList();
 
             return ServiceResult<List<MoneyMovementDto>>.Ok(result);

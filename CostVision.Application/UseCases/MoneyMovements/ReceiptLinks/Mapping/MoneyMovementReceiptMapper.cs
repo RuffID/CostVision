@@ -1,15 +1,16 @@
 ﻿using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
+using CostVision.Application.Extensions;
 
 namespace CostVision.Application.UseCases.MoneyMovements.Helpers
 {
     internal static class MoneyMovementReceiptMapper
     {
-        public static MoneyMovementReceiptDto MapReceiptLinkDto(this Receipt receipt)
+        public static MoneyMovementReceiptDto MapReceiptLinkDto(this Receipt receipt, Guid currentUserId)
         {
             ReceiptAccount? accountLink = receipt.Accounts
-                .Where(link => link.Account != null)
+                .Where(link => FinancialDataAccess.CanReadAccount(link.Account, currentUserId))
                 .OrderBy(link => link.Account!.Name)
                 .FirstOrDefault();
 
@@ -22,13 +23,14 @@ namespace CostVision.Application.UseCases.MoneyMovements.Helpers
                 AccountName = accountLink?.Account?.Name ?? string.Empty,
                 CreatedByUserName = receipt.CreatedByUser?.Name ?? string.Empty,
                 CreatedAtUtc = receipt.CreatedAtUtc,
-                IsLinkedToOtherMoneyMovement = receipt.MoneyMovementLinks.Any()
+                IsLinkedToOtherMoneyMovement = receipt.MoneyMovementLinks.Any(link =>
+                    FinancialDataAccess.CanReadAccount(link.MoneyMovement?.Account, currentUserId))
             };
         }
 
-        public static MoneyMovementReceiptDto MapReceiptLinkDto(this MoneyMovementReceipt link)
+        public static MoneyMovementReceiptDto MapReceiptLinkDto(this MoneyMovementReceipt link, Guid currentUserId)
         {
-            MoneyMovementReceiptDto dto = link.Receipt?.MapReceiptLinkDto() ?? new MoneyMovementReceiptDto
+            MoneyMovementReceiptDto dto = link.Receipt?.MapReceiptLinkDto(currentUserId) ?? new MoneyMovementReceiptDto
             {
                 ReceiptId = link.ReceiptId
             };

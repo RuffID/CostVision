@@ -1,20 +1,17 @@
 ﻿using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Application.Models.Dtos.Receipts;
+using CostVision.Application.Extensions;
+using CostVision.Domain.Models.MoneyMovements;
 
 namespace CostVision.Application.Models.Dtos.Mappers
 {
     public static class ReceiptMapper
     {
-        public static ReceiptDto MapReceiptDto(this Receipt receipt)
-        {
-            return receipt.MapReceiptDto(receipt.CreatedByUserId);
-        }
-
         public static ReceiptDto MapReceiptDto(this Receipt receipt, Guid currentUserId)
         {
             List<ReceiptAccountDto> accounts = receipt.Accounts
-                .Where(x => x.Account != null)
+                .Where(x => FinancialDataAccess.CanReadAccount(x.Account, currentUserId))
                 .GroupBy(x => x.AccountId)
                 .Select(group => new ReceiptAccountDto
                 {
@@ -34,6 +31,9 @@ namespace CostVision.Application.Models.Dtos.Mappers
                 .ToList();
 
             ReceiptAccountDto? receiptAccount = accounts.FirstOrDefault();
+            List<MoneyMovementReceipt> visibleLinks = receipt.MoneyMovementLinks
+                .Where(link => FinancialDataAccess.CanReadAccount(link.MoneyMovement?.Account, currentUserId))
+                .ToList();
 
             return new ReceiptDto
             {
@@ -49,9 +49,9 @@ namespace CostVision.Application.Models.Dtos.Mappers
                 AccountName = receiptAccount?.Name ?? string.Empty,
                 CreatedByUserName = receipt.CreatedByUser?.Name ?? string.Empty,
                 CreatedAtUtc = receipt.CreatedAtUtc,
-                MoneyMovementCount = receipt.MoneyMovementLinks.Count,
-                MoneyMovementsTotalSum = receipt.MoneyMovementLinks
-                    .Where(link => link.MoneyMovement != null)
+                HasAccountLinks = receipt.Accounts.Any(),
+                MoneyMovementCount = visibleLinks.Count,
+                MoneyMovementsTotalSum = visibleLinks
                     .Sum(link => link.MoneyMovement!.Amount),
                 Items = receipt.Items
                     .Select(item => new ReceiptItemDto

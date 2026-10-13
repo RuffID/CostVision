@@ -1,11 +1,12 @@
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Domain.Models.MoneyMovements;
+using CostVision.Application.Extensions;
 
 namespace CostVision.Application.UseCases.MoneyMovements.Helpers
 {
     internal static class ReceiptMoneyMovementMapper
     {
-        public static ReceiptMoneyMovementDto MapReceiptMoneyMovementDto(this MoneyMovement movement)
+        public static ReceiptMoneyMovementDto MapReceiptMoneyMovementDto(this MoneyMovement movement, Guid currentUserId)
         {
             return new ReceiptMoneyMovementDto
             {
@@ -16,13 +17,14 @@ namespace CostVision.Application.UseCases.MoneyMovements.Helpers
                 Comment = movement.Comment ?? string.Empty,
                 ImportComment = movement.ImportComment ?? string.Empty,
                 AccountName = movement.Account?.Name ?? string.Empty,
-                IsLinkedToOtherReceipt = movement.ReceiptLinks.Any()
+                IsLinkedToOtherReceipt = movement.ReceiptLinks.Any(link =>
+                    FinancialDataAccess.CanReadReceipt(link.Receipt, currentUserId))
             };
         }
 
-        public static ReceiptMoneyMovementDto MapReceiptMoneyMovementDto(this MoneyMovementReceipt link)
+        public static ReceiptMoneyMovementDto MapReceiptMoneyMovementDto(this MoneyMovementReceipt link, Guid currentUserId)
         {
-            ReceiptMoneyMovementDto dto = link.MoneyMovement?.MapReceiptMoneyMovementDto() ?? new ReceiptMoneyMovementDto
+            ReceiptMoneyMovementDto dto = link.MoneyMovement?.MapReceiptMoneyMovementDto(currentUserId) ?? new ReceiptMoneyMovementDto
             {
                 MoneyMovementId = link.MoneyMovementId
             };

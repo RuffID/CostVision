@@ -23,6 +23,7 @@
 - retry policy и hosted background service;
 - ручные операции, PDF parser’ы всех трёх банков и импорт дублей;
 - ручная и автоматическая сверка;
+- финансовая изоляция: FinancialDataIsolationTests применяет фактические предикаты репозиториев к доменным графам и проверяет DTO списков, деталей, обоих направлений связей/кандидатов, фильтров, счётчиков и сумм; включает отзыв участия и Admin;
 - EF mapping, migration path, repository CRUD и cascade delete;
 - web authorization, `JsonResultMapper` и exception middleware.
 
@@ -45,6 +46,7 @@
 - Чистое правило сущности — быстрый unit test без EF.
 - Application orchestration — unit test с mock repositories, проверяющий результат и отсутствие лишних writes.
 - LINQ expression, index, cascade, transaction или migration — SQL Server integration test; EF InMemory не заменяет реляционную проверку.
+- До SQL-приёмки финансовой изоляции выражения проверяются изолированно через Compile над доменными объектами. Это доказывает логическую фильтрацию и DTO, но не перевод EF-запроса, выполнение include или согласованность нескольких SQL-чтений при конкурентном отзыве участия.
 - Page handler или error mapping — Web unit test; authentication/cookie boundary — integration test с TestServer.
 - Изменение bank PDF parser — отдельные samples для успешных строк, комиссий/возвратов, многострочного текста и неизвестного формата.
 - Изменение TypeScript — `npm run build:ts`; при существенном UI-потоке также ручная проверка модалок и AJAX без reload.

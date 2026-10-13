@@ -27,8 +27,8 @@ public class MoneyMovementMapperTests
             "Main",
             "#112233",
             "User");
-        TestReceiptFactory.AddMoneyMovementLink(TestReceiptFactory.Create(totalSum: 100m), movement);
-        TestReceiptFactory.AddMoneyMovementLink(TestReceiptFactory.Create(totalSum: 23.45m), movement);
+        TestReceiptFactory.AddMoneyMovementLink(TestReceiptFactory.Create(createdByUserId: userId, totalSum: 100m), movement);
+        TestReceiptFactory.AddMoneyMovementLink(TestReceiptFactory.Create(createdByUserId: userId, totalSum: 23.45m), movement);
         TestMoneyMovementFactory.AddMaterializedReceiptLink(
             movement,
             TestMoneyMovementFactory.CreateLink(movement.Id, Guid.NewGuid(), userId));
@@ -46,7 +46,7 @@ public class MoneyMovementMapperTests
         Assert.Equal(userId, dto.PerformedByUserId);
         Assert.Equal("User", dto.PerformedByUserName);
         Assert.Equal(MoneyMovementSource.BankStatementImport, dto.Source);
-        Assert.Equal(3, dto.LinkedReceiptCount);
+        Assert.Equal(2, dto.LinkedReceiptCount);
         Assert.Equal(7, dto.AvailableReceiptCount);
         Assert.Equal(123.45m, dto.LinkedReceiptsTotalSum);
     }
@@ -76,6 +76,6 @@ public class MoneyMovementMapperTests
                 true)!;
         MethodInfo method = mapperType.GetMethod("MapDto", BindingFlags.Public | BindingFlags.Static)!;
 
-        return method.Invoke(null, [movement, availableReceiptCount])!;
+        return method.Invoke(null, [movement, movement.CreatedByUserId, availableReceiptCount])!;
     }
 }

@@ -16,6 +16,8 @@
         public DateTime CreatedAtUtc { get; set; }
         public int MoneyMovementCount { get; set; }
         public int AvailableMoneyMovementCount { get; set; }
+        // Только для application-подбора: скрытые привязки не превращают чек в чек без счёта.
+        internal bool HasAccountLinks { get; set; }
         public decimal MoneyMovementsTotalSum { get; set; }
         public ICollection<ReceiptAccountDto> Accounts { get; set; } = new List<ReceiptAccountDto>();
         public ICollection<ReceiptItemDto> Items { get; set; } = new List<ReceiptItemDto>();

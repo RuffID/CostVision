@@ -63,6 +63,7 @@ public class ReceiptGroupMapperTests
             createdByUserId,
             store: TestReceiptFactory.CreateStore("Store"));
         MoneyMovement movement = TestMoneyMovementFactory.CreateManual(amount: linkedAmount);
+        Assert.True(movement.TryMoveToAccount(account, out string? moveError), moveError);
         TestReceiptFactory.AddMoneyMovementLink(receipt, movement);
         Assert.True(receipt.TryAddAccount(account, out _, out string? error), error);
         return receipt;

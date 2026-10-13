@@ -6,6 +6,8 @@ using CostVision.Application.UseCases.MoneyMovements.Helpers;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
+using CostVision.Application.Extensions;
+using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
@@ -18,12 +20,14 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult<List<MoneyMovementReceiptDto>>> ExecuteAsync(GetMoneyMovementReceiptCandidatesRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.MoneyMovementId == Guid.Empty)
+            {
                 return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции.");
+            }
+
+            Expression<Func<MoneyMovement, bool>> movementPredicate = item => item.Id == request.MoneyMovementId;
 
             MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
-                item => item.Id == request.MoneyMovementId &&
-                        (item.Account!.CreatedByUserId == currentUserId ||
-                         item.Account.Members.Any(member => member.UserId == currentUserId)),
+                movementPredicate.WithAccountReadAccess(item => item.Account, currentUserId),
                 asNoTracking: true,
                 include: query => query
                     .Include(item => item.Account)
@@ -31,7 +35,9 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (movement == null)
+            {
                 return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.NotFound, "Операция не найдена или доступ к ней отсутствует.");
+            }
 
             DateTime? dateFrom = request.DateFrom?.Date;
             DateTime? dateToExclusive = request.DateTo?.Date.AddDays(1);
@@ -40,7 +46,9 @@ namespace CostVision.Application.UseCases.MoneyMovements
             {
                 decimal timeWindowHours = request.TimeWindowHours.GetValueOrDefault(DEFAULT_TIME_WINDOW_HOURS);
                 if (timeWindowHours < 0)
+                {
                     return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Допуск по времени не может быть отрицательным.");
+                }
 
                 double timeWindowMinutes = (double)(timeWindowHours * MINUTES_PER_HOUR);
                 dateFrom = movement.OccurredAt.AddMinutes(-timeWindowMinutes);
@@ -48,22 +56,25 @@ namespace CostVision.Application.UseCases.MoneyMovements
             }
 
             if (dateFrom.HasValue && dateToExclusive.HasValue && dateToExclusive.Value < dateFrom.Value)
+            {
                 return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
+            }
 
             decimal amountTolerance = request.AmountTolerance.GetValueOrDefault(DEFAULT_AMOUNT_TOLERANCE);
             if (amountTolerance < 0)
+            {
                 return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Допуск по сумме не может быть отрицательным.");
+            }
 
-            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
-                receipt => (!dateFrom.HasValue || receipt.DateTime >= dateFrom.Value) &&
+            Expression<Func<Receipt, bool>> receiptPredicate = receipt => (!dateFrom.HasValue || receipt.DateTime >= dateFrom.Value) &&
                            (!dateToExclusive.HasValue || receipt.DateTime < dateToExclusive.Value) &&
                            (!request.UseAmountFilter || Math.Abs(receipt.TotalSum - movement.Amount) <= amountTolerance) &&
                            (!request.ExcludeLinkedReceipts || !receipt.MoneyMovementLinks.Any()) &&
-                           (receipt.CreatedByUserId == currentUserId ||
-                            receipt.Accounts.Any(link => link.Account!.CreatedByUserId == currentUserId) ||
-                            receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUserId))) &&
                            (receipt.Accounts.Any(link => link.AccountId == movement.AccountId) ||
-                            (!receipt.Accounts.Any() && receipt.CreatedByUserId == currentUserId)),
+                            (!receipt.Accounts.Any() && receipt.CreatedByUserId == currentUserId));
+
+            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
+                receiptPredicate.WithReceiptReadAccess(receipt => receipt, currentUserId),
                 asNoTracking: true,
                 include: query => query
                     .Include(receipt => receipt.Store)
@@ -72,13 +83,16 @@ namespace CostVision.Application.UseCases.MoneyMovements
                         .ThenInclude(link => link.Account)
                             .ThenInclude(account => account!.Members)
                     .Include(receipt => receipt.MoneyMovementLinks)
+                        .ThenInclude(link => link.MoneyMovement)
+                            .ThenInclude(movement => movement!.Account)
+                                .ThenInclude(account => account!.Members)
                     .AsSplitQuery(),
                 ct: ct);
 
             List<MoneyMovementReceiptDto> result = receipts
                 .OrderBy(receipt => Math.Abs((receipt.DateTime - movement.OccurredAt).Ticks))
                 .ThenBy(receipt => Math.Abs(receipt.TotalSum - movement.Amount))
-                .Select(receipt => receipt.MapReceiptLinkDto())
+                .Select(receipt => receipt.MapReceiptLinkDto(currentUserId))
                 .ToList();
 
             return ServiceResult<List<MoneyMovementReceiptDto>>.Ok(result);

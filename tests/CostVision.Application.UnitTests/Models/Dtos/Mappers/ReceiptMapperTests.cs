@@ -24,9 +24,11 @@ public class ReceiptMapperTests
             50m,
             store: TestReceiptFactory.CreateStore("Store"));
         MoneyMovement firstMovement = TestMoneyMovementFactory.CreateManual(
+            userId: userId,
             amount: 10m,
             type: MoneyMovementType.Expense);
         MoneyMovement secondMovement = TestMoneyMovementFactory.CreateManual(
+            userId: userId,
             amount: 20m,
             type: MoneyMovementType.Expense);
         TestReceiptFactory.AddMoneyMovementLink(receipt, firstMovement);
@@ -46,7 +48,7 @@ public class ReceiptMapperTests
         Assert.Equal("fn", dto.FiscalDriveNumber);
         Assert.Equal("fp", dto.FiscalSign);
         Assert.Equal(50m, dto.TotalSum);
-        Assert.Equal(3, dto.MoneyMovementCount);
+        Assert.Equal(2, dto.MoneyMovementCount);
         Assert.Equal(30m, dto.MoneyMovementsTotalSum);
         Assert.Collection(dto.Items,
             item =>
@@ -83,7 +85,7 @@ public class ReceiptMapperTests
     {
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), user: "Legal seller");
 
-        var dto = receipt.MapReceiptDto();
+        var dto = receipt.MapReceiptDto(receipt.CreatedByUserId);
 
         Assert.Equal("Legal seller", dto.RetailPlace);
         Assert.Null(dto.AccountId);

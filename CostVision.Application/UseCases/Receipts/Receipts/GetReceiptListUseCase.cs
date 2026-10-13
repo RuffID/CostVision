@@ -5,6 +5,8 @@ using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
+using CostVision.Application.Extensions;
+using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
@@ -13,17 +15,18 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         public async Task<ServiceResult<List<ReceiptDto>>> ExecuteAsync(User currentUser, DateTime dateFrom, DateTime dateTo, CancellationToken ct)
         {
             if (dateTo.Date < dateFrom.Date)
+            {
                 return ServiceResult<List<ReceiptDto>>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
+            }
 
             DateTime periodStart = dateFrom.Date;
             DateTime periodEnd = dateTo.Date.AddDays(1);
 
+            Expression<Func<Receipt, bool>> receiptPredicate = receipt => receipt.DateTime >= periodStart &&
+                           receipt.DateTime < periodEnd;
+
             List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
-                receipt => receipt.DateTime >= periodStart &&
-                           receipt.DateTime < periodEnd &&
-                           (receipt.CreatedByUserId == currentUser.Id ||
-                            receipt.Accounts.Any(link => link.Account!.CreatedByUserId == currentUser.Id) ||
-                            receipt.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUser.Id))),
+                receiptPredicate.WithReceiptReadAccess(receipt => receipt, currentUser.Id),
                 asNoTracking: true,
                 include: query => query
                     .Include(receipt => receipt.Store)
@@ -33,6 +36,8 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                             .ThenInclude(account => account!.Members)
                     .Include(receipt => receipt.MoneyMovementLinks)
                         .ThenInclude(link => link.MoneyMovement)
+                            .ThenInclude(movement => movement!.Account)
+                                .ThenInclude(account => account!.Members)
                     .AsSplitQuery(),
                 ct: ct);
 

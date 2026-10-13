@@ -16,7 +16,7 @@ public class MoneyMovementReceiptMapperTests
             dateTime: new DateTime(2026, 2, 1),
             totalSum: 77m,
             store: TestReceiptFactory.CreateStore("Market"));
-        TestReceiptFactory.AddMoneyMovementLink(receipt);
+        TestReceiptFactory.AddMoneyMovementLink(receipt, TestMoneyMovementFactory.CreateManual(userId: receipt.CreatedByUserId));
         AddAccountLink(receipt, "Zoo");
         AddAccountLink(receipt, "Alpha");
 
@@ -57,20 +57,22 @@ public class MoneyMovementReceiptMapperTests
     private static void AddAccountLink(Receipt receipt, string accountName)
     {
         Guid accountId = Guid.NewGuid();
-        Account account = TestAccountFactory.Create(accountId, name: accountName);
+        Account account = TestAccountFactory.Create(accountId, ownerUserId: receipt.CreatedByUserId, name: accountName);
         Assert.True(receipt.TryAddAccount(account, out _, out string? error), error);
     }
 
     private static object MapReceipt(Receipt receipt)
     {
-        MethodInfo method = MapperType.GetMethod("MapReceiptLinkDto", BindingFlags.Public | BindingFlags.Static, [typeof(Receipt)])!;
-        return method.Invoke(null, [receipt])!;
+        MethodInfo method = MapperType.GetMethod("MapReceiptLinkDto", BindingFlags.Public | BindingFlags.Static, [typeof(Receipt), typeof(Guid)])!;
+
+        return method.Invoke(null, [receipt, receipt.CreatedByUserId])!;
     }
 
     private static object MapLink(MoneyMovementReceipt link)
     {
-        MethodInfo method = MapperType.GetMethod("MapReceiptLinkDto", BindingFlags.Public | BindingFlags.Static, [typeof(MoneyMovementReceipt)])!;
-        return method.Invoke(null, [link])!;
+        MethodInfo method = MapperType.GetMethod("MapReceiptLinkDto", BindingFlags.Public | BindingFlags.Static, [typeof(MoneyMovementReceipt), typeof(Guid)])!;
+
+        return method.Invoke(null, [link, link.CreatedByUserId])!;
     }
 
     private static Type MapperType => typeof(CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsing.IBankStatementParser)

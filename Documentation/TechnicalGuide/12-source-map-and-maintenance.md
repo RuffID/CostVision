@@ -9,6 +9,7 @@
 | `CostVision.Application/Abstractions` | Контракты хранения и внешних сервисов |
 | `CostVision.Application/Models` | DTO, запросы, результаты и внутренние данные сценариев |
 | `CostVision.Application/UseCases` | Правила доступа, создание, изменение, импорт и отчётность |
+| `CostVision.Application/Extensions/FinancialDataAccess.cs` | Область финансового чтения и композиция выражений доступа для use case |
 | `CostVision.Infrastructure/DataBase` | Контекст, конфигурации, репозитории и generated-миграции |
 | `CostVision.Infrastructure/Services` | Внешний API, преобразование, QR/PDF, backup и фоновые задачи |
 | `CostVision.Web/Pages` | Razor-каркас и HTTP-обработчики |

@@ -1,12 +1,17 @@
 ﻿using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Domain.Models.MoneyMovements;
+using CostVision.Application.Extensions;
 
 namespace CostVision.Application.UseCases.MoneyMovements.Helpers
 {
     internal static class MoneyMovementMapper
     {
-        public static MoneyMovementDto MapDto(this MoneyMovement movement, int availableReceiptCount = 0)
+        public static MoneyMovementDto MapDto(this MoneyMovement movement, Guid currentUserId, int availableReceiptCount = 0)
         {
+            List<MoneyMovementReceipt> visibleLinks = movement.ReceiptLinks
+                .Where(link => FinancialDataAccess.CanReadReceipt(link.Receipt, currentUserId))
+                .ToList();
+
             return new MoneyMovementDto
             {
                 Id = movement.Id,
@@ -21,10 +26,9 @@ namespace CostVision.Application.UseCases.MoneyMovements.Helpers
                 PerformedByUserId = movement.PerformedByUserId,
                 PerformedByUserName = movement.PerformedByUser?.Name ?? string.Empty,
                 Source = movement.Source,
-                LinkedReceiptCount = movement.ReceiptLinks.Count,
+                LinkedReceiptCount = visibleLinks.Count,
                 AvailableReceiptCount = availableReceiptCount,
-                LinkedReceiptsTotalSum = movement.ReceiptLinks
-                    .Where(link => link.Receipt != null)
+                LinkedReceiptsTotalSum = visibleLinks
                     .Sum(link => link.Receipt!.TotalSum)
             };
         }

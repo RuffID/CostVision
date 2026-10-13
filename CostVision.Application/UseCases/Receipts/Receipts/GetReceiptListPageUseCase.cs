@@ -5,6 +5,8 @@ using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.MoneyMovements;
 using Microsoft.EntityFrameworkCore;
+using CostVision.Application.Extensions;
+using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
@@ -17,7 +19,9 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
             ServiceResult<List<ReceiptDto>> receiptListResult = await getReceiptListUseCase.ExecuteAsync(currentUser, request.DateFrom, request.DateTo, ct);
 
             if (!receiptListResult.Success)
+            {
                 return receiptListResult.PropagateFailure<ReceiptListDto>();
+            }
 
             List<ReceiptDto> receipts = receiptListResult.Data;
             receipts = ApplyFilters(receipts, request);
@@ -29,18 +33,19 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
             decimal totalSum = receipts.Sum(receipt => receipt.TotalSum);
 
             if (receipts.Count == 0)
+            {
                 return ServiceResult<ReceiptListDto>.Ok(new ReceiptListDto { Page = page, PageSize = pageSize, TotalPages = totalPages });
+            }
 
             DateTime periodStart = request.DateFrom.Date;
             DateTime periodEnd = request.DateTo.Date.AddDays(1);
 
-            List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
-                movement => movement.OccurredAt >= periodStart &&
+            Expression<Func<MoneyMovement, bool>> movementPredicate = movement => movement.OccurredAt >= periodStart &&
                             movement.OccurredAt < periodEnd &&
-                            !movement.ReceiptLinks.Any() &&
-                            (movement.CreatedByUserId == currentUser.Id ||
-                             movement.Account!.CreatedByUserId == currentUser.Id ||
-                             movement.Account.Members.Any(member => member.UserId == currentUser.Id)),
+                            !movement.ReceiptLinks.Any();
+
+            List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
+                movementPredicate.WithAccountReadAccess(movement => movement.Account, currentUser.Id),
                 asNoTracking: true,
                 include: query => query
                     .Include(movement => movement.Account)
@@ -53,7 +58,9 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
             Dictionary<MovementAccountMatchKey, int> movementsByAccount = BuildMovementsByAccount(movements);
             Dictionary<MovementOwnerMatchKey, int> movementsByOwner = BuildMovementsByOwner(movements);
             foreach (ReceiptDto receipt in pageReceipts)
+            {
                 receipt.AvailableMoneyMovementCount = CountAvailableMoneyMovements(receipt, movementsByAccount, movementsByOwner, currentUser.Id);
+            }
 
             return ServiceResult<ReceiptListDto>.Ok(new ReceiptListDto
             {
@@ -144,6 +151,11 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         {
             if (receipt.Accounts.Count == 0)
             {
+                if (receipt.HasAccountLinks)
+                {
+                    return 0;
+                }
+
                 MovementOwnerMatchKey ownerKey = new(receipt.DateTime.Date, receipt.TotalSum, currentUserId);
                 return movementsByOwner.GetValueOrDefault(ownerKey);
             }

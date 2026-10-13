@@ -22,7 +22,7 @@ public class ReceiptMoneyMovementMapperTests
             accountName: "Main");
         TestMoneyMovementFactory.CreateLink(
             movement,
-            TestReceiptFactory.Create(Guid.NewGuid()));
+            TestReceiptFactory.Create(Guid.NewGuid(), createdByUserId: movement.CreatedByUserId));
 
         dynamic dto = MapMovement(movement);
 
@@ -66,14 +66,16 @@ public class ReceiptMoneyMovementMapperTests
 
     private static object MapMovement(MoneyMovement movement)
     {
-        MethodInfo method = MapperType.GetMethod("MapReceiptMoneyMovementDto", BindingFlags.Public | BindingFlags.Static, [typeof(MoneyMovement)])!;
-        return method.Invoke(null, [movement])!;
+        MethodInfo method = MapperType.GetMethod("MapReceiptMoneyMovementDto", BindingFlags.Public | BindingFlags.Static, [typeof(MoneyMovement), typeof(Guid)])!;
+
+        return method.Invoke(null, [movement, movement.CreatedByUserId])!;
     }
 
     private static object MapLink(MoneyMovementReceipt link)
     {
-        MethodInfo method = MapperType.GetMethod("MapReceiptMoneyMovementDto", BindingFlags.Public | BindingFlags.Static, [typeof(MoneyMovementReceipt)])!;
-        return method.Invoke(null, [link])!;
+        MethodInfo method = MapperType.GetMethod("MapReceiptMoneyMovementDto", BindingFlags.Public | BindingFlags.Static, [typeof(MoneyMovementReceipt), typeof(Guid)])!;
+
+        return method.Invoke(null, [link, link.CreatedByUserId])!;
     }
 
     private static Type MapperType => typeof(CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsing.IBankStatementParser)

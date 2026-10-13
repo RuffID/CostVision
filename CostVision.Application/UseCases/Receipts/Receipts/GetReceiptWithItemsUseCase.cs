@@ -6,6 +6,7 @@ using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
+using CostVision.Application.Extensions;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
@@ -14,7 +15,9 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         public async Task<ServiceResult<ReceiptDto>> ExecuteAsync(Guid receiptId, User currentUser, CancellationToken ct)
         {
             if (receiptId == Guid.Empty)
+            {
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор чека.");
+            }
 
             Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
                 receipt => receipt.Id == receiptId,
@@ -27,14 +30,23 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                     .Include(receipt => receipt.Accounts)
                         .ThenInclude(link => link.Account)
                             .ThenInclude(account => account!.Members)
+                    .Include(receipt => receipt.MoneyMovementLinks)
+                        .ThenInclude(link => link.MoneyMovement)
+                            .ThenInclude(movement => movement!.Account)
+                                .ThenInclude(account => account!.Members)
                     .AsSplitQuery(),
                 ct: ct);
 
             if (receipt == null)
+            {
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.NotFound, "Чек не найден.");
+            }
 
-            if (!accessVerification.UserHasAccessToReceipt(currentUser, receipt))
+            if (!FinancialDataAccess.CanReadReceipt(receipt, currentUser.Id) ||
+                !accessVerification.UserHasAccessToReceipt(currentUser, receipt))
+            {
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.Forbidden, "Нет доступа к этому чеку.");
+            }
 
             return ServiceResult<ReceiptDto>.Ok(receipt.MapReceiptDto(currentUser.Id));
         }

@@ -12,7 +12,9 @@ namespace CostVision.Application.Models.Dtos.Mappers
                 .ToList();
 
             if (groupedReceipts.Count == 0)
+            {
                 return new ReceiptDto();
+            }
 
             ReceiptDto representativeReceipt = groupedReceipts
                 .OrderByDescending(receipt => receipt.Accounts.Any(account => account.CanEditReceipt))
@@ -35,6 +37,7 @@ namespace CostVision.Application.Models.Dtos.Mappers
             representativeReceipt.Id = primaryEditableAccount?.ReceiptId ?? primaryAccount?.ReceiptId ?? representativeReceipt.Id;
             representativeReceipt.AccountId = primaryAccount?.Id;
             representativeReceipt.AccountName = primaryAccount?.Name ?? string.Empty;
+            representativeReceipt.HasAccountLinks = groupedReceipts.Any(receipt => receipt.HasAccountLinks);
             representativeReceipt.MoneyMovementCount = groupedReceipts.Sum(receipt => receipt.MoneyMovementCount);
             representativeReceipt.MoneyMovementsTotalSum = groupedReceipts.Sum(receipt => receipt.MoneyMovementsTotalSum);
 

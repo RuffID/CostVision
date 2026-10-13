@@ -7,6 +7,7 @@ using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using CostVision.Application.Extensions;
 
 namespace CostVision.Application.UseCases.Receipts.Stores
 {
@@ -24,20 +25,17 @@ namespace CostVision.Application.UseCases.Receipts.Stores
             string? groupKey = string.IsNullOrWhiteSpace(request.GroupKey) ? null : request.GroupKey.Trim();
 
             if (!storeId.HasValue && groupKey == null)
+            {
                 return ServiceResult<StoreReceiptListDto>.Fail(ServiceErrorType.Validation, "Не задан магазин для просмотра чеков.");
+            }
 
             Expression<Func<Receipt, bool>> predicate = receipt =>
                 receipt.Store != null &&
                 ((storeId.HasValue && receipt.StoreId == storeId.Value) ||
-                 (groupKey != null && receipt.Store.NormalizedName == groupKey)) &&
-                (receipt.CreatedByUserId == currentUserId ||
-                 receipt.Accounts.Any(link =>
-                     link.Account != null &&
-                     (link.Account.CreatedByUserId == currentUserId ||
-                      link.Account.Members.Any(member => member.UserId == currentUserId))));
+                 (groupKey != null && receipt.Store.NormalizedName == groupKey));
 
             List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
-                predicate,
+                predicate.WithReceiptReadAccess(receipt => receipt, currentUserId),
                 asNoTracking: true,
                 include: query => query
                     .Include(receipt => receipt.Store)
@@ -47,6 +45,8 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                             .ThenInclude(account => account!.Members)
                     .Include(receipt => receipt.MoneyMovementLinks)
                         .ThenInclude(link => link.MoneyMovement)
+                            .ThenInclude(movement => movement!.Account)
+                                .ThenInclude(account => account!.Members)
                     .AsSplitQuery(),
                 ct: ct);
 
@@ -83,18 +83,19 @@ namespace CostVision.Application.UseCases.Receipts.Stores
         private async Task FillAvailableMoneyMovementCountsAsync(List<ReceiptDto> receipts, Guid currentUserId, CancellationToken ct)
         {
             if (receipts.Count == 0)
+            {
                 return;
+            }
 
             DateTime periodStart = receipts.Min(receipt => receipt.DateTime).Date;
             DateTime periodEnd = receipts.Max(receipt => receipt.DateTime).Date.AddDays(1);
 
-            List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
-                movement => movement.OccurredAt >= periodStart &&
+            Expression<Func<MoneyMovement, bool>> movementPredicate = movement => movement.OccurredAt >= periodStart &&
                             movement.OccurredAt < periodEnd &&
-                            !movement.ReceiptLinks.Any() &&
-                            (movement.CreatedByUserId == currentUserId ||
-                             movement.Account!.CreatedByUserId == currentUserId ||
-                             movement.Account.Members.Any(member => member.UserId == currentUserId)),
+                            !movement.ReceiptLinks.Any();
+
+            List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
+                movementPredicate.WithAccountReadAccess(movement => movement.Account, currentUserId),
                 asNoTracking: true,
                 include: query => query
                     .Include(movement => movement.Account)
@@ -106,7 +107,9 @@ namespace CostVision.Application.UseCases.Receipts.Stores
             Dictionary<MovementAccountMatchKey, int> movementsByAccount = BuildMovementsByAccount(movements);
             Dictionary<MovementOwnerMatchKey, int> movementsByOwner = BuildMovementsByOwner(movements);
             foreach (ReceiptDto receipt in receipts)
+            {
                 receipt.AvailableMoneyMovementCount = CountAvailableMoneyMovements(receipt, movementsByAccount, movementsByOwner, currentUserId);
+            }
         }
 
         private static Dictionary<MovementAccountMatchKey, int> BuildMovementsByAccount(List<MoneyMovement> movements)
@@ -145,6 +148,11 @@ namespace CostVision.Application.UseCases.Receipts.Stores
         {
             if (receipt.Accounts.Count == 0)
             {
+                if (receipt.HasAccountLinks)
+                {
+                    return 0;
+                }
+
                 MovementOwnerMatchKey ownerKey = new(receipt.DateTime.Date, receipt.TotalSum, currentUserId);
                 return movementsByOwner.GetValueOrDefault(ownerKey);
             }

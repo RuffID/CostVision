@@ -5,6 +5,8 @@ using CostVision.Application.UseCases.MoneyMovements.Helpers;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
+using CostVision.Application.Extensions;
+using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
@@ -13,13 +15,14 @@ namespace CostVision.Application.UseCases.MoneyMovements
         public async Task<ServiceResult<List<ReceiptMoneyMovementDto>>> ExecuteAsync(Guid receiptId, Guid currentUserId, CancellationToken ct)
         {
             if (receiptId == Guid.Empty)
+            {
                 return ServiceResult<List<ReceiptMoneyMovementDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор чека.");
+            }
+
+            Expression<Func<Receipt, bool>> receiptPredicate = item => item.Id == receiptId;
 
             Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
-                item => item.Id == receiptId &&
-                        (item.CreatedByUserId == currentUserId ||
-                         item.Accounts.Any(link => link.Account!.CreatedByUserId == currentUserId) ||
-                         item.Accounts.Any(link => link.Account!.Members.Any(member => member.UserId == currentUserId))),
+                receiptPredicate.WithReceiptReadAccess(item => item, currentUserId),
                 asNoTracking: true,
                 include: query => query
                     .Include(item => item.Accounts)
@@ -29,21 +32,25 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 ct: ct);
 
             if (receipt == null)
+            {
                 return ServiceResult<List<ReceiptMoneyMovementDto>>.Fail(ServiceErrorType.NotFound, "Чек не найден или доступ к нему отсутствует.");
+            }
 
+            Expression<Func<MoneyMovementReceipt, bool>> linkPredicate = link => link.ReceiptId == receiptId && link.MoneyMovement != null;
             List<MoneyMovementReceipt> links = await unitOfWork.MoneyMovementReceipt.GetItemsByPredicateAsync(
-                link => link.ReceiptId == receiptId,
+                linkPredicate.WithAccountReadAccess(link => link.MoneyMovement!.Account, currentUserId),
                 asNoTracking: true,
                 include: query => query
                     .Include(link => link.MoneyMovement)
                         .ThenInclude(movement => movement!.Account)
+                            .ThenInclude(account => account!.Members)
                     .AsSplitQuery(),
                 ct: ct);
 
             List<ReceiptMoneyMovementDto> result = links
                 .Where(link => link.MoneyMovement != null)
                 .OrderByDescending(link => link.MoneyMovement!.OccurredAt)
-                .Select(link => link.MapReceiptMoneyMovementDto())
+                .Select(link => link.MapReceiptMoneyMovementDto(currentUserId))
                 .ToList();
 
             return ServiceResult<List<ReceiptMoneyMovementDto>>.Ok(result);
