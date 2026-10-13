@@ -16,6 +16,8 @@ Stage03ReceiptPersistenceTests проверяет фактические author 
 
 ## Проверка
 
+Stage05ReportQueryTests передаёт actual predicate/include dashboard, getter кандидатов, отчётного счётчика и document projection деталей/refresh в SQL Server ToQueryString. Соединение не открывается, SQL не исполняется. Проверки перевода и наличия графа не доказывают фактическую материализацию, precision/collation, snapshot агрегатов или отзыв доступа.
+
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.
 
 ## Сопровождение

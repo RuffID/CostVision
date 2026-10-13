@@ -2,7 +2,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
-using CostVision.Domain.Models.Enums.Receipts;
+using CostVision.Application.Extensions;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -108,11 +108,11 @@ namespace CostVision.Application.UseCases.Receipts.Products
                 .Where(item => item.Receipt != null && IsReceiptAccessible(item.Receipt, request, currentUserId))
                 .ToList();
             List<bool> weightedVariants = accessibleReceiptItems
-                .Select(item => IsWeighted(item.ItemsQuantityMeasure))
+                .Select(item => ReceiptFinancialRules.IsWeighted(item.ItemsQuantityMeasure))
                 .Distinct()
                 .ToList();
             bool hasSingleQuantityMeasure = weightedVariants.Count == 1;
-            decimal totalQuantity = accessibleReceiptItems.Sum(NormalizeQuantity);
+            decimal totalQuantity = accessibleReceiptItems.Sum(item => ReceiptFinancialRules.NormalizeQuantity(item.Quantity, item.ItemsQuantityMeasure));
 
             return new ProductListItemDto
             {
@@ -131,21 +131,7 @@ namespace CostVision.Application.UseCases.Receipts.Products
             };
         }
 
-        private static decimal NormalizeQuantity(ReceiptItem item)
-        {
-            return item.ItemsQuantityMeasure switch
-            {
-                QuantityMeasureType.Gram => item.Quantity / 1000m,
-                QuantityMeasureType.Kilogram => item.Quantity,
-                QuantityMeasureType.Ton => item.Quantity * 1000m,
-                _ => item.Quantity
-            };
-        }
 
-        private static bool IsWeighted(QuantityMeasureType quantityMeasure)
-        {
-            return quantityMeasure is QuantityMeasureType.Gram or QuantityMeasureType.Kilogram or QuantityMeasureType.Ton;
-        }
 
         private static bool IsReceiptAccessible(Receipt receipt, GetProductListRequest request, Guid currentUserId)
         {

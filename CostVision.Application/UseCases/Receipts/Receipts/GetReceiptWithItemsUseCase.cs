@@ -48,7 +48,8 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.Forbidden, "Нет доступа к этому чеку.");
             }
 
-            return ServiceResult<ReceiptDto>.Ok(receipt.MapReceiptDto(currentUser.Id));
+            ReceiptDto dto = await ReceiptDocumentReportProjection.MapAsync(unitOfWork, receipt, currentUser.Id, ct);
+            return ServiceResult<ReceiptDto>.Ok(dto);
         }
     }
 }

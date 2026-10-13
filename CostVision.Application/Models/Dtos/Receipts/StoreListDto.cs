@@ -17,5 +17,6 @@ namespace CostVision.Application.Models.Dtos.Receipts
         public bool HasNextPage { get; set; }
 
         public decimal TotalSum { get; set; }
+        public decimal IncomeSum { get; set; }
     }
 }

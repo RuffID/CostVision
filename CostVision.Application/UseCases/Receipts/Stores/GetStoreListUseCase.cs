@@ -5,6 +5,7 @@ using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using CostVision.Application.Extensions;
 
 namespace CostVision.Application.UseCases.Receipts.Stores
 {
@@ -61,6 +62,11 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                 .Take(pageSize)
                 .ToList();
 
+            List<ReceiptIdentity> documents = stores.SelectMany(store => store.Receipts)
+                .Where(receipt => IsReceiptAccessible(receipt, request, currentUserId))
+                .Select(receipt => receipt.GetIdentity()).Distinct().ToList();
+            var totals = ReceiptFinancialRules.CalculateTotals(documents.Select(identity => (identity.OperationType, identity.TotalSum)));
+
             StoreListDto result = new()
             {
                 Items = items,
@@ -70,7 +76,8 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                 TotalPages = totalPages,
                 HasPreviousPage = page > MIN_PAGE,
                 HasNextPage = page < totalPages,
-                TotalSum = allItems.Sum(item => item.TotalSpent)
+                TotalSum = totals.Expense,
+                IncomeSum = totals.Income
             };
 
             return ServiceResult<StoreListDto>.Ok(result);
@@ -112,7 +119,14 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                     StoreListItemDto firstItem = children.First();
 
                     if (children.Count == 1)
+                    {
                         return firstItem;
+                    }
+
+                    List<ReceiptIdentity> documents = group.SelectMany(item => item.Store.Receipts)
+                        .Where(receipt => IsReceiptAccessible(receipt, request, currentUserId))
+                        .Select(receipt => receipt.GetIdentity()).Distinct().ToList();
+                    var totals = ReceiptFinancialRules.CalculateTotals(documents.Select(identity => (identity.OperationType, identity.TotalSum)));
 
                     return new StoreListItemDto
                     {
@@ -121,8 +135,9 @@ namespace CostVision.Application.UseCases.Receipts.Stores
                         Address = "Несколько адресов",
                         AdaptiveName = firstItem.AdaptiveName,
                         DisplayName = firstItem.DisplayName,
-                        ReceiptCount = children.Sum(item => item.ReceiptCount),
-                        TotalSpent = children.Sum(item => item.TotalSpent),
+                        ReceiptCount = documents.Count,
+                        TotalSpent = totals.Expense,
+                        IncomeSum = totals.Income,
                         GroupKey = group.Key,
                         Children = children
                     };
@@ -133,54 +148,37 @@ namespace CostVision.Application.UseCases.Receipts.Stores
 
         private static StoreListItemDto CreateStoreListItem(Store store, GetStoreListRequest request, Guid currentUserId)
         {
+            List<ReceiptIdentity> documents = store.Receipts
+                .Where(receipt => IsReceiptAccessible(receipt, request, currentUserId))
+                .Select(receipt => receipt.GetIdentity()).Distinct().ToList();
+            var totals = ReceiptFinancialRules.CalculateTotals(documents.Select(identity => (identity.OperationType, identity.TotalSum)));
+            string displayName = store.Name;
+            if (request.UseAdaptiveNames && !string.IsNullOrWhiteSpace(store.AdaptiveName))
+            {
+                displayName = store.AdaptiveName;
+            }
+
             return new StoreListItemDto
             {
-                Id = store.Id,
-                Name = store.Name,
-                Address = store.Address,
-                AdaptiveName = store.AdaptiveName,
-                DisplayName = request.UseAdaptiveNames && !string.IsNullOrWhiteSpace(store.AdaptiveName)
-                    ? store.AdaptiveName
-                    : store.Name,
-                ReceiptCount = CountAccessibleReceipts(store, request, currentUserId),
-                TotalSpent = SumAccessibleReceiptTotals(store, request, currentUserId),
+                Id = store.Id, Name = store.Name, Address = store.Address,
+                AdaptiveName = store.AdaptiveName, DisplayName = displayName,
+                ReceiptCount = documents.Count, TotalSpent = totals.Expense, IncomeSum = totals.Income,
                 GroupKey = store.NormalizedName
             };
         }
 
-        private static int CountAccessibleReceipts(Store store, GetStoreListRequest request, Guid currentUserId)
-        {
-            return store.Receipts
-                .Where(receipt => IsReceiptAccessible(receipt, request, currentUserId))
-                .Select(receipt => receipt.Id)
-                .Distinct()
-                .Count();
-        }
-
-        private static decimal SumAccessibleReceiptTotals(Store store, GetStoreListRequest request, Guid currentUserId)
-        {
-            return store.Receipts
-                .Where(receipt => IsReceiptAccessible(receipt, request, currentUserId))
-                .GroupBy(receipt => receipt.Id)
-                .Sum(receiptGroup => receiptGroup.First().TotalSum);
-        }
-
         private static bool IsReceiptAccessible(Receipt receipt, GetStoreListRequest request, Guid currentUserId)
         {
-            if (request.DateFrom.HasValue && receipt.DateTime.Date < request.DateFrom.Value.Date ||
-                request.DateTo.HasValue && receipt.DateTime.Date > request.DateTo.Value.Date ||
-                request.AccountId.HasValue && !receipt.Accounts.Any(link => link.AccountId == request.AccountId.Value))
+            bool beforePeriod = request.DateFrom.HasValue && receipt.DateTime.Date < request.DateFrom.Value.Date;
+            bool afterPeriod = request.DateTo.HasValue && receipt.DateTime.Date > request.DateTo.Value.Date;
+            bool matchesAccount = !request.AccountId.HasValue || receipt.Accounts.Any(link =>
+                link.AccountId == request.AccountId.Value && FinancialDataAccess.CanReadAccount(link.Account, currentUserId));
+            if (beforePeriod || afterPeriod || !matchesAccount)
+            {
                 return false;
+            }
 
-            if (receipt.CreatedByUserId == currentUserId)
-                return true;
-
-            return receipt.Accounts.Any(link =>
-                link.Account != null &&
-                (
-                    link.Account.CreatedByUserId == currentUserId ||
-                    link.Account.Members.Any(member => member.UserId == currentUserId)
-                ));
+            return FinancialDataAccess.CanReadReceipt(receipt, currentUserId);
         }
     }
 }

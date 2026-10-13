@@ -13,6 +13,7 @@ import { buildReceiptCard, updateCardFromDto } from "../reports/receipts/ui/rece
 import type { AvailableAccountDto, MoveReceiptAccountAction, ReceiptDto } from "../reports/receipts/types.js";
 import { getStores, getStoreReceipts, loadStoreAvailableAccounts, moveStoreReceiptToAccount, openStoreReceipt, refreshStoreReceipt, removeStoreReceiptFromAccount, updateStoreAdaptiveName } from "./api.js";
 import { renderStores, type StoresUi } from "./render.js";
+import { formatReportTotals } from "../reports/receipts/render.js";
 import { storesState } from "./state.js";
 import type { StoreListItem, StoreSortBy } from "./types.js";
 
@@ -264,7 +265,7 @@ async function loadPage(page: number): Promise<void> {
         storesState.hasPreviousPage = result.hasPreviousPage;
         storesState.hasNextPage = result.hasNextPage;
         storesCountElement.textContent = `Магазинов: ${result.totalCount}`;
-        storesSumElement.textContent = `Сумма: ${formatCurrency(result.totalSum)}`;
+        storesSumElement.textContent = formatReportTotals(result.totalSum, result.incomeSum, formatCurrency);
         syncPageSizeInputs(storesState.pageSize);
         updatePageQuery(storesState.page);
 
@@ -432,6 +433,7 @@ async function openStoreReceiptsModal(button: HTMLButtonElement): Promise<void> 
     selectedStoreReceiptsGroupKey = groupKey;
     selectedStoreReceiptsPage = 1;
     storeReceiptsTitleElement.textContent = "Чеки магазина - " + (store.displayName || store.name || "Магазин");
+    requireElementById<HTMLElement>("storeReceiptsSummary").textContent = "Итоги ещё не загружены";
     hideStoreReceiptsAlert();
     clearElement(storeReceiptsListElement);
     clearElement(storeReceiptsPaginationElement);
@@ -450,6 +452,7 @@ async function loadSelectedStoreReceiptsPage(page: number): Promise<void> {
         const result = await getStoreReceipts(selectedStoreReceiptsStoreId, selectedStoreReceiptsGroupKey, page, Number(storeReceiptsPageSizeSelect.value));
         selectedStoreReceipts = result.items;
         selectedStoreReceiptsPage = result.page;
+        requireElementById<HTMLElement>("storeReceiptsSummary").textContent = formatReportTotals(result.totalSum, result.incomeSum, formatCurrency);
         renderStoreReceipts(result.items);
         renderStoreReceiptsPagination(result.page, result.totalPages, result.totalCount, result.pageSize, result.hasPreviousPage, result.hasNextPage);
     }

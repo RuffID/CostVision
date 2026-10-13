@@ -26,6 +26,7 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/04-money-movement-integrity.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/05-report-calculation.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-05-prompt.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-06-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/06-receipt-refresh.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/07-bounded-read-queries.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/07a-scenario-unit-of-work.md" />

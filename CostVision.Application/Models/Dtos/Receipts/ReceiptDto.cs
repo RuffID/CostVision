@@ -7,6 +7,7 @@
         public string RetailPlace { get; set; } = string.Empty;
         public string RetailPlaceAddress { get; set; } = string.Empty;
         public decimal TotalSum { get; set; }
+        public CostVision.Domain.Models.Enums.Receipts.ReceiptOperationType OperationType { get; set; }
         public string FiscalDriveNumber { get; set; } = string.Empty;
         public string FiscalDocumentNumber { get; set; } = string.Empty;
         public string FiscalSign { get; set; } = string.Empty;

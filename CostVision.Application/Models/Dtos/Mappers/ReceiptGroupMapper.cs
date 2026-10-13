@@ -7,7 +7,8 @@ namespace CostVision.Application.Models.Dtos.Mappers
     {
         public static ReceiptDto MapReceiptGroupDto(this IEnumerable<Receipt> receipts, Guid currentUserId)
         {
-            List<ReceiptDto> groupedReceipts = receipts
+            List<Receipt> copies = receipts.ToList();
+            List<ReceiptDto> groupedReceipts = copies
                 .Select(receipt => receipt.MapReceiptDto(currentUserId))
                 .ToList();
 
@@ -38,8 +39,7 @@ namespace CostVision.Application.Models.Dtos.Mappers
             representativeReceipt.AccountId = primaryAccount?.Id;
             representativeReceipt.AccountName = primaryAccount?.Name ?? string.Empty;
             representativeReceipt.HasAccountLinks = groupedReceipts.Any(receipt => receipt.HasAccountLinks);
-            representativeReceipt.MoneyMovementCount = groupedReceipts.Sum(receipt => receipt.MoneyMovementCount);
-            representativeReceipt.MoneyMovementsTotalSum = groupedReceipts.Sum(receipt => receipt.MoneyMovementsTotalSum);
+            ReceiptMoneyMovementAggregates.Apply(representativeReceipt, copies, currentUserId);
 
             return representativeReceipt;
         }

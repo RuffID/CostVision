@@ -20,6 +20,7 @@ export interface ReceiptDto {
     retailPlace: string;
     retailPlaceAddress: string;
     totalSum: number;
+    operationType: number;
     fiscalDriveNumber: string;
     fiscalDocumentNumber: string;
     fiscalSign: string;
@@ -43,6 +44,7 @@ export interface ReceiptList {
     hasPreviousPage: boolean;
     hasNextPage: boolean;
     totalSum: number;
+    incomeSum: number;
 }
 
 export interface ReceiptMoneyMovementDto {

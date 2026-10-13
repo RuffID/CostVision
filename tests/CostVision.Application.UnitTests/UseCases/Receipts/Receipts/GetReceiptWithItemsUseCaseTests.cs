@@ -83,6 +83,20 @@ public class GetReceiptWithItemsUseCaseTests
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(receipt);
+        receiptRepository.Setup(repository => repository.GetItemsByPredicateAsync(
+            It.IsAny<Expression<Func<Receipt, bool>>>(), It.IsAny<int>(), It.IsAny<int?>(), true,
+            It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(), It.IsAny<CancellationToken>()))
+            .Returns((Expression<Func<Receipt, bool>> predicate, int skip, int? take, bool tracking,
+                Func<IQueryable<Receipt>, IQueryable<Receipt>> include, CancellationToken ct) =>
+            {
+                List<Receipt> available = [];
+                if (receipt != null && predicate.Compile()(receipt))
+                {
+                    available.Add(receipt);
+                }
+
+                return Task.FromResult(available);
+            });
 
         Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);

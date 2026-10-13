@@ -45,6 +45,7 @@ namespace CostVision.Application.Models.Dtos.Mappers
                 FiscalDriveNumber = receipt.FiscalDriveNumber ?? string.Empty,
                 FiscalSign = receipt.FiscalSign ?? string.Empty,
                 TotalSum = receipt.TotalSum,
+                OperationType = receipt.OperationType,
                 AccountId = receiptAccount?.Id,
                 AccountName = receiptAccount?.Name ?? string.Empty,
                 CreatedByUserName = receipt.CreatedByUser?.Name ?? string.Empty,

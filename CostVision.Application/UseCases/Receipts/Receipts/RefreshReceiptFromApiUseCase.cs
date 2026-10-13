@@ -7,6 +7,7 @@ using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
+using CostVision.Application.Extensions;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
@@ -15,7 +16,9 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
         public async Task<ServiceResult<ReceiptDto>> ExecuteAsync(Guid receiptId, User currentUser, CancellationToken ct)
         {
             if (receiptId == Guid.Empty)
+            {
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор чека.");
+            }
 
             Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
                 receipt => receipt.Id == receiptId,
@@ -32,16 +35,24 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 ct: ct);
 
             if (receipt == null)
+            {
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.NotFound, "Чек не найден.");
+            }
 
-            if (!accessVerification.UserHasAccessToReceipt(currentUser, receipt))
+            if (!FinancialDataAccess.CanReadReceipt(receipt, currentUser.Id) ||
+                !accessVerification.UserHasAccessToReceipt(currentUser, receipt))
+            {
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.Forbidden, "Нет доступа к этому чеку.");
+            }
 
             ServiceResult<Receipt> refreshResult = await receiptRefreshWorkflow.RefreshAsync(receipt, ct);
             if (!refreshResult.Success)
+            {
                 return refreshResult.PropagateFailure<ReceiptDto>();
+            }
 
-            return ServiceResult<ReceiptDto>.Ok(refreshResult.Data.MapReceiptDto(currentUser.Id));
+            ReceiptDto dto = await ReceiptDocumentReportProjection.MapAsync(unitOfWork, refreshResult.Data, currentUser.Id, ct);
+            return ServiceResult<ReceiptDto>.Ok(dto);
         }
     }
 }

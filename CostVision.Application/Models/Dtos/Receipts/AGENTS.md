@@ -12,6 +12,8 @@ ReceiptDto содержит только видимые счета и агрег
 
 ## Проверка
 
+ReceiptDto передаёт OperationType; номинал TotalSum карточки сохраняется. В ReceiptListDto, StoreReceiptListDto и StoreListDto TotalSum означает расход полного выбранного набора, IncomeSum — доход. StoreListItemDto.TotalSpent — расход, IncomeSum — доход. Клиент отображает серверные итоги, не складывает номиналы текущей страницы. Денежные агрегаты документа объединяют только доступные копии и distinct ID операций.
+
 Подходящие изолированные проверки находятся в tests/CostVision.Application.UnitTests. Собирать конкретный затронутый .csproj по корневым правилам; mock-репозитории не подтверждают SQL.
 
 ## Сопровождение

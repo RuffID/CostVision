@@ -1,5 +1,5 @@
 import { clearElement } from "../../shared/dom.js";
-import { formatRuNumber } from "../../shared/formatters.js";
+import { formatMoneyRub } from "../../shared/formatters.js";
 import type { StoreListItem, StoreListState } from "./types.js";
 
 export interface StoresUi {
@@ -18,7 +18,7 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
     if (state.stores.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = 4;
+        cell.colSpan = 5;
         cell.className = "border-start border-end border-bottom text-muted text-center py-4";
         cell.textContent = "Магазины не найдены.";
         row.append(cell);
@@ -44,7 +44,7 @@ export function renderStores(ui: StoresUi, state: StoreListState, onPageClick: (
 function updateSortButtons(ui: StoresUi, state: StoreListState): void {
     ui.nameSortButton.textContent = buildSortButtonText("Наименование", state.sortBy === "name" ? state.sortDirection : null);
     updateReceiptCountSortButton(ui.receiptCountSortButton, state.sortBy === "receiptCount" ? state.sortDirection : null);
-    ui.totalSpentSortButton.textContent = buildSortButtonText("Потрачено", state.sortBy === "totalSpent" ? state.sortDirection : null);
+    ui.totalSpentSortButton.textContent = buildSortButtonText("Расход", state.sortBy === "totalSpent" ? state.sortDirection : null);
 }
 
 function buildSortButtonText(text: string, direction: string | null): string {
@@ -119,8 +119,13 @@ export function createStoreRow(store: StoreListItem, state: StoreListState): HTM
 
     const totalSpentCell = document.createElement("td");
     totalSpentCell.className = "border-start border-end border-bottom text-end text-nowrap";
-    totalSpentCell.textContent = `${formatRuNumber(Math.floor(store.totalSpent))} ₽`;
+    totalSpentCell.textContent = formatMoneyRub(store.totalSpent);
     row.append(totalSpentCell);
+
+    const incomeCell = document.createElement("td");
+    incomeCell.classList.add("border-start", "border-end", "border-bottom", "text-end", "text-nowrap");
+    incomeCell.textContent = formatMoneyRub(store.incomeSum);
+    row.append(incomeCell);
 
     return row;
 }

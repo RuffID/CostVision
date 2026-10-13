@@ -8,6 +8,7 @@ export interface StoreListItem {
     displayName: string;
     receiptCount: number;
     totalSpent: number;
+    incomeSum: number;
     groupKey: string;
     children: StoreListItem[];
 }
@@ -21,6 +22,7 @@ export interface StoreList {
     hasPreviousPage: boolean;
     hasNextPage: boolean;
     totalSum: number;
+    incomeSum: number;
 }
 
 export interface StoreReceiptList {
@@ -31,6 +33,8 @@ export interface StoreReceiptList {
     totalPages: number;
     hasPreviousPage: boolean;
     hasNextPage: boolean;
+    totalSum: number;
+    incomeSum: number;
 }
 
 export interface StoreListState {

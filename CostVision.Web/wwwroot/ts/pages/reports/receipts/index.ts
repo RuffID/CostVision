@@ -382,8 +382,7 @@ async function loadReceiptList(page = 1): Promise<void> {
         currentReceiptList = await loadReceiptsApi(buildDateRangeQuery(page), forgeryToken);
         pageState.receipts = currentReceiptList.items;
         renderReceiptList(currentReceiptList.items);
-        receiptsCountElement.textContent = 'Чеков: ' + currentReceiptList.totalCount;
-        receiptsSumElement.textContent = 'Сумма: ' + formatCurrency(currentReceiptList.totalSum);
+        updateReceiptsSummary(receiptsCountElement, receiptsSumElement, currentReceiptList, formatCurrency);
         renderReceiptPagination(currentReceiptList);
         updatePageQuery(currentReceiptList.page);
     } catch (error) {
@@ -448,7 +447,7 @@ function updateReceiptSummary(list: ReceiptDto[]): void {
         throw new Error('Элементы сводки чеков не найдены.');
     }
 
-    if (!currentReceiptList) updateReceiptsSummary(receiptsCountElement, receiptsSumElement, list, formatCurrency);
+    updateReceiptsSummary(receiptsCountElement, receiptsSumElement, currentReceiptList, formatCurrency);
 }
 
 // Обновить чек (ожидается один ReceiptDto без Items)

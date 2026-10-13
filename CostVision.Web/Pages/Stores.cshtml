@@ -45,7 +45,7 @@
     <div id="storesPageSizeContainer" class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
         <div class="d-flex flex-wrap gap-2">
             <span id="storesCount" class="input-group-text">Магазинов: 0</span>
-            <span id="storesSum" class="input-group-text">Сумма: 0 ₽</span>
+            <span id="storesSum" class="input-group-text">Итоги ещё не загружены</span>
         </div>
         <div>
             <label for="storesTopPageSize" class="form-label mb-1">На странице</label>
@@ -70,8 +70,9 @@
                         <button type="button" id="storesReceiptCountSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-semibold">Количество<br>чеков</button>
                     </th>
                     <th scope="col" class="border-start border-end border-bottom text-end text-nowrap fw-normal" style="width: 8rem;">
-                        <button type="button" id="storesTotalSpentSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-normal">Потрачено</button>
+                        <button type="button" id="storesTotalSpentSortButton" class="btn btn-link p-0 text-decoration-none text-body fw-normal">Расход</button>
                     </th>
+                    <th scope="col" class="border-start border-end border-bottom text-end text-nowrap fw-normal">Доход</th>
                 </tr>
             </thead>
             <tbody id="storesTableBody"></tbody>
@@ -125,6 +126,7 @@
             <div class="modal-body">
                 <div id="storeReceiptsAlert" class="alert alert-warning d-none mb-3" role="alert"></div>
                 <div id="storeReceiptsPageSizeContainer" class="d-flex justify-content-end mb-3"><div><label for="storeReceiptsPageSize" class="form-label mb-1">Отображаемое количество</label><select id="storeReceiptsPageSize" name="storeReceiptsPageSize" class="form-select"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option></select></div></div>
+                <div id="storeReceiptsSummary" class="mb-3">Итоги ещё не загружены</div>
                 <div id="storeReceiptsList" class="d-flex flex-column gap-2"></div>
                 <div id="storeReceiptsPagination" class="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-3"></div>
             </div>

@@ -1,11 +1,18 @@
-import { ReceiptDto } from "./types.js";
+import type { ReceiptList } from "./types.js";
 
-export function updateReceiptsSummary(countElement: HTMLElement, sumElement: HTMLElement, receipts: ReceiptDto[], formatCurrency: (value: number) => string): void {
-    countElement.textContent = "Чеков: " + receipts.length;
+export function updateReceiptsSummary(countElement: HTMLElement, sumElement: HTMLElement,
+    summary: Pick<ReceiptList, "totalCount" | "totalSum" | "incomeSum"> | null,
+    formatCurrency: (value: number) => string): void {
+    if (!summary) {
+        countElement.textContent = "Чеков: —";
+        sumElement.textContent = "Итоги ещё не загружены";
+        return;
+    }
 
-    const totalSum = receipts.reduce(function (sum, receipt) {
-        return sum + (typeof receipt.totalSum === "number" ? receipt.totalSum : 0);
-    }, 0);
+    countElement.textContent = "Чеков: " + summary.totalCount;
+    sumElement.textContent = formatReportTotals(summary.totalSum, summary.incomeSum, formatCurrency);
+}
 
-    sumElement.textContent = "Сумма: " + formatCurrency(totalSum);
+export function formatReportTotals(expense: number, income: number, formatCurrency: (value: number) => string): string {
+    return "Расход: " + formatCurrency(expense) + " · Доход: " + formatCurrency(income);
 }

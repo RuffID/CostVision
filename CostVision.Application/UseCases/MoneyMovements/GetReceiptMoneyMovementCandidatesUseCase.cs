@@ -69,17 +69,12 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return ServiceResult<List<ReceiptMoneyMovementDto>>.Fail(ServiceErrorType.Validation, "Допуск по сумме не может быть отрицательным.");
             }
 
-            List<Guid> receiptAccountIds = receipt.Accounts.Select(link => link.AccountId).ToList();
-
-            Expression<Func<MoneyMovement, bool>> movementPredicate = movement => (!dateFrom.HasValue || movement.OccurredAt >= dateFrom.Value) &&
-                            (!dateToExclusive.HasValue || movement.OccurredAt < dateToExclusive.Value) &&
-                            (!request.UseAmountFilter || Math.Abs(movement.Amount - receipt.TotalSum) <= amountTolerance) &&
-                            (!request.ExcludeLinkedMoneyMovements || !movement.ReceiptLinks.Any()) &&
-                            (receiptAccountIds.Contains(movement.AccountId) ||
-                             (receiptAccountIds.Count == 0 && movement.CreatedByUserId == currentUserId));
+            Expression<Func<MoneyMovement, bool>> movementPredicate = ReceiptMoneyMovementCandidateRules.BuildPredicate(
+                receipt, currentUserId, dateFrom, dateToExclusive, request.UseAmountFilter,
+                amountTolerance, request.ExcludeLinkedMoneyMovements);
 
             List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
-                movementPredicate.WithAccountReadAccess(movement => movement.Account, currentUserId),
+                movementPredicate,
                 asNoTracking: true,
                 include: query => query
                     .Include(movement => movement.Account)
