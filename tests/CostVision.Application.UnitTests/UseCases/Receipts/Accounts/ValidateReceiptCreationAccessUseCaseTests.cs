@@ -67,7 +67,7 @@ public class ValidateReceiptCreationAccessUseCaseTests
             .Setup(repository => repository.GetItemByPredicateAsync(
                 It.IsAny<Expression<Func<AccountMember, bool>>>(),
                 true,
-                null,
+                It.IsAny<Func<IQueryable<AccountMember>, IQueryable<AccountMember>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(membership);
 

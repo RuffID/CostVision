@@ -15,6 +15,7 @@ public class CreateUserUseCaseTests
     [Fact]
     public async Task ExecuteAsync_CreatesActiveUserWithHashedPasswordAndRoles_WhenRequestIsValid()
     {
+        // Arrange
         Guid roleId = Guid.NewGuid();
         User? createdUser = null;
 
@@ -32,9 +33,10 @@ public class CreateUserUseCaseTests
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
         passwordHasher.Setup(hasher => hasher.Hash("Password1!")).Returns("hashed-password");
 
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
+        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository, [roleId]);
         CreateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
         {
             Login = " user ",
@@ -43,6 +45,7 @@ public class CreateUserUseCaseTests
             RoleIds = [roleId]
         }, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.NotNull(createdUser);
         Assert.Equal("user", createdUser.Login);

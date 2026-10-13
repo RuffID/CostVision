@@ -70,18 +70,15 @@ public class GetUserAccountsUseCaseTests
             .ReturnsAsync(memberships);
 
         Mock<IAccountRepository> accountRepository = new(MockBehavior.Strict);
-        if (memberships.Count > 0)
-        {
-            accountRepository
-                .Setup(repository => repository.GetItemsByPredicateAsync(
-                    It.IsAny<Expression<Func<Account, bool>>>(),
-                    It.IsAny<int>(),
-                    It.IsAny<int?>(),
-                    true,
-                    It.IsAny<Func<IQueryable<Account>, IQueryable<Account>>>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync(accounts);
-        }
+        accountRepository
+            .Setup(repository => repository.GetItemsByPredicateAsync(
+                It.IsAny<Expression<Func<Account, bool>>>(),
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                true,
+                It.IsAny<Func<IQueryable<Account>, IQueryable<Account>>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(accounts);
 
         Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.AccountMember).Returns(accountMemberRepository.Object);

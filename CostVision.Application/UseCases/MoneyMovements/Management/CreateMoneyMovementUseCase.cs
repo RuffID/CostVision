@@ -34,19 +34,11 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             MoneyMovement newMovement = movement!;
 
-            AccountMember? membership = await unitOfWork.AccountMember.GetItemByPredicateAsync(
-                member => member.AccountId == request.AccountId && member.UserId == currentUserId,
-                asNoTracking: true,
-                ct: ct);
-
-            if (membership == null)
+            ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(
+                unitOfWork, request.AccountId, currentUserId, ct, requireActive: true);
+            if (!access.Success)
             {
-                return ServiceResult<MoneyMovementDto>.Fail(ServiceErrorType.NotFound, "Счёт не найден или доступ к нему отсутствует.");
-            }
-
-            if (membership.Role == AccountAccessRole.Viewer)
-            {
-                return ServiceResult<MoneyMovementDto>.Fail(ServiceErrorType.Forbidden, "Недостаточно прав для добавления операции в этот счёт.");
+                return access.PropagateFailure<MoneyMovementDto>();
             }
 
             if (performedByUserId != currentUserId)

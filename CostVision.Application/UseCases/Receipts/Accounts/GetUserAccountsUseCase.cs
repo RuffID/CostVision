@@ -1,5 +1,7 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Requests.Receipts;
+using CostVision.Application.Extensions;
+using System.Linq.Expressions;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
@@ -11,20 +13,12 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
     {
         public async Task<ServiceResult<List<UserAccountViewModel>>> ExecuteAsync(Guid userId, bool includeArchived, CancellationToken ct)
         {
-            List<AccountMember> memberships = await unitOfWork.AccountMember.GetItemsByPredicateAsync(membership => membership.UserId == userId, asNoTracking: true, ct: ct);
-            List<Guid> accountIds = memberships.Select(membership => membership.AccountId).Distinct().ToList();
-            if (accountIds.Count == 0)
-                return ServiceResult<List<UserAccountViewModel>>.Ok(new List<UserAccountViewModel>());
-
+            Expression<Func<Account, bool>> predicate = account => includeArchived || !account.IsArchived;
             List<Account> accounts = await unitOfWork.Account.GetItemsByPredicateAsync(
-                account => (includeArchived || !account.IsArchived) &&
-                           (account.CreatedByUserId == userId || account.Members.Any(member => member.UserId == userId)),
+                predicate.WithAccountReadAccess(account => account, userId),
                 asNoTracking: true,
-                include: query => query.Include(account => account.CreatedByUser),
+                include: query => query.Include(account => account.CreatedByUser).Include(account => account.Members),
                 ct: ct);
-            Dictionary<Guid, AccountAccessRole> rolesByAccountId = memberships
-                .GroupBy(membership => membership.AccountId)
-                .ToDictionary(group => group.Key, group => group.Select(membership => membership.Role).First());
 
             List<UserAccountViewModel> result = accounts.Select(account => new UserAccountViewModel
             {
@@ -35,7 +29,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 IsActive = !account.IsArchived,
                 CanManage = account.CreatedByUserId == userId,
                 OwnerName = account.CreatedByUser!.Name,
-                AccessRole = rolesByAccountId[account.Id]
+                AccessRole = FinancialDataAccess.GetRequiredAccountRole(account, userId)
             }).ToList();
 
             return ServiceResult<List<UserAccountViewModel>>.Ok(result);

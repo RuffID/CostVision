@@ -48,7 +48,7 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostUpdateAdaptiveNameAsync([FromBody] UpdateStoreAdaptiveNameRequest request, CancellationToken ct)
         {
-            ServiceResult result = await updateStoreAdaptiveNameUseCase.ExecuteAsync(request, ct);
+            ServiceResult result = await updateStoreAdaptiveNameUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 

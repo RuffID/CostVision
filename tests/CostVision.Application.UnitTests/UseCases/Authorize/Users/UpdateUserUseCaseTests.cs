@@ -15,6 +15,7 @@ public class UpdateUserUseCaseTests
     [Fact]
     public async Task ExecuteAsync_UpdatesUserAndRoles_WhenRequestIsValid()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid oldRoleId = Guid.NewGuid();
         Guid newRoleId = Guid.NewGuid();
@@ -33,9 +34,10 @@ public class UpdateUserUseCaseTests
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
         passwordHasher.Setup(hasher => hasher.Hash("NewPassword1!")).Returns("new-hash");
 
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
+        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository, [newRoleId]);
         UpdateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
         {
             Id = userId,
@@ -45,6 +47,7 @@ public class UpdateUserUseCaseTests
             RoleIds = [newRoleId]
         }, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.Equal("new-login", user.Login);
         Assert.Equal("New Name", user.Name);
@@ -57,6 +60,7 @@ public class UpdateUserUseCaseTests
     [Fact]
     public async Task ExecuteAsync_UpdatesUserWithoutChangingPasswordHash_WhenPasswordIsEmpty()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid roleId = Guid.NewGuid();
         User user = CreateUser(userId, "user", "Old Name", "old-hash", roleId);
@@ -71,9 +75,10 @@ public class UpdateUserUseCaseTests
             .ReturnsAsync(user);
 
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
+        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository, [roleId]);
         UpdateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
         {
             Id = userId,
@@ -83,6 +88,7 @@ public class UpdateUserUseCaseTests
             RoleIds = [roleId]
         }, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.Equal("New Name", user.Name);
         Assert.Equal("old-hash", user.PasswordHash);

@@ -42,6 +42,8 @@ public class ProductsModelTests
     [Fact]
     public async Task OnPostUpdateAdaptiveNameAsync_CallsUpdateUseCase()
     {
+        // Arrange
+        User currentUser = TestUsers.Create();
         UpdateProductAdaptiveNameRequest request = new() { ProductId = Guid.NewGuid(), AdaptiveName = "Milk 1L" };
 
         Mock<IGetProductListUseCase> getProductListUseCase = new(MockBehavior.Strict);
@@ -49,16 +51,18 @@ public class ProductsModelTests
         Mock<IGetUserAccountsUseCase> getUserAccountsUseCase = new(MockBehavior.Strict);
         Mock<IUpdateProductAdaptiveNameUseCase> updateProductAdaptiveNameUseCase = new(MockBehavior.Strict);
         updateProductAdaptiveNameUseCase
-            .Setup(useCase => useCase.ExecuteAsync(request, It.IsAny<CancellationToken>()))
+            .Setup(useCase => useCase.ExecuteAsync(request, currentUser.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult.Ok());
 
         ProductsModel model = new(getProductListUseCase.Object, getProductStorePurchasesUseCase.Object, getUserAccountsUseCase.Object, updateProductAdaptiveNameUseCase.Object)
         {
-            CurrentUser = TestUsers.Create()
+            CurrentUser = currentUser
         };
 
+        // Act
         JsonResult json = await model.OnPostUpdateAdaptiveNameAsync(request, CancellationToken.None);
 
+        // Assert
         JsonResultAssert.Success(json);
         updateProductAdaptiveNameUseCase.VerifyAll();
     }

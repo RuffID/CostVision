@@ -60,11 +60,13 @@ public abstract class MoneyMovementUseCaseTestBase
             .SetupSequence(item => item.GetItemByPredicateAsync(
                 It.IsAny<Expression<Func<AccountMember, bool>>>(),
                 true,
-                null,
+                It.IsAny<Func<IQueryable<AccountMember>, IQueryable<AccountMember>>>(),
                 It.IsAny<CancellationToken>()));
 
         foreach (AccountMember? member in members)
+        {
             sequence = sequence.ReturnsAsync(member);
+        }
 
         return repository;
     }

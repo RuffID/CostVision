@@ -103,16 +103,19 @@ public class UserUpsertRequestValidatorTests
     [Fact]
     public void ValidateUpsertRequest_ReturnsDistinctNonEmptyRoleIds_WhenRequestIsValid()
     {
+        // Arrange
         Guid roleId = Guid.NewGuid();
 
+        // Act
         ServiceResult<List<Guid>> result = Validate(new UserUpsertRequest
         {
             Login = "login",
             Name = "Name",
             Password = "Password1!",
-            RoleIds = [Guid.Empty, roleId, roleId]
+            RoleIds = [roleId, roleId]
         }, requirePassword: true);
 
+        // Assert
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
         Assert.Equal([roleId], result.Data);

@@ -13,22 +13,33 @@ namespace CostVision.Application.UseCases.Authorize.Authentication
         public async Task<ServiceResult<AuthenticatedUserDto>> ExecuteAsync(LoginRequest request, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(request.Login) || string.IsNullOrWhiteSpace(request.Password))
+            {
                 return ServiceResult<AuthenticatedUserDto>.Fail(ServiceErrorType.Validation, "Укажи логин и пароль.");
+            }
+
+            string normalizedLogin = request.Login.Trim().ToUpperInvariant();
+            string password = request.Password.Trim();
 
             User? user = await unitOfWork.User.GetItemByPredicateAsync(
-                user => user.Login == request.Login,
+                user => user.Login.ToUpper() == normalizedLogin,
                 asNoTracking: false,
                 include: query => query.Include(user => user.Roles),
                 ct: ct);
 
-            if (user == null || !passwordHasher.Verify(request.Password, user.PasswordHash))
+            if (user == null || !passwordHasher.Verify(password, user.PasswordHash))
+            {
                 return ServiceResult<AuthenticatedUserDto>.Fail(ServiceErrorType.Unauthorized, "Неверный логин или пароль.");
+            }
 
             if (!user.IsActive)
+            {
                 return ServiceResult<AuthenticatedUserDto>.Fail(ServiceErrorType.Forbidden, "Пользователь заблокирован.");
+            }
 
             if (!user.TryMarkLogin(DateTime.UtcNow, out string? error))
+            {
                 return ServiceResult<AuthenticatedUserDto>.Fail(ServiceErrorType.Validation, error!);
+            }
 
             await unitOfWork.SaveChangesAsync(ct);
 

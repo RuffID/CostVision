@@ -1,5 +1,6 @@
 using CostVision.Application.Models.Requests.Authorize;
 using CostVision.Application.Models.Responses.Results;
+using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Domain.Models.Authorization;
 
 namespace CostVision.Application.UseCases.Authorize.Users.Helpers
@@ -12,30 +13,62 @@ namespace CostVision.Application.UseCases.Authorize.Users.Helpers
         public static ServiceResult<List<Guid>> ValidateUpsertRequest(UserUpsertRequest request, bool requirePassword)
         {
             if (string.IsNullOrWhiteSpace(request.Login))
+            {
                 return ServiceResult<List<Guid>>.Fail(ServiceErrorType.Validation, "Логин обязателен.");
+            }
 
             string login = request.Login.Trim();
             if (login.Length is < User.MIN_LOGIN_LENGTH or > User.MAX_LOGIN_LENGTH)
+            {
                 return ServiceResult<List<Guid>>.Fail(ServiceErrorType.Validation, $"Логин должен быть от {User.MIN_LOGIN_LENGTH} до {User.MAX_LOGIN_LENGTH} символов.");
+            }
 
             if (string.IsNullOrWhiteSpace(request.Name))
+            {
                 return ServiceResult<List<Guid>>.Fail(ServiceErrorType.Validation, "Имя обязательно.");
+            }
 
             string name = request.Name.Trim();
             if (name.Length is < User.MIN_NAME_LENGTH or > User.MAX_NAME_LENGTH)
+            {
                 return ServiceResult<List<Guid>>.Fail(ServiceErrorType.Validation, $"Имя должно быть от {User.MIN_NAME_LENGTH} до {User.MAX_NAME_LENGTH} символов.");
+            }
 
             if (requirePassword && string.IsNullOrWhiteSpace(request.Password))
+            {
                 return ServiceResult<List<Guid>>.Fail(ServiceErrorType.Validation, "Пароль обязателен.");
+            }
 
             if (!string.IsNullOrWhiteSpace(request.Password) && !IsPasswordValid(request.Password.Trim()))
+            {
                 return ServiceResult<List<Guid>>.Fail(ServiceErrorType.Validation, $"Пароль должен быть на английском языке, от {MIN_PASSWORD_LENGTH} до {MAX_PASSWORD_LENGTH} символов, содержать заглавную букву, цифру и спецсимвол.");
+            }
 
-            List<Guid> roleIds = request.RoleIds.Where(roleId => roleId != Guid.Empty).Distinct().ToList();
+            if (request.RoleIds.Any(roleId => roleId == Guid.Empty))
+            {
+                return ServiceResult<List<Guid>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор роли.");
+            }
+
+            List<Guid> roleIds = request.RoleIds.Distinct().ToList();
             if (roleIds.Count == 0)
+            {
                 return ServiceResult<List<Guid>>.Fail(ServiceErrorType.Validation, "Роль обязательна.");
+            }
 
             return ServiceResult<List<Guid>>.Ok(roleIds);
+        }
+
+        public static async Task<ServiceResult> ValidateRoleIdsAsync(IUnitOfWork unitOfWork, List<Guid> roleIds, CancellationToken ct)
+        {
+            List<Role> roles = await unitOfWork.Role.GetItemsByPredicateAsync(
+                role => roleIds.Contains(role.Id), asNoTracking: true, ct: ct);
+            HashSet<Guid> existingIds = roles.Select(role => role.Id).ToHashSet();
+            if (roleIds.Any(roleId => !existingIds.Contains(roleId)))
+            {
+                return ServiceResult.Fail(ServiceErrorType.Validation, "Одна или несколько ролей не найдены.");
+            }
+
+            return ServiceResult.Ok();
         }
 
         private static bool IsPasswordValid(string password)

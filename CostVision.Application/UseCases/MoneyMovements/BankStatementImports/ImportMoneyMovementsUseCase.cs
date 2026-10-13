@@ -17,7 +17,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (request.Rows.Count == 0)
                 return ServiceResult<BankStatementImportResultDto>.Fail(ServiceErrorType.Validation, "Нет строк для импорта.");
 
-            ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId, currentUserId, ct);
+            ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId, currentUserId, ct, requireActive: true);
             if (!accountAccess.Success)
                 return accountAccess.PropagateFailure<BankStatementImportResultDto>();
 

@@ -22,7 +22,7 @@
                     </div>
                     <div class="col-12">
                         <label for="storesSearch" class="form-label mb-1">Поиск</label>
-                        <input type="text" id="storesSearch" name="storesSearch" class="form-control" placeholder="Название, адрес или Ваше наименование..." autocomplete="off">
+                        <input type="text" id="storesSearch" name="storesSearch" class="form-control" placeholder="Название, адрес или общее наименование..." autocomplete="off">
                     </div>
                 </div>
 
@@ -98,11 +98,12 @@
                         <input type="text" id="storeOriginalName" name="storeOriginalName" class="form-control" readonly>
                     </div>
                     <div>
-                        <label for="storeAdaptiveName" class="form-label">Ваше наименование</label>
+                        <label for="storeAdaptiveName" class="form-label">Общее наименование</label>
                         <div class="input-group">
                             <input type="text" id="storeAdaptiveName" name="storeAdaptiveName" class="form-control" maxlength="500" autocomplete="off">
                             <button type="button" id="storeClearAdaptiveName" class="btn btn-outline-secondary d-none">Очистить</button>
                         </div>
+                        <div class="form-text">Название общее для всех пользователей. Изменение повлияет на их списки и отчёты.</div>
                     </div>
                 </div>
                 <div class="modal-footer">

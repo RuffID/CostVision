@@ -77,7 +77,7 @@ async function initProductsPage(): Promise<void> {
     });
     renderHelpTooltip(requireElementById<HTMLElement>("productsNameHelp"), {
         title: "Наименование",
-        text: "Нажмите на наименование товара, чтобы указать своё название. Товары с заданным названием выделены зелёным цветом."
+        text: "Нажмите на наименование товара, чтобы указать общее название для всех пользователей. Изменение влияет на их списки и отчёты. Товары с заданным названием выделены зелёным цветом."
     });
     renderHelpTooltip(requireElementById<HTMLElement>("productsAveragePriceHelp"), {
         title: "Средняя цена",
@@ -373,7 +373,7 @@ function formatMoney(value: number): string {
 
 function openAdaptiveNameModal(product: ProductListItem): void {
     editedProductId = product.id;
-    requireElementById<HTMLElement>("productAdaptiveNameModalTitle").textContent = `Укажите Ваше наименование для товара - ${product.name}`;
+    requireElementById<HTMLElement>("productAdaptiveNameModalTitle").textContent = `Укажите общее наименование для товара - ${product.name}`;
     originalNameInput.value = product.name;
     adaptiveNameInput.value = product.adaptiveName ?? "";
     clearAdaptiveNameButton.classList.toggle("d-none", !product.adaptiveName);

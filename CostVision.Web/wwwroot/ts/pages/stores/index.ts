@@ -131,7 +131,7 @@ async function initStoresPage(): Promise<void> {
 
     renderHelpTooltip(requireElementById<HTMLElement>("storesNameHelp"), {
         title: "Наименование",
-        text: "Нажмите на наименование магазина, чтобы указать своё название. Магазины с заданным названием выделены зелёным цветом."
+        text: "Нажмите на наименование магазина, чтобы указать общее название для всех пользователей. Изменение влияет на их списки и отчёты. Магазины с заданным названием выделены зелёным цветом."
     });
     renderHelpTooltip(requireElementById<HTMLElement>("storesShowOriginalNamesHelp"), {
         title: "Отображать оригинальные названия",
@@ -376,7 +376,7 @@ function handleShowOriginalNamesChange(): void {
 
 function openAdaptiveNameModal(store: StoreListItem): void {
     editedStoreId = store.id;
-    requireElementById<HTMLElement>("storeAdaptiveNameModalTitle").textContent = `Укажите Ваше наименование для магазина - ${store.name}`;
+    requireElementById<HTMLElement>("storeAdaptiveNameModalTitle").textContent = `Укажите общее наименование для магазина - ${store.name}`;
     originalNameInput.value = store.name;
     adaptiveNameInput.value = store.adaptiveName ?? "";
     clearAdaptiveNameButton.classList.toggle("d-none", !store.adaptiveName);

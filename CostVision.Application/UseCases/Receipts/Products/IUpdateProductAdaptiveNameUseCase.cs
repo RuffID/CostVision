@@ -5,6 +5,6 @@ namespace CostVision.Application.UseCases.Receipts.Products
 {
     public interface IUpdateProductAdaptiveNameUseCase
     {
-        Task<ServiceResult> ExecuteAsync(UpdateProductAdaptiveNameRequest request, CancellationToken ct);
+        Task<ServiceResult> ExecuteAsync(UpdateProductAdaptiveNameRequest request, Guid currentUserId, CancellationToken ct);
     }
 }

@@ -1,5 +1,7 @@
 ﻿using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Models.Requests.Receipts;
+using CostVision.Application.Extensions;
+using System.Linq.Expressions;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
@@ -10,9 +12,9 @@ namespace CostVision.Application.UseCases.MoneyMovements
     {
         public async Task<List<UserAccountViewModel>> ExecuteAsync(Guid currentUserId, CancellationToken ct)
         {
+            Expression<Func<Account, bool>> predicate = account => !account.IsArchived;
             List<Account> accounts = await unitOfWork.Account.GetItemsByPredicateAsync(
-                account => !account.IsArchived &&
-                           (account.CreatedByUserId == currentUserId || account.Members.Any(member => member.UserId == currentUserId)),
+                predicate.WithAccountReadAccess(account => account, currentUserId),
                 asNoTracking: true,
                 include: query => query
                     .Include(account => account.CreatedByUser)
@@ -23,7 +25,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             foreach (Account account in accounts.OrderBy(account => account.Name))
             {
-                AccountMember? membership = account.Members.FirstOrDefault(member => member.UserId == currentUserId);
+                AccountAccessRole role = FinancialDataAccess.GetRequiredAccountRole(account, currentUserId);
 
                 result.Add(new UserAccountViewModel
                 {
@@ -34,7 +36,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                     IsActive = !account.IsArchived,
                     CanManage = account.CreatedByUserId == currentUserId,
                     OwnerName = account.CreatedByUser?.Name ?? string.Empty,
-                    AccessRole = membership?.Role ?? AccountAccessRole.Owner
+                    AccessRole = role
                 });
             }
 

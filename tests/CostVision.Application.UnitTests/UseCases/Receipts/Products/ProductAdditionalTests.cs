@@ -14,6 +14,7 @@ public class ProductAdditionalTests
     [Fact]
     public async Task GetProductListExecuteAsync_ReturnsEmptyPage_WhenNoProductsFound()
     {
+        // Arrange
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
         productRepository.Setup(repository => repository.CountByPredicateAsync(It.IsAny<Expression<Func<Product, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(0);
@@ -28,8 +29,10 @@ public class ProductAdditionalTests
             .ReturnsAsync([]);
         GetProductListUseCase useCase = new(CreateUnitOfWork(productRepository).Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new GetProductListRequest { Search = "milk" }, Guid.NewGuid(), CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
         Assert.Empty(result.Data.Items);
@@ -40,15 +43,18 @@ public class ProductAdditionalTests
     [Fact]
     public async Task UpdateProductAdaptiveNameExecuteAsync_ReturnsBadRequest_WhenAdaptiveNameIsTooLong()
     {
+        // Arrange
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
         UpdateProductAdaptiveNameUseCase useCase = new(CreateUnitOfWork(productRepository).Object);
 
+        // Act
         var result = await useCase.ExecuteAsync(new UpdateProductAdaptiveNameRequest
         {
             ProductId = Guid.NewGuid(),
             AdaptiveName = new string('a', 501)
-        }, CancellationToken.None);
+        }, Guid.NewGuid(), CancellationToken.None);
 
+        // Assert
         Assert.False(result.Success);
         Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }

@@ -1,5 +1,6 @@
 using CostVision.Domain.Models.Receipts;
 using System.Linq.Expressions;
+using CostVision.Domain.Models.Enums.Authorization;
 
 namespace CostVision.Application.Extensions;
 
@@ -8,6 +9,31 @@ namespace CostVision.Application.Extensions;
 /// </summary>
 internal static class FinancialDataAccess
 {
+    public static AccountAccessRole GetRequiredAccountRole(Account account, Guid currentUserId)
+    {
+        List<AccountMember> ownerMemberships = account.Members
+            .Where(member => member.UserId == account.CreatedByUserId).ToList();
+        if (ownerMemberships.Count != 1 || ownerMemberships[0].Role != AccountAccessRole.Owner)
+        {
+            throw new InvalidOperationException("Нарушен инвариант Owner membership счёта.");
+        }
+
+        if (account.Members.Any(member => member.Role == AccountAccessRole.Owner && member.UserId != account.CreatedByUserId))
+        {
+            throw new InvalidOperationException("Owner membership не соответствует владельцу счёта.");
+        }
+
+        List<AccountMember> memberships = account.Members
+            .Where(member => member.UserId == currentUserId).ToList();
+        if (memberships.Count != 1 || !Enum.IsDefined(memberships[0].Role))
+        {
+            throw new InvalidOperationException("Нарушен инвариант роли участника доступного счёта.");
+        }
+
+        AccountAccessRole role = memberships[0].Role;
+        return role;
+    }
+
     public static bool CanReadAccount(Account? account, Guid currentUserId)
     {
         if (account == null)
