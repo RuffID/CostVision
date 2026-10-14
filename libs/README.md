@@ -7,7 +7,9 @@
 | EFCoreLibrary.dll | 0.0.2.0 | 0.0.2.0 | 0.0.2+fc8acdd067bf9e58e5ece4e3aa28313ddad9be84 | 64A6540852CFD211D48DDE6DF09F3F0A5579C6EABC90E7C26095BFE897E5AB17 |
 | HttpClientLibrary.dll | 1.0.0.0 | 0.0.0.3 | 1.0.0+52cd45378cbf3acb050bc886679ffda7ac0c2168 | 37B5EC623F8770CE66ADBCE0CECCB06F45368881AB07152AB5CFE94CC9C16925 |
 
-Обе сборки имеют Culture=neutral и PublicKeyToken=null. Источник поставки внутри репозитория — эти локальные файлы; конкретный upstream URL, владелец, процедура сборки, лицензия, проверенный исходный commit и гарантии совместимости неизвестны. Суффикс ProductVersion сам по себе не доказывает наличие или доступность соответствующего commit. В папке нет исходников, XML-документации или PDB; по имени DLL API не угадывается.
+Обе сборки имеют Culture=neutral и PublicKeyToken=null. Источник принятой поставки внутри репозитория — эти локальные файлы; конкретный upstream URL, процедура сборки, лицензия, проверенный исходный commit и гарантии совместимости этой поставки не установлены. Суффикс ProductVersion сам по себе не доказывает наличие или доступность соответствующего commit. В папке нет исходников, XML-документации или PDB; по имени DLL API не угадывается.
+
+14.10.2026 пользователь указал исходники EFCoreLibrary: `D:\Media\User\source\repos\work\EFCoreLibrary`. Их базовый проект имеет Version `0.0.5`, EF Core/DI.Abstractions `10.0.12`, новые `IContext*Repository` и `IUnitOfWorkContext`; отдельные Maintenance/SqlServer-проекты используют Relational/Logging `10.0.12` и SqlClient `7.0.2`. Принятая DLL `0.0.2` устарела относительно этого источника. Её происхождение от конкретной ревизии ещё не подтверждено, а новые исходники не считаются уже поставленными в CostVision. Обновление base + maintenance, всех ссылок/DI/репозиториев/UoW и собственного backup/migration пути запланировано в [этапе 08A](../Documentation/Plans/project-refactoring-2026-10-13/08a-efcorelibrary-upgrade-and-maintenance.md); текущие DLL не заменены.
 
 ## Используемая поверхность EFCoreLibrary
 

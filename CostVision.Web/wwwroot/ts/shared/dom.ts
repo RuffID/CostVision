@@ -1,8 +1,13 @@
-export function requireElementById<TElement extends HTMLElement>(id: string): TElement {
+export function requireElementById<TElement extends HTMLElement = HTMLElement>(id: string,
+    expectedType?: { new (): TElement }): TElement {
     const element = document.getElementById(id);
 
     if (!element) {
         throw new Error(`Не найден обязательный элемент: ${id}`);
+    }
+
+    if (!(element instanceof HTMLElement) || (expectedType && !(element instanceof expectedType))) {
+        throw new Error(`Элемент ${id} имеет неверный DOM-тип.`);
     }
 
     return element as TElement;

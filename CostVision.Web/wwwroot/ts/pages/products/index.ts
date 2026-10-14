@@ -1,3 +1,4 @@
+import { getPageFromQuery, updatePageQuery, getCookie, setCookie } from "../../shared/preferences.js";
 import { createRequestCoordinator, getWriteErrorMessage, isIntentionalAbort } from "../../shared/requestCoordinator.js";
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { createBootstrapModal, type BootstrapModal } from "../../shared/bootstrap.js";
@@ -278,26 +279,13 @@ function saveStorePurchasesSortPreferences(): void {
     setCookie(STORE_PURCHASES_SORT_DIRECTION_COOKIE_NAME, storePurchasesSortDirection);
 }
 
-function getPageFromQuery(): number {
-    const page = Number(new URLSearchParams(window.location.search).get("page"));
-    return Number.isInteger(page) && page > 0 ? page : 1;
-}
 
-function updatePageQuery(page: number): void {
-    const url = new URL(window.location.href);
-    url.searchParams.set("page", String(page));
-    window.history.replaceState(null, "", url);
-}
 
-function getCookie(name: string): string | null {
-    const prefix = `${name}=`;
-    const cookie = document.cookie.split("; ").find(item => item.startsWith(prefix));
-    return cookie ? decodeURIComponent(cookie.substring(prefix.length)) : null;
-}
 
-function setCookie(name: string, value: string): void {
-    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; samesite=lax`;
-}
+
+
+
+
 
 function syncPageSizeInputs(pageSize: number): void {
     for (const pageSizeInput of pageSizeInputs) {

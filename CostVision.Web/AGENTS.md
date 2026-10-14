@@ -21,3 +21,5 @@ PageModel операций вызывает конкретные Application-с�
 Общая карта и порядок сопровождения: [техническое руководство](../Documentation/TechnicalGuide/12-source-map-and-maintenance.md). Открытые изменения: [план рефакторинга](../Documentation/Plans/project-refactoring-2026-10-13/README.md).
 
 Единственный владелец неожиданных HTTP-ошибок — ExceptionHandlingMiddleware; production UseExceptionHandler удалён. Адаптеры проверяют форму до Application, cookie HTTP-контракт находится в Extensions. Startup-БД не запускать для проверки.
+
+Frontend dashboard/stores/receipt report/moneyMovements разделён на entry/controller/state/bindings/render и отдельные команды/окна. Общие календарь/preferences/paging/receipt workflow находятся в wwwroot/ts/shared; backend/handlers/схема не менялись в этапе 11. Strict build и подставные DOM/fetch тесты не закрывают browser/HTTP acceptance.

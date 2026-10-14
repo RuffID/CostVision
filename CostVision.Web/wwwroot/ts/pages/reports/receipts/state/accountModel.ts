@@ -9,18 +9,22 @@ export function normalizeAvailableAccount(dto: AvailableAccountDto): AvailableAc
     const id = dto.id || "";
     const name = dto.name || "";
     const colorHex = normalizeReceiptAccountColorHex(dto.colorHex);
-    const accessRole = dto.accessRole ?? 0;
+    const accessRole = dto.accessRole;
     const canManage = dto.canManage === true;
 
     if (!id || !name) {
         throw new Error("Счет получен без обязательных полей.");
     }
 
+    if (accessRole !== 0 && accessRole !== 1 && accessRole !== 2) {
+        throw new Error("Счёт получен без обязательной допустимой роли.");
+    }
+
     return {
         id: id,
         name: name,
         colorHex: colorHex,
-        accessRole: Number(accessRole),
+        accessRole: accessRole,
         canManage: canManage
     };
 }

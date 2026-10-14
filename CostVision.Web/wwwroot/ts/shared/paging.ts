@@ -8,6 +8,37 @@ export interface PagedList<T> {
     hasNextPage: boolean;
 }
 
+// Каталоги сохраняют окно до пяти кнопок; отчёт — прежнее окно page±2.
+export function getPageRange(currentPage: number, totalPages: number, mode: "catalog" | "centered" = "catalog"): number[] {
+    let start: number;
+    let end: number;
+    if (mode === "centered") {
+        start = Math.max(1, currentPage - 2);
+        end = Math.min(totalPages, currentPage + 2);
+    } else {
+        start = currentPage >= 5 ? currentPage - 2 : 1;
+        if (start + 4 > totalPages) {
+            start = Math.max(1, totalPages - 4);
+        }
+        end = Math.min(totalPages, start + 4);
+    }
+
+    const pages: number[] = [];
+    for (let page = start; page <= end; page++) {
+        pages.push(page);
+    }
+    return pages;
+}
+
+export function createPageButton(text: string, onClick: () => void, isActive = false): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = isActive ? "btn btn-primary" : "btn btn-outline-secondary";
+    button.textContent = text;
+    button.addEventListener("click", onClick);
+    return button;
+}
+
 export function createPageNavigation(after: HTMLElement, load: (page: number) => Promise<void>,
     onError: (error: unknown) => void, countLabel = "Всего"): {
         render: (page: PagedList<unknown>) => void;

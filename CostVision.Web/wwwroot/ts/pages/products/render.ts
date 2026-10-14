@@ -1,3 +1,4 @@
+import { createPageButton, getPageRange as getProductsPageRange } from "../../shared/paging.js";
 import { clearElement } from "../../shared/dom.js";
 import { formatRuNumber } from "../../shared/formatters.js";
 import type { ProductListItem, ProductListState, ProductSortDirection, ProductStorePurchase, ProductStorePurchaseSortBy } from "./types.js";
@@ -207,35 +208,5 @@ function renderProductsPagination(container: HTMLElement, state: ProductListStat
         container.append(createPageButton(">", () => onPageClick(currentPage + 1), false));
         container.append(createPageButton(">>", () => onPageClick(totalPages), false));
     }
-}
-
-function createPageButton(text: string, onClick: () => void, isActive: boolean): HTMLButtonElement {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = isActive ? "btn btn-primary" : "btn btn-outline-secondary";
-    button.textContent = text;
-    button.addEventListener("click", onClick);
-    return button;
-}
-
-function getProductsPageRange(currentPage: number, visibleLastPage: number): number[] {
-    let start = 1;
-
-    if (currentPage >= 5) {
-        start = currentPage - 2;
-    }
-
-    if (start + 4 > visibleLastPage) {
-        start = Math.max(1, visibleLastPage - 4);
-    }
-
-    const end = Math.min(visibleLastPage, start + 4);
-    const pages: number[] = [];
-
-    for (let page = start; page <= end; page += 1) {
-        pages.push(page);
-    }
-
-    return pages;
 }
 

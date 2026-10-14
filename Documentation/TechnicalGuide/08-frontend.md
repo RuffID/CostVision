@@ -35,7 +35,11 @@
 | `settings/users` | Пользователи и роли |
 | `settings/userSettings` | Счета и участники |
 
-Разделение `api`, `state`, `render/ui` отделяет обмен с сервером от состояния и DOM. Оно применено неравномерно: крупные модули и межстраничные действия требуют дальнейшего разбиения по плану.
+В этапе 11 entry четырёх страниц dashboard/stores/reports/receipts/moneyMovements оставлены точками запуска. Controller связывает init/events и независимые сценарии; фабрика state создаёт собственную page session, bindings/ui хранит DOM/modal refs, render отображает входные данные без HTTP. Отдельные контроллеры имени, списка, деталей, подтверждения и account actions получают ограниченные Pick-зависимости. Координаторы, snapshots и locks этапа 10 остаются у прежних UI-областей; глобального store нет.
+
+Повторённый календарь вынесен в shared/dateRange с включительными днями, неделей понедельник–воскресенье и прежним default currentMonth. shared/preferences сохраняет cookies/query page; shared/paging сохраняет различные окна кнопок catalog и centered, server count/flags/total не пересчитываются. shared/receipts содержит единственный ReceiptDto/items/accounts, транспорт open/refresh/move/remove/delete и общий workflow отчёта/магазинов. Страница передаёт конкретный ID копии, details coordinator, locks, capture контекста и callbacks UI/reload; workflow не расширяет права и не повторяет POST.
+
+Обязательные числа в formatters требуют конечный number, пропавшее значение не становится нулём. Dashboard API дополнительно проверяет суммы/label/periodStart каждой точки. Отсутствующая accessRole доступного счёта не становится Owner; nullable роль связи чека обрабатывается отдельно. requireElementById проверяет HTMLElement и явно переданный constructor: переносимые кнопки/select/form/table section/canvas проверяются runtime. Generic без constructor подтверждает только базовый HTMLElement. Декларации Chart ограничены используемым API поставленного Chart.js 4.5.1, без any; реальный canvas/Chart ещё не принят в браузере.
 
 ## HTTP и отображение
 
@@ -86,7 +90,9 @@ Preview и Save в одном importModal не пересекаются; окн�
 
 ## Проверки
 
-MoneyMovements показывает страницу и готовые серверные count/incomeSum/expenseSum полного фильтра. Поиск и receiptFilter отправляются серверу, изменение фильтров сбрасывает страницу; неизвестные итоги обозначены явно. Оба окна кандидатов используют shared/paging.ts с явными count/страницами и флагами перехода, без клиентского Take. Для чеков count относится к документам, а Items сохраняет их подходящие копии. Независимые поколения и AbortSignal этапа 10 поддерживают этот контракт; декомпозиция 11 не начиналась. boundedReads.test.mts проверяет API/навигацию и реальный контроллер кандидатов с подставным DOM/fetch.
+MoneyMovements показывает страницу и готовые серверные count/incomeSum/expenseSum полного фильтра. Поиск и receiptFilter отправляются серверу, изменение фильтров сбрасывает страницу; неизвестные итоги обозначены явно. Оба окна кандидатов используют shared/paging.ts с явными count/страницами и флагами перехода, без клиентского Take. Для чеков count относится к документам, а Items сохраняет их подходящие копии. Независимые поколения и AbortSignal этапа 10 сохранены после декомпозиции 11. boundedReads.test.mts проверяет API/навигацию и реальный контроллер кандидатов с подставным DOM/fetch.
+
+frontendDecomposition.test.mts проверяет production календарь/preferences/paging, formatters/DOM/API/роли, независимые page sessions и receipt workflow; requestCoordination.test.mts также проверяет actual dashboard entry при отсутствующей сумме точки. Финальная изолированная проверка 11: strict build успешен, frontend 91 passed / 0 failed / 0 skipped / 0 cancelled. Evidence, точные команды и оставшаяся процедура — [журнал 11](../Plans/project-refactoring-2026-10-13/11-frontend-decomposition.md). .NET/hosting/browser/SQL/provider-проверки 11 не запускались; прежняя приёмка остаётся открытой.
 
 Сводки чеков и магазинов отображают серверные расход/доход полного набора до пагинации: TotalSum/TotalSpent и IncomeSum. Клиент не складывает номиналы текущей страницы. До загрузки итог неизвестен; окно нового магазина сбрасывает предыдущую сводку. Таблица магазинов содержит отдельную колонку дохода, суммы сохраняют копейки. reportTotals.test.mts проверяет реальные compiled renderers с подставным DOM; HTTP и браузерная приёмка остаются открытыми.
 

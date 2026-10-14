@@ -73,7 +73,45 @@ interface JsQrResult {
 
 declare function jsQR(data: Uint8ClampedArray, width: number, height: number, options?: { inversionAttempts?: string }): JsQrResult | null;
 
-declare const Chart: any;
+// Используемая поверхность Chart.js 4.5.1 из wwwroot/lib/chartjs.
+interface ChartInstance {
+    destroy(): void;
+}
+
+interface ChartBarConfiguration {
+    type: "bar";
+    data: {
+        labels: string[];
+        datasets: {
+            label: string;
+            data: number[];
+            backgroundColor: string;
+            borderColor: string;
+            borderWidth: number;
+        }[];
+    };
+    options: {
+        responsive: boolean;
+        maintainAspectRatio: boolean;
+        scales: {
+            y: {
+                beginAtZero: boolean;
+                ticks: { callback(value: string | number): string };
+            };
+        };
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label(context: { dataset: { label?: string }, parsed: { y: number } }): string;
+                };
+            };
+        };
+    };
+}
+
+declare const Chart: {
+    new (context: CanvasRenderingContext2D, configuration: ChartBarConfiguration): ChartInstance;
+};
 
 interface Window {
     bootstrap?: {

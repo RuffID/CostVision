@@ -1,4 +1,4 @@
-import { isResponseArray,hasResponseFields, buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../../shared/http.js";
+import { isResponseArray, hasResponseFields, buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../../shared/http.js";
 import { DashboardAccountDto, DashboardIncomeExpenseReportDto } from "./types.js";
 
 type DashboardIncomeExpenseReportResponse = ServiceResultWithData<DashboardIncomeExpenseReportDto>;
@@ -33,5 +33,13 @@ export async function loadIncomeExpenseReportAsync(dateFrom: string, dateTo: str
         signal
     );
 
-    return unwrapServiceResult(response, value => hasResponseFields(value, ["stores", "points"]));
+    return unwrapServiceResult(response, value => {
+        if (!hasResponseFields(value, ["stores", "points"])) {
+            return false;
+        }
+
+        return (value.stores as unknown[]).every(store => typeof store === "string") &&
+            (value.points as unknown[]).every(point =>
+                hasResponseFields(point, [], ["incomeSum", "expenseSum"], ["label", "periodStart"]));
+    });
 }

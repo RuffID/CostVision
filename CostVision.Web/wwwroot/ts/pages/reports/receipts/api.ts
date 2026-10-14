@@ -1,12 +1,11 @@
+export { openReceiptApi, refreshReceiptApi, deleteReceiptApi, moveReceiptToAccountApi, removeReceiptFromAccountApi } from "../../../shared/receipts/api.js";
 import type { PagedList } from "../../../shared/paging.js";
-import { isPagedResponse,isResponseArray,hasResponseFields, buildJsonHeaders, ServiceResult, ServiceResultWithData, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess } from "../../../shared/http.js";
-import { AvailableAccountDto, GetReceiptMoneyMovementCandidatesRequest, LinkReceiptMoneyMovementRequest, ReceiptDto, ReceiptList, ReceiptMoneyMovementDto } from "./types.js";
+import { isPagedResponse, isResponseArray, buildJsonHeaders, ServiceResult, ServiceResultWithData, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess } from "../../../shared/http.js";
+import { AvailableAccountDto, GetReceiptMoneyMovementCandidatesRequest, LinkReceiptMoneyMovementRequest, ReceiptList, ReceiptMoneyMovementDto } from "./types.js";
 
 type ReceiptListResponse = ServiceResultWithData<ReceiptList>;
-type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
 type AvailableAccountsResponse = ServiceResultWithData<AvailableAccountDto[]>;
 type ReceiptMoneyMovementListResponse = ServiceResultWithData<ReceiptMoneyMovementDto[]>;
-const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
 export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string | null, signal?: AbortSignal): Promise<ReceiptList> {
     const url = rangeQuery
@@ -20,69 +19,6 @@ export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string |
 export async function loadAvailableAccountsApi(forgeryToken: string | null, signal?: AbortSignal): Promise<AvailableAccountDto[]> {
     const response = await sendJsonRequest<AvailableAccountsResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult(response, isResponseArray);
-}
-
-export async function openReceiptApi(receiptId: string, forgeryToken: string | null, signal?: AbortSignal): Promise<ReceiptDto> {
-    const response = await sendJsonRequest<ReceiptResponse>(
-        "?handler=OpenReceipt",
-        "POST",
-        buildJsonHeaders(forgeryToken),
-        { receiptId: receiptId },
-        signal
-    );
-
-    return unwrapServiceResult(response, value => hasResponseFields(value, ["items", "accounts"], ["totalSum", "operationType"], ["id", "dateTime"]));
-}
-
-export async function refreshReceiptApi(receiptId: string, forgeryToken: string | null): Promise<ReceiptDto> {
-    const response = await sendJsonRequest<ReceiptResponse>(
-        "?handler=RefreshReceipt",
-        "POST",
-        buildJsonHeaders(forgeryToken),
-        { receiptId: receiptId }
-    );
-
-    return unwrapServiceResult(response, value => hasResponseFields(value, ["items", "accounts"], ["totalSum", "operationType"], ["id", "dateTime"]));
-}
-
-export async function deleteReceiptApi(receiptId: string, forgeryToken: string | null): Promise<void> {
-    const response = await sendJsonRequest<ServiceResult>(
-        "?handler=DeleteReceipt",
-        "POST",
-        buildJsonHeaders(forgeryToken),
-        { receiptId: receiptId }
-    );
-
-    unwrapServiceSuccess(response);
-}
-
-export async function moveReceiptToAccountApi(receiptId: string, sourceAccountId: string, targetAccountId: string, forgeryToken: string | null): Promise<void> {
-    const response = await sendJsonRequest<ServiceResult>(
-        "?handler=MoveReceiptToAccount",
-        "POST",
-        buildJsonHeaders(forgeryToken),
-        {
-            receiptId: receiptId,
-            sourceAccountId: sourceAccountId || EMPTY_GUID,
-            targetAccountId: targetAccountId
-        }
-    );
-
-    unwrapServiceSuccess(response);
-}
-
-export async function removeReceiptFromAccountApi(receiptId: string, accountId: string, forgeryToken: string | null): Promise<void> {
-    const response = await sendJsonRequest<ServiceResult>(
-        "?handler=RemoveReceiptFromAccount",
-        "POST",
-        buildJsonHeaders(forgeryToken),
-        {
-            receiptId: receiptId,
-            accountId: accountId
-        }
-    );
-
-    unwrapServiceSuccess(response);
 }
 
 export async function loadLinkedMoneyMovementsApi(receiptId: string, forgeryToken: string | null, signal?: AbortSignal): Promise<ReceiptMoneyMovementDto[]> {

@@ -119,7 +119,7 @@ const movement = (id: string) => ({ id, occurredAt: "2026-10-01T12:00:00", amoun
 let sequence = 0;
 async function environment(action: (f: ReturnType<typeof makeEnvironment>) => Promise<void>) {
     const names = ["document", "window", "Element", "Node", "HTMLElement", "HTMLInputElement", "HTMLSelectElement",
-        "HTMLTextAreaElement", "HTMLButtonElement", "HTMLTableRowElement", "HTMLFormElement", "Chart", "fetch", "alert"];
+        "HTMLTextAreaElement", "HTMLButtonElement", "HTMLTableRowElement", "HTMLTableSectionElement", "HTMLCanvasElement", "HTMLFormElement", "Chart", "fetch", "alert"];
     const globals = Object.fromEntries(names.map(name => [name, (globalThis as any)[name]]));
     const f = makeEnvironment();
     Object.assign(globalThis, f.globals);
@@ -173,7 +173,8 @@ function makeEnvironment() {
     };
     const globals = { document, window, Element: ElementStub, Node: ElementStub, HTMLElement: ElementStub,
         HTMLInputElement: ElementStub, HTMLSelectElement: ElementStub, HTMLTextAreaElement: ElementStub,
-        HTMLButtonElement: ElementStub, HTMLTableRowElement: ElementStub, HTMLFormElement: ElementStub,
+        HTMLButtonElement: ElementStub, HTMLTableRowElement: ElementStub, HTMLTableSectionElement: ElementStub,
+        HTMLCanvasElement: ElementStub, HTMLFormElement: ElementStub,
         Chart: class { constructor(_context: object, options: any) { charts.push(options); } destroy() {} },
         alert: (message: string) => { alerts.push(message); },
         fetch: async () => { throw new Error("Unexpected fetch in isolated test"); } };
@@ -257,9 +258,9 @@ test("dashboard ignores old success and error after filters change, including ab
         void f.element("dashboardIncomeExpenseDateFrom").fire("change"); await settle();
         f.element("dashboardIncomeExpenseDateFrom").value = "2026-02-01";
         void f.element("dashboardIncomeExpenseDateFrom").fire("change"); await settle();
-        pending[1].task.resolve(response({ stores: [], points: [{ label: "new", incomeSum: 20, expenseSum: 30 }] }));
+        pending[1].task.resolve(response({ stores: [], points: [{ periodStart: "2026-10-01", label: "new", incomeSum: 20, expenseSum: 30 }] }));
         await settle();
-        pending[0].task.resolve(response({ stores: [], points: [{ label: "old", incomeSum: 999, expenseSum: 999 }] }));
+        pending[0].task.resolve(response({ stores: [], points: [{ periodStart: "2026-10-01", label: "old", incomeSum: 999, expenseSum: 999 }] }));
         await settle();
 
         // Assert
@@ -276,6 +277,35 @@ test("dashboard ignores old success and error after filters change, including ab
         // Assert
         assert.equal(f.element("dashboardIncomeExpenseError").textContent, "");
         pending[3].task.resolve(new Response("invalid", { status: 403 })); await settle();
+        assert.notEqual(f.element("dashboardIncomeExpenseError").textContent, "");
+    });
+});
+
+test("actual dashboard entry shows a contract error for a missing point amount and keeps the last valid chart", async () => {
+    await environment(async f => {
+        // Arrange
+        let valid = true;
+        globalThis.fetch = async url => {
+            const query = new URL(String(url), "https://local.invalid").searchParams;
+            if (query.get("handler") === "Accounts") return response([]);
+            const point = valid
+                ? { periodStart: "2026-10-14", label: "valid", incomeSum: 12.34, expenseSum: 56.78 }
+                : { periodStart: "2026-10-14", label: "invalid", incomeSum: 12.34 };
+            return response({ stores: [], points: [point] });
+        };
+        await f.start("dashboard");
+        const chartCount = f.charts.length;
+        const summary = f.element("dashboardIncomeExpenseSummary").text();
+
+        // Act
+        valid = false;
+        await f.element("dashboardIncomeExpenseDateFrom").fire("change");
+        await settle();
+
+        // Assert
+        assert.equal(f.charts.length, chartCount);
+        assert.deepEqual(f.charts.at(-1).data.labels, ["valid"]);
+        assert.equal(f.element("dashboardIncomeExpenseSummary").text(), summary);
         assert.notEqual(f.element("dashboardIncomeExpenseError").textContent, "");
     });
 });

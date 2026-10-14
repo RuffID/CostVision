@@ -8,14 +8,7 @@ export interface ProductListItem {
     averagePriceIsWeighted: boolean | null;
 }
 
-export interface ProductList {
-    items: ProductListItem[];
-    page: number;
-    pageSize: number;
-    totalCount: number;
-    totalPages: number;
-    hasPreviousPage: boolean;
-    hasNextPage: boolean;
+export interface ProductList extends PagedList<ProductListItem> {
     totalSum: number;
 }
 
@@ -44,3 +37,5 @@ export interface ProductListState {
 
 export type ProductSortBy = "name" | "receiptCount" | "averagePrice";
 export type ProductSortDirection = "asc" | "desc";
+import type { PagedList } from "../../shared/paging.js";
+

@@ -30,6 +30,7 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/07a-consumer-map.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/08-application-and-persistence-boundaries.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/08-boundary-decision.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/08a-efcorelibrary-upgrade-and-maintenance.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/09-web-and-http-contracts.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/10-frontend-request-coordination.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/11-frontend-decomposition.md" />
@@ -48,6 +49,7 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-09-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-10-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-11-prompt.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-12-prompt.md" />
   </Folder>
   <Folder Name="/Documentation/TechnicalGuide/">
     <File Path="Documentation/TechnicalGuide/README.md" />
@@ -79,6 +81,9 @@
     <File Path="tests/Frontend/moneyMovementImport.test.mts" />
     <File Path="tests/Frontend/boundedReads.test.mts" />
     <File Path="tests/Frontend/httpContracts.test.mts" />
+    <File Path="tests/Frontend/reportTotals.test.mts" />
+    <File Path="tests/Frontend/requestCoordination.test.mts" />
+    <File Path="tests/Frontend/frontendDecomposition.test.mts" />
     <Project Path="tests/CostVision.Application.UnitTests/CostVision.Application.UnitTests.csproj" />
     <Project Path="tests/CostVision.Infrastructure.IntegrationTests/CostVision.Infrastructure.IntegrationTests.csproj" />
     <Project Path="tests/CostVision.Infrastructure.UnitTests/CostVision.Infrastructure.UnitTests.csproj" />

@@ -1,6 +1,7 @@
 import { isPagedResponse, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { loadAvailableAccountsApi, moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi } from "../reports/receipts/api.js";
+import { loadAvailableAccountsApi } from "../reports/receipts/api.js";
+import { moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi } from "../../shared/receipts/api.js";
 import type { AvailableAccountDto, ReceiptDto } from "../reports/receipts/types.js";
 import type { StoreList, StoreReceiptList, StoreSortBy, StoreSortDirection } from "./types.js";
 

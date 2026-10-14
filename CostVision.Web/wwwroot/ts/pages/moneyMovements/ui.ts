@@ -72,8 +72,8 @@ export interface MoneyMovementsUi {
 export function getMoneyMovementsUi(): MoneyMovementsUi {
     return {
         alert: requireElementById("moneyMovementAlert"),
-        createForm: requireElementById<HTMLFormElement>("moneyMovementCreateForm"),
-        createButton: requireElementById<HTMLButtonElement>("moneyMovementCreateButton"),
+        createForm: requireElementById<HTMLFormElement>("moneyMovementCreateForm", HTMLFormElement),
+        createButton: requireElementById<HTMLButtonElement>("moneyMovementCreateButton", HTMLButtonElement),
         accountSelect: requireSelectById("moneyMovementAccount"),
         amountInput: requireInputById("moneyMovementAmount"),
         typeSelect: requireSelectById("moneyMovementType"),
@@ -86,7 +86,7 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         searchInput: requireInputById("moneyMovementSearch"),
         receiptFilterSelect: requireSelectById("moneyMovementReceiptFilter"),
         receiptFilterHelp: requireElementById("moneyMovementReceiptFilterHelp"),
-        applyFilterButton: requireElementById<HTMLButtonElement>("moneyMovementApplyFilter"),
+        applyFilterButton: requireElementById<HTMLButtonElement>("moneyMovementApplyFilter", HTMLButtonElement),
         list: requireElementById("moneyMovementList"),
         count: requireElementById("moneyMovementCount"),
         incomeSum: requireElementById("moneyMovementIncomeSum"),
@@ -95,11 +95,11 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         moveAccountAlert: requireElementById("moveMoneyMovementAccountAlert"),
         moveSourceAccount: requireElementById("moveMoneyMovementSourceAccount"),
         moveTargetAccountSelect: requireSelectById("moveMoneyMovementTargetAccount"),
-        confirmMoveAccountButton: requireElementById<HTMLButtonElement>("confirmMoveMoneyMovementAccountButton"),
-        removeFromAccountButton: requireElementById<HTMLButtonElement>("removeMoneyMovementFromAccountButton"),
+        confirmMoveAccountButton: requireElementById<HTMLButtonElement>("confirmMoveMoneyMovementAccountButton", HTMLButtonElement),
+        removeFromAccountButton: requireElementById<HTMLButtonElement>("removeMoneyMovementFromAccountButton", HTMLButtonElement),
         deleteModal: requireElementById("deleteMoneyMovementModal"),
         deleteInfo: requireElementById("deleteMoneyMovementInfo"),
-        confirmDeleteButton: requireElementById<HTMLButtonElement>("confirmDeleteMoneyMovementButton"),
+        confirmDeleteButton: requireElementById<HTMLButtonElement>("confirmDeleteMoneyMovementButton", HTMLButtonElement),
         receiptsModal: requireElementById("moneyMovementReceiptsModal"),
         receiptsAlert: requireElementById("moneyMovementReceiptsAlert"),
         receiptsInfo: requireElementById("moneyMovementReceiptsInfo"),
@@ -112,7 +112,7 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         receiptsUseAmountFilterInput: requireInputById("moneyMovementReceiptsUseAmountFilter"),
         receiptsAmountToleranceInput: requireInputById("moneyMovementReceiptsAmountTolerance"),
         receiptsExcludeLinkedInput: requireInputById("moneyMovementReceiptsExcludeLinked"),
-        receiptsReloadCandidatesButton: requireElementById<HTMLButtonElement>("moneyMovementReceiptsReloadCandidatesButton"),
+        receiptsReloadCandidatesButton: requireElementById<HTMLButtonElement>("moneyMovementReceiptsReloadCandidatesButton", HTMLButtonElement),
         receiptsAmountToleranceHelp: requireElementById("moneyMovementReceiptsAmountToleranceHelp"),
         receiptsTimeWindowHoursHelp: requireElementById("moneyMovementReceiptsTimeWindowHoursHelp"),
         receiptsUseTimeWindowHelp: requireElementById("moneyMovementReceiptsUseTimeWindowHelp"),
@@ -132,10 +132,10 @@ export function getMoneyMovementsUi(): MoneyMovementsUi {
         importPreview: requireElementById("moneyMovementImportPreview"),
         importErrors: requireElementById("moneyMovementImportErrors"),
         importSummary: requireElementById("moneyMovementImportSummary"),
-        importPreviewButton: requireElementById<HTMLButtonElement>("moneyMovementImportPreviewButton"),
-        importSaveButton: requireElementById<HTMLButtonElement>("moneyMovementImportSaveButton"),
+        importPreviewButton: requireElementById<HTMLButtonElement>("moneyMovementImportPreviewButton", HTMLButtonElement),
+        importSaveButton: requireElementById<HTMLButtonElement>("moneyMovementImportSaveButton", HTMLButtonElement),
         importToggleDuplicateReplacementsInput: requireInputById("moneyMovementImportToggleDuplicateReplacements"),
         importSkipDuplicatesInput: requireInputById("moneyMovementImportSkipDuplicates"),
-        importToggleDuplicatesButton: requireElementById<HTMLButtonElement>("moneyMovementImportToggleDuplicatesButton")
+        importToggleDuplicatesButton: requireElementById<HTMLButtonElement>("moneyMovementImportToggleDuplicatesButton", HTMLButtonElement)
     };
 }
