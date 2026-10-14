@@ -8,7 +8,7 @@ Program.cs загружает конфигурацию, настраивает �
 
 ## Контракты и границы
 
-Сохранять порядок middleware и приоритет config.json. Не переносить use case в Program; запуск хоста и startup-БД требует отдельной просьбы.
+Сохранять порядок middleware. Config/config.json обязателен относительно content root; ConfigurationExtensions добавляет его после стандартных providers, затем environment и command line. Web runtime options принадлежат Extensions/Options. До maintenance вызывается IStartupValidator всех модулей; отказ запрещает RunAsync и логируется закрытым кодом без исходного exception. Не переносить use case в Program; запуск хоста и startup-БД требует отдельной просьбы.
 
 PageModel операций вызывает конкретные Application-сценарии без общего page-фасада; освобождение HTTP file stream принадлежит Web, проверки preview и финансовые права — Application. Регистрация конкретных сценариев/общего scope сохраняется в layer extensions. Независимость Application от EF не предполагается: пользователь сохранил её явную EF/DLL-границу в 08.
 

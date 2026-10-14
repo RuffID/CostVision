@@ -1,4 +1,5 @@
 using CostVision.Infrastructure.Services.DataBase;
+using Microsoft.Extensions.Options;
 
 namespace CostVision.Web.Extensions
 {
@@ -8,7 +9,23 @@ namespace CostVision.Web.Extensions
         {
             using StartupCancellation cancellation = new(ct);
 
-            return await app.Services.GetRequiredService<DatabaseMaintenanceStartup>().RunAsync(cancellation.Token);
+            return await InitializeDatabaseServicesAsync(app.Services, cancellation.Token);
+        }
+
+        internal static async Task<bool> InitializeDatabaseServicesAsync(IServiceProvider services, CancellationToken ct)
+        {
+            try
+            {
+                services.GetRequiredService<IStartupValidator>().Validate();
+            }
+            catch (Exception)
+            {
+                services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup")
+                    .LogCritical("Application startup failed: Configuration.");
+                return false;
+            }
+
+            return await services.GetRequiredService<DatabaseMaintenanceStartup>().RunAsync(ct);
         }
     }
 }

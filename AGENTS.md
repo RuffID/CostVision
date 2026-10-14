@@ -83,6 +83,8 @@ CostVision - веб-приложение для учёта расходов по
 
 ## Frontend
 
+После 14 config.json читается от content root, environment и command line имеют больший приоритет. Все startup options проверяются до библиотечного maintenance и host. Согласованные лимиты банковских PDF — 20 МиБ/200 страниц; они не относятся к QR/camera/storage. Автоматическая startup-policy 08A и её эксплуатационные блокеры сохранены; кооперативный budget не гарантирует остановку OS/server I/O.
+
 Добавление чека после 12 имеет независимую session/controller и общий busy/lifecycle для QR/manual. Чувствительные browser keys персональны по проверенному CurrentUser.Id; legacy не читать/не мигрировать/не удалять, TTL и logout deletion не вводить. Новых лимитов decoding нет по решению пользователя. POST не отменяется и не повторяется автоматически; неизвестный исход требует сверки. Браузерная/camera/storage приёмка открыта.
 
 - Для новых клиентских скриптов использовать TypeScript.

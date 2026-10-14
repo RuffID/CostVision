@@ -2,7 +2,7 @@
 
 Дата обзора: 13.10.2026.
 
-Статус плана: **Этапы 01–13, 07A и 08A реализованы, проверка не завершена (актуализация 14.10.2026). SQL/concurrency/migration/provider/maintenance/HTTP/auth/browser/production-приёмка открыта; для 12 отдельно открыты camera/iframe/CSP/storage. Этапы 14–15 не начаты.**
+Статус плана: **Этапы 01–14, 07A и 08A реализованы, проверка не завершена (актуализация 14.10.2026). SQL/concurrency/migration/provider/maintenance/HTTP/auth/browser/production-приёмка открыта; для 12 отдельно открыты camera/iframe/CSP/storage. Этап 15 не начат.**
 
 Цель: устранить нарушения доступа и целостности финансовых данных, затем уменьшить стоимость загрузки и сложность сопровождения проекта.
 
@@ -30,7 +30,7 @@
 | [11](11-frontend-decomposition.md) | Разделение крупных frontend-модулей и повторов | П2/П3 | 05, 07, 10 | Реализован, проверка не завершена |
 | [12](12-qr-scanning-and-browser-storage.md) | Сканирование, камера и локальные черновики | П2 | 03, 09, 10 | Реализован, проверка не завершена |
 | [13](13-modal-stack-and-accessibility.md) | Стек модалок, фокус и доступность | П2 | 10, 11 | Реализован, проверка не завершена |
-| [14](14-startup-and-configuration.md) | Запуск, конфигурация и эксплуатация библиотечного maintenance | П2 | 06, 08, 08A, 09 | Не начат |
+| [14](14-startup-and-configuration.md) | Запуск, конфигурация и эксплуатация библиотечного maintenance | П2 | 06, 08, 08A, 09 | Реализован, проверка не завершена |
 | [15](15-build-tests-and-final-acceptance.md) | Сборка, проверки, поставка и итоговая приёмка | П2/П3 | 01–14, включая 07A и 08A | Не начат |
 
 П1 — существенное нарушение доступа, сохранения или расчёта финансовых данных. П2 — надёжность, производительность и архитектурные границы. П3 — сопровождение и локальное упрощение. П1 не означает, что проблема воспроизведена в рабочей системе: основание каждого вывода указано в этапе.
@@ -43,7 +43,7 @@
 
 Передача после этапа 06: [самодостаточный промпт для этапа 07](prompts/next-stage-07-prompt.md). Пользовательская миграция RowVersion и SQL-/конкурентная/HTTP-/браузерная приёмка 01–06 открыты. Подготовка не начинает 07 или 07A.
 
-Передача после этапа 07: [самодостаточный промпт 07A](prompts/next-stage-07a-prompt.md). Общий projection-контракт согласован; SQL-приёмка объёма/планов/согласованности и HTTP-/браузерная приёмка 07 открыты. Пользовательская миграция AddReceiptRowVersion с RowVersion и RefreshRevision уже присутствует в исходниках; её применение к БД не проверено. 07A–12 и 08A реализованы изолированно с открытой приёмкой; 14–15 не начаты.
+Передача после этапа 07: [самодостаточный промпт 07A](prompts/next-stage-07a-prompt.md). Общий projection-контракт согласован; SQL-приёмка объёма/планов/согласованности и HTTP-/браузерная приёмка 07 открыты. Пользовательская миграция AddReceiptRowVersion с RowVersion и RefreshRevision уже присутствует в исходниках; её применение к БД не проверено. 07A–12 и 08A реализованы изолированно с открытой приёмкой; 14 реализован, проверка не завершена; 15 не начат.
 
 Передача после 07A: [карта потребителей и транзакций](07a-consumer-map.md), [самодостаточный промпт 08](prompts/next-stage-08-prompt.md). Прямые read-зависимости и 14 узких adapters разделяют один технический scope; 01–07 и их проверки сохранены. Подготовка промпта не начинает 08.
 
@@ -51,17 +51,19 @@
 
 Передача после09: [самодостаточный промпт10](prompts/next-stage-10-prompt.md). Binding/shape, календарные границы, cookie JSON401/403, единственный error middleware и shared HTTP-контракт проверены изолированно; фактические команды и результаты в журнале09. HTTP/auth/antiforgery/browser-приёмка09 и все открытые проверки01–08/07A сохранены. Этап10 реализован по отдельной просьбе; исторический промпт10 описывает передачу до его начала.
 
-Передача после10: [журнал координации запросов](10-frontend-request-coordination.md), [самодостаточный промпт11](prompts/next-stage-11-prompt.md). Независимые поколения/AbortSignal, контексты окон/команд и preview identity проверены изолированно; HTTP/browser/Bootstrap-приёмка10 и все открытые проверки01–09/07A сохранены. **11 реализован по отдельному поручению, проверка не завершена; 14–15 не начаты**. Исторический промпт11 описывает передачу до его начала.
+Передача после10: [журнал координации запросов](10-frontend-request-coordination.md), [самодостаточный промпт11](prompts/next-stage-11-prompt.md). Независимые поколения/AbortSignal, контексты окон/команд и preview identity проверены изолированно; HTTP/browser/Bootstrap-приёмка10 и все открытые проверки01–09/07A сохранены. **11 реализован по отдельному поручению, проверка не завершена; 14 реализован, проверка не завершена; 15 не начат**. Исторический промпт11 описывает передачу до его начала.
 
 Передача после11: [журнал декомпозиции](11-frontend-decomposition.md), [самодостаточный промпт12](prompts/next-stage-12-prompt.md). Четыре entry разделены, общие date/preferences/paging/receipt workflow и строгие числовые/DOM/Chart границы проверены изолированно: frontend91/0/0/cancelled0. Браузерная/HTTP/SQL/provider-приёмка01–11/07A открыта; подготовка не начинает12.
 
-Дополнение 14.10.2026: [08A](08a-efcorelibrary-upgrade-and-maintenance.md) реализован изолированно: DLL `0.0.2` заменена воспроизводимой base `0.0.5` + Maintenance/SqlServer `1.0.0` поставкой, EF `10.0.12`; единые repository/DI/UoW/maintenance и async startup устраняют собственные SQL/backup/migration пути. [Manifest](../../../libs/efcorelibrary-delivery-08a.json) и [эксплуатация/readiness](../../TechnicalGuide/11-configuration-and-operations.md) фиксируют идентичность и блокеры. Статус — реализован, проверка не завершена. Решение А, исторические результаты и открытая SQL/HTTP/browser/production-приёмка сохранены; 14–15 не начаты.
+Дополнение 14.10.2026: [08A](08a-efcorelibrary-upgrade-and-maintenance.md) реализован изолированно: DLL `0.0.2` заменена воспроизводимой base `0.0.5` + Maintenance/SqlServer `1.0.0` поставкой, EF `10.0.12`; единые repository/DI/UoW/maintenance и async startup устраняют собственные SQL/backup/migration пути. [Manifest](../../../libs/efcorelibrary-delivery-08a.json) и [эксплуатация/readiness](../../TechnicalGuide/11-configuration-and-operations.md) фиксируют идентичность и блокеры. Статус — реализован, проверка не завершена. Решение А, исторические результаты и открытая SQL/HTTP/browser/production-приёмка сохранены; 14 реализован, проверка не завершена; 15 не начат.
 
 Передача после12: [журнал сканирования и browser storage](12-qr-scanning-and-browser-storage.md), [самодостаточный промпт13](prompts/next-stage-13-prompt.md). Пользователь утвердил untouched legacy, персональное хранение без TTL/logout deletion и отсутствие новых decoder limits. Strict TS build/124 frontend/5 AddReceipt tests прошли изолированно; camera/iframe/CSP/storage/user-switch/Bootstrap/HTTP и все прежние проверки открыты. 13 реализован по отдельной просьбе; его actual browser accessibility/animation приёмка открыта.
 
 ## Порядок выполнения
 
-Передача после13: [журнал стека/доступности](13-modal-stack-and-accessibility.md), [самодостаточный промпт14](prompts/next-stage-14-prompt.md). Bootstrap 5.1.0 public options, element-owned backdrop/transition lifecycle, top keyboard/focus и tooltip/ARIA проверены изолированно: strict TS build, frontend137/0/0/cancelled0, Web/Razor compile-check0errors/2existing NU1510 warnings. Actual browser animation/accessibility и все прежние проверки открыты. Подготовка промпта не начинает14–15.
+Передача после14: [журнал options/config/startup/PDF](14-startup-and-configuration.md), [самодостаточный промпт15](prompts/next-stage-15-prompt.md). Scoped isolated Application22/Infrastructure102/Web28, concrete Build0errors (две прежних NU1510 в Infrastructure closure), Integration только compile. SQL/backup/restore/SingleInitializer/OS/readiness/HTTP/browser/provider/production и вся прежняя приёмка открыты; 15 не начат.
+
+Передача после13: [журнал стека/доступности](13-modal-stack-and-accessibility.md), [самодостаточный промпт14](prompts/next-stage-14-prompt.md). Bootstrap 5.1.0 public options, element-owned backdrop/transition lifecycle, top keyboard/focus и tooltip/ARIA проверены изолированно: strict TS build, frontend137/0/0/cancelled0, Web/Razor compile-check0errors/2existing NU1510 warnings. Actual browser animation/accessibility и все прежние проверки открыты. Этап14 выполнен отдельным поручением; эта историческая передача не начинает15.
 
 1. Сначала закрыть этапы 01–06 небольшими изменениями с регрессионными проверками. Не объединять исправление прав, изменение финансовых правил и перестройку архитектуры в одну правку.
 2. Затем выполнить 07 → 07A → 08 и этап 09. Оптимизацию запросов вести на исправленном контракте доступа и расчёта. Разделение UoW выделено в 07A; прежняя нумерация остальных этапов сохранена.

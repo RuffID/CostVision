@@ -1,5 +1,8 @@
 using System.Text;
+using CostVision.Application.Abstractions.Service.MoneyMovements;
 using CostVision.Infrastructure.Services.MoneyMovements;
+using CostVision.Infrastructure.Models.ConfigClass;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace CostVision.Infrastructure.IntegrationTests.Services.MoneyMovements;
@@ -9,12 +12,15 @@ public class BankStatementPdfTextExtractorComponentTests
     [Fact]
     public async Task ExtractPagesAsync_ValidPdfWithTextLayer_ReturnsPageText()
     {
+        // Arrange
         CancellationToken ct = TestContext.Current.CancellationToken;
-        BankStatementPdfTextExtractor extractor = new();
+        BankStatementPdfTextExtractor extractor = new(Options.Create(new BankStatementPdfSettings()));
         await using MemoryStream stream = new(CreatePdfWithText("T-Bank Statement 12345"));
 
+        // Act
         IReadOnlyList<string> pages = await extractor.ExtractPagesAsync(stream, ct);
 
+        // Assert
         Assert.Single(pages);
         Assert.Contains("T-Bank Statement", pages[0]);
         Assert.Contains("12345", pages[0]);
@@ -23,21 +29,33 @@ public class BankStatementPdfTextExtractorComponentTests
     [Fact]
     public async Task ExtractPagesAsync_CorruptedPdf_ThrowsPdfReadException()
     {
+        // Arrange
         CancellationToken ct = TestContext.Current.CancellationToken;
-        BankStatementPdfTextExtractor extractor = new();
+        BankStatementPdfTextExtractor extractor = new(Options.Create(new BankStatementPdfSettings()));
         await using MemoryStream stream = new(Encoding.ASCII.GetBytes("not a pdf"));
 
-        await Assert.ThrowsAnyAsync<Exception>(() => extractor.ExtractPagesAsync(stream, ct));
+        // Act
+        BankStatementPdfException error = await Assert.ThrowsAsync<BankStatementPdfException>(() => extractor.ExtractPagesAsync(stream, ct));
+
+        // Assert
+        Assert.Null(error.InnerException);
+        Assert.Contains("PDF", error.Message);
     }
 
     [Fact]
     public async Task ExtractPagesAsync_EmptyPdf_ThrowsPdfReadException()
     {
+        // Arrange
         CancellationToken ct = TestContext.Current.CancellationToken;
-        BankStatementPdfTextExtractor extractor = new();
+        BankStatementPdfTextExtractor extractor = new(Options.Create(new BankStatementPdfSettings()));
         await using MemoryStream stream = new();
 
-        await Assert.ThrowsAnyAsync<Exception>(() => extractor.ExtractPagesAsync(stream, ct));
+        // Act
+        BankStatementPdfException error = await Assert.ThrowsAsync<BankStatementPdfException>(() => extractor.ExtractPagesAsync(stream, ct));
+
+        // Assert
+        Assert.Null(error.InnerException);
+        Assert.Contains("PDF", error.Message);
     }
 
     private static byte[] CreatePdfWithText(string text)

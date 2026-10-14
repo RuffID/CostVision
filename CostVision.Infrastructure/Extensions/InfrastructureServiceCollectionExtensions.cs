@@ -27,6 +27,7 @@ using HttpClientLibrary.Clients;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace CostVision.Infrastructure.Extensions
 {
@@ -34,11 +35,17 @@ namespace CostVision.Infrastructure.Extensions
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddInfrastructureConfig(configuration);
+            DatabaseMaintenanceSettings maintenanceSettings = new();
+            configuration.GetSection(DatabaseMaintenanceSettings.SECTION_NAME).Bind(maintenanceSettings);
+            services.AddInfrastructureConfig(configuration, maintenanceSettings);
             services.AddSingleton(TimeProvider.System);
 
             string connectionString = configuration.GetConnectionString("MSSql")
                 ?? throw new InvalidOperationException("Не задана обязательная строка подключения ConnectionStrings:MSSql.");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException("Не задана обязательная строка подключения ConnectionStrings:MSSql.");
+            }
 
             services.AddSingleton<SafeDatabaseLoggerFactory>();
             services.AddDbContext<ApplicationContext>((provider, options) => options
@@ -47,13 +54,14 @@ namespace CostVision.Infrastructure.Extensions
             services.AddEfCoreContext<ApplicationContext, CostVisionContextKey>();
             services.AddEfCoreBaseRepositories<CostVisionContextKey>();
             services.AddEfCoreSqlServerMaintenance<CostVisionContextKey>(
-                new SqlServerMaintenanceOptions(configuration[$"{DatabaseMaintenanceSettings.SECTION_NAME}:ServerBackupDirectory"] ?? string.Empty),
+                new SqlServerMaintenanceOptions(maintenanceSettings.ServerBackupDirectory),
                 MaintenanceExecutionMode.SingleInitializer);
             services.AddSingleton<DatabaseMaintenanceStartup>();
 
-            services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
+            services.AddHttpClient<IHttpApiClient, HttpApiClient>((provider, client) =>
             {
-                client.Timeout = TimeSpan.FromSeconds(180);
+                ExternalRequestOptions options = provider.GetRequiredService<IOptions<ExternalRequestOptions>>().Value;
+                client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
             });
 
             services.AddScoped<Hasher>();
@@ -97,10 +105,17 @@ namespace CostVision.Infrastructure.Extensions
             return services;
         }
 
-        private static IServiceCollection AddInfrastructureConfig(this IServiceCollection services, IConfiguration configuration)
+        private static IServiceCollection AddInfrastructureConfig(this IServiceCollection services,
+            IConfiguration configuration, DatabaseMaintenanceSettings maintenanceSettings)
         {
             services.AddOptions<DatabaseMaintenanceSettings>()
-                .Bind(configuration.GetSection(DatabaseMaintenanceSettings.SECTION_NAME))
+                .Configure(settings =>
+                {
+                    settings.Operation = maintenanceSettings.Operation;
+                    settings.TimeoutSeconds = maintenanceSettings.TimeoutSeconds;
+                    settings.ServerBackupDirectory = maintenanceSettings.ServerBackupDirectory;
+                    settings.SingleInitializerConfirmed = maintenanceSettings.SingleInitializerConfirmed;
+                })
                 .Validate(settings => settings.TimeoutSeconds is > 0 and <= 3600, "DatabaseMaintenance: invalid timeout.")
                 .Validate(settings => Enum.IsDefined(settings.Operation), "DatabaseMaintenance: invalid operation.")
                 .Validate(settings => settings.SingleInitializerConfirmed, "DatabaseMaintenance: SingleInitializer must be confirmed by the operator.")
@@ -110,8 +125,23 @@ namespace CostVision.Infrastructure.Extensions
             services.AddOptions<ApiEndpointOptions>()
                 .Bind(configuration.GetRequiredSection(ApiEndpointOptions.SectionName))
                 .Validate(
-                    options => Uri.TryCreate(options.ProverkachekaApiUrl, UriKind.Absolute, out _),
-                    $"{ApiEndpointOptions.SectionName}:ProverkachekaApiUrl должен содержать абсолютный URL.")
+                    options => IsHttpEndpoint(options.ProverkachekaApiUrl),
+                    $"{ApiEndpointOptions.SectionName}:ProverkachekaApiUrl должен содержать абсолютный HTTP(S) URL.")
+                .ValidateOnStart();
+
+            services.AddOptions<ExternalRequestOptions>()
+                .Bind(configuration.GetSection(ExternalRequestOptions.SECTION_NAME))
+                .Validate(options => double.IsFinite(options.TimeoutSeconds)
+                    && options.TimeoutSeconds > 0
+                    && options.TimeoutSeconds <= int.MaxValue / 1000d
+                    && TimeSpan.FromSeconds(options.TimeoutSeconds) > TimeSpan.Zero,
+                    "ExternalRequests: invalid HTTP timeout.")
+                .ValidateOnStart();
+
+            services.AddOptions<BankStatementPdfSettings>()
+                .Bind(configuration.GetSection(BankStatementPdfSettings.SECTION_NAME))
+                .Validate(options => options.MaxBytes > 0, "BankStatementPdf: invalid byte limit.")
+                .Validate(options => options.MaxPages > 0, "BankStatementPdf: invalid page limit.")
                 .ValidateOnStart();
 
             services.AddOptions<ProverkachekaOptions>()
@@ -125,6 +155,16 @@ namespace CostVision.Infrastructure.Extensions
                 .ValidateOnStart();
 
             return services;
+        }
+
+        private static bool IsHttpEndpoint(string value)
+        {
+            if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri))
+            {
+                return false;
+            }
+
+            return uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
         }
     }
 }

@@ -48,7 +48,16 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return accountAccess.PropagateFailure<BankStatementImportPreviewDto>();
             }
 
-            IReadOnlyList<string> pages = await pdfTextExtractor.ExtractPagesAsync(request.FileStream, ct);
+            IReadOnlyList<string> pages;
+            try
+            {
+                pages = await pdfTextExtractor.ExtractPagesAsync(request.FileStream, ct);
+            }
+            catch (BankStatementPdfException exception)
+            {
+                return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, exception.Message);
+            }
+
             if (pages.Count == 0 || pages.All(string.IsNullOrWhiteSpace))
             {
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, "В PDF не найден текстовый слой. Загрузите выписку с распознаваемым текстом.");

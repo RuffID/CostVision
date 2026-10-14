@@ -4,6 +4,8 @@
 
 Component-тесты проверяют BankStatementPdfTextExtractor на файловых PDF-примерах.
 
+Extractor получает валидируемые BankStatementPdfSettings через IOptions. Известные malformed/empty PDF ожидают безопасный BankStatementPdfException; широкое ThrowsAny<Exception> не подтверждает классификацию. Изолированные byte/page/stream/cancellation границы находятся в Infrastructure.UnitTests; этот проект в этапе 14 только компилируется.
+
 ## Контракты и границы
 
 Отделять извлечение текста от банковского parsing. Перед запуском проверять реальные границы теста и применимые разрешения.

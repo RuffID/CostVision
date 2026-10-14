@@ -8,6 +8,8 @@ IBankStatementPdfTextExtractor предоставляет текст PDF для 
 
 Не смешивать извлечение PDF с банковским parsing и сохранением операций. Поддержку OCR не считать существующей.
 
+BankStatementPdfException — ожидаемый безопасный отказ extractor (лимиты/формат/защита). Preview преобразует только этот тип в Validation; provider-specific exceptions не пересекают Application. Отмена, I/O и неизвестный отказ распространяются. Stream остаётся собственностью caller, interface ExtractPagesAsync сохранён.
+
 ## Проверка
 
 Подходящие изолированные проверки находятся в tests/CostVision.Application.UnitTests. Собирать конкретный затронутый .csproj по корневым правилам; mock-репозитории не подтверждают SQL.

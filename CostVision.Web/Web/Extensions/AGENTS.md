@@ -10,6 +10,8 @@ DI, HTTP и startup имеют разные побочные эффекты. Ini
 
 ## Проверка
 
+Перед DatabaseMaintenanceStartup проверять IStartupValidator всех зарегистрированных options, а не ждать ValidateOnStart хоста после SQL. ConfigurationExtensions использует абсолютный content-root/Config/config.json без смены base path стандартных providers; последними идут environment/command line. WebRuntimeServiceCollectionExtensions привязывает Uploads/DataProtection/Swagger, настраивает Kestrel и XmlRepository без filesystem I/O. Default discriminator CostVision.Web соответствует AssemblyName; смена discriminator/key ring требует сверки действующих cookie. Swagger по умолчанию сохранён во всех средах, явный Enabled=false отключает UI/JSON.
+
 Подходящие изолированные проверки находятся в tests/CostVision.Web.UnitTests. HTTP-хост, браузер и production pipeline проверяются отдельным разрешённым контуром.
 
 ## Сопровождение

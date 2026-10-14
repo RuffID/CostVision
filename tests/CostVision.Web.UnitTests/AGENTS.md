@@ -14,6 +14,8 @@ MoneyMovementsModelTests отдельно разрешает страницу ч
 
 ## Проверка
 
+Stage14 в Web/Extensions проверяет actual configuration providers, content-root/key-ring/Kestrel/Swagger options и InitializeDatabaseServicesAsync с fake maintenance без WebApplication/host. Прямая ссылка тестового проекта на Maintenance DLL нужна для fake library boundary, не создаёт новый production runner. Отказ options запрещает maintenance, безопасный журнал и readiness после async cleanup проверяются отдельно.
+
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.
 
 ## Сопровождение

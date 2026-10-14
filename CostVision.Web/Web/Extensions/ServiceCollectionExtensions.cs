@@ -3,11 +3,8 @@ using CostVision.Infrastructure.Extensions;
 using CostVision.Web.Authorize;
 using CostVision.Web.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi;
-using System.Reflection;
-using System.Runtime.InteropServices;
 
 namespace CostVision.Web.Extensions
 {
@@ -16,6 +13,7 @@ namespace CostVision.Web.Extensions
         public static IServiceCollection ConfigureServices(this IServiceCollection services, WebApplicationBuilder builder)
         {
             services.AddForwardedHeadersConfiguration(builder.Configuration);
+            services.AddWebRuntimeConfiguration(builder.Configuration, builder.Environment.ContentRootPath);
             services.AddApplication();
             services.AddInfrastructure(builder.Configuration);
             services.AddTransient<ExceptionHandlingMiddleware>();
@@ -37,7 +35,7 @@ namespace CostVision.Web.Extensions
             {
                 options.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Title = "My API",
+                    Title = "CostVision API",
                     Version = "v1"
                 });
             });
@@ -60,25 +58,6 @@ namespace CostVision.Web.Extensions
                     }
                 });
             });
-
-
-            // Определяет путь в зависимости от ОС для папки, где будут храниться ключи для Data Protection
-            string keyPath;
-            string projectName = Assembly.GetEntryAssembly()?.GetName().Name ?? "DefaultAppName";
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                keyPath = Path.Combine(builder.Environment.ContentRootPath, "keys-windows");
-                // Убедиться, что папка существует
-                Directory.CreateDirectory(keyPath);
-            }
-            else
-                keyPath = Path.Combine(builder.Environment.ContentRootPath, "keys-linux");
-
-            // Настроить Data Protection
-            services.AddDataProtection()
-                .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
-                .SetApplicationName(projectName);
 
             return services;
         }

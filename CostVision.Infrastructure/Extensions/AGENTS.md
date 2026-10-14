@@ -14,6 +14,8 @@ DatabaseMaintenanceSettings привязывается здесь; server direct
 
 ## Проверка
 
+Все поля DatabaseMaintenanceSettings захватываются одним снимком при регистрации, как immutable SqlServerMaintenanceOptions; reload не меняет startup operation/directory/budget отдельно от библиотечной поставки. ApiEndpoints допускает только абсолютный HTTP(S), ExternalRequests задаёт конечный положительный представимый HttpClient timeout (default180). BankStatementPdf задаёт согласованные byte/page limits (default20 МиБ/200). ValidateOnStart вызывается Web до maintenance; secret values и validation exception chains не выводить в startup-журнал.
+
 Чистые преобразователи и модель проверяются в Infrastructure.UnitTests; SQL, backup и hosted-компоненты — отдельными интеграционными проверками с требуемым разрешением.
 
 ## Сопровождение

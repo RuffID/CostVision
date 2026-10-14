@@ -8,6 +8,8 @@ BankStatementPdfTextExtractor использует PdfPig и передаёт т
 
 Не добавлять запись операций и OCR по умолчанию. Проверять пустой/повреждённый PDF, освобождение ресурсов и отсутствие вывода полного файла в лог.
 
+BankStatementPdfSettings ограничивает фактические оставшиеся байты потока до PdfPig; seekable oversize отклоняется до чтения, non-seekable читается максимум limit+1. Caller stream не освобождается extractor. NumberOfPages проверяется до извлечения страниц; обрезанного успеха нет. PdfDocumentFormatException/EncryptedException и явно непригодный короткий файл дают только безопасный BankStatementPdfException. I/O/неизвестные исключения и отмена не маскируются; cancellation проверяется при буферизации и между синхронными шагами. Byte/page caps не гарантируют предел времени/декомпрессии внутри PdfPig.
+
 ## Проверка
 
 Чистые преобразователи и модель проверяются в Infrastructure.UnitTests; SQL, backup и hosted-компоненты — отдельными интеграционными проверками с требуемым разрешением.

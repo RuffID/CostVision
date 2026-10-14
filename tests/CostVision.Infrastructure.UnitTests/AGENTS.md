@@ -14,6 +14,8 @@ Stage08BoundaryTests инспектирует actual EFCoreLibrary/HttpClientLib
 
 ## Проверка
 
+Stage14ConfigurationTests проверяет actual layer DI/ValidateOnStart, HTTP(S)/finite timeout/PDF limits и immutable maintenance snapshot без открытого connection. Stage14PdfTests использует настоящий PdfPig и memory streams: точные byte/page boundaries, non-seekable limit+1, malformed PDF, cancellation/unknown I/O и caller ownership. Это не приёмка произвольного PDF/decompression, SQL/HTTP/OS/production.
+
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.
 
 ## Сопровождение

@@ -23,4 +23,10 @@
     <ProjectReference Include="..\..\CostVision.Web\CostVision.Web.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="EFCoreLibrary.Maintenance">
+      <HintPath>..\..\libs\EFCoreLibrary.Maintenance.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

@@ -1,25 +1,29 @@
 using CostVision.Web.Extensions;
 using CostVision.Web.Middleware;
+using CostVision.Web.Options;
+using Microsoft.Extensions.Options;
 using Serilog;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration
-    .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Config"))
-    .AddJsonFile("config.json");
-
-Log.Logger = new LoggerConfiguration()
-    .Enrich.With(new SimpleClassNameEnricher())
-    .ReadFrom.Configuration(builder.Configuration)
-    .CreateLogger();
-
-builder.Host.UseSerilog();
-builder.Services.ConfigureServices(builder);
-
-builder.WebHost.ConfigureKestrel(options =>
+try
 {
-    options.Limits.MaxRequestBodySize = 1000_000_000; // 1 gb
-});
+    builder.Configuration.AddCostVisionConfiguration(builder.Environment.ContentRootPath, args);
+
+    Log.Logger = new LoggerConfiguration()
+        .Enrich.With(new SimpleClassNameEnricher())
+        .ReadFrom.Configuration(builder.Configuration)
+        .CreateLogger();
+
+    builder.Host.UseSerilog();
+    builder.Services.ConfigureServices(builder);
+}
+catch (Exception)
+{
+    Console.Error.WriteLine("Application startup failed: Configuration.");
+    Environment.ExitCode = 1;
+    return;
+}
 
 if (builder.Environment.IsDevelopment())
 {
@@ -33,7 +37,20 @@ if (builder.Environment.IsDevelopment())
     });
 }
 
-await using WebApplication app = builder.Build();
+WebApplication application;
+try
+{
+    application = builder.Build();
+}
+catch (Exception)
+{
+    Log.Fatal("Application startup failed: Composition.");
+    Environment.ExitCode = 1;
+    await Log.CloseAndFlushAsync();
+    return;
+}
+
+await using WebApplication app = application;
 
 app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -44,12 +61,15 @@ if (!await app.InitializeDatabaseAsync(app.Lifetime.ApplicationStopping))
     return;
 }
 
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Services.GetRequiredService<IOptions<SwaggerSettings>>().Value.Enabled)
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "My API v1");
-    options.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "CostVision API v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 
 app.UseStaticFiles();
 app.UseRouting();

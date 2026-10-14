@@ -32,7 +32,7 @@ Runtime требует .NET/ASP.NET Core 10 (изолированные пров
 
 ## Используемая поверхность HttpClientLibrary
 
-Infrastructure регистрирует typed IHttpApiClient/HttpApiClient через AddHttpClient с timeout 180 секунд. ReceiptRequest вызывает PostAsync<TRequest,TResponse>(url, requestDto, ct:ct), в том числе PostAsync<HttpContent,ProverkachekaResponse> для multipart. Прочие возможности, автоматические retry, классификация ошибок и живой внешний контракт не предполагаются по имени библиотеки. Provider/refresh/retry проекта в 08 не меняются.
+Infrastructure регистрирует typed IHttpApiClient/HttpApiClient через AddHttpClient с timeout из валидируемых ExternalRequestOptions, default180 секунд сохранён в14. ReceiptRequest вызывает PostAsync<TRequest,TResponse>(url, requestDto, ct:ct), в том числе PostAsync<HttpContent,ProverkachekaResponse> для multipart. Прочие возможности, автоматические retry, классификация ошибок и живой внешний контракт не предполагаются по имени библиотеки. Provider/refresh/retry проекта в 08 не меняются.
 
 Actual generic PostAsync возвращает Task<TResponse> и принимает string, TRequest, string, IDictionary<string,string>, CancellationToken; есть отдельный негeneric PostAsync с object и Task. Названия/nullable/defaults дополнительных строковых параметров здесь не предполагаются. Metadata HttpClientLibrary ссылается на System.Runtime/System.Net.Http/System.Text.Json и Logging.Abstractions 10.0.0.0; прямой EF-ссылки в её списке зависимостей нет. Полный список и сигнатуры зафиксированы в TRX Stage08BoundaryTests.
 

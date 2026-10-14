@@ -8,6 +8,8 @@ Options хранят имя секции, адрес сервиса чеков �
 
 Не добавлять реальные значения в примеры. Изменение binding согласовать с регистрацией и приоритетами источников Program.cs.
 
+ExternalRequestOptions.TimeoutSeconds default180 должен помещаться в HttpClient.Timeout и не округляться в нулевой TimeSpan. BankStatementPdfSettings MaxBytes/MaxPages положительны, defaults20 МиБ/200 согласованы пользователем; это только выписки, не decoder/camera/storage limits. DatabaseMaintenanceSettings и library directory — один registration snapshot, изменения требуют перезапуска.
+
 ## Проверка
 
 Чистые преобразователи и модель проверяются в Infrastructure.UnitTests; SQL, backup и hosted-компоненты — отдельными интеграционными проверками с требуемым разрешением.

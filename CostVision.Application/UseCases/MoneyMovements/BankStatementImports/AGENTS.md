@@ -27,3 +27,5 @@ DuplicateMoneyMovementId обязательно совпадает с единс
 Общая карта и порядок сопровождения: [техническое руководство](../../../../Documentation/TechnicalGuide/12-source-map-and-maintenance.md). Открытые изменения: [план рефакторинга](../../../../Documentation/Plans/project-refactoring-2026-10-13/README.md).
 
 Preview отвергает неположительную FileLength и непредставимый следующий день строки; stream остаётся caller-owned. Import отвергает null Rows/null-элементы до доступа/transaction/Save. Валидные строки, counters, ключи и Serializable сохранены.
+
+После прежних parser/формат/access проверок preview преобразует только BankStatementPdfException в Validation до parsing/duplicate queries; неизвестные сбои и отмена не маскируются. Проверка фактического размера/страниц принадлежит extractor, FileLength не заменяет её. Финансовые/import ключи и сохранение не изменены.

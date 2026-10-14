@@ -8,6 +8,8 @@
 
 Не помещать сюда финансовые use case. Проверять согласованность cookie, текущего пользователя и envelope; дети описывают отдельные адаптеры.
 
+Extensions/Options владеют providers, request body limit, Data Protection key ring, Swagger и обязательной валидацией до maintenance. Регистрация key ring не создаёт каталог и не подтверждает права/шифрование/production-топологию.
+
 ## Проверка
 
 Подходящие изолированные проверки находятся в tests/CostVision.Web.UnitTests. HTTP-хост, браузер и production pipeline проверяются отдельным разрешённым контуром.

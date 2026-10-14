@@ -20,6 +20,8 @@ Preview-тесты используют PreviewBankStatementImportRequest с я�
 
 ## Проверка
 
+Stage14PreviewTests закрепляет преобразование только BankStatementPdfException в Validation до parser/duplicate queries и сохранение unknown/cancellation exceptions с caller-owned stream. Прежние preview/access/import регрессии сохраняются; настоящий PdfPig проверяется отдельно в Infrastructure.UnitTests.
+
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.
 
 ## Сопровождение

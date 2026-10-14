@@ -2,12 +2,14 @@
 
 ## Обязательные настройки
 
-[Program.cs](../../CostVision.Web/Program.cs) добавляет обязательный файл `Config/config.json`, используя текущий рабочий каталог. Этот файл добавляется после стандартных источников конфигурации; при одинаковых ключах порядок источников влияет на приоритет. Нельзя считать, что переменная окружения автоматически переопределит значение файла.
+[ConfigurationExtensions](../../CostVision.Web/Web/Extensions/ConfigurationExtensions.cs), вызываемый Program, добавляет обязательный `Config/config.json` по абсолютному пути от `builder.Environment.ContentRootPath`, сохраняя base path остальных providers. Приоритет от меньшего к большему: стандартные providers builder (appsettings/environment-specific JSON, development user secrets, стандартные environment/command line), затем config.json, затем повторно environment без префикса, затем command line. Для вложенных ключей environment использует `__`. Файл не перезагружается; maintenance options целиком захватываются при DI-регистрации и требуют перезапуска.
+
+Content root выбирает ASP.NET Core при создании builder; явный host content-root через deployment configuration/command line должен указывать на каталог приложения. Без явного выбора стандартный builder обычно использует начальный cwd: переход к content-root пути не определяет за оператора каталог production. После создания builder поиск config.json не зависит от дальнейшего изменения cwd. Наличие секрета в environment/command line не разрешает обход отсутствующего обязательного файла. Изолированные проверки используют отдельный root и тестовые значения; реальные настройки не читались/не публиковались.
 
 | Ключ | Назначение и проверка |
 |---|---|
-| `ConnectionStrings:MSSql` | Строка подключения; отсутствие приводит к ошибке регистрации |
-| `ApiEndpoints:ProverkachekaApiUrl` | Абсолютный адрес внешнего сервиса; ValidateOnStart |
+| `ConnectionStrings:MSSql` | Непустая строка подключения; отсутствие/пробелы приводят к ошибке регистрации |
+| `ApiEndpoints:ProverkachekaApiUrl` | Абсолютный HTTP(S) адрес внешнего сервиса; ValidateOnStart |
 | `ProverkachekaApiToken` | Непустой токен; ValidateOnStart |
 | `ForwardedHeaders:KnownProxies` | Непустой список корректных IP; ValidateOnStart |
 | `Serilog` | Уровни, обогащение и sinks журнала |
@@ -15,14 +17,23 @@
 | `DatabaseMaintenance:TimeoutSeconds` | Конечный бюджет 1–3600 секунд, default 60 |
 | `DatabaseMaintenance:ServerBackupDirectory` | Обязательный абсолютный каталог на SQL Server, без вычисления от каталога Web |
 | `DatabaseMaintenance:SingleInitializerConfirmed` | Обязательное `true` после остановки оператором других экземпляров, writes и DDL на всё обслуживание |
+| `ExternalRequests:TimeoutSeconds` | Default180; конечное положительное значение, представимое в TimeSpan и HttpClient.Timeout (до int.MaxValue миллисекунд) |
+| `BankStatementPdf:MaxBytes` | Положительное число, согласованный default20 МиБ = 20 971 520 байт; только банковские выписки |
+| `BankStatementPdf:MaxPages` | Положительное число, согласованный default200; только банковские выписки |
+| `Uploads:MaxRequestBodyBytes` | Положительное число; прежний общий Kestrel default1 000 000 000 байт |
+| `DataProtection:KeyDirectory` | Пустой default выбирает прежние keys-windows/keys-linux от content root; относительный override также от content root, абсолютный сохраняется |
+| `DataProtection:ApplicationName` | Непустой discriminator, defaultCostVision.Web соответствует AssemblyName; одинаковый для совместимых экземпляров |
+| `Swagger:Enabled` | Defaulttrue сохраняет прежние все среды; явный false отключает Swagger JSON/UI |
 
-Здесь приведены только имена ключей. Значения секретов не входят в документацию. Порядок подстановки конфигурации и лимиты загрузки требуют пересмотра в этапе 14 плана.
+Значения секретов не входят в документацию. Прежде чем вызывать maintenance, Web явно выполняет `IStartupValidator.Validate()` всех зарегистрированных модулей; одного отложенного ValidateOnStart при RunAsync недостаточно. Неверные options не допускают SQL/HTTP/hosted startup. Registration/composition/options failures дают закрытый startup code без exception chains, connection string и server paths. Реальные значения SingleInitializer/каталога/прав не подставлялись для успешной проверки.
 
 ## HTTP и reverse proxy
 
 Forwarded headers обрабатываются до authentication: включены X-Forwarded-For, Proto и Host. Доверенные адреса добавляются из Options. Применение этих настроек должно проверяться в конкретной схеме размещения.
 
 Kestrel допускает тело запроса до 1 000 000 000 байт. Это верхняя граница сервера; ограничения формы, прокси и отдельного сценария могут отличаться. Значение нельзя считать гарантированным допустимым размером банковского файла.
+
+Прежние framework multipart/form defaults и proxy limits сохраняются; размер PDF проверяется по фактическому оставшемуся потоку, а не только по FileLength. Seekable oversize отклоняется до чтения; non-seekable буферизуется максимум до лимита+1 до PdfPig. Число страниц проверяется до извлечения текста. Документ не обрезается до первых допустимых страниц. Отказы лимитов/известного формата/защиты становятся безопасным Validation400 в preview; неизвестный I/O/ошибка и отмена не маскируются. Caller stream освобождает Web. Синхронные PdfPig open/page/decompression нельзя прервать внутри вызова; byte/page caps не гарантируют максимальные CPU/память/время разбора. Новых decoder/time limits для QR/camera/storage нет.
 
 ## Инициализация базы
 
@@ -42,7 +53,9 @@ ServerBackupDirectory задаётся оператором для файлов�
 
 SQL Server-модуль подтверждает COPY_ONLY/CHECKSUM backup, один соответствующий HEADERONLY set и VERIFYONLY с FILE position/CHECKSUM. Receipt не означает успешного restore; требуется реальное операторское восстановление отдельно. Локального hash для server backup не вычисляют. Обычный startup-журнал не раскрывает locator; его retention, доступ и recovery-процедура согласуются в эксплуатационной приёмке.
 
-Data Protection хранит ключи в `keys-windows` или `keys-linux` под content root; имя приложения берётся из entry assembly. Сохранение ключей поддерживает cookie после перезапуска. Для нескольких экземпляров необходима согласованная общая конфигурация key ring.
+Data Protection по умолчанию хранит ключи в прежних `keys-windows`/`keys-linux` под content root с явным стабильным discriminator `CostVision.Web`. Web runtime options настраивают FileSystemXmlRepository без создания каталога при регистрации. Его запись/создание происходят при реальном использовании Data Protection; нужны постоянный mount и права process identity на чтение/запись. Изменение discriminator или потеря ring делает прежние cookie несовместимыми. Encryption at rest, backup ключей и права отдельно проверяет оператор; эта правка не включает новый механизм шифрования. Для совместимых экземпляров необходим один ring/discriminator, но это не снимает блокер active multi-instance maintenance.
+
+Собственных API-контроллеров в текущем дереве не обнаружено; приложение использует Razor handlers. AddControllers/MapControllers и Swagger сохранены для совместимости, документ v1 теперь назван CostVision API. Swagger не является health/readiness endpoint и не подтверждает доступность бизнес-сценариев. Политика экспозиции по умолчанию не ужесточалась; отключение выбирает оператор через Enabled.
 
 ## Журналирование
 
