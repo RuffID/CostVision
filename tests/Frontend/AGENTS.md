@@ -1,5 +1,7 @@
 # Изолированные frontend-проверки
 
+modalStack.test.mts проверяет production shared helpers с public Bootstrap 5.1 contract и синхронными cancelable events: element-owned backdrop/RAF/removal, revision microtasks, prevented show/hide, hide-during-show/reopen/dispose, nested порядок и scroll styles, top keyboard/click/focus/return focus, tooltip keyboard/ARIA/hover/removal/pagehide. Fake DOM/native focus/rendering не объявляются browser acceptance. requestCoordination/receiptScanning fixtures дополнены используемой public API-поверхностью без ослабления assertions; lifecycle cleanup выполняется до возврата globals.
+
 receiptScanning.test.mts вызывает actual AddReceipt DOMContentLoaded/controller/API и production storage/camera/file adapter. Управляемые Promise/fake DOM/fetch/vendor/FileReader/URLs проверяют busy/captured packet/overlay, отказ/unknown outcome без retry, user switch/legacy/retention, изменённый draft, lifecycle/bfcache, stop-during-start/rapid switch/stale callback и stale failure, оба vendor URL, отмену Image/EXIF и fallback. Нет реального browser/camera/сети; frame/CSP/canvas/Bootstrap и cookie проверяются отдельно в плане 12.
 
 boundedReads.test.mts проверяет реальные API/DOM-навигацию страниц и контроллер окна кандидатов: параметры page/filter, полный серверный count/totals, блокировку повторного перехода, сброс страницы при смене фильтра/чека и отклонение прежнего ответа. Items копий документа не обрезается по pageSize. Эти подставные DOM/fetch проверки не являются браузерной приёмкой.

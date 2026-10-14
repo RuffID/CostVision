@@ -10,6 +10,8 @@ globals.d.ts описывает подключённые глобальные б
 
 Html5QrcodeInstance.clear(): void соответствует actual синхронному vendor API. EXIF.readFromBinaryFile описывает локальное чтение тегов без vendor getData/XHR object URL. BootstrapModalInstance включает actual dispose(). Эти объявления не доказывают освобождение устройства или Bootstrap-анимации.
 
+Bootstrap constructor/getOrCreateInstance принимают используемые публичные focus/keyboard boolean options поставленной 5.1.0. Native dispose синхронный; ожидание shown/hidden реализовано shared adapter, а не приписано vendor API.
+
 ## Проверка
 
 Проверка типов — npm run build:ts по корневым правилам. Поведение DOM, модальных окон, камеры и запросов требует отдельных сценариев; сборка не подтверждает браузерную приёмку.

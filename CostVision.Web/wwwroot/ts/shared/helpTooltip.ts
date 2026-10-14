@@ -7,14 +7,21 @@ interface ActiveHelpTooltip {
     trigger: HTMLElement;
     popup: HTMLElement;
     pinned: boolean;
+    describedBy: string | null;
 }
 
 const HOVER_OPEN_DELAY_MS = 500;
 
 let activeHelpTooltip: ActiveHelpTooltip | null = null;
 let hoverOpenTimerId: number | null = null;
+let hoverTrigger: HTMLElement | null = null;
+let hoverCloseTimerId: number | null = null;
+let popupSequence = 0;
+const bindings = new Map<HTMLElement, { trigger: HTMLElement; dispose: () => void }>();
+let removalObserver: MutationObserver | null = null;
 
 export function renderHelpTooltip(host: HTMLElement, options: HelpTooltipOptions): HTMLButtonElement {
+    bindings.get(host)?.dispose();
     host.replaceChildren();
 
     let trigger = document.createElement("button");
@@ -26,32 +33,128 @@ export function renderHelpTooltip(host: HTMLElement, options: HelpTooltipOptions
     trigger.setAttribute("aria-label", options.title);
     trigger.textContent = "?";
 
-    bindHelpTooltip(trigger, options);
+    trigger.setAttribute("aria-expanded", "false");
+    bindings.set(host, { trigger, dispose: bindHelpTooltip(host, trigger, options) });
     host.append(trigger);
 
     return trigger;
 }
 
-function bindHelpTooltip(trigger: HTMLElement, options: HelpTooltipOptions): void {
-    trigger.addEventListener("mouseenter", () => scheduleHoverHelpTooltip(trigger, options));
-    trigger.addEventListener("mouseleave", () => {
-        clearHoverOpenTimer();
-        hideHoverHelpTooltip(trigger);
-    });
-    trigger.addEventListener("click", event => {
+function bindHelpTooltip(host: HTMLElement, trigger: HTMLElement, options: HelpTooltipOptions): () => void {
+    const onEnter = () => {
+        clearHoverCloseTimer();
+        scheduleHoverHelpTooltip(trigger, options);
+    };
+    const onLeave = () => {
+        if (hoverTrigger === trigger) {
+            clearHoverOpenTimer();
+        }
+        if (document.activeElement !== trigger) {
+            scheduleHoverClose(trigger);
+        }
+    };
+    const onClick = (event: Event) => {
         event.preventDefault();
         event.stopPropagation();
         clearHoverOpenTimer();
-        showHelpTooltip(trigger, options, true);
-    });
+        if (activeHelpTooltip?.trigger === trigger && activeHelpTooltip.pinned) {
+            closeActiveHelpTooltip();
+        } else {
+            showHelpTooltip(trigger, options, true);
+        }
+    };
+    const onFocus = () => showHelpTooltip(trigger, options, false);
+    const onBlur = () => {
+        if (activeHelpTooltip?.trigger === trigger) {
+            closeActiveHelpTooltip();
+        }
+    };
+    const onModalHide = () => {
+        if (hoverTrigger === trigger || activeHelpTooltip?.trigger === trigger) {
+            dismissHelpTooltip();
+        }
+    };
+    const modal = trigger.closest(".modal") ?? host.closest(".modal");
+    const dispose = () => {
+        onModalHide();
+        trigger.removeEventListener("mouseenter", onEnter);
+        trigger.removeEventListener("mouseleave", onLeave);
+        trigger.removeEventListener("click", onClick);
+        trigger.removeEventListener("focus", onFocus);
+        trigger.removeEventListener("blur", onBlur);
+        modal?.removeEventListener("hidden.bs.modal", onModalHide);
+        bindings.delete(host);
+        if (bindings.size === 0) {
+            window.removeEventListener("pagehide", handlePagehide);
+            removalObserver?.disconnect();
+            removalObserver = null;
+        }
+    };
+    trigger.addEventListener("mouseenter", onEnter);
+    trigger.addEventListener("mouseleave", onLeave);
+    trigger.addEventListener("click", onClick);
+    trigger.addEventListener("focus", onFocus);
+    trigger.addEventListener("blur", onBlur);
+    modal?.addEventListener("hidden.bs.modal", onModalHide);
+    if (bindings.size === 0) {
+        window.addEventListener("pagehide", handlePagehide);
+        removalObserver = new MutationObserver(() => {
+            for (const [boundHost, binding] of bindings) {
+                if (!boundHost.isConnected || !boundHost.contains(binding.trigger)) {
+                    binding.dispose();
+                }
+            }
+        });
+        removalObserver.observe(document.body, { childList: true, subtree: true });
+    }
+    return dispose;
+}
+
+function handlePagehide(event: PageTransitionEvent): void {
+    dismissHelpTooltip();
+    if (!event.persisted) {
+        for (const binding of bindings.values()) {
+            binding.dispose();
+        }
+    }
+}
+
+export function dismissHelpTooltip(): boolean {
+    const wasOpen = activeHelpTooltip !== null;
+    clearHoverOpenTimer();
+    clearHoverCloseTimer();
+    closeActiveHelpTooltip();
+    return wasOpen;
+}
+
+function clearHoverCloseTimer(): void {
+    if (hoverCloseTimerId !== null) {
+        window.clearTimeout(hoverCloseTimerId);
+        hoverCloseTimerId = null;
+    }
+}
+
+function scheduleHoverClose(trigger: HTMLElement): void {
+    if (!activeHelpTooltip || activeHelpTooltip.trigger !== trigger || activeHelpTooltip.pinned
+        || document.activeElement === trigger) {
+        return;
+    }
+    clearHoverCloseTimer();
+    hoverCloseTimerId = window.setTimeout(() => {
+        hoverCloseTimerId = null;
+        hideHoverHelpTooltip(trigger);
+    }, 100);
 }
 
 function scheduleHoverHelpTooltip(trigger: HTMLElement, options: HelpTooltipOptions): void {
     clearHoverOpenTimer();
-
+    hoverTrigger = trigger;
     hoverOpenTimerId = window.setTimeout(() => {
         hoverOpenTimerId = null;
-        showHelpTooltip(trigger, options, false);
+        hoverTrigger = null;
+        if (trigger.isConnected) {
+            showHelpTooltip(trigger, options, false);
+        }
     }, HOVER_OPEN_DELAY_MS);
 }
 
@@ -62,9 +165,11 @@ function clearHoverOpenTimer(): void {
 
     window.clearTimeout(hoverOpenTimerId);
     hoverOpenTimerId = null;
+    hoverTrigger = null;
 }
 
 function showHelpTooltip(trigger: HTMLElement, options: HelpTooltipOptions, pinned: boolean): void {
+    clearHoverOpenTimer();
     if (activeHelpTooltip && activeHelpTooltip.trigger !== trigger) {
         closeActiveHelpTooltip();
     }
@@ -73,10 +178,18 @@ function showHelpTooltip(trigger: HTMLElement, options: HelpTooltipOptions, pinn
         activeHelpTooltip = {
             trigger: trigger,
             popup: createHelpTooltipPopup(options),
-            pinned: pinned
+            pinned: pinned,
+            describedBy: trigger.getAttribute("aria-describedby")
         };
-
-        document.body.append(activeHelpTooltip.popup);
+        const popup = activeHelpTooltip.popup;
+        popup.id = `help-tooltip-${++popupSequence}`;
+        popup.setAttribute("role", "tooltip");
+        trigger.setAttribute("aria-describedby", [activeHelpTooltip.describedBy, popup.id].filter(Boolean).join(" "));
+        trigger.setAttribute("aria-controls", popup.id);
+        trigger.setAttribute("aria-expanded", "true");
+        (trigger.closest(".modal") ?? document.body).append(popup);
+        popup.addEventListener("mouseenter", clearHoverCloseTimer);
+        popup.addEventListener("mouseleave", () => scheduleHoverClose(trigger));
     } else {
         activeHelpTooltip.pinned = activeHelpTooltip.pinned || pinned;
     }
@@ -84,6 +197,15 @@ function showHelpTooltip(trigger: HTMLElement, options: HelpTooltipOptions, pinn
     positionHelpTooltip(trigger, activeHelpTooltip.popup);
     window.addEventListener("resize", handleWindowResize);
     document.addEventListener("pointerdown", handleDocumentPointerDown, true);
+    document.addEventListener("keydown", handleDocumentKeydown);
+    window.addEventListener("scroll", handleWindowResize, true);
+}
+
+function handleDocumentKeydown(event: KeyboardEvent): void {
+    if (event.key === "Escape" && dismissHelpTooltip()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
 }
 
 function hideHoverHelpTooltip(trigger: HTMLElement): void {
@@ -177,7 +299,7 @@ function handleWindowResize(): void {
 }
 
 function handleDocumentPointerDown(event: PointerEvent): void {
-    if (!activeHelpTooltip || !activeHelpTooltip.pinned) {
+    if (!activeHelpTooltip) {
         return;
     }
 
@@ -199,8 +321,21 @@ function closeActiveHelpTooltip(): void {
     }
 
     clearHoverOpenTimer();
+    clearHoverCloseTimer();
+    const { trigger, describedBy } = activeHelpTooltip;
+    const descriptions = (trigger.getAttribute("aria-describedby") ?? describedBy ?? "")
+        .split(/\s+/).filter(id => id && id !== activeHelpTooltip!.popup.id);
+    if (descriptions.length === 0) {
+        trigger.removeAttribute("aria-describedby");
+    } else {
+        trigger.setAttribute("aria-describedby", descriptions.join(" "));
+    }
+    trigger.removeAttribute("aria-controls");
+    trigger.setAttribute("aria-expanded", "false");
     activeHelpTooltip.popup.remove();
     activeHelpTooltip = null;
     window.removeEventListener("resize", handleWindowResize);
     document.removeEventListener("pointerdown", handleDocumentPointerDown, true);
+    document.removeEventListener("keydown", handleDocumentKeydown);
+    window.removeEventListener("scroll", handleWindowResize, true);
 }

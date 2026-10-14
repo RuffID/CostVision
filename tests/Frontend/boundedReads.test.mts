@@ -19,6 +19,9 @@ class ElementStub {
     classList = { add() {}, toggle() {} };
     handlers: Record<string, (() => void)[]> = {};
     setAttribute(): void {}
+    getAttribute(): string | null { return null; }
+    hasAttribute(): boolean { return false; }
+    closest(): ElementStub | null { return null; }
     append(...children: ElementStub[]): void { this.children.push(...children); }
     replaceChildren(...children: ElementStub[]): void { this.children = children; }
     after(element: ElementStub): void { this.following = element; }
@@ -79,7 +82,7 @@ test("navigation uses server pages and count, blocks overlapping clicks and show
 test("actual candidate modal resets pages for changed filters and ignores a previous receipt reply", async () => {
     // Arrange
     const globals = { document: globalThis.document, window: globalThis.window, HTMLElement: globalThis.HTMLElement,
-        HTMLInputElement: globalThis.HTMLInputElement, fetch: globalThis.fetch };
+        HTMLInputElement: globalThis.HTMLInputElement, MutationObserver: globalThis.MutationObserver, fetch: globalThis.fetch };
     const elements = new Map<string, ElementStub>();
     function element(id: string): ElementStub {
         if (!elements.has(id)) { elements.set(id, new ElementStub()); }
@@ -91,7 +94,11 @@ test("actual candidate modal resets pages for changed filters and ignores a prev
     Object.assign(globalThis, {
         document: { getElementById: element, createElement: () => new ElementStub(), addEventListener() {} },
         HTMLElement: ElementStub, HTMLInputElement: ElementStub,
-        window: { addEventListener() {}, bootstrap: { Modal: class { show() {} hide() {} } } }
+        MutationObserver: class { observe() {} disconnect() {} },
+        window: { addEventListener() {}, bootstrap: { Modal: class {
+            static getOrCreateInstance() { return new this(); }
+            show() {} hide() {}
+        } } }
     });
     globalThis.fetch = async url => {
         const query = new URL(String(url), "https://local.invalid").searchParams;

@@ -27,3 +27,5 @@ PageModel операций вызывает конкретные Application-с�
 Единственный владелец неожиданных HTTP-ошибок — ExceptionHandlingMiddleware; production UseExceptionHandler удалён. Адаптеры проверяют форму до Application, cookie HTTP-контракт находится в Extensions. Startup-БД не запускать для проверки.
 
 Frontend dashboard/stores/receipt report/moneyMovements разделён на entry/controller/state/bindings/render и отдельные команды/окна. Общие календарь/preferences/paging/receipt workflow находятся в wwwroot/ts/shared; backend/handlers/схема не менялись в этапе 11. Strict build и подставные DOM/fetch тесты не закрывают browser/HTTP acceptance.
+
+Shared Bootstrap adapter 13 владеет stack/backdrop/focus и отложенным dispose; callers сохраняют собственные locks/revisions. Layout объявляет русский язык, модалки — связанные заголовки. Реальная браузерная доступность/анимация проверяется отдельно от Razor/TS compile-check.

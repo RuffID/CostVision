@@ -224,6 +224,7 @@ function createEditableCommentBlock(movement: MoneyMovementDto): HTMLElement {
     const input = document.createElement("textarea");
     input.id = `moneyMovementEditComment_${movement.id}`;
     input.name = `moneyMovementEditComment_${movement.id}`;
+    input.setAttribute("aria-label", "Комментарий операции");
     input.classList.add("form-control", "form-control-sm");
     input.rows = 2;
     input.maxLength = 1024;

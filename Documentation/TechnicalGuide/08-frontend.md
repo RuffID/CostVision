@@ -62,11 +62,11 @@ AbortSignal в helper дополняет проверку актуальност
 | MoneyMovements | Начальные accounts/banks, основной список, linked/candidates/details с ревизией окна |
 | Import | Preview со снимком File object/bankId/accountId и контекст подтверждённой записи |
 
-Hide, открытие другого/того же объекта, смена относящихся к области фильтров и pagehide инвалидируют чтения. Pending debounce очищается при pagehide; старая начальная загрузка не запускает следующий запрос. Shared paging меняет revision при clear, поэтому old catch/finally не меняет новую навигацию. Delayed hidden подтверждения проверяет захваченный контекст перед восстановлением нижнего окна; Bootstrap stack не перестроен.
+Hide, открытие другого/того же объекта, смена относящихся к области фильтров и pagehide инвалидируют чтения. Pending debounce очищается при pagehide; старая начальная загрузка не запускает следующий запрос. Shared paging меняет revision при clear, поэтому old catch/finally не меняет новую навигацию. Delayed hidden подтверждения проверяет захваченный контекст перед восстановлением нижнего окна; Общий Bootstrap stack 13 сохраняет эти caller revisions/locks.
 
 Команды захватывают ID/входные значения до await; повторный POST одного объекта/пары блокируется. Успех/error применяется только совпадающему текущему контексту. Переоткрытая форма сама устанавливает доступность кнопок; снятие busy для всё ещё того же действия не переносит старые данные в новое окно. Create не очищает изменённый пользователем draft; comment не заменяет изменённый текст и освобождает кнопку только того же DOM-редактора. Повторно открытый редактор того же ID не получает прежний result/finally. После актуального переноса/удаления/привязки перечитывается серверный список, без клиентского пересчёта общих totals.
 
-Записи не передают отмену чтения: abort не доказывает rollback. Network/aborted/contract и HTTP >=500 обозначаются как неизвестный исход с требованием обновить список и сверить фактические данные перед повтором. Автоматического повторного POST нет; финансовая/recovery политика сервера не менялась. Этап 10 реализован изолированно, HTTP/браузерная приёмка открыта. Декомпозиция 11 и QR/storage 12 реализованы изолированно; изменения стека/доступности 13 не выполнены. Их browser/HTTP-приёмка остаётся открытой.
+Записи не передают отмену чтения: abort не доказывает rollback. Network/aborted/contract и HTTP >=500 обозначаются как неизвестный исход с требованием обновить список и сверить фактические данные перед повтором. Автоматического повторного POST нет; финансовая/recovery политика сервера не менялась. Этап 10 реализован изолированно, HTTP/браузерная приёмка открыта. Декомпозиция 11 и QR/storage 12 реализованы изолированно; стек/доступность 13 реализованы изолированно. Их browser/HTTP-приёмка остаётся открытой.
 
 ## Окно импорта операций
 
@@ -94,7 +94,13 @@ Hidden/pagehide инвалидируют decoding/чтения и ставят s
 
 [bootstrap.ts](../../CostVision.Web/wwwroot/ts/shared/bootstrap.ts) оборачивает Bootstrap Modal API и хранит стек открытых окон. Он управляет z-index, общим backdrop, кликами, фокусом и Escape верхнего окна.
 
-Первое окно плавно затемняет страницу; при вложенном окне backdrop должен располагаться между нижним и верхним окнами. Быстрое повторное открытие, закрытие и отложенные callbacks требуют отдельной проверки. Проверки актуальности чтений/команд при close/reopen выполнены в этапе 10. Переделки стека/доступности этапа 13 не выполнялись; реальные анимации, backdrop, фокус и Escape остаются открытой приёмкой.
+Поставка Bootstrap 5.1.0 имеет публичные focus/keyboard options; adapter задаёт оба false и управляет top focus/Tab/Escape без private API. Нижние окна получают inert/aria-hidden, после close восстанавливается живой opener/нижний focus либо root navigation. Принятый show задаёт порядок; shown не поднимает запоздавшее нижнее окно. Cancelled show/hide проверяются после всех listeners. Hide во время show, reopen во время hide и dispose ожидают actual shown/hidden. Prevented hide не обходится, в том числе при import busy; native dispose вызывается после hidden. Последний owner снимает shared subscriptions, nonpersisted pagehide запрашивает teardown, bfcache сохраняет owners.
+
+Каждый backdrop владеет RAF и своим 150-мс removal; новый show не отменяет старое удаление. При смене top создаётся fade-элемент между слоями, прежний отдельно удаляется. Microtasks ограждены owner/revision; общих delayed stack updates нет. Body/fixed/sticky scroll styles сохраняются до первого show, locked styles — на время стека, исходные восстанавливаются после final hidden. Это код и isolated event/timer evidence, а не доказанная плавность actual browser animation.
+
+helpTooltip открывает безопасный DOM с role=tooltip по focus/hover/native button click, связывает уникальный popup с aria-describedby/controls/expanded и сохраняет прежние descriptions. Escape сначала закрывает описание, фокус остаётся на trigger. Rerender/removal observer/modal hidden/pagehide снимают свои listeners/timers/popup; hover допускает переход на popup. Layout имеет lang=ru; заголовки модалок связаны aria-labelledby, комментарий операции имеет доступное имя. Первый служебный столбец Stores сохранён.
+
+Проверки 13 и конкретная открытая процедура actual browser/скринридера/анимации находятся в [журнале 13](../Plans/project-refactoring-2026-10-13/13-modal-stack-and-accessibility.md). Старые проверки SQL/auth/camera/storage/provider не закрыты.
 
 ## Проверки
 

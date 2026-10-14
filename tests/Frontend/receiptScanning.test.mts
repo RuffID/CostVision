@@ -69,6 +69,7 @@ test("actual mobile entry shows every server row and disposes its feedback modal
         f.controls.postTask.resolve(response(outcome(rows, 1))); await settle();
         // Assert
         const modal = f.body.querySelector(".qr-camera-modal")!;
+        assert.equal(modal.getAttribute("aria-labelledby"), "qr-camera-modal-title");
         assert.match(modal.text(), /created.png/);
         assert.match(modal.text(), /duplicate.png/);
         assert.match(modal.text(), /Такой чек уже есть/);
@@ -191,7 +192,7 @@ class ElementStub {
     classList = new Classes();
     attributes = new Map<string, string>();
     listeners = new Map<string, { fn: Function; once: boolean }[]>();
-    style: any = { setProperty() {}, removeProperty() {} };
+    style: any = { setProperty() {}, removeProperty() {}, getPropertyValue() { return ""; }, getPropertyPriority() { return ""; } };
     files: File[] = [];
     isContentEditable = false;
     contentWindow: any = null;
@@ -215,6 +216,10 @@ class ElementStub {
     setAttribute(key: string, value: string) { this.attributes.set(key, value); }
     getAttribute(key: string) { return this.attributes.get(key) ?? null; }
     hasAttribute(key: string) { return this.attributes.has(key); }
+    removeAttribute(key: string) { this.attributes.delete(key); }
+    querySelectorAll(selector: string): ElementStub[] {
+        return this.children.flatMap(child => [...(child.matches(selector) ? [child] : []), ...child.querySelectorAll(selector)]);
+    }
     addEventListener(name: string, fn: Function, options?: any) {
         const items = this.listeners.get(name) ?? [];
         items.push({ fn, once: options?.once === true });
@@ -388,12 +393,16 @@ function makeEnvironment() {
             const timer = setTimeout(() => { timers.delete(timer); callback(); }, delay);
             timers.add(timer); return timer;
         },
-        clearTimeout, requestAnimationFrame(callback: Function) { callback(); },
+        clearTimeout, requestAnimationFrame(callback: Function) { callback(); }, cancelAnimationFrame() {},
         bootstrap: { Modal: class {
             node: ElementStub;
             constructor(node: ElementStub) { this.node = node; }
             static getOrCreateInstance(node: ElementStub) { return new this(node); }
-            show() { this.node.classList.add("show"); }
+            show() {
+                void this.node.fire("show.bs.modal");
+                this.node.classList.add("show");
+                void this.node.fire("shown.bs.modal");
+            }
             hide() { this.node.classList.remove("show"); void this.node.fire("hidden.bs.modal"); }
             dispose() { modalDisposals.push(this.node); }
         } }

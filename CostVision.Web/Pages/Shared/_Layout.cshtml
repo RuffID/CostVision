@@ -7,7 +7,7 @@
     bool requiresNavigationToggleClearance = pagePath is "/Index" or "/AddReceipt";
 }
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
     <head>
         @{
             AntiforgeryTokenSet tokens = Antiforgery.GetAndStoreTokens(Context);
@@ -30,7 +30,7 @@
                         {
                             <span class="me-3 d-none d-sm-inline" style="font-weight:600; color:#1E3A50;">@User.Identity.Name</span>
                             <a asp-area="" asp-page="/Settings/UserSettings" class="btn p-0 me-3" aria-label="Настройки пользователя" title="Настройки"><img src="~/icon/settings.svg" alt="settings" style="width:25px; height:25px;"></a>
-                            <form method="post" asp-page="/Logout" class="m-0 p-0"><button type="submit" class="btn p-0"><img src="~/icon/door-exit.svg" alt="exit" style="width:25px; height:25px;"></button></form>
+                            <form method="post" asp-page="/Logout" class="m-0 p-0"><button type="submit" class="btn p-0" aria-label="Выйти"><img src="~/icon/door-exit.svg" alt="" style="width:25px; height:25px;"></button></form>
                         }
                     </div>
                 </div>

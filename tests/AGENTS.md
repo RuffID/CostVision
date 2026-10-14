@@ -10,6 +10,8 @@ receiptScanning.test.mts добавляет actual AddReceipt entry/controller/A
 
 ## Контракты и границы
 
+modalStack.test.mts вызывает actual shared Bootstrap/tooltip helpers на подставном DOM/events/timers/public Bootstrap 5.1 lifecycle; проверяет cancelled events, ownership, focus/Tab/Escape и teardown. Это не actual browser/native focus trap/animation acceptance. Прежние page-entry тесты сохраняют собственные проверки 10–12.
+
 Выбирать минимальный подходящий контур. Не запускать всё дерево автоматически: наличие БД, Docker, hosting, сети или процессов требует отдельной просьбы пользователя.
 
 ## Проверка

@@ -361,6 +361,7 @@ export function createCameraFeedback(): HTMLElement {
     modal.className = "qr-camera-modal modal fade";
     modal.tabIndex = -1;
     modal.setAttribute("aria-hidden", "true");
+    modal.setAttribute("aria-labelledby", "qr-camera-modal-title");
 
     const dialog = document.createElement("div");
     dialog.className = "modal-dialog modal-dialog-centered modal-dialog-scrollable";

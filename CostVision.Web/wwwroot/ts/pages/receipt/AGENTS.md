@@ -14,6 +14,8 @@ CurrentUser.Id приходит из Razor и авторизованного no-
 
 ## Проверка
 
+Feedback modal связан через aria-labelledby с qr-camera-modal-title. Его controller сохраняет hidden-последовательность 12; shared adapter 13 дополнительно откладывает native dispose до окончания переходов, без изменения scanning/storage/busy правил. Real feedback/focus/animation/camera приёмка открыта.
+
 Проверка типов — npm run build:ts по корневым правилам. Поведение DOM, модальных окон, камеры и запросов требует отдельных сценариев; сборка не подтверждает браузерную приёмку.
 
 ## Сопровождение

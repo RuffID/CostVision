@@ -73,6 +73,10 @@ class ElementStub {
         return name.startsWith("data-") ? this.dataset[this.dataKey(name)] ?? null : this.attributes.get(name) ?? null;
     }
     hasAttribute(name: string): boolean { return this.getAttribute(name) !== null; }
+    removeAttribute(name: string): void { this.attributes.delete(name); }
+    removeEventListener(type: string, listener: (event: any) => unknown): void {
+        this.listeners.set(type, (this.listeners.get(type) ?? []).filter(item => item !== listener));
+    }
     dataKey(name: string): string { return name.slice(5).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); }
     matches(selector: string): boolean {
         if (selector.startsWith("[")) {
@@ -119,12 +123,12 @@ const movement = (id: string) => ({ id, occurredAt: "2026-10-01T12:00:00", amoun
 let sequence = 0;
 async function environment(action: (f: ReturnType<typeof makeEnvironment>) => Promise<void>) {
     const names = ["document", "window", "Element", "Node", "HTMLElement", "HTMLInputElement", "HTMLSelectElement",
-        "HTMLTextAreaElement", "HTMLButtonElement", "HTMLTableRowElement", "HTMLTableSectionElement", "HTMLCanvasElement", "HTMLFormElement", "Chart", "fetch", "alert"];
+        "HTMLTextAreaElement", "HTMLButtonElement", "HTMLTableRowElement", "HTMLTableSectionElement", "HTMLCanvasElement", "HTMLFormElement", "MutationObserver", "Chart", "fetch", "alert"];
     const globals = Object.fromEntries(names.map(name => [name, (globalThis as any)[name]]));
     const f = makeEnvironment();
     Object.assign(globalThis, f.globals);
     try { await action(f); }
-    finally { f.dispose(); Object.assign(globalThis, globals); }
+    finally { await f.windowEvents.fire("pagehide", { persisted: false }); await settle(); f.dispose(); Object.assign(globalThis, globals); }
 }
 function makeEnvironment() {
     const elements = new Map<string, ElementStub>();
@@ -154,11 +158,13 @@ function makeEnvironment() {
         getElementById: element, createElement: (tag: string) => new ElementStub(tag),
         createTextNode: (text: string) => { const item = new ElementStub("text"); item.textContent = text; return item; },
         querySelector: () => null, querySelectorAll: () => [], cookie: "", activeElement: null,
-        addEventListener: docEvents.addEventListener.bind(docEvents), body: new ElementStub()
+        addEventListener: docEvents.addEventListener.bind(docEvents),
+        removeEventListener: docEvents.removeEventListener.bind(docEvents), body: new ElementStub()
     };
     const window = {
         location: { href: "https://local.invalid/page", search: "" }, history: { replaceState() {} },
         addEventListener: windowEvents.addEventListener.bind(windowEvents),
+        removeEventListener: windowEvents.removeEventListener.bind(windowEvents),
         setTimeout(callback: () => void, delay: number) {
             const timer = setTimeout(() => { timers.delete(timer); callback(); }, delay);
             timers.add(timer); return timer;
@@ -167,11 +173,14 @@ function makeEnvironment() {
         bootstrap: { Modal: class {
             modal: ElementStub;
             constructor(modal: ElementStub) { this.modal = modal; }
+            static getOrCreateInstance(modal: ElementStub) { return new this(modal); }
             show() { modalShows.push(this.modal.id); }
             hide() { void this.modal.fire("hide.bs.modal"); }
+            dispose() {}
         } }
     };
     const globals = { document, window, Element: ElementStub, Node: ElementStub, HTMLElement: ElementStub,
+        MutationObserver: class { observe() {} disconnect() {} },
         HTMLInputElement: ElementStub, HTMLSelectElement: ElementStub, HTMLTextAreaElement: ElementStub,
         HTMLButtonElement: ElementStub, HTMLTableRowElement: ElementStub, HTMLTableSectionElement: ElementStub,
         HTMLCanvasElement: ElementStub, HTMLFormElement: ElementStub,

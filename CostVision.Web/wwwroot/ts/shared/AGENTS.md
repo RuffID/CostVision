@@ -10,7 +10,13 @@ HTTP, токен, DOM, alerts, форматирование, навигация,
 
 paging.ts отображает серверную страницу, count и флаги перехода через DOM API. Переход блокирует повторный click до ответа, clear скрывает прежние метаданные и меняет revision: прежние catch/finally не снимают блокировку новой навигации. Компонент не рассчитывает count/суммы, не ограничивает Items и не заменяет page-specific фильтры.
 
-initFileDropzone возвращает disposer собственных click/keyboard/drag/drop/input listeners; прежние callers совместимы и могут игнорировать возврат. BootstrapModal декларирует actual dispose() для владельца экземпляра; алгоритм shared stack в 12 не изменён.
+initFileDropzone возвращает disposer собственных click/keyboard/drag/drop/input listeners; прежние callers совместимы и могут игнорировать возврат.
+
+bootstrap.ts оборачивает один actual Bootstrap 5.1.0 instance на элемент с публичными focus=false/keyboard=false. Stack сохраняет порядок принятого show, проверяет отмену после всех listeners и удаляет окно по hidden. Hide во время show и reopen во время hide ожидают lifecycle; dispose не вызывает native dispose до hidden и не обходит prevented hide. Microtasks ограждены revision/owner; общих отложенных stack timers нет. Каждый backdrop/RAF/removal принадлежит своему элементу; при смене верхнего окна создаётся fade backdrop между слоями. Исходные scroll styles восстанавливаются после последнего окна.
+
+Top owner получает Tab/focus/click/Escape; нижние окна inert/aria-hidden, native FocusTrap не активируется. После close восстанавливается живой opener/нижний focus либо доступная root navigation. Не обращаться к private Bootstrap API. Последний dispose снимает document/window subscriptions; непостоянный pagehide запрашивает disposal, bfcache сохраняет владельцев. Отмена hide может отложить teardown до разрешённого закрытия.
+
+helpTooltip сохраняет button API: focus открывает описание, native Enter/Space активируют click, Escape закрывает tooltip прежде модалки. Popup имеет role=tooltip, уникальный id и aria-describedby/controls/expanded; DOM безопасный. Hover допускает переход на popup. Host/rerender/removal observer/pagehide владеют subscriptions и timers; modal hidden закрывает описание. Не перемещать фокус на неинтерактивный popup.
 
 ## Проверка
 

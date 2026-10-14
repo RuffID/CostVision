@@ -5,8 +5,8 @@ interface BootstrapModalInstance {
 }
 
 interface BootstrapModalConstructor {
-    new (element: Element): BootstrapModalInstance;
-    getOrCreateInstance(element: Element): BootstrapModalInstance;
+    new (element: Element, options?: { focus: boolean; keyboard: boolean }): BootstrapModalInstance;
+    getOrCreateInstance(element: Element, options?: { focus: boolean; keyboard: boolean }): BootstrapModalInstance;
 }
 
 declare const bootstrap: {
