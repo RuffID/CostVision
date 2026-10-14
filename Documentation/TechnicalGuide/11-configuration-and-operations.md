@@ -11,6 +11,10 @@
 | `ProverkachekaApiToken` | Непустой токен; ValidateOnStart |
 | `ForwardedHeaders:KnownProxies` | Непустой список корректных IP; ValidateOnStart |
 | `Serilog` | Уровни, обогащение и sinks журнала |
+| `DatabaseMaintenance:Operation` | `UpdateExisting` по умолчанию; `InitializeNew` выбирается явно только для первой установки |
+| `DatabaseMaintenance:TimeoutSeconds` | Конечный бюджет 1–3600 секунд, default 60 |
+| `DatabaseMaintenance:ServerBackupDirectory` | Обязательный абсолютный каталог на SQL Server, без вычисления от каталога Web |
+| `DatabaseMaintenance:SingleInitializerConfirmed` | Обязательное `true` после остановки оператором других экземпляров, writes и DDL на всё обслуживание |
 
 Здесь приведены только имена ключей. Значения секретов не входят в документацию. Порядок подстановки конфигурации и лимиты загрузки требуют пересмотра в этапе 14 плана.
 
@@ -22,21 +26,27 @@ Kestrel допускает тело запроса до 1 000 000 000 байт. 
 
 ## Инициализация базы
 
-[InitializeDatabaseAsync](../../CostVision.Web/Web/Extensions/WebApplicationExtensions.cs) создаёт scope и запускает синхронную проверку через Task.Run с ожиданием до 60 секунд. При ошибке или истечении ожидания журналируется Fatal и процесс завершается с кодом 1.
+[InitializeDatabaseAsync](../../CostVision.Web/Web/Extensions/WebApplicationExtensions.cs) вызывает [DatabaseMaintenanceStartup](../../CostVision.Infrastructure/Services/DataBase/DatabaseMaintenanceStartup.cs). Выбран startup-режим: до `RunAsync` хоста выполняется одна await-операция библиотечного `IDatabaseMaintenance<CostVisionContextKey>` с конечным timeout и ApplicationStopping token. Await включает библиотечный cleanup и DisposeAsync scoped ресурсов; readiness становится true только после обоих. HTTP listener и hosted refresh начинают работу затем при `app.RunAsync()`. При отказе/отмене readiness остаётся false, Program возвращается с ExitCode=1 и асинхронно освобождает WebApplication. Task.Run, внешний WaitAsync и Environment.Exit удалены; повторный startup в том же процессе запрещён.
 
-[DataBaseCheckUpService](../../CostVision.Infrastructure/Services/DataBase/DataBaseCheckUpService.cs) проверяет подключение, получает pending migrations, делает backup и вызывает Migrate. Backup выполняется только при ожидающих миграциях. Ошибка backup препятствует миграции.
+`UpdateExistingAsync` — обновление существующей БД: inspection и binding EF target, pending, подтверждённый backup, повторный inspection target, migrations и проверка отсутствия pending. No-pending возвращает Unchanged без backup. Создание отсутствующей базы разрешает только явно выбранный `InitializeNewAsync`; ошибки подключения/аутентификации/прав не означают Missing. В частности, SQL 4060 требует master probe с VIEW ANY DATABASE и подтверждения отсутствия sys.databases row. После успешной первой установки оператор меняет Operation обратно на UpdateExisting до следующего запуска; автоматического fallback нет.
 
-WaitAsync ограничивает ожидание, но не передаёт отмену синхронной операции БД. При изменении механизма запуска нужно отдельно проверять остановку работы, время SQL-команд и ресурс scope.
+Бюджет кооперативный: отмена передаётся driver/EF и проверяется между шагами, но не доказывает остановку зависшего OS/server I/O за фиксированное время. Приложение ждёт cleanup, а не допускает host после прекращения внешнего ожидания. Отказ после dispatch backup/HEADERONLY/VERIFYONLY либо неопределённый migration/cleanup исход отравляет локальный gate; повтор не выполняется. Проверка серверного состояния и recovery принадлежат оператору. Автоматического restore/recovery SQL Server API в библиотеке нет; сценарий автоматического восстановления заблокирован, собственный SQL-обход не создан.
+
+До запуска ConsoleLifetime `StartupCancellation` временно подписывает Ctrl+C и Unix SIGTERM, отменяет связанный token и удерживает ожидание cleanup. Подписки снимаются после возвращения startup. ApplicationStopping также включён в этот token. Реальные Windows/Unix сигналы, принудительное убийство процесса и supervisor shutdown grace period не проверены; grace period должен позволять await cleanup, а внешний kill не подтверждает остановку серверной команды.
 
 ## Резервные копии и постоянные каталоги
 
-На Windows backup-path строится от каталога приложения `Backups`; на Linux используется `/var/opt/mssql/backups`. Команда backup выполняется SQL Server, поэтому путь и права важны именно со стороны сервера БД. Это особенно существенно при размещении web и SQL на разных узлах.
+ServerBackupDirectory задаётся оператором для файловой системы SQL Server. Приложение не создаёт локальную папку и не проверяет этот путь через локальный Directory.Exists. Нужны права SQL service account на каталог, права maintenance user на inspection/backup/migrations, достаточное место и доступность ключей шифрования при restore. Конкретный путь, права и версия реального SQL неизвестны и являются блокерами эксплуатации.
+
+Поддержаны EngineEdition 2/3/4 и стабильный прямой endpoint. Требуются `ConnectRetryCount=0`, отсутствие routing/failover/reconnect, MultiSubnetFailover/Failover Partner, ReadOnly intent, AttachDBFilename, повторяющей EF execution strategy и внешней transaction. Azure SQL Database/MI/Synapse и неподтверждённые topology не поддерживаются. Library gate singleton ограничивает только один root DI container: другие процессы, фоновые и HTTP writers и DDL оператор останавливает до запуска и держит остановленными до завершения обслуживания. Значение SingleInitializerConfirmed документирует эту предпосылку, но не проверяет и не останавливает процессы. Rolling deployment с активными другими экземплярами заблокирован; распределённого lease API нет.
+
+SQL Server-модуль подтверждает COPY_ONLY/CHECKSUM backup, один соответствующий HEADERONLY set и VERIFYONLY с FILE position/CHECKSUM. Receipt не означает успешного restore; требуется реальное операторское восстановление отдельно. Локального hash для server backup не вычисляют. Обычный startup-журнал не раскрывает locator; его retention, доступ и recovery-процедура согласуются в эксплуатационной приёмке.
 
 Data Protection хранит ключи в `keys-windows` или `keys-linux` под content root; имя приложения берётся из entry assembly. Сохранение ключей поддерживает cookie после перезапуска. Для нескольких экземпляров необходима согласованная общая конфигурация key ring.
 
 ## Журналирование
 
-Serilog читает настройки из конфигурации, а SimpleClassNameEnricher добавляет короткое имя класса. Web middleware пишет путь и TraceId; фоновые и startup-компоненты фиксируют свои ошибки.
+Serilog читает настройки из конфигурации, а SimpleClassNameEnricher добавляет короткое имя класса. Web middleware пишет путь и TraceId; фоновые компоненты сохраняют свои действующие логи. Maintenance/startup пишет только закрытые stage/code/outcome. [SafeDatabaseLoggerFactory](../../CostVision.Infrastructure/Services/DataBase/SafeDatabaseLoggerFactory.cs) передаёт EF events как числовой EventCode без исходных SQL, category/scope/state, formatter и exception chains. InnerException библиотеки остаётся диагностическим объектом и не направляется в обычный журнал.
 
 Конкретные sinks, лимиты и срок хранения определяются действующим окружением. Ротация и права записи не проверялись запуском и не считаются подтверждёнными этой документацией. Журнал не должен содержать токены и полные пользовательские документы.
 

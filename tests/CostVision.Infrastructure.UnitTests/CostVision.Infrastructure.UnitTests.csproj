@@ -29,6 +29,12 @@
     <Reference Include="HttpClientLibrary">
       <HintPath>..\..\libs\HttpClientLibrary.dll</HintPath>
     </Reference>
+    <Reference Include="EFCoreLibrary.Maintenance">
+      <HintPath>..\..\libs\EFCoreLibrary.Maintenance.dll</HintPath>
+    </Reference>
+    <Reference Include="EFCoreLibrary.Maintenance.SqlServer">
+      <HintPath>..\..\libs\EFCoreLibrary.Maintenance.SqlServer.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

@@ -12,6 +12,8 @@ CostVision помогает учитывать фактические покуп
 
 Бизнес-раздел описывает согласованные правила продукта простым языком. Техническое руководство описывает фактическую реализацию с актуализацией этапов09–11 на 14.10.2026, включая известные ограничения. [Решение о EF/DLL-границе](Plans/project-refactoring-2026-10-13/08-boundary-decision.md) и [сведения поставки](../libs/README.md) фиксируют принятый вариант А и проверенные контракты. [Этап09](Plans/project-refactoring-2026-10-13/09-web-and-http-contracts.md) отделяет изолированные проверки HTTP-контракта от открытой HTTP/auth/browser-приёмки. [Этап10](Plans/project-refactoring-2026-10-13/10-frontend-request-coordination.md) фиксирует поколения/отмену чтений и контекст команд; [декомпозиция11](Plans/project-refactoring-2026-10-13/11-frontend-decomposition.md) фиксирует page sessions/shared boundaries и открытую браузерную приёмку; [промпт12](Plans/project-refactoring-2026-10-13/prompts/next-stage-12-prompt.md) подготовлен без реализации12. План отличает реализованные изменения от будущих работ и открытой приёмки; наличие пункта не означает его реализации.
 
+[Реализация 08A](Plans/project-refactoring-2026-10-13/08a-efcorelibrary-upgrade-and-maintenance.md) и [manifest поставки](../libs/efcorelibrary-delivery-08a.json) актуализируют repositories/UoW/maintenance и startup на EF 10.0.12. [Эксплуатация](TechnicalGuide/11-configuration-and-operations.md) описывает readiness, серверный backup-каталог и блокеры SingleInitializer; SQL/backup/restore/HTTP/browser/production-приёмка остаётся открытой. 12–15 не начаты.
+
 ## Как поддерживать документацию
 
 - При изменении пользовательского правила обновить соответствующий бизнес-раздел и техническое описание его реализации.

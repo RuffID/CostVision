@@ -4,6 +4,8 @@
 
 ApplicationContext связывает доменные наборы с конфигурациями SQL Server и наследует AppDbContextBase.
 
+CostVisionContextKey — единственный marker для библиотечных context repositories, IUnitOfWorkContext и IDatabaseMaintenance. AddEfCoreContext связывает их с одним scoped ApplicationContext. Generated история, migrations assembly и snapshot сохраняются; смена DLL сама по себе не требует migration.
+
 ## Контракты и границы
 
 Новые сущности согласовать с configuration, репозиторием и DI. Миграции создаёт пользователь; generated-историю не редактировать.

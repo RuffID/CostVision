@@ -7,11 +7,11 @@ using System.Linq.Expressions;
 namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
 {
     public class ReceiptRepository(
-        ICreateItemRepository<Receipt, AppDbContextBase> createRepository,
-        IDeleteItemRepository<Receipt, AppDbContextBase> deleteRepository,
-        IGetItemByIdRepository<Receipt, Guid, AppDbContextBase> getItemByIdRepository,
-        IGetItemByPredicateRepository<Receipt, AppDbContextBase> getItemByPredicateRepository,
-        IQueryRepository<Receipt, AppDbContextBase> queryRepository) : IReceiptRepository
+        IContextCreateItemRepository<Receipt, CostVisionContextKey> createRepository,
+        IContextDeleteItemRepository<Receipt, CostVisionContextKey> deleteRepository,
+        IContextGetItemByIdRepository<Receipt, Guid, CostVisionContextKey> getItemByIdRepository,
+        IContextGetItemByPredicateRepository<Receipt, CostVisionContextKey> getItemByPredicateRepository,
+        IContextQueryRepository<Receipt, CostVisionContextKey> queryRepository) : IReceiptRepository
     {
         public Task<Receipt?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<Receipt>, IQueryable<Receipt>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);

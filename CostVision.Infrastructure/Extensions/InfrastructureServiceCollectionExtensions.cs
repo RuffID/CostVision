@@ -1,4 +1,6 @@
-using CostVision.Application.Abstractions.DataBase;
+using EFCoreLibrary.Maintenance.Models;
+using EFCoreLibrary.Maintenance.SqlServer.Extensions;
+using EFCoreLibrary.Maintenance.SqlServer.Options;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -19,15 +21,12 @@ using CostVision.Infrastructure.Services.DataBase;
 using CostVision.Infrastructure.Services.Helpers;
 using CostVision.Infrastructure.Services.MoneyMovements;
 using CostVision.Infrastructure.Services.Receipts;
-using EFCoreLibrary.Abstractions.Database;
-using EFCoreLibrary.EfCore;
 using EFCoreLibrary.Extensions;
 using HttpClientLibrary.Abstractions;
 using HttpClientLibrary.Clients;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace CostVision.Infrastructure.Extensions
 {
@@ -41,26 +40,21 @@ namespace CostVision.Infrastructure.Extensions
             string connectionString = configuration.GetConnectionString("MSSql")
                 ?? throw new InvalidOperationException("Не задана обязательная строка подключения ConnectionStrings:MSSql.");
 
-            services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(connectionString));
-            services.AddScoped<IAppDbContext<ApplicationContext>>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
-            services.AddScoped<IAppDbContext<AppDbContextBase>>(sp => new EfDbContextAdapter<AppDbContextBase>(sp.GetRequiredService<ApplicationContext>()));
-            services.AddEfCoreBaseRepositories<ApplicationContext>();
+            services.AddSingleton<SafeDatabaseLoggerFactory>();
+            services.AddDbContext<ApplicationContext>((provider, options) => options
+                .UseSqlServer(connectionString)
+                .UseLoggerFactory(provider.GetRequiredService<SafeDatabaseLoggerFactory>()));
+            services.AddEfCoreContext<ApplicationContext, CostVisionContextKey>();
+            services.AddEfCoreBaseRepositories<CostVisionContextKey>();
+            services.AddEfCoreSqlServerMaintenance<CostVisionContextKey>(
+                new SqlServerMaintenanceOptions(configuration[$"{DatabaseMaintenanceSettings.SECTION_NAME}:ServerBackupDirectory"] ?? string.Empty),
+                MaintenanceExecutionMode.SingleInitializer);
+            services.AddSingleton<DatabaseMaintenanceStartup>();
 
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(180);
             });
-
-            services.AddScoped<DataBaseCheckUpService<ApplicationContext>>();
-            services.AddSingleton<IBackupFilePathBuilder, BackupFilePathBuilder>();
-            services.AddScoped(sp =>
-            {
-                ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                IBackupFilePathBuilder backupFilePathBuilder = sp.GetRequiredService<IBackupFilePathBuilder>();
-                string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
-                return new BackupService<ApplicationContext>(connectionString, backupFolder, loggerFactory, backupFilePathBuilder);
-            });
-            services.AddScoped<IBackupService<ApplicationContext>>(sp => sp.GetRequiredService<BackupService<ApplicationContext>>());
 
             services.AddScoped<Hasher>();
             services.AddScoped<IPasswordHasher>(sp => sp.GetRequiredService<Hasher>());
@@ -105,6 +99,14 @@ namespace CostVision.Infrastructure.Extensions
 
         private static IServiceCollection AddInfrastructureConfig(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddOptions<DatabaseMaintenanceSettings>()
+                .Bind(configuration.GetSection(DatabaseMaintenanceSettings.SECTION_NAME))
+                .Validate(settings => settings.TimeoutSeconds is > 0 and <= 3600, "DatabaseMaintenance: invalid timeout.")
+                .Validate(settings => Enum.IsDefined(settings.Operation), "DatabaseMaintenance: invalid operation.")
+                .Validate(settings => settings.SingleInitializerConfirmed, "DatabaseMaintenance: SingleInitializer must be confirmed by the operator.")
+                .Validate(settings => !string.IsNullOrWhiteSpace(settings.ServerBackupDirectory), "DatabaseMaintenance: server backup directory is required.")
+                .ValidateOnStart();
+
             services.AddOptions<ApiEndpointOptions>()
                 .Bind(configuration.GetRequiredSection(ApiEndpointOptions.SectionName))
                 .Validate(

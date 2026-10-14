@@ -1,11 +1,14 @@
 # Этап 08A. Обновление EFCoreLibrary и единый доступ к БД
 
-Статус: **Не начат**.
+Статус: **Реализован, проверка не завершена**.
 Дата подготовки: 14.10.2026.
+Дата реализации и изолированной проверки: 14.10.2026.
 Приоритет: **П2**.
 Зависимости: 07, 07A, 08.
 
 ## Проверенная исходная ситуация
+
+Этот раздел фиксирует исходное состояние до реализации. Текущая поставка, изменения и результаты описаны в журнале выполнения ниже и [libs/README.md](../../../libs/README.md).
 
 Исходники для перехода: `D:\Media\User\source\repos\work\EFCoreLibrary`. Проверка выполнена чтением исходников, project references и metadata файлов, без сборки библиотеки, выполнения Git-команд или подключения к БД.
 
@@ -24,8 +27,8 @@ DLL устарела относительно предоставленных и�
 1. [InfrastructureServiceCollectionExtensions](../../../CostVision.Infrastructure/Extensions/InfrastructureServiceCollectionExtensions.cs) регистрирует старые adapters/base repositories, собственный backup и checkup. Domain, Application, Infrastructure, Web и три тестовых проекта имеют прямые HintPath к старой DLL; весь граф нужно обновить согласованно.
 2. [ProjectedReadQuery](../../../CostVision.Infrastructure/DataBase/Repositories/ProjectedReadQuery.cs) уже исполняет общую projection через библиотечный Query. Сохранить этот путь, адаптировав тип к новой поставке. [ProductRepository](../../../CostVision.Infrastructure/DataBase/Repositories/Receipts/ProductRepository.cs) и [StoreRepository](../../../CostVision.Infrastructure/DataBase/Repositories/Receipts/StoreRepository.cs) считают записи через `IAppDbContext.Set`, минуя query repository; перевести эти чтения на библиотечный query/projection с тем же predicate.
 3. [UnitOfWorkScope](../../../CostVision.Infrastructure/DataBase/Repositories/UnitOfWorkScope.cs) использует библиотечный context, но старый широкий контракт. Перевести технические SaveChanges/Database на узкий библиотечный `IUnitOfWorkContext`; не переносить бизнес-сценарии в библиотеку.
-4. [BackupService](../../../CostVision.Infrastructure/Services/DataBase/BackupService.cs) напрямую открывает `SqlConnection`, выполняет собственный BACKUP SQL и создаёт локальную папку вместо явного server-side контракта. Это независимый обход библиотечной границы.
-5. [DataBaseCheckUpService](../../../CostVision.Infrastructure/Services/DataBase/DataBaseCheckUpService.cs) получает DatabaseFacade через библиотечный adapter, но самостоятельно координирует `CanConnect/GetPendingMigrations/backup/Migrate`. Новый maintenance coordinator должен стать единственным production-владельцем этого сценария.
+4. Исторический `BackupService` напрямую открывал `SqlConnection`, выполнял собственный BACKUP SQL и создавал локальную папку вместо явного server-side контракта. В 08A этот независимый обход удалён.
+5. Исторический `DataBaseCheckUpService` получал DatabaseFacade через библиотечный adapter, но самостоятельно координировал `CanConnect/GetPendingMigrations/backup/Migrate`. В 08A он удалён; библиотечный coordinator стал единственным production-владельцем этого сценария.
 6. [WebApplicationExtensions](../../../CostVision.Web/Web/Extensions/WebApplicationExtensions.cs) использует `Task.Run` + `WaitAsync(60 секунд)` + `Environment.Exit`; окончание ожидания не подтверждает завершение SQL и cleanup. Этот вызов заменить явным async maintenance lifecycle.
 7. [AddReceiptRowVersion](../../../CostVision.Infrastructure/DataBase/Migrations/20261014121704_AddReceiptRowVersion.cs) уже присутствует в исходниках и добавляет RowVersion/RefreshRevision. Факт применения к БД не проверен; не создавать эту migration повторно и не сбрасывать существующую историю.
 
@@ -51,18 +54,68 @@ Business CRUD/query выполняются через EFCoreLibrary repositories
 
 ## Проверки и приёмка
 
-- [ ] Поставка base/Maintenance/SqlServer воспроизводима; metadata/хеши/зависимости и все production/test HintPath согласованы, старые generic-контракты удалены.
-- [ ] Actual DLL/DI проверки подтверждают один ApplicationContext/tracker, контекстные CRUD/query, узкий UoW и maintenance без запуска SQL или host.
-- [ ] Regression 01–10/07A/08 сохраняет доступ, идентичность, суммы, bounded reads, predicate/include/defaults/token, RowVersion/RefreshRevision и обе транзакционные перегрузки; assertions не ослаблены ради новой DLL.
-- [ ] Изолированно проверены no-pending, backup-before-migrate, отказ/неверный receipt/target → запрет migrations, явный InitializeNew, cancellation/timeout/неопределённый исход → fail-fast без retry, безопасные логи и отсутствие вызовов при DI-регистрации.
-- [ ] Статический аудит всех production consumers подтверждает отсутствие собственных SQL-подключений, прямых бизнес-запросов через context и второго migration/backup runner; разрешённые границы явно перечислены.
-- [ ] Изолированные compile-check/test выполнены для конкретных затронутых проектов по AGENTS; библиотечный base build использует `GeneratePackageOnBuild=false`. Не запускать автоматически upstream-скрипты, host, сеть, DB/Docker или процессы.
+- [x] Поставка base/Maintenance/SqlServer воспроизводима; metadata/хеши/зависимости и все production/test HintPath согласованы, старые generic-контракты удалены. Повторный Build дал те же DLL/XML SHA-256; source digest сохранён.
+- [x] Actual DLL/DI проверки подтверждают один ApplicationContext/tracker, контекстные CRUD/query, узкий UoW и maintenance без запуска SQL или host.
+- [x] Изолированные .NET regressions 01–10/07A/08 сохраняют доступ, идентичность, суммы, bounded reads, predicate/include/defaults/token, RowVersion/RefreshRevision и обе транзакционные перегрузки; assertions не ослаблены ради новой DLL. Frontend не менялся и не пересобирался; прежние результаты 10–11 сохранены, HTTP/browser приёмка открыта.
+- [x] Изолированно проверены no-pending, backup-before-migrate, отказ/неверный receipt/target → запрет migrations, явный InitializeNew, cancellation/timeout/неопределённый исход → fail-fast без retry, безопасные логи и отсутствие вызовов при DI-регистрации.
+- [x] Статический аудит всех production consumers подтверждает отсутствие собственных SQL-подключений, прямых бизнес-запросов через context и второго migration/backup runner; разрешённые границы явно перечислены.
+- [x] Изолированные compile-check/test выполнены для конкретных затронутых проектов по AGENTS; библиотечный base build использует `GeneratePackageOnBuild=false`. Upstream/project скрипты, host, DB/Docker и внешние интеграции не запускались; NuGet restore использован только для сборки.
 - [ ] Отдельно с разрешением пользователя проверены SQL Server версия/права/server backup path, существующая БД с pending/без pending, receipt и реальное восстановление оператором, новая БД, отказ/отмена и SingleInitializer с несколькими экземплярами. Fake connection не закрывает эти критерии.
 - [ ] Сохранена история migrations; применение AddReceiptRowVersion и другой схемы подтверждено отдельной DB-приёмкой, а не наличием файла.
-- [ ] Статусы прежних этапов и открытая SQL/HTTP/browser/provider/production-приёмка сохранены; эксплуатационная policy и оставшиеся блокеры документированы.
+- [x] Статусы прежних этапов и открытая SQL/HTTP/browser/provider/production-приёмка сохранены; эксплуатационная policy и оставшиеся блокеры документированы. 12–15 не начаты.
 
 ## Журнал подготовки
 
 14.10.2026: проверены текущая DLL, project references, указанные исходники base/maintenance и production-вызовы CostVision. Добавлен этап и зависимости 14–15. Код, DLL, packages и migrations не изменены; build/test/Git/SQL/backup/host/deployment не запускались. Это подготовка плана, не реализация 08A.
 
 Этап 11 уже в работе по отдельному поручению; frontend-этапы 11–13 не заменяют backend adapters и не требуют новой зависимости только из-за поставки DLL. Их HTTP-контракты и открытая приёмка сохраняются; backend-регрессии после обновления входят в 08A и 15.
+
+## Журнал выполнения 08A
+
+14.10.2026: реализован только 08A. Перечитаны actual upstream csproj/API и владельцы исходников. Source inputs соседнего репозитория сохранены (71 файл); Git-команды, pack/publish, migrations/SQL/host/Docker/deployment и проектные скрипты не запускались. В Web compile-check установлен SkipFrontendBuild=true, поэтому npm hooks не исполнялись. Фактический статус 11 перепроверен: реализован, проверка не завершена. Статусы 01–11/07A и их исторические результаты/открытая приёмка сохранены; 12–15 не начаты.
+
+### Подключённая поставка и код
+
+- Base EFCoreLibrary `0.0.5.0`, Maintenance и Maintenance.SqlServer `1.0.0.0` (upstream default), EF runtime/Relational/provider/Design/Tools `10.0.12`, SqlClient `7.0.2`. HttpClientLibrary не обновлялась. SHA-256 DLL/XML, исходный digest `5BE84E7BE6E7111AAB7EBCCF7AC1609D012A6309634FCC7C8470973B04E19B58`, SDK/точные build команды, NuGet SHA-512/runtime assets: [manifest](../../../libs/efcorelibrary-delivery-08a.json), [описание](../../../libs/README.md). Свежие DLL/XML взяты из output конкретных проектов после Build; повторный Build --no-incremental дал те же 6 хешей.
+- Application CRUD-контракты адаптированы к новым интерфейсам без key; AppDbContextBase/EF/predicate/include/tracking/GetProjectedItemsAsync сохранены по решению А. Infrastructure использует IContext*Repository с одним CostVisionContextKey, AddEfCoreContext и AddEfCoreBaseRepositories. Production HintPath не зависят от абсолютного upstream пути.
+- UnitOfWorkScope использует IUnitOfWorkContext.SaveChangesAsync/Database. Сохранены все 14 сценарных UoW, общий tracker/флаг отказа, один transaction owner, Serializable/conflict classification, auto-save без isolation и explicit-save с isolation, отказ повторного использования и отсутствие hidden retries.
+- Product/Store CountByPredicateAsync больше не используют context.Set: библиотечный Query(true)/Where/CountAsync(ct). Общая projection исполняется библиотечным query, не добавлены specialized выборки, независимый query-язык или materialization всех строк для count/page.
+- BackupService/DataBaseCheckUpService, их interfaces/path builder, DI и собственные SQL component tests удалены. Наблюдаемый контракт перенесён в actual DLL coordinator/SqlServer tests с fake границами. Production SQL-пути обслуживания принадлежат только AddEfCoreSqlServerMaintenance/IDatabaseMaintenance той же scoped-сессии.
+- DatabaseMaintenanceStartup/Settings выбирают UpdateExisting по умолчанию либо явный InitializeNew, передают конечный timeout/token и ждут cleanup/async scope disposal. Readiness становится true только после них; иначе ExitCode=1 и возврат до app.RunAsync/HTTP/hosted refresh. StartupCancellation передаёт caller/ApplicationStopping/Ctrl+C/Unix SIGTERM до запуска ConsoleLifetime, затем освобождает подписки. Повтор обслуживания в процессе запрещён; внешний WaitAsync/Task.Run/Environment.Exit удалён.
+- Библиотечные stage/code и startup outcome логируются без exception chains; SafeDatabaseLoggerFactory пересылает только EF EventCode без SQL/category/scope/state/formatter/provider exceptions. Серверные backup-пути не вычисляются/не создаются на Web. Production config не заполнялась вымышленными путями, правами или подтверждениями SingleInitializer.
+
+### Команды и результаты
+
+Рабочий каталог всех CostVision команд — корень репозитория. Library команды с абсолютными csproj/PathMap записаны в manifest. Release Build Maintenance.SqlServer собирает base/Maintenance/SqlServer; 0 ошибок, **107 upstream CS1591** о недостающих base XML-комментариях. Base XML с assembly element поставлен, но не объявляется полноценной API-документацией. Pack/publish отключены.
+
+CostVision compile-check выполнялся для конкретных SDK проектов под `artifacts/compile-check/costvision-08a`, включая их ProjectReference closure. Итоговый Build каждого из четырёх production и четырёх test проектов — 0 предупреждений, 0 ошибок; логи `artifacts/compile-check/stage08a/CostVision.<project>-final-build.log`. Использована команда `dotnet build <конкретный csproj> -c Debug --no-restore --artifacts-path artifacts\compile-check\costvision-08a -p:SkipFrontendBuild=true -v:quiet -flp:logfile=<соответствующий final-build.log>`. Runtime isolated tests: .NET/ASP.NET Core `10.0.12`.
+
+```powershell
+dotnet build tests\CostVision.Infrastructure.UnitTests\CostVision.Infrastructure.UnitTests.csproj -c Debug --no-restore --artifacts-path artifacts\compile-check\costvision-08a -v:minimal -flp:logfile=artifacts/compile-check/stage08a/infrastructure-tests-build.log
+dotnet build tests\CostVision.Application.UnitTests\CostVision.Application.UnitTests.csproj -c Debug --artifacts-path artifacts\compile-check\costvision-08a -v:minimal -flp:logfile=artifacts/compile-check/stage08a/application-tests-build.log
+dotnet build tests\CostVision.Web.UnitTests\CostVision.Web.UnitTests.csproj -c Debug --artifacts-path artifacts\compile-check\costvision-08a -p:SkipFrontendBuild=true -v:minimal -flp:logfile=artifacts/compile-check/stage08a/web-tests-build.log
+dotnet build tests\CostVision.Infrastructure.IntegrationTests\CostVision.Infrastructure.IntegrationTests.csproj -c Debug --artifacts-path artifacts\compile-check\costvision-08a -p:SkipFrontendBuild=true -v:minimal -flp:logfile=artifacts/compile-check/stage08a/integration-tests-build.log
+
+dotnet test tests\CostVision.Application.UnitTests\CostVision.Application.UnitTests.csproj -c Debug --no-build --no-restore --artifacts-path artifacts\compile-check\costvision-08a --logger trx --results-directory artifacts\compile-check\stage08a\test-results\application
+dotnet test tests\CostVision.Infrastructure.UnitTests\CostVision.Infrastructure.UnitTests.csproj -c Debug --no-build --no-restore --artifacts-path artifacts\compile-check\costvision-08a --logger trx --results-directory artifacts\compile-check\stage08a\test-results\infrastructure-final-r3
+dotnet test tests\CostVision.Web.UnitTests\CostVision.Web.UnitTests.csproj -c Debug --no-build --no-restore --artifacts-path artifacts\compile-check\costvision-08a -p:SkipFrontendBuild=true --logger trx --results-directory artifacts\compile-check\stage08a\test-results\web-final-r2
+```
+
+| Набор | Passed | Failed | Skipped | Evidence |
+|---|---:|---:|---:|---|
+| Application.UnitTests | 496 | 0 | 0 | `artifacts/compile-check/stage08a/test-results/application/Spike_PC_2026-10-14_20_40_47_net10.0.trx` |
+| Infrastructure.UnitTests | 168 | 0 | 0 | `artifacts/compile-check/stage08a/test-results/infrastructure-final-r3/Spike_PC_2026-10-14_21_03_29_net10.0.trx` |
+| Web.UnitTests | 86 | 0 | 0 | `artifacts/compile-check/stage08a/test-results/web-final-r2/Spike_PC_2026-10-14_21_03_32_net10.0.trx` |
+| Infrastructure.IntegrationTests | не запускался | — | — | Только compile-check; SQL/Docker/hosting запрещены |
+
+Actual DI/DLL tests: единый context/tracker/connection, CRUD/query/UoW/maintenance и независимость scopes; generic defaults/include/token, scalar count/page на fake connection. Все прежние финансовые/identity/access/bounded/RowVersion/RefreshRevision/transaction assertions сохранены. HasPendingModelChanges=false, migrations assembly прежний, AddReceiptRowVersion присутствует. Новая модель/migration не требуется; generated migration/designer/snapshot не изменены.
+
+Maintenance tests: no-pending без backup; pin/backup/target/migrate/pending/cleanup порядок; invalid operation/target/scope/format/time/artifact receipt; target swap; connection/auth/permission и 4060 visibility/absence; explicit init без backup; failure/deadline/caller cancellation; ожидание cleanup, poisoned gate без повторных provider/migration calls; HEADERONLY/VERIFYONLY через fake IDatabaseCommands, неизвестный dispatch исход; finite timeout, safe logs, readiness и async disposal; signal моделируется без реальных OS signals. Изоляция не доказывает SQL Server отмену/backup/restore или несколько процессов.
+
+### Аудит и открытая приёмка
+
+Статически просмотрены все 384 production .cs Domain/Application/Infrastructure/Web (без generated/build). Нет собственных SqlConnection/SqlCommand/Dapper/ExecuteSql/FromSql, business context.Set/CRUD, прямых Migrate/GetPending/CanConnect и второго runner. Сохранения выполняются только через сценарный scope; DatabaseFacade используется только внутри технического UnitOfWorkScope для transactions. EF model/provider configuration и пользовательская история migrations — разрешённые границы. SHA-256 всех 41 migration/designer/snapshot файлов совпадают с исходным набором. Evidence: `artifacts/compile-check/stage08a/production-audit.json`. SqlClient нужен для existing exception classification и библиотечного SQL Server runtime, не для собственного подключения.
+
+Блокеры эксплуатации: неизвестны реальный EngineEdition/version, прямой endpoint, ConnectRetryCount=0, права maintenance user/service account, ServerBackupDirectory/место/ключи и подтверждённая остановка других writers/DDL/процессов. До заполнения обязательных DatabaseMaintenance options readiness блокируется. SingleInitializerConfirmed — операторское подтверждение, а не автоматическая остановка/проверка процессов; library gate локален root DI container. Active multi-instance/rolling/failover deployment неподдержан: distributed lease API отсутствует. Автоматическое SQL Server restore/recovery также заблокировано отсутствием API; обход не создан.
+
+Реальные SQL/backup/header/verify/restore (включая восстановимость ключей), migrations upgrade/первая установка/отказы/отмена и OS/supervisor shutdown, multiple instances/SingleInitializer, SQL concurrency/rollback/materialization, live provider HTTP, auth/antiforgery/browser/production deployment не выполнялись. Budget кооперативный и не гарантирует остановку server/OS I/O за фиксированные 60 секунд; приложение ждёт cleanup и не повторяет неопределённый исход. Применение AddReceiptRowVersion к БД не подтверждено. Все прежние открытые проверки сохранены; 08A не является полной приёмкой.

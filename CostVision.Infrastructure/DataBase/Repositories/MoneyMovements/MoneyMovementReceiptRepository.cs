@@ -7,9 +7,9 @@ using System.Linq.Expressions;
 namespace CostVision.Infrastructure.DataBase.Repositories.MoneyMovements
 {
     public class MoneyMovementReceiptRepository(
-        ICreateItemRepository<MoneyMovementReceipt, AppDbContextBase> createRepository,
-        IDeleteItemRepository<MoneyMovementReceipt, AppDbContextBase> deleteRepository,
-        IGetItemByPredicateRepository<MoneyMovementReceipt, AppDbContextBase> getItemByPredicateRepository) : IMoneyMovementReceiptRepository
+        IContextCreateItemRepository<MoneyMovementReceipt, CostVisionContextKey> createRepository,
+        IContextDeleteItemRepository<MoneyMovementReceipt, CostVisionContextKey> deleteRepository,
+        IContextGetItemByPredicateRepository<MoneyMovementReceipt, CostVisionContextKey> getItemByPredicateRepository) : IMoneyMovementReceiptRepository
     {
         public Task<MoneyMovementReceipt?> GetItemByPredicateAsync(Expression<Func<MoneyMovementReceipt, bool>> predicate, bool asNoTracking = false, Func<IQueryable<MoneyMovementReceipt>, IQueryable<MoneyMovementReceipt>>? include = null, CancellationToken ct = default)
             => getItemByPredicateRepository.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);

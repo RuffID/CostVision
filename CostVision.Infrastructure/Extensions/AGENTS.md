@@ -6,7 +6,9 @@ Extension связывает Application с SQL Server, адаптерами EFC
 
 ## Контракты и границы
 
-Регистрировать один scoped IUnitOfWorkScope и узкие сценарные adapters. Оба DLL-адаптера IAppDbContext<ApplicationContext>/IAppDbContext<AppDbContextBase> используют один ApplicationContext; базовые репозитории и projection разделяют его tracker. Глобальный UoW не регистрируется.
+Регистрировать один scoped IUnitOfWorkScope и 14 узких adapters. AddEfCoreContext<ApplicationContext,CostVisionContextKey>, AddEfCoreBaseRepositories<CostVisionContextKey> и AddEfCoreSqlServerMaintenance<CostVisionContextKey>(SingleInitializer) используют один ApplicationContext/tracker. Старых дублирующих adapters, глобального UoW и собственных backup/checkup services нет.
+
+DatabaseMaintenanceSettings привязывается здесь; server directory передаётся библиотечному immutable options при регистрации, без локальной файловой проверки. Изменение этой конфигурации требует перезапуска. Singleton DatabaseMaintenanceStartup получает scope factory, а не scoped context; EF logger factory выводит только EventCode. Регистрация/resolution не запускают maintenance/SQL/host. ConnectRetryCount и endpoint не исправлять скрытой нормализацией; unsupported configuration блокирует startup.
 
 Не выполнять I/O при DI-регистрации. Сверять lifetime и ValidateOnStart; timeout HTTP 180 секунд не является timeout всего сценария.
 

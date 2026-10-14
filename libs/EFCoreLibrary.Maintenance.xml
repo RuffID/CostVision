@@ -1,0 +1,599 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>EFCoreLibrary.Maintenance</name>
+    </assembly>
+    <members>
+        <member name="T:EFCoreLibrary.Maintenance.Abstractions.IBackupProcessFactory">
+            <summary>Единственная граница фактического запуска внешнего процесса.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IBackupProcessFactory.Start(EFCoreLibrary.Maintenance.Models.ProcessCommand)">
+            <summary>Запускает процесс без shell и передаёт владение handle.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Abstractions.IBackupProcessHandle">
+            <summary>Владение процессом и всеми pipe-reader задачами, доступное изолированным тестам.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Abstractions.IBackupProcessHandle.Completion">
+            <summary>Завершение процесса и всех reader задач.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Abstractions.IBackupProcessHandle.HasExited">
+            <summary>Подтверждённый выход процесса.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Abstractions.IBackupProcessHandle.Result">
+            <summary>Результат после завершения.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IBackupProcessHandle.RequestStop">
+            <summary>Запрашивает остановку, не обещая её завершения.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Abstractions.IBackupProcessRunner">
+            <summary>Владеет запущенными процессами и чтением pipe до подтверждённого освобождения.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IBackupProcessRunner.RunAsync(EFCoreLibrary.Maintenance.Models.ProcessCommand,EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget,System.TimeSpan)">
+            <summary>Запускает команду без shell; при неподтверждённой очистке сохраняет владение и сообщает ошибку.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Abstractions.IDatabaseCommands">
+            <summary>Изолируемая граница технических SQL-команд; не используется для бизнес-CRUD.</summary>
+            <remarks>onDispatch вызывается непосредственно перед Execute: до него команда точно не отправлена,
+            после него ошибка считается потенциально возникшей при работе сервера.</remarks>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IDatabaseCommands.ExecuteAsync(System.Data.Common.DbConnection,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget,System.Action)">
+            <summary>Выполняет параметризованную команду без результата.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IDatabaseCommands.QueryAsync(System.Data.Common.DbConnection,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget,System.Action)">
+            <summary>Читает технические metadata; соединением владеет вызывающий код.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenance`1">
+            <summary>Явное обслуживание зарегистрированного контекста; само подключение DLL ничего не запускает.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenance`1.Capabilities">
+            <summary>Реализованные возможности provider.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenance`1.InspectAsync(System.TimeSpan,System.Threading.CancellationToken)">
+            <summary>Проверяет цель и pending migrations без изменения схемы.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenance`1.UpdateExistingAsync(System.TimeSpan,System.Threading.CancellationToken)">
+            <summary>Обновляет существующую БД только после подтверждённого backup.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenance`1.InitializeNewAsync(System.TimeSpan,System.Threading.CancellationToken)">
+            <summary>Создаёт отсутствующую БД и применяет первоначальные migrations без фиктивного backup.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenanceProvider`1">
+            <summary>Техническая расширяемая граница provider; бизнес-CRUD в неё не входит.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenanceProvider`1.Capabilities">
+            <summary>Возможности реализации.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenanceProvider`1.InspectAsync(EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <summary>Проверяет существование и фактическую идентичность цели.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenanceProvider`1.CreateAsync(EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <summary>Создаёт только отсутствующую цель, без IF NOT EXISTS и скрытого принятия гонки.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenanceProvider`1.BackupAsync(System.Guid,System.String,EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <summary>Создаёт и подтверждает backup текущей цели.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Abstractions.IMaintenanceRecovery">
+            <summary>Явное владение неподтверждёнными процессами и временными файлами до recovery.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Abstractions.IMaintenanceRecovery.UnconfirmedCount">
+            <summary>Количество ресурсов, ещё требующих подтверждённого освобождения.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IMaintenanceRecovery.RetainCleanup(System.Action)">
+            <summary>Сохраняет владение cleanup callback после завершения всех использующих ресурс операций.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IMaintenanceRecovery.RetryCleanupAsync(System.TimeSpan)">
+            <summary>Повторяет очистку с конечным budget; maintenance gate не сбрасывает.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations`1">
+            <summary>Узкая EF-граница для изолированной проверки последовательности.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations`1.ProviderName">
+            <summary>Имя EF provider зарегистрированного контекста.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations`1.Connection">
+            <summary>Фактическое подключение scoped контекста; provider не освобождает его.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations`1.HasTransaction">
+            <summary>Признак внешней транзакции, несовместимой с обслуживанием.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations`1.PinAsync(System.Threading.CancellationToken)">
+            <summary>Удерживает открытое EF-подключение до завершения workflow; запрещает автоматическую retry strategy.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations`1.PendingAsync(System.Threading.CancellationToken)">
+            <summary>Возвращает pending migrations только зарегистрированного контекста.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations`1.MigrateAsync(System.Threading.CancellationToken)">
+            <summary>Применяет migrations зарегистрированного контекста.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Backup.BackupWorkspace">
+            <inheritdoc/>
+            <remarks>Приватные временные файлы и публикация без перезаписи; завершённые backup не удаляются.</remarks>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.BackupWorkspace.#ctor(System.String,System.String,EFCoreLibrary.Maintenance.Abstractions.IMaintenanceRecovery)">
+            <summary>Создаёт приватный каталог в явно заданном backup-каталоге.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Backup.BackupWorkspace.PartialPath">
+            <summary>Временный путь, не пригодный в качестве receipt.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.BackupWorkspace.WriteSecretAsync(System.String,System.Threading.CancellationToken)">
+            <summary>Пишет credentials только внутри приватного каталога.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.BackupWorkspace.PublishAsync(EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <summary>Закрывает, хеширует и публикует непустой артефакт без перезаписи.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.BackupWorkspace.PreserveForUnconfirmedCleanup">
+            <summary>Сохраняет приватные файлы, если процесс ещё может ими пользоваться.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.BackupWorkspace.RecoverAfterConfirmedStop">
+            <summary>Вызывается владельцем recovery только после подтверждённого завершения процесса.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.BackupWorkspace.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.BackupWorkspace.Dispose(System.Exception)">
+            <summary>Сохраняет безопасный первичный код при последующем отказе очистки.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.BackupWorkspace.RestrictArtifact">
+            <summary>Сохраняет owner-only доступ после переноса файла за пределы private directory.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Backup.DumpSupport">
+            <summary>Общие строгие проверки dump-протокола без обработки произвольной командной строки.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.DumpSupport.ValidateVersion(EFCoreLibrary.Maintenance.Models.ProcessResult,System.String,System.String)">
+            <summary>Проверяет ожидаемую версию из ограниченного stdout.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.DumpSupport.Text(System.String)">
+            <summary>Не допускает управляющие символы в служебных текстовых форматах.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Backup.DumpSupport.Host(System.String)">
+            <summary>Проверяет один TCP host без service/URI/multi-host синтаксиса.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.#ctor(EFCoreLibrary.Maintenance.Abstractions.IDatabaseMaintenanceProvider{`0},EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations{`0},EFCoreLibrary.Maintenance.Coordination.SingleInitializerGate,Microsoft.Extensions.Logging.ILogger{EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance{`0}})">
+            <inheritdoc/>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.Capabilities">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.InspectAsync(System.TimeSpan,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.UpdateExistingAsync(System.TimeSpan,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.InitializeNewAsync(System.TimeSpan,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.ChangeAsync(System.Boolean,System.TimeSpan,System.Threading.CancellationToken)">
+            <summary>Координирует отдельные режимы первой установки и обновления.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.VerifyBindingAsync(System.String,EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <summary>Повторно сверяет provider с уже удерживаемым EF connection до pending.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.ExecuteAsync``1(System.TimeSpan,System.Threading.CancellationToken,System.Func{EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance{`0}.Operation,System.Threading.Tasks.Task{``0}})">
+            <summary>Владеет gate до классификации ошибки и poisoning.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.ValidateIdentity(System.String)">
+            <summary>Отклоняет отсутствие подтверждаемой идентичности цели.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.FailureFallback(EFCoreLibrary.Maintenance.Models.MaintenanceStage)">
+            <summary>Классифицирует неизвестный отказ по стадии, не перенося исходный текст.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.Operation">
+            <summary>Хранит безопасные метаданные, текущую стадию и факт начала необратимой установки.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.Operation.#ctor(EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <summary>Хранит безопасные метаданные, текущую стадию и факт начала необратимой установки.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.Operation.Pin">
+            <summary>Принадлежащая операции сессия освобождается после capture primary и до release gate.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Coordination.DatabaseMaintenance`1.Operation.InitializationStarted">
+            <summary>Фиксируется до вызова CREATE и не зависит от последующих диагностических стадий.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget">
+            <inheritdoc/>
+            <remarks>Конечный кооперативный бюджет; не обещает прерывание зависшего native/OS I/O.</remarks>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget.#ctor(System.TimeSpan,System.Threading.CancellationToken)">
+            <summary>Создаёт конечный budget, связанный с отменой вызывающего кода.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget.Token">
+            <summary>Общий токен операции.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget.Remaining">
+            <summary>Оставшийся budget.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget.CommandTimeoutSeconds">
+            <summary>Конечный timeout для driver command.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget.Check">
+            <summary>Проверяет budget между кооперативными шагами.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget.CapturePrimary(System.Exception,EFCoreLibrary.Maintenance.Errors.MaintenanceError)">
+            <summary>Снимок безопасного primary до cleanup; typed failure имеет приоритет над отменой.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Coordination.SingleInitializerGate">
+            <summary>Общий локальный gate; отсутствие других процессов и writes гарантирует приложение.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.SingleInitializerGate.EnterAsync(System.Threading.CancellationToken)">
+            <summary>Ожидает локальное владение; scoped context здесь не хранится.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.SingleInitializerGate.Poison">
+            <summary>Запрещает дальнейшее обслуживание после неподтверждённого исхода.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Coordination.SingleInitializerGate.Lease">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.SingleInitializerGate.Lease.#ctor(System.Threading.SemaphoreSlim)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Coordination.SingleInitializerGate.Lease.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Database.DatabaseCommands">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Database.DatabaseCommands.ExecuteAsync(System.Data.Common.DbConnection,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget,System.Action)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Database.DatabaseCommands.QueryAsync(System.Data.Common.DbConnection,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget,System.Action)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Database.DatabaseCommands.Create(System.Data.Common.DbConnection,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <summary>Создаёт параметризованную команду до границы возможной отправки серверу.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Database.MetadataValues">
+            <summary>Строгое чтение технических metadata без запасных значений.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Database.MetadataValues.One(System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object}})">
+            <summary>Требует ровно одну строку.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Database.MetadataValues.Text(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.String)">
+            <summary>Требует непустое строковое значение.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Database.MetadataValues.Number(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.String)">
+            <summary>Требует целое числовое значение.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Database.TargetIdentity">
+            <summary>Непрозрачная идентичность фактического сервера и БД, без credentials.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Database.TargetIdentity.Create(System.String[])">
+            <summary>Создаёт однозначный hash составных metadata.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.#ctor(EFCoreLibrary.Abstractions.Database.IAppDbContext{`0})">
+            <inheritdoc/>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.ProviderName">
+            <inheritdoc/>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.Connection">
+            <inheritdoc/>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.HasTransaction">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.PinAsync(System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.PendingAsync(System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.MigrateAsync(System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.Validate">
+            <summary>Не допускает ambient transactions и автоматические повторы EF.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.ConnectionLease">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.ConnectionLease.#ctor(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.EfMigrationOperations`1.ConnectionLease.DisposeAsync">
+            <inheritdoc/>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1">
+            <summary>Общая проверка registered context без зависимости от конкретного EF provider.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1.#ctor(EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations{`0},EFCoreLibrary.Maintenance.Abstractions.IDatabaseCommands)">
+            <summary>Общая проверка registered context без зависимости от конкретного EF provider.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1.Context">
+            <summary>Facade принадлежит scoped контексту приложения.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1.Commands">
+            <summary>Граница технических команд.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1.Capabilities">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1.InspectAsync(EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1.CreateAsync(EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1.BackupAsync(System.Guid,System.String,EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1.ContextConnection(System.String[])">
+            <summary>Проверяет тип relational provider и отсутствие внешней транзакции.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.EfCore.RelationalMaintenanceProvider`1.VerifyContextAsync(System.String,System.String,System.Func{System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.String},EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <summary>Сверяет фактическую цель EF и отдельного maintenance подключения.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Errors.MaintenanceError">
+            <summary>Безопасные категории отказов обслуживания.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.Configuration">
+            <summary>Некорректная конфигурация.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.UnsupportedCapability">
+            <summary>Возможность или deployment не поддерживается.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.AuthenticationFailed">
+            <summary>Отказ аутентификации.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.PermissionDenied">
+            <summary>Недостаточные права или видимость metadata.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.ConnectionFailed">
+            <summary>Не удалось проверить подключение.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.DatabaseMissing">
+            <summary>Достоверно отсутствующая БД.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.DatabaseAlreadyExists">
+            <summary>БД уже существует.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.TargetMismatch">
+            <summary>Цели EF и backup не совпали.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.BackupFailed">
+            <summary>Создание backup завершилось ошибкой.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.BackupNotConfirmed">
+            <summary>Не получено полное подтверждение backup.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.MigrationFailed">
+            <summary>Migration или проверка результата завершилась ошибкой.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.DeadlineExceeded">
+            <summary>Истёк собственный budget.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.CleanupUnconfirmed">
+            <summary>Освобождение ресурсов не подтверждено.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.GatePoisoned">
+            <summary>Обслуживание заблокировано после неопределённого исхода.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Errors.MaintenanceError.Cancelled">
+            <summary>Фактическая отмена вызывающим кодом.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Errors.MaintenanceException">
+            <summary>Ошибка с закрытым кодом в Message и исходным исключением в InnerException для диагностики.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Errors.MaintenanceException.#ctor(EFCoreLibrary.Maintenance.Errors.MaintenanceError,System.Nullable{EFCoreLibrary.Maintenance.Errors.MaintenanceError})">
+            <summary>Создаёт ошибку с закрытыми кодами без исходного исключения.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Errors.MaintenanceException.#ctor(EFCoreLibrary.Maintenance.Errors.MaintenanceError,System.Nullable{EFCoreLibrary.Maintenance.Errors.MaintenanceError},System.Exception)">
+            <summary>Сохраняет исходную причину; её текст и ToString не предназначены для безопасного логирования.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Errors.MaintenanceException.Code">
+            <summary>Закрытый безопасный код.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Errors.MaintenanceException.PrimaryError">
+            <summary>Первичный безопасный код, если последующая очистка не подтверждена.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Extensions.MaintenanceRegistration">
+            <summary>Регистрация общей scoped orchestration без запуска обслуживания.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Extensions.MaintenanceRegistration.AddRelationalMaintenance``1(Microsoft.Extensions.DependencyInjection.IServiceCollection,EFCoreLibrary.Maintenance.Models.MaintenanceExecutionMode)">
+            <summary>Добавляет общий gate и orchestration; режим должен быть выбран явно.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.BackupArtifact">
+            <summary>Артефакт подтверждённого создания backup, не доказательство восстановления.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Models.BackupArtifact.IsConfirmed">
+            <summary>Структурное подтверждение артефакта выбранным механизмом.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.DatabaseBackupReceipt">
+            <summary>Подтверждение backup, связанное с целью и текущей операцией.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Models.DatabaseBackupReceipt.#ctor(System.Guid,System.String,System.DateTimeOffset,System.DateTimeOffset,EFCoreLibrary.Maintenance.Models.BackupArtifact,System.String,System.String,System.String)">
+            <summary>Подтверждение backup, связанное с целью и текущей операцией.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Models.DatabaseBackupReceipt.Confirms(System.Guid,System.String,EFCoreLibrary.Maintenance.Models.DatabaseMaintenanceCapabilities,System.DateTimeOffset)">
+            <summary>Проверяет происхождение и полноту подтверждения.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.DatabaseInspection">
+            <summary>Достоверное состояние цели; ошибка подключения не представляется отсутствием.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Models.DatabaseInspection.#ctor(System.Boolean,System.String,System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Достоверное состояние цели; ошибка подключения не представляется отсутствием.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.DatabaseMaintenanceCapabilities">
+            <summary>Заявленная реализация backup; ограничения deployment проверяются перед операцией.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Models.DatabaseMaintenanceCapabilities.#ctor(System.String,System.String,System.String,System.Boolean,System.Boolean)">
+            <summary>Заявленная реализация backup; ограничения deployment проверяются перед операцией.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.DatabaseMaintenanceResult">
+            <summary>Результат без имитации backup при первой установке или отсутствии изменений.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Models.DatabaseMaintenanceResult.#ctor(EFCoreLibrary.Maintenance.Models.MaintenanceOutcome,System.Collections.Generic.IReadOnlyList{System.String},EFCoreLibrary.Maintenance.Models.DatabaseBackupReceipt)">
+            <summary>Результат без имитации backup при первой установке или отсутствии изменений.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.LocalBackupArtifact">
+            <summary>Опубликованный локальный файл; путь не предназначен для журналирования.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Models.LocalBackupArtifact.#ctor(System.String,System.Int64,System.String)">
+            <summary>Опубликованный локальный файл; путь не предназначен для журналирования.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Models.LocalBackupArtifact.IsConfirmed">
+            <inheritdoc/>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.MaintenanceExecutionMode">
+            <summary>Режим, предусловия которого обеспечивает приложение.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceExecutionMode.SingleInitializer">
+            <summary>Приложение гарантирует одного initializer и отсутствие других writes/DDL.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.MaintenanceOutcome">
+            <summary>Подтверждённый результат операции.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceOutcome.Unchanged">
+            <summary>Изменения не требуются.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceOutcome.Initialized">
+            <summary>Первоначальная схема создана.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceOutcome.Migrated">
+            <summary>Схема обновлена после backup.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.MaintenanceStage">
+            <summary>Стадия обслуживания для безопасной диагностики.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceStage.Waiting">
+            <summary>Ожидание локального владения.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceStage.Inspection">
+            <summary>Проверка цели.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceStage.Discovery">
+            <summary>Получение pending migrations.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceStage.Initialization">
+            <summary>Создание отсутствующей БД.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceStage.Backup">
+            <summary>Создание backup.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceStage.Migration">
+            <summary>Применение migrations.</summary>
+        </member>
+        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceStage.Verification">
+            <summary>Проверка результата.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.ProcessCommand">
+            <summary>Фиксированная команда provider; не предназначена для логирования.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Models.ProcessCommand.#ctor(System.String,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyDictionary{System.String,System.String},System.Action)">
+            <summary>Фиксированная команда provider; не предназначена для логирования.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.ProcessResult">
+            <summary>Exit code и ограниченный stdout для проверки версии; stderr не раскрывается.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Models.ProcessResult.#ctor(System.Int32,System.String,System.Boolean)">
+            <summary>Exit code и ограниченный stdout для проверки версии; stderr не раскрывается.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Models.ServerBackupArtifact">
+            <summary>Проверенный сервером backup set; locator не является локальным путём клиента.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Models.ServerBackupArtifact.#ctor(System.String,System.Guid,System.Int32,System.Boolean,System.Boolean)">
+            <summary>Проверенный сервером backup set; locator не является локальным путём клиента.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Models.ServerBackupArtifact.IsConfirmed">
+            <inheritdoc/>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Options.DumpOptions">
+            <summary>Явные настройки внешнего dump; executable никогда не ищется в PATH.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Options.DumpOptions.#ctor(System.String,System.String,System.String,System.TimeSpan)">
+            <summary>Явные настройки внешнего dump; executable никогда не ищется в PATH.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner.#ctor(EFCoreLibrary.Maintenance.Abstractions.IBackupProcessFactory)">
+            <inheritdoc/>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner.UnconfirmedCount">
+            <summary>Ресурсы остаются во владении singleton до явного подтверждённого recovery.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner.RetainCleanup(System.Action)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner.RunAsync(EFCoreLibrary.Maintenance.Models.ProcessCommand,EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget,System.TimeSpan)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner.RetryCleanupAsync(System.TimeSpan)">
+            <summary>Подтверждает остановку и очищает credentials; poisoned maintenance gate не сбрасывает.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner.Validate(System.TimeSpan)">
+            <summary>Проверяет конечный cleanup budget.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner.StopAsync(EFCoreLibrary.Maintenance.Abstractions.IBackupProcessHandle,System.TimeSpan)">
+            <summary>True только после завершения процесса и всех reader задач.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner.Recovery">
+            <summary>Единое владение process/pipe tasks и приватными временными файлами.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.BackupProcessRunner.Recovery.#ctor(EFCoreLibrary.Maintenance.Abstractions.IBackupProcessHandle,System.Action)">
+            <summary>Единое владение process/pipe tasks и приватными временными файлами.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessFactory">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessFactory.Start(EFCoreLibrary.Maintenance.Models.ProcessCommand)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessFactory.CreateHandle(System.Diagnostics.Process)">
+            <summary>Создаёт владельца до запуска; переопределяется изолированными тестами.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle">
+            <inheritdoc/>
+            <remarks>Создаётся до запуска; ошибки настройки после запуска становятся owned tasks.</remarks>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.#ctor(System.Diagnostics.Process)">
+            <inheritdoc/>
+            <remarks>Создаётся до запуска; ошибки настройки после запуска становятся owned tasks.</remarks>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.Start">
+            <summary>Запускает процесс и передаёт все последующие ошибки в Completion.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.Completion">
+            <inheritdoc/>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.HasExited">
+            <inheritdoc/>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.Result">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.RequestStop">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.StartCore">
+            <summary>Единственная граница реального старта, подменяемая в тесте.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.WaitForExitAsync">
+            <summary>Подтверждает завершение процесса, независимо от доступности pipes.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.GetReader(System.Boolean)">
+            <summary>Получает reader; синхронный отказ захватывается DrainAsync.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.CompleteAsync">
+            <summary>Все три задачи создаются даже при синхронном отказе одной из границ.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.WaitOwnedAsync">
+            <summary>Превращает синхронный отказ wait setup в наблюдаемую задачу.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.Processes.SystemBackupProcessHandle.DrainAsync(System.Boolean)">
+            <summary>Выкачивает pipe без сохранения stderr и с ограничением stdout.</summary>
+        </member>
+    </members>
+</doc>

@@ -7,9 +7,9 @@ using System.Linq.Expressions;
 namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
 {
     public class AccountRepository(
-        ICreateItemRepository<Account, AppDbContextBase> createRepository,
-        IGetItemByIdRepository<Account, Guid, AppDbContextBase> getItemByIdRepository,
-        IGetItemByPredicateRepository<Account, AppDbContextBase> getItemByPredicateRepository) : IAccountRepository
+        IContextCreateItemRepository<Account, CostVisionContextKey> createRepository,
+        IContextGetItemByIdRepository<Account, Guid, CostVisionContextKey> getItemByIdRepository,
+        IContextGetItemByPredicateRepository<Account, CostVisionContextKey> getItemByPredicateRepository) : IAccountRepository
     {
         public Task<Account?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<Account>, IQueryable<Account>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);

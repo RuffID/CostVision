@@ -7,9 +7,9 @@ using System.Linq.Expressions;
 namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
 {
     public class ReceiptAccountRepository(
-        ICreateItemRepository<ReceiptAccount, AppDbContextBase> createRepository,
-        IDeleteItemRepository<ReceiptAccount, AppDbContextBase> deleteRepository,
-        IGetItemByPredicateRepository<ReceiptAccount, AppDbContextBase> getItemByPredicateRepository) : IReceiptAccountRepository
+        IContextCreateItemRepository<ReceiptAccount, CostVisionContextKey> createRepository,
+        IContextDeleteItemRepository<ReceiptAccount, CostVisionContextKey> deleteRepository,
+        IContextGetItemByPredicateRepository<ReceiptAccount, CostVisionContextKey> getItemByPredicateRepository) : IReceiptAccountRepository
     {
         public Task<ReceiptAccount?> GetItemByPredicateAsync(Expression<Func<ReceiptAccount, bool>> predicate, bool asNoTracking = false, Func<IQueryable<ReceiptAccount>, IQueryable<ReceiptAccount>>? include = null, CancellationToken ct = default)
             => getItemByPredicateRepository.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);

@@ -2,11 +2,13 @@
 
 ## Ответственность
 
-CheckUpService обнаруживает pending migrations, BackupService выполняет резервное копирование, path builder формирует путь.
+DatabaseMaintenanceStartup выбирает явный UpdateExisting либо InitializeNew, передаёт timeout/token единственному библиотечному coordinator и владеет async scope. SafeDatabaseLoggerFactory пересылает только EF event ID. Собственный SQL backup/checkup/path builder удалён.
 
 ## Контракты и границы
 
-Это эксплуатационные компоненты с БД и файловыми границами. Не запускать без разрешения; backup-path должен быть доступен SQL Server. Миграция следует только после успешного backup.
+Не открывать SQL-соединения, не вызывать DbContext.Migrate и не создавать локальный backup-каталог. Backup receipt, target и migrations проверяет библиотека. Startup допускает host только после operation/cleanup/async disposal; отказ оставляет readiness=false и не допускает retry в том же процессе. Обычные логи содержат только закрытые коды, без путей, SQL, formatter/state и exception chains.
+
+SingleInitializerConfirmed означает внешнюю предпосылку остановки других процессов/writes/DDL, а не распределённую блокировку. Неподтверждённый endpoint, серверный путь/права и active multi-instance deployment — эксплуатационные блокеры. Проверки только actual DLL с fake provider/migration/command boundaries в Infrastructure.UnitTests; SQL/restore/HTTP/hosting проверяются отдельно.
 
 ## Проверка
 

@@ -1,6 +1,6 @@
 # Техническое руководство CostVision
 
-Руководство описывает устройство проекта по исходникам с актуализацией 09–11 на 14.10.2026. [Бизнес-раздел](../Business/README.md) объясняет правила продукта, а [план рефакторинга](../Plans/project-refactoring-2026-10-13/README.md) фиксирует обнаруженные дефекты и будущие изменения. Описание кода не является подтверждением запуска, прохождения тестов или проверки рабочей базы.
+Руководство описывает устройство проекта по исходникам с актуализацией 08A и 09–11 на 14.10.2026. [Бизнес-раздел](../Business/README.md) объясняет правила продукта, а [план рефакторинга](../Plans/project-refactoring-2026-10-13/README.md) фиксирует обнаруженные дефекты и будущие изменения. Описание кода не является подтверждением запуска, прохождения тестов или проверки рабочей базы.
 
 ## Навигация
 
@@ -30,6 +30,7 @@
 - [JsonResultMapper](../../CostVision.Web/Web/Mappers/JsonResultMapper.cs) — преобразование результата в HTTP.
 - [HTTP-контракт09](../Plans/project-refactoring-2026-10-13/09-web-and-http-contracts.md) — binding/форма запроса, календарные границы, JSON401/403, отмена и неожиданные ошибки; [координация10](../Plans/project-refactoring-2026-10-13/10-frontend-request-coordination.md) — поколения/отмена чтений и контекст команд; [декомпозиция11](../Plans/project-refactoring-2026-10-13/11-frontend-decomposition.md) фиксирует page sessions/shared boundaries и открытую браузерную приёмку; [промпт12](../Plans/project-refactoring-2026-10-13/prompts/next-stage-12-prompt.md) подготовлен без реализации12.
 - [Принятая EF/DLL-граница08](../Plans/project-refactoring-2026-10-13/08-boundary-decision.md) и [поставка библиотек](../../libs/README.md) — решение А, actual версии/хеши/контракты и неизвестные сведения.
+- [Реализация 08A](../Plans/project-refactoring-2026-10-13/08a-efcorelibrary-upgrade-and-maintenance.md), [manifest](../../libs/efcorelibrary-delivery-08a.json) и [startup/эксплуатация](11-configuration-and-operations.md) — единые repositories/UoW/maintenance, безопасный async lifecycle и открытая SQL/backup/restore-приёмка.
 
 ## Термины
 

@@ -2,7 +2,7 @@
 
 ## Ответственность
 
-Options хранят имя секции, адрес сервиса чеков и токен.
+Options хранят имя секции, адрес сервиса чеков и токен. DatabaseMaintenanceSettings задаёт Operation, конечный TimeoutSeconds (1–3600), серверный BackupDirectory и явное SingleInitializerConfirmed; DatabaseStartupOperation различает UpdateExisting и InitializeNew без fallback.
 
 ## Контракты и границы
 

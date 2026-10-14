@@ -6,7 +6,7 @@
 
 ## Контракты и границы
 
-Графы загрузки и фильтрацию доступа задаёт вызывающий код. Проверять совместимость типов с AppDbContextBase и инфраструктурными реализациями.
+Графы загрузки и фильтрацию доступа задаёт вызывающий код. DLL CRUD/predicate-интерфейсы после 08A не имеют context key; проверять их defaults/nullable/token и совместимость с Infrastructure IContext*Repository. AppDbContextBase остаётся базой контекста, а не ключом repositories.
 
 Receipt, ReceiptItem, Product и Store дополнительно реализуют общий IProjectedReadRepository<TEntity>; count, агрегаты и страницы задаются вызывающим сценарием. Базовые CRUD/predicate/include остаются совместимыми.
 

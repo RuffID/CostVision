@@ -2,7 +2,7 @@
 
 ## Ответственность
 
-AppDbContextBase наследует EF DbContext и служит типом для библиотечных контрактов хранения. Это фактическая зависимость Application от EF, а не независимый порт.
+AppDbContextBase наследует EF DbContext и остаётся базой ApplicationContext по решению А. После 08A repository-интерфейсы наследуют новые DLL-контракты без context key; EF/predicate/include/tracking и generic projection сохраняются. Это фактическая зависимость Application от EF, а не независимый порт.
 
 ## Контракты и границы
 

@@ -4,6 +4,8 @@
 
 Реализации соединяют application-интерфейсы с базовыми репозиториями EFCoreLibrary.
 
+Внедрять IContextCreate/Delete/GetItemById/GetItemByPredicateRepository с CostVisionContextKey; Application получает интерфейсы без key. Собственных context adapters и сохранений в repositories нет.
+
 ## Контракты и границы
 
 Оставлять тонкими; predicate/include принадлежат вызывающему use case. Не создавать отдельный DbContext для одного репозитория.

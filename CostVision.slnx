@@ -73,6 +73,12 @@
   <Folder Name="/libs/">
     <File Path="libs/README.md" />
     <File Path="libs/EFCoreLibrary.dll" />
+    <File Path="libs/EFCoreLibrary.xml" />
+    <File Path="libs/EFCoreLibrary.Maintenance.dll" />
+    <File Path="libs/EFCoreLibrary.Maintenance.xml" />
+    <File Path="libs/EFCoreLibrary.Maintenance.SqlServer.dll" />
+    <File Path="libs/EFCoreLibrary.Maintenance.SqlServer.xml" />
+    <File Path="libs/efcorelibrary-delivery-08a.json" />
     <File Path="libs/HttpClientLibrary.dll" />
   </Folder>
   <Folder Name="/tests/">

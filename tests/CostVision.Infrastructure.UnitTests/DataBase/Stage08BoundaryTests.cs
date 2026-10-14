@@ -32,8 +32,8 @@ public class Stage08BoundaryTests(ITestOutputHelper output)
         // Assert
         Assert.Equal(typeof(DbContext), typeof(AppDbContextBase).BaseType);
         Assert.Equal(typeof(AppDbContextBase), typeof(ApplicationContext).BaseType);
-        Assert.Contains(typeof(IGetItemByPredicateRepository<Receipt, AppDbContextBase>), bases);
-        Assert.Contains(typeof(IGetItemByIdRepository<Receipt, Guid, AppDbContextBase>), bases);
+        Assert.Contains(typeof(IGetItemByPredicateRepository<Receipt>), bases);
+        Assert.Contains(typeof(IGetItemByIdRepository<Receipt, Guid>), bases);
         Assert.Contains(projectedRepository, bases);
         Assert.True(projection.IsGenericMethodDefinition);
         Assert.Equal(typeof(Expression<Func<Receipt, bool>>), parameters[0].ParameterType);
@@ -55,8 +55,8 @@ public class Stage08BoundaryTests(ITestOutputHelper output)
 
         // Act
         PropertyInfo identity = Assert.Single(typeof(IEntity<Guid>).GetProperties());
-        PropertyInfo database = typeof(IAppDbContext<ApplicationContext>).GetProperty("Database")!;
-        MethodInfo save = typeof(IAppDbContext<ApplicationContext>).GetMethod("SaveChanges")!;
+        PropertyInfo database = typeof(IUnitOfWorkContext<CostVisionContextKey>).GetProperty("Database")!;
+        MethodInfo save = typeof(IUnitOfWorkContext<CostVisionContextKey>).GetMethod("SaveChangesAsync")!;
         MethodInfo[] posts = typeof(IHttpApiClient).GetMethods().Where(method => method.Name == "PostAsync").ToArray();
 
         // Assert
@@ -68,7 +68,7 @@ public class Stage08BoundaryTests(ITestOutputHelper output)
         Assert.Contains(save.GetParameters(), parameter => parameter.ParameterType == typeof(CancellationToken));
         Assert.Contains(posts, method => method.IsGenericMethodDefinition && method.GetGenericArguments().Length == 2 &&
             method.GetParameters().Any(parameter => parameter.ParameterType == typeof(CancellationToken)));
-        Assert.Equal(new Version(0, 0, 2, 0), persistence.GetName().Version);
+        Assert.Equal(new Version(0, 0, 5, 0), persistence.GetName().Version);
         Assert.Equal(new Version(1, 0, 0, 0), transport.GetName().Version);
         Assert.Contains(persistence.GetReferencedAssemblies(), name => name.Name == "Microsoft.EntityFrameworkCore");
         foreach (Assembly assembly in new[] { persistence, transport })

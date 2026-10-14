@@ -1,7 +1,5 @@
-using CostVision.Application.Abstractions.DataBase;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Domain.Models.Receipts;
-using EFCoreLibrary.Abstractions.Database;
 using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -9,11 +7,10 @@ using System.Linq.Expressions;
 namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
 {
     public class ProductRepository(
-        ICreateItemRepository<Product, AppDbContextBase> createRepository,
-        IGetItemByIdRepository<Product, Guid, AppDbContextBase> getItemByIdRepository,
-        IGetItemByPredicateRepository<Product, AppDbContextBase> getItemByPredicateRepository,
-        IAppDbContext<AppDbContextBase> context,
-        IQueryRepository<Product, AppDbContextBase> queryRepository) : IProductRepository
+        IContextCreateItemRepository<Product, CostVisionContextKey> createRepository,
+        IContextGetItemByIdRepository<Product, Guid, CostVisionContextKey> getItemByIdRepository,
+        IContextGetItemByPredicateRepository<Product, CostVisionContextKey> getItemByPredicateRepository,
+        IContextQueryRepository<Product, CostVisionContextKey> queryRepository) : IProductRepository
     {
         public Task<Product?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<Product>, IQueryable<Product>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -26,10 +23,12 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
 
         public Task<int> CountByPredicateAsync(Expression<Func<Product, bool>>? predicate = null, CancellationToken ct = default)
         {
-            IQueryable<Product> query = context.Set<Product>();
+            IQueryable<Product> query = queryRepository.Query(asNoTracking: true);
 
             if (predicate != null)
+            {
                 query = query.Where(predicate);
+            }
 
             return query.CountAsync(ct);
         }

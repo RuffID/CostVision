@@ -7,7 +7,7 @@ using System.Data;
 
 namespace CostVision.Infrastructure.DataBase.Repositories
 {
-    public class UnitOfWorkScope(IAppDbContext<ApplicationContext> context) : IUnitOfWorkScope
+    public class UnitOfWorkScope(IUnitOfWorkContext<CostVisionContextKey> context) : IUnitOfWorkScope
     {
         private bool _writeFailed;
         private bool _transactionActive;
@@ -21,7 +21,7 @@ namespace CostVision.Infrastructure.DataBase.Repositories
 
             try
             {
-                await context.SaveChanges(ct);
+                await context.SaveChangesAsync(ct);
             }
             catch (DbUpdateException exception) when (exception.InnerException is SqlException sql &&
                 ReceiptWriteErrors.IsKnownUniqueViolation(sql.Number, sql.Message))

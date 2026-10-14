@@ -25,7 +25,7 @@ public class Stage03UnitOfWorkTests
         Mock<DbTransaction> transaction = new();
         Mock<DbConnection> connection = CreateConnection(transaction);
         using ApplicationContext context = CreateContext(connection.Object);
-        Mock<IAppDbContext<ApplicationContext>> port = new();
+        Mock<IUnitOfWorkContext<CostVisionContextKey>> port = new();
         port.SetupGet(item => item.Database).Returns(context.Database);
         UnitOfWorkScope work = CreateWork(port.Object);
         bool actionExecuted = false;
@@ -42,7 +42,7 @@ public class Stage03UnitOfWorkTests
         connection.Protected().Verify("BeginDbTransactionAsync", Times.Once(), IsolationLevel.Serializable, ItExpr.IsAny<CancellationToken>());
         transaction.Verify(item => item.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
         transaction.Verify(item => item.RollbackAsync(It.IsAny<CancellationToken>()), Times.Never);
-        port.Verify(item => item.SaveChanges(It.IsAny<CancellationToken>()), Times.Never);
+        port.Verify(item => item.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -52,10 +52,10 @@ public class Stage03UnitOfWorkTests
         Mock<DbTransaction> transaction = new();
         Mock<DbConnection> connection = CreateConnection(transaction);
         using ApplicationContext context = CreateContext(connection.Object);
-        Mock<IAppDbContext<ApplicationContext>> port = new();
+        Mock<IUnitOfWorkContext<CostVisionContextKey>> port = new();
         port.SetupGet(item => item.Database).Returns(context.Database);
         DbUpdateException failure = new("unrelated storage error");
-        port.Setup(item => item.SaveChanges(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
+        port.Setup(item => item.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
         UnitOfWorkScope work = CreateWork(port.Object);
 
         // Act
@@ -68,7 +68,7 @@ public class Stage03UnitOfWorkTests
         Assert.Contains("scope", reuse.Message);
         transaction.Verify(item => item.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
         transaction.Verify(item => item.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
-        port.Verify(item => item.SaveChanges(It.IsAny<CancellationToken>()), Times.Once);
+        port.Verify(item => item.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -86,7 +86,7 @@ public class Stage03UnitOfWorkTests
         Mock<DbTransaction> transaction = new();
         Mock<DbConnection> connection = CreateConnection(transaction);
         using ApplicationContext context = CreateContext(connection.Object);
-        Mock<IAppDbContext<ApplicationContext>> port = new();
+        Mock<IUnitOfWorkContext<CostVisionContextKey>> port = new();
         port.SetupGet(item => item.Database).Returns(context.Database);
         string prefix = "UNIQUE KEY constraint";
         if (constraint == ReceiptWriteErrors.ACCOUNT_LINK_KEY)
@@ -96,7 +96,7 @@ public class Stage03UnitOfWorkTests
 
         SqlException sql = CreateSqlException(number, prefix + " '" + constraint + "'.");
         DbUpdateException failure = new("write failed", sql);
-        port.Setup(item => item.SaveChanges(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
+        port.Setup(item => item.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
         UnitOfWorkScope work = CreateWork(port.Object);
 
         // Act
@@ -126,10 +126,10 @@ public class Stage03UnitOfWorkTests
         }
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => work.SaveChangesAsync(TestContext.Current.CancellationToken));
-        port.Verify(item => item.SaveChanges(It.IsAny<CancellationToken>()), Times.Once);
+        port.Verify(item => item.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    private static SqlException CreateSqlException(int number, string message)
+    internal static SqlException CreateSqlException(int number, string message)
     {
         // Только создание синтетической ошибки SqlClient для проверки ветвления; соединение с SQL не открывается.
         ConstructorInfo constructor = typeof(SqlError).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null,
@@ -166,7 +166,7 @@ public class Stage03UnitOfWorkTests
         return new ApplicationContext(new DbContextOptionsBuilder<ApplicationContext>().UseSqlServer(connection).Options);
     }
 
-    private static UnitOfWorkScope CreateWork(IAppDbContext<ApplicationContext> context)
+    private static UnitOfWorkScope CreateWork(IUnitOfWorkContext<CostVisionContextKey> context)
     {
         return new UnitOfWorkScope(context);
     }

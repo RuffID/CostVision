@@ -4,6 +4,8 @@
 
 Проект объединяет use case, запросы, DTO, ServiceResult и порты хранения/сервисов. Он зависит от Domain и фактически от EF Core/EFCoreLibrary через базовый контекст.
 
+После 08A EF/Relational — 10.0.12; repository DLL-контракты не содержат context key. Это адаптация API, а не перенос AppDbContextBase или удаление predicate/include/tracking/projection.
+
 В 08 пользователь явно сохранил EF/DLL-границу: DbContext-base, predicate/include/tracking и generic projection остаются действующим контрактом. Не заменять её общим независимым query-языком или специализированными выборками без отдельного решения. Page-фасад операций удалён; preview принимает нейтральный PreviewBankStatementImportRequest и сам проверяет отсутствие/пустоту файла до parser/доступа/extraction.
 
 ## Контракты и границы

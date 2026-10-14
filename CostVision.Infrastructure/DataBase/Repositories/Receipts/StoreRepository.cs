@@ -1,7 +1,6 @@
 using CostVision.Application.Abstractions.DataBase;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Domain.Models.Receipts;
-using EFCoreLibrary.Abstractions.Database;
 using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -9,11 +8,10 @@ using System.Linq.Expressions;
 namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
 {
     public class StoreRepository(
-        ICreateItemRepository<Store, AppDbContextBase> createRepository,
-        IGetItemByIdRepository<Store, Guid, AppDbContextBase> getItemByIdRepository,
-        IGetItemByPredicateRepository<Store, AppDbContextBase> getItemByPredicateRepository,
-        IAppDbContext<AppDbContextBase> context,
-        IQueryRepository<Store, AppDbContextBase> queryRepository) : IStoreRepository
+        IContextCreateItemRepository<Store, CostVisionContextKey> createRepository,
+        IContextGetItemByIdRepository<Store, Guid, CostVisionContextKey> getItemByIdRepository,
+        IContextGetItemByPredicateRepository<Store, CostVisionContextKey> getItemByPredicateRepository,
+        IContextQueryRepository<Store, CostVisionContextKey> queryRepository) : IStoreRepository
     {
         public Task<Store?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<Store>, IQueryable<Store>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -26,10 +24,12 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
 
         public Task<int> CountByPredicateAsync(Expression<Func<Store, bool>>? predicate = null, CancellationToken ct = default)
         {
-            IQueryable<Store> query = context.Set<Store>();
+            IQueryable<Store> query = queryRepository.Query(asNoTracking: true);
 
             if (predicate != null)
+            {
                 query = query.Where(predicate);
+            }
 
             return query.CountAsync(ct);
         }

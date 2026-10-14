@@ -10,7 +10,11 @@ Stage07aUnitOfWorkTests выполняет actual AddApplication/AddInfrastructu
 
 Это проверка построенной модели, не миграции и не фактической уникальности SQL. Изменение relationship согласовать с интеграционными сценариями.
 
-Stage08BoundaryTests закрепляет принятый вариант А: actual DbContext-base, DLL CRUD, Expression/IQueryable и generic projection остаются в Application. Проверяет IEntity getter/setter, IAppDbContext Database/Save и generic HTTP Post/token; metadata принятых DLL выводит в TRX. Reflection используется только для inspection в тесте, не в production. Ни независимость Domain от всей EF-сборки, ни live SQL/HTTP-совместимость этим не доказываются.
+Stage08BoundaryTests закрепляет принятый вариант А: actual DbContext-base, DLL CRUD без key, Expression/IQueryable и generic projection остаются в Application. Проверяет IEntity getter/setter, IUnitOfWorkContext Database/SaveChangesAsync и generic HTTP Post/token; metadata принятых DLL выводит в TRX. Reflection используется только для inspection в тесте, не в production. Ни независимость Domain от всей EF-сборки, ни live SQL/HTTP-совместимость этим не доказываются.
+
+Stage08aLibraryTests разрешает actual DLL CRUD/query/UoW/SQL Server maintenance с CostVisionContextKey и одним tracker/connection, проверяет отсутствие I/O при DI, историю/HasPendingModelChanges, SqlClient reconnect запреты, 4060/права/отсутствие БД, HEADERONLY/VERIFYONLY и безопасный EF logger. Все команды подставные: реальное соединение остаётся закрытым. Stage03UnitOfWorkTests предоставляет internal factory синтетических SqlException только тестам.
+
+Stage08aMaintenanceTests исполняет actual coordinator на fake provider/migration/pin: no-pending, backup-before-migrate, invalid receipt/target, explicit init, timeout/cancellation, await cleanup и poisoned gate. Stage08aStartupTests проверяет operation/timeout/token, конфигурационные блокеры, readiness после DisposeAsync, отмену, отказ и запрет retry/unsafe logs. Эти тесты заменяют assertions удалённого собственного SQL backup/checkup, а не SQL/restore/production-приёмку.
 
 Stage04MoneyPersistenceTests подтверждает отсутствие уникального импортного ключа, составной PK денежной связи и precision/длину полей. Реальный предикат ImportMoneyMovements переводится через ToQueryString в ru-RU/en-US без выполнения SQL. Эти проверки не подтверждают диапазонные блокировки, фактическую схему, колляцию или отсутствие конкурентного дубля.
 

@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>EFCoreLibrary.Maintenance.SqlServer</name>
+    </assembly>
+    <members>
+        <member name="T:EFCoreLibrary.Maintenance.SqlServer.Extensions.SqlServerMaintenanceRegistration">
+            <summary>Регистрация optional SQL Server maintenance.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Extensions.SqlServerMaintenanceRegistration.AddEfCoreSqlServerMaintenance``1(Microsoft.Extensions.DependencyInjection.IServiceCollection,EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions,EFCoreLibrary.Maintenance.Models.MaintenanceExecutionMode)">
+            <summary>Регистрирует scoped provider без запуска SQL.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions">
+            <summary>Каталог backup на сервере SQL Server; приложение обеспечивает доступ service account.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions.#ctor(System.String)">
+            <summary>Каталог backup на сервере SQL Server; приложение обеспечивает доступ service account.</summary>
+        </member>
+        <member name="T:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.#ctor(EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations{`0},EFCoreLibrary.Maintenance.Abstractions.IDatabaseCommands,EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions)">
+            <summary>Создаёт технический provider для контекста приложения.</summary>
+        </member>
+        <member name="P:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.Capabilities">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.InspectAsync(EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.CreateAsync(EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.BackupAsync(System.Guid,System.String,EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
+            <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.ConfirmHeader(System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object}},System.String,System.String,System.String)">
+            <summary>Проверяет конкретный backup set; неизвестный/чужой/неполный носитель отклоняется.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.ValidateEdition(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object})">
+            <summary>Поддерживает только обычные SQL Server Standard/Enterprise/Express.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.IsTrue(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.String)">
+            <summary>Читает логический metadata-флаг без неявной truthiness.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.QuoteIdentifier(System.String)">
+            <summary>Экранирует имя БД как единственный SQL identifier.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.Identity(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object})">
+            <summary>Связывает фактическое имя сервера и GUID выбранной БД.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.Map(Microsoft.Data.SqlClient.SqlException)">
+            <summary>Классифицирует ошибки по номеру и сохраняет исходное исключение для диагностики.</summary>
+        </member>
+    </members>
+</doc>

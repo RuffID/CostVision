@@ -8,7 +8,7 @@ namespace CostVision.Infrastructure.DataBase.Repositories;
 internal static class ProjectedReadQuery
 {
     public static Task<List<TResult>> ExecuteAsync<TEntity, TResult>(
-        IQueryRepository<TEntity, AppDbContextBase> repository,
+        IContextQueryRepository<TEntity, CostVisionContextKey> repository,
         Expression<Func<TEntity, bool>>? predicate,
         Func<IQueryable<TEntity>, IQueryable<TResult>> projection,
         CancellationToken ct) where TEntity : class

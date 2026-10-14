@@ -8,7 +8,7 @@
 
 Не добавлять методы GetByIdWith/GetAccessible и подобные. Для чтения использовать существующие базовые predicate/include-контракты.
 
-Receipt/ReceiptItem/Product/Store передают общий projection-контракт в ProjectedReadQuery через существующий IQueryRepository DLL. Count, группировка, агрегаты и Skip/Take остаются на стороне Application; самостоятельных сценарных query-методов здесь нет.
+Receipt/ReceiptItem/Product/Store передают общий projection-контракт в ProjectedReadQuery через IContextQueryRepository DLL с CostVisionContextKey. Product/Store CountByPredicateAsync используют Query(true), Where и CountAsync(ct), без context.Set или materialization всех строк. Count, группировка, агрегаты и Skip/Take остаются на стороне Application; самостоятельных сценарных query-методов здесь нет. Все CRUD зависимости имеют тот же marker.
 
 ## Проверка
 

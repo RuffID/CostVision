@@ -8,7 +8,7 @@
 
 Сохранять общий scoped-контекст UoW. Импортный ключ, права и сверка остаются в сценариях.
 
-MoneyMovement передаёт общий projection-контракт в ProjectedReadQuery через IQueryRepository DLL. No-tracking, передача отмены и общий scoped-контекст обязательны; адаптер не определяет поиск или финансовый доступ.
+MoneyMovement передаёт общий projection-контракт в ProjectedReadQuery через IContextQueryRepository DLL. Все CRUD/query зависимости используют CostVisionContextKey. No-tracking, передача отмены и общий scoped-контекст обязательны; адаптер не определяет поиск или финансовый доступ.
 
 ## Проверка
 

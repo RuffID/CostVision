@@ -5,8 +5,8 @@
 | Проект | Назначение | Характерные зоны |
 |---|---|---|
 | `CostVision.Application.UnitTests` | Domain-инварианты, DTO mapping и use case на mock UoW | пользователи, счета, чеки, refresh, операции, import, reconciliation |
-| `CostVision.Infrastructure.UnitTests` | configurations и чистые infrastructure-компоненты | hashing, QR, converters, external provider |
-| `CostVision.Infrastructure.IntegrationTests` | SQL Server и составные компоненты | migrations, CRUD, constraints, cascade, backup, startup, PDF, auth HTTP |
+| `CostVision.Infrastructure.UnitTests` | configurations, actual DLL/DI/UoW/maintenance с fake границами | hashing, QR, converters, provider, receipt/target, readiness/cleanup, safe logs |
+| `CostVision.Infrastructure.IntegrationTests` | SQL Server и составные компоненты | migrations, CRUD, constraints, cascade, PDF, auth HTTP; прежние собственные backup/checkup tests удалены в 08A |
 | `CostVision.Web.UnitTests` | PageModel и web adapters | handlers, JSON mapping, middleware, forwarded headers |
 
 Все проекты используют .NET 10 и xUnit v3. Unit tests используют Moq. Integration tests поднимают SQL Server через Testcontainers и требуют доступный Docker engine; часть component tests использует реальные файловые/процессные границы только внутри тестового окружения.
@@ -85,7 +85,7 @@ Entity configuration меняется вместе с Domain-моделью и i
 - Swagger metadata пока использует общее название `My API`.
 - Фоновый refresh и его расписание находятся в одном web-процессе; распределённого scheduler/lock нет.
 - При запуске нескольких web-экземпляров нужен общий Data Protection key ring, а фоновые задания требуют отдельной координации.
-- Startup автоматически применяет migrations и поэтому требует у runtime SQL-user прав на backup и изменение схемы.
+- Startup 08A использует единственный библиотечный coordinator до RunAsync хоста, требует явных server directory/SingleInitializer и прав на backup/изменение схемы. Реальные SQL/restore/сигналы shutdown проверяются отдельно; распределённой блокировки и автоматического restore API нет.
 - Категории расходов покрыты Domain/EF-моделью, но не имеют пользовательского use case и страницы.
 - Изолированные frontend HTTP/API/DOM/coordinator/import-тесты находятся в tests/Frontend. Их успех не закрывает actual HTTP/auth/browser/Bootstrap-потоки; финансовый расчёт и SQL-загрузка имеют отдельные контуры05/07.
 - TestWebApplication собирает отдельный тестовый HTTP-конвейер: его успех сам по себе не подтверждает production-композицию Program.cs.
@@ -94,3 +94,5 @@ Entity configuration меняется вместе с Domain-моделью и i
 Stage02RegressionTests проверяет реальные предикаты доступных покупок, назначаемых ролей, входа и списков счетов на доменных графах, результат и отсутствие мутации/записи при отказе. AuthenticationPasswordCompatibilityTests использует настоящий Hasher и подставное хранение для create/update/login; Web unit tests проверяют передачу CurrentUser.Id и стандартный отказ. Фактические команды, результаты и открытая SQL-/браузерная приёмка указаны в [этапе 02](../Plans/project-refactoring-2026-10-13/02-catalogs-and-user-validation.md).
 
 Stage04RegressionTests выполняет настоящие предикаты над сохранённым набором без pending Create до SaveChanges, проверяет результаты строк и состояние операций/связей. Stage04MoneyPersistenceTests проверяет EF metadata и перевод настоящего предиката импорта без SQL-выполнения. Frontend-тесты запускаются после `npm run build:ts` командой `node --experimental-strip-types --test tests/Frontend/moneyMovementImport.test.mts` с подставным DOM/fetch. Фактические результаты и незакрытая конкурентная SQL-/браузерная приёмка находятся в [этапе 04](../Plans/project-refactoring-2026-10-13/04-money-movement-integrity.md).
+
+08A: actual DLL/DI и coordinator/SqlServer provider исполняются только на fake commands/provider/migration/pin; StartupCancellationTests моделирует отмену без OS signals/host. Infrastructure 168/0/0, Application 496/0/0, Web 86/0/0. Integration project собран, не запущен. Команды и TRX в [журнале 08A](../Plans/project-refactoring-2026-10-13/08a-efcorelibrary-upgrade-and-maintenance.md). Старая SQL/backup/restore/HTTP/browser/production-приёмка всех этапов остаётся открытой.

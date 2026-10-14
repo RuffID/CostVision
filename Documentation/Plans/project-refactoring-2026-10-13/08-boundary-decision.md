@@ -4,6 +4,8 @@
 
 ## Проверенная исходная граница
 
+Ниже сохранено основание решения до 08A (DLL 0.0.2/EF 10.0.10). Актуализация 08A: подключены base 0.0.5 и Maintenance/SqlServer 1.0.0, EF 10.0.12; Application наследует context-free DLL CRUD/predicate-интерфейсы, но AppDbContextBase/EF/include/tracking/projection остаются. Infrastructure использует IContext*Repository и один CostVisionContextKey, технический scope — IUnitOfWorkContext, maintenance — библиотечный coordinator той же scoped-сессии. Это согласованная адаптация API в рамках А, а не реализация Б. [Поставка и actual изолированная проверка](../../../libs/README.md); SQL/production-приёмка остаётся открытой.
+
 Domain ссылается на EFCoreLibrary.dll ради IEntity; Application явно ссылается на EF Core/Relational 10.0.10 и эту DLL. AppDbContextBase наследует DbContext. Одиннадцать предметных repository-интерфейсов наследуют базовые DLL-контракты с AppDbContextBase. Application задаёт predicate, include, tracking и общую projection-композицию. Infrastructure исполняет её принятой DLL; SQL Server provider находится только там.
 
 Фактические версии и доступные контракты поставки фиксируются в [libs/README.md](../../../libs/README.md). Глобальный UoW уже удалён в 07A; повторное разделение или второй контекст не нужны. Владельцы сохранения указаны в [карте 07A](07a-consumer-map.md).

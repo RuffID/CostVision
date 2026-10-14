@@ -7,10 +7,10 @@ using System.Linq.Expressions;
 namespace CostVision.Infrastructure.DataBase.Repositories.Authorization
 {
     public class UserRepository(
-        ICreateItemRepository<User, AppDbContextBase> createRepository,
-        IDeleteItemRepository<User, AppDbContextBase> deleteRepository,
-        IGetItemByIdRepository<User, Guid, AppDbContextBase> getItemByIdRepository,
-        IGetItemByPredicateRepository<User, AppDbContextBase> getItemByPredicateRepository) : IUserRepository
+        IContextCreateItemRepository<User, CostVisionContextKey> createRepository,
+        IContextDeleteItemRepository<User, CostVisionContextKey> deleteRepository,
+        IContextGetItemByIdRepository<User, Guid, CostVisionContextKey> getItemByIdRepository,
+        IContextGetItemByPredicateRepository<User, CostVisionContextKey> getItemByPredicateRepository) : IUserRepository
     {
         public Task<User?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<User>, IQueryable<User>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);

@@ -7,10 +7,10 @@ using System.Linq.Expressions;
 namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
 {
     public class ReceiptItemRepository(
-        ICreateItemRepository<ReceiptItem, AppDbContextBase> createRepository,
-        IGetItemByIdRepository<ReceiptItem, Guid, AppDbContextBase> getItemByIdRepository,
-        IGetItemByPredicateRepository<ReceiptItem, AppDbContextBase> getItemByPredicateRepository,
-        IQueryRepository<ReceiptItem, AppDbContextBase> queryRepository) : IReceiptItemRepository
+        IContextCreateItemRepository<ReceiptItem, CostVisionContextKey> createRepository,
+        IContextGetItemByIdRepository<ReceiptItem, Guid, CostVisionContextKey> getItemByIdRepository,
+        IContextGetItemByPredicateRepository<ReceiptItem, CostVisionContextKey> getItemByPredicateRepository,
+        IContextQueryRepository<ReceiptItem, CostVisionContextKey> queryRepository) : IReceiptItemRepository
     {
         public Task<ReceiptItem?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<ReceiptItem>, IQueryable<ReceiptItem>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);

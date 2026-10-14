@@ -57,6 +57,8 @@ CostVision - веб-приложение для учёта расходов по
 
 Архитектурное решение 08 (14.10.2026): пользователь принял сохранение явной EF/DLL-границы Application. AppDbContextBase, DLL CRUD, predicate/include/tracking и общий projection-контракт остаются. Их массовую замену, включая независимый query-язык, не начинать без отдельного решения. Контракты и неизвестные сведения поставки: [libs/README.md](libs/README.md); принятое решение: [08-boundary-decision.md](Documentation/Plans/project-refactoring-2026-10-13/08-boundary-decision.md).
 
+После 08A все Infrastructure repositories используют IContext*Repository с единственным CostVisionContextKey; сохранение/транзакции — сценарный UoW над IUnitOfWorkContext того же scoped ApplicationContext. Inspection/backup/create/migrate принадлежат только IDatabaseMaintenance и SQL Server-модулю. Собственные SqlConnection/SqlCommand, SQL/Dapper, business DbContext.Set/CRUD и второй maintenance runner запрещены. Модель/provider registration и generated migrations не являются обходом. Поставка и блокеры SingleInitializer/readiness описаны в libs/README.md и технической эксплуатации; изолированная реализация не подтверждает SQL/production.
+
 ## Миграции
 
 - Миграции Entity Framework создаёт пользователь вручную через консоль.

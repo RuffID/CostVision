@@ -4,6 +4,8 @@
 
 Program.cs загружает конфигурацию, настраивает журналирование и DI, запускает проверку БД и строит HTTP-конвейер.
 
+До RunAsync хоста await-обслуживание 08A и async cleanup должны завершиться успешно. При отказе ExitCode=1, возврат без HTTP/hosted refresh и DisposeAsync WebApplication; Environment.Exit не использовать. Production readiness управляет DatabaseMaintenanceStartup; эксплуатационные предпосылки не заменять локальным gate.
+
 ## Контракты и границы
 
 Сохранять порядок middleware и приоритет config.json. Не переносить use case в Program; запуск хоста и startup-БД требует отдельной просьбы.

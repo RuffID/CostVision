@@ -42,7 +42,7 @@ Application организован по use case, а не по HTTP-страни
 - dashboard;
 - контракты `IUnitOfWorkScope`, узких сценарных UoW, репозиториев, внешнего receipt provider, QR parser, PDF extractor и password hasher.
 
-Регистрации перечислены в [ApplicationServiceCollectionExtensions](../../CostVision.Application/Extensions/ApplicationServiceCollectionExtensions.cs). Application зависит от EF Core: [AppDbContextBase](../../CostVision.Application/Abstractions/DataBase/AppDbContextBase.cs) наследует `DbContext`, а контракты репозиториев связаны с этим контекстом через `EFCoreLibrary`. SQL Server provider и конкретный `ApplicationContext` находятся в Infrastructure. В 08 пользователь явно сохранил эту EF/DLL-границу (вариант А), включая predicate/include/tracking и generic projection 07. [Решение и непринятые варианты](../Plans/project-refactoring-2026-10-13/08-boundary-decision.md) отличают её от полного удаления EF. [Поставка DLL](../../libs/README.md) описывает metadata, версии и неизвестный upstream.
+Регистрации перечислены в [ApplicationServiceCollectionExtensions](../../CostVision.Application/Extensions/ApplicationServiceCollectionExtensions.cs). Application зависит от EF Core: [AppDbContextBase](../../CostVision.Application/Abstractions/DataBase/AppDbContextBase.cs) наследует `DbContext`, а репозитории наследуют DLL CRUD/predicate-интерфейсы. После 08A эти интерфейсы не содержат context key; EF/include/tracking/projection сохранены. SQL Server provider и конкретный `ApplicationContext` находятся в Infrastructure. Решение А этапа 08 не изменено: [решение и непринятые варианты](../Plans/project-refactoring-2026-10-13/08-boundary-decision.md), [воспроизводимая поставка 08A](../../libs/README.md).
 
 MoneyMovementsPageUseCase и его интерфейс удалены: они механически проксировали 14 сценариев. MoneyMovementsModel получает эти конкретные зависимости напрямую; координаторы импорта/создания/сверки и владельцы транзакций остаются в Application. PreviewBankStatementImportRequest именуется по операции и проверяется самим preview-сценарием, HTTP multipart/handlers сохранены.
 
@@ -56,9 +56,11 @@ Infrastructure реализует application-порты:
 - [QrParser](../../CostVision.Infrastructure/Services/Receipts/QrParser.cs);
 - PDF text extractor и три bank statement parser в Application;
 - password hashing;
-- backup, migration check и ежедневный receipt refresh.
+- выбор startup operation/readiness и ежедневный receipt refresh; inspection/backup/migrations исполняет библиотечный maintenance coordinator.
 
 Все EF-репозитории работают в scoped `ApplicationContext`, поэтому один use case использует общий change tracker и одну транзакционную границу.
+
+Infrastructure IContext*Repository, IUnitOfWorkContext и IDatabaseMaintenance имеют один CostVisionContextKey и одну библиотечную привязку AddEfCoreContext. Независимые DI scopes получают разные контексты. Startup await-операция и async disposal завершаются до RunAsync хоста и hosted refresh; неподтверждённый SingleInitializer/endpoint/server directory блокирует readiness. Подробные ограничения и отсутствующие distributed lease/restore APIs перечислены в [эксплуатации](11-configuration-and-operations.md).
 
 ## Слой Web
 

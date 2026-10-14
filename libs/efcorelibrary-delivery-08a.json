@@ -1,0 +1,1044 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-14",
+  "scope": "CostVision stage 08A",
+  "source": {
+    "sourceRoot": "D:\\Media\\User\\source\\repos\\work\\EFCoreLibrary",
+    "sdk": "10.0.401",
+    "sourceSetSha256": "5BE84E7BE6E7111AAB7EBCCF7AC1609D012A6309634FCC7C8470973B04E19B58",
+    "files": [
+      {
+        "path": "Abstractions/Database/IAppDbContext.cs",
+        "sha256": "07C57BC035E9948B27CE80E505DFFD98104FCE208886D86CDA589982B3D7AC1E"
+      },
+      {
+        "path": "Abstractions/Database/IRepositoryContext.cs",
+        "sha256": "48EA8DC64777FD995B5DCDC36C80AD9F5E1203FBDA9098972E3DCDF5DDD9BFDE"
+      },
+      {
+        "path": "Abstractions/Database/IUnitOfWorkContext.cs",
+        "sha256": "500705B594302B8BEE12769686DDDE235B3C16120779788804B9C45192B5C88D"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IContextCreateItemRepository.cs",
+        "sha256": "0AF76C01262871865F1FEA9C3F30500B8AD6E5E6FBC7EFC96BA8EA173E2AA6BB"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IContextDeleteItemRepository.cs",
+        "sha256": "97D7AA1AB5BF5B66F6CFF8A5F9DE6B03D74D3CFB83FF2B6C79886C7F1505049F"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IContextGetItemByIdRepository.cs",
+        "sha256": "09DBA8E92BFC37EA93510FE6F65EDA7246F8DADE1F0DECDEFC5B6E668B766FA8"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IContextGetItemByPredicateRepository.cs",
+        "sha256": "2415D44FC4814518FEFA2B7D7644DD034C69EDEACF4D01FF4EEA5117A7FA78E5"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IContextQueryRepository.cs",
+        "sha256": "216D5E3E68F93E3F6B7CEFAD4AE5CA88F57F4929E8453E99EE0E23944EED6685"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IContextUpdateItemRepository.cs",
+        "sha256": "6AEE5C088F5B5F16FD73A3902AA1D52C8FD45D7D895534C7DF471C89D8E4F39A"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/ICreateItemRepository.cs",
+        "sha256": "40D0EF425ACB554BB156FB322CC8C700B270DAADC17FD0AB98D4CB71E4D9748E"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IDeleteItemRepository.cs",
+        "sha256": "96FE280DFFD1EC80FEC32A5DF0033E8DD0E26304095B019F2BFB9562D54B3427"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IGetItemByIdRepository.cs",
+        "sha256": "65DF2DC12DC4920ABF9D12E569E78B5C6EAD062D3D411FE53FFC0AC773CA897B"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IGetItemByPredicateRepository.cs",
+        "sha256": "4E5A3D40EA39A68B366EAC4E0D3FBCF839CFD7E2E5377AFC618F05B0D32C688D"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IQueryRepository.cs",
+        "sha256": "27FA1F5C7CA71B168629D5C172A5729D6EDF579ED77EEB7FC2CFBE162AFE068E"
+      },
+      {
+        "path": "Abstractions/Database/Repository/Base/IUpdateItemRepository.cs",
+        "sha256": "7DAEB027CB3BF4CD1BABCD6C60DCA47024C9DDD618CEE8F5E89C33AC784B3C01"
+      },
+      {
+        "path": "Abstractions/Database/Repository/IRepositorySet.cs",
+        "sha256": "16B4A02B0DEE34116BB12CAF790C18DA64473B10F9E9DE445C1800C4435D8120"
+      },
+      {
+        "path": "Abstractions/Entity/IEntity.cs",
+        "sha256": "05579B752BDBACDF03F9A544F0BA926B8ACE9A14A73E381D4758F5E2633B811A"
+      },
+      {
+        "path": "EFCoreLibrary.csproj",
+        "sha256": "55960B838A9B95186148ADC4893F98B6079C9577D0F24667A980D43B7573C258"
+      },
+      {
+        "path": "EfCore/EfDbContextAdapter.cs",
+        "sha256": "03CA9371CE17F563A9A56D3BEAE537584D4C633A792D18B8A608D71E27821CB6"
+      },
+      {
+        "path": "EfCore/Repository/Base/CreateItemRepository.cs",
+        "sha256": "8CF1645C3FBA7862F5949F16BB1502FD793F2209A92BCE4CC07A374A7C3C500E"
+      },
+      {
+        "path": "EfCore/Repository/Base/DeleteItemRepository.cs",
+        "sha256": "8BA3EA2AB0086EC63B77E0482DAA39C6E74FE3B3188B682169870AA10EB525C8"
+      },
+      {
+        "path": "EfCore/Repository/Base/GetItemByIdRepository.cs",
+        "sha256": "F0A9E1626D8E060910D0BFD4D29C7C6564C1F0A8B7503C9770479F7E3C264467"
+      },
+      {
+        "path": "EfCore/Repository/Base/GetItemByPredicateRepository.cs",
+        "sha256": "5D38884F4EAF235E03731D2761EA2B591B6D4592648449BE8B1E8A538F38B098"
+      },
+      {
+        "path": "EfCore/Repository/Base/QueryRepository.cs",
+        "sha256": "7FFD719447AC8A0BDDF03CA602859A269DBB06F081BD2F4D3E078CFB166E4A95"
+      },
+      {
+        "path": "EfCore/Repository/Base/UpdateItemRepository.cs",
+        "sha256": "187E32553C9EC2BD6B99A82310B86BAF7BF23C72B360E57E75B0872EBC09DC4D"
+      },
+      {
+        "path": "EfCore/Repository/RepositorySet.cs",
+        "sha256": "3192C2205A8406D3CD84796EBEC8BFCEFBEA4398E0515F92599D4ED8A98FC183"
+      },
+      {
+        "path": "EfCore/RepositoryContext.cs",
+        "sha256": "AAB1FEC3135875F8C92412D158A6AC4FE121203CC40C1A4EB247498A6E9C657C"
+      },
+      {
+        "path": "EfCore/UnitOfWorkContext.cs",
+        "sha256": "E989EACA744C573B1AEFF7D68C005723AC5A6A51BC23CA776119BAAAC424A70D"
+      },
+      {
+        "path": "Extensions/ServiceCollectionExtensions.cs",
+        "sha256": "4600D1A9C298D1B2B58666DF98C4C9ACBAAC48D36827955E0CE70741A68E12C1"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance.SqlServer/EFCoreLibrary.Maintenance.SqlServer.csproj",
+        "sha256": "F5E564FB444BCA6EBB4C25B30AD7A6E11BEAD9D4EF00816DCB9A85FB99C0F5CE"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance.SqlServer/Extensions/SqlServerMaintenanceRegistration.cs",
+        "sha256": "D1EA85C6EE2A143D4F655967F1898C1D3D550F1FAB36B3764F23E5672ADE55BB"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance.SqlServer/Options/SqlServerMaintenanceOptions.cs",
+        "sha256": "C8CC84C596D4D080C1E1CF3E83ACC328E5F160FB819C1D441B8151569C210737"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance.SqlServer/Providers/SqlServerMaintenanceProvider.cs",
+        "sha256": "07CEF00CDA5F03D1BBDFC00F9DBBCDC72C86C5778F80A6B21FFD48D71A051F06"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Abstractions/IBackupProcessFactory.cs",
+        "sha256": "8D4E152A67905427A7277F5FFC5779D3B7ADFB36C7427BF0019942C04324EC68"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Abstractions/IBackupProcessHandle.cs",
+        "sha256": "0B66FA138E7BF1E337F66FDDF7F76469BEA37E2FB2B69A7499DA3690419346EE"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Abstractions/IBackupProcessRunner.cs",
+        "sha256": "AC5C3FB366E65E95215A61B91908E75ECEF1E37717A5870597E8AC4DD0BFCA14"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Abstractions/IDatabaseCommands.cs",
+        "sha256": "099654BFE828B10F0D99005D541F05038E28587441839D44D9DD98A510DBB1A7"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Abstractions/IDatabaseMaintenance.cs",
+        "sha256": "A3C7B30437E48E7E415E5BBC3E82AA24823B4624389161E7E1E445FE88384E2A"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Abstractions/IDatabaseMaintenanceProvider.cs",
+        "sha256": "7463B8ED7B36239FD6432A1A4C8DE843887CEA95D31F8F74B57FE27059A8425A"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Abstractions/IMaintenanceRecovery.cs",
+        "sha256": "1F62B798EBECB964219245E79B9B55FFAF461AE3B1EE291D3BCA965923AD42B9"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Abstractions/IRelationalMigrationOperations.cs",
+        "sha256": "714A45DB05A77E732C87F93F445FBC965BFE44D58C6E2EFEEF51001399D8299A"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Backup/BackupWorkspace.cs",
+        "sha256": "A1BBEF3F04112018A2817267497AFF1DC8A61C7BADB881944380ECA4C0E8982A"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Backup/DumpSupport.cs",
+        "sha256": "14A36ECB21FF9322DCF46A84ADDFDC43BD045C7624502048ECCD22A49CA7CC61"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Coordination/DatabaseMaintenance.cs",
+        "sha256": "84AAA781C9904BA9E40CE80314C2E53D0EB08213827E2A8BB276D0A4D883EDD5"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Coordination/MaintenanceBudget.cs",
+        "sha256": "AA2AE58EDE5BAD9482776FA227260F65EBBD1F9CD8B303F1E3AD4BE600C961A6"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Coordination/SingleInitializerGate.cs",
+        "sha256": "4093FB3C4E304A6A07A26FBB250118A4F4DCA0C89D5DA20F69C24059A0BE7953"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Database/DatabaseCommands.cs",
+        "sha256": "D3D00920F06AC47CD0671DA7BF1B777169C66733E896413A31C3CF43F4EA05AB"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Database/MetadataValues.cs",
+        "sha256": "A1AE0C19D77E8A4B5D6E033B9002B5D8464FFC69393CB889FDB88C5C812F2A9A"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Database/TargetIdentity.cs",
+        "sha256": "BA9028024BFD2B12179377EF9FFF7F79BE4DC663E78E4AB36EEFD372500D8352"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/EFCoreLibrary.Maintenance.csproj",
+        "sha256": "D048136AB799E8BE6BEEF45A97D860CBD6CCBD739D05639565381C6D9F3AEE87"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/EfCore/EfMigrationOperations.cs",
+        "sha256": "7634B689EB7AC435877878A3E6459C1378830C36AFA7D7530EB798A72EB66BE9"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/EfCore/RelationalMaintenanceProvider.cs",
+        "sha256": "461EAAA945739786D99948C467AA8B82E0590F8E8997ED3391BD940D1086C9EC"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Errors/MaintenanceError.cs",
+        "sha256": "5E34EED3A98819526390CA69E91FB415879B1E78B9ED83121863BF7B880042F0"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Errors/MaintenanceException.cs",
+        "sha256": "2A1327839E88D3BF278ED03503F60895C48A6599FBF30064C57D2BF207DA4C77"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Extensions/MaintenanceRegistration.cs",
+        "sha256": "0A0B718C03FE512F1201079BA301D41866295B53C479D6CBAF3A64A3A7896119"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/BackupArtifact.cs",
+        "sha256": "78A9BB495DE5D167EA6C77751CC09DEBAD53AF7B8787CB87E393393A143EF309"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/DatabaseBackupReceipt.cs",
+        "sha256": "C71B3EF92DFFB9A5D048708A4A99090ED15A667D8537E0BB46E51CBCAC2F42E5"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/DatabaseInspection.cs",
+        "sha256": "708EDEF3818887E4E66FCAD68E2288D509AD619C4EC89300CA27EBFB6A5A07EE"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/DatabaseMaintenanceCapabilities.cs",
+        "sha256": "25DA7C74FF17DCEEB197BA7CE958293462B908E7223B5EBD7D06CC44ADF90E08"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/DatabaseMaintenanceResult.cs",
+        "sha256": "357BC13384175EF1E725CEE168BCAFFE1328A481E261CD23C39B0EF6C712A39C"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/LocalBackupArtifact.cs",
+        "sha256": "42ED0159AB2CCCCD4E64927D64D8A3C79202F163587DDFFC7A6B222BDE4587B3"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/MaintenanceExecutionMode.cs",
+        "sha256": "5C311E4099466F0EACB50B91091F030EE36B269CBF3257479923B2768AE12CD0"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/MaintenanceOutcome.cs",
+        "sha256": "4562B062212534A74AEC656D6E7389EBC687AFBE31E42CCC09B15621A3381786"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/MaintenanceStage.cs",
+        "sha256": "05EF3DECDAA10C0E1F2E5D308CA27CD08E22783DD1694DC39C581C9E320C92CC"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/ProcessCommand.cs",
+        "sha256": "19A8B4BE9B0736D2379443F24EACCC97F7B91519787E29E3E6CE3B43AF4B0A80"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/ProcessResult.cs",
+        "sha256": "2E2DF9CF9511E618A73BCB56856C0DB42490D29F092F8A710F1EBC0FAF62D4B0"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Models/ServerBackupArtifact.cs",
+        "sha256": "81FB94316D72AF1C9EF63184A848A7EF10DAE399F6E136A130E28E1D44FB2425"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Options/DumpOptions.cs",
+        "sha256": "F5961B01226335BE370AA6F9FF0E02A4EA6B05E202E59404134E16308310CDA9"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Processes/BackupProcessRunner.cs",
+        "sha256": "2A672A1DF9FE332A14E6E6571592B8A3C167D9E8AE8612FDAB545E7096ADC0ED"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Processes/SystemBackupProcessFactory.cs",
+        "sha256": "4AE7BFF8BF74FE426D422D7D43BB84C5518ADF97A95035111E96905382A9A0AF"
+      },
+      {
+        "path": "maintenance/EFCoreLibrary.Maintenance/Processes/SystemBackupProcessHandle.cs",
+        "sha256": "B45BF2D7C9CEBEA6A8EC1751FC5DDAD2046E8A64DFF3184343D7BA682D652CCD"
+      }
+    ]
+  },
+  "configuration": "Release",
+  "targetFramework": "net10.0",
+  "buildCommands": [
+    "dotnet build D:\\Media\\User\\source\\repos\\work\\EFCoreLibrary\\maintenance\\EFCoreLibrary.Maintenance.SqlServer\\EFCoreLibrary.Maintenance.SqlServer.csproj -c Release --artifacts-path D:\\Media\\User\\source\\repos\\CostVision\\artifacts\\compile-check\\efcorelibrary-08a -p:GeneratePackageOnBuild=false -p:GenerateDocumentationFile=true -p:EnableSourceControlManagerQueries=false -p:IncludeSourceRevisionInInformationalVersion=false -p:Deterministic=true -p:PathMap=D:\\Media\\User\\source\\repos\\work\\EFCoreLibrary=/_/EFCoreLibrary -v:minimal",
+    "dotnet build D:\\Media\\User\\source\\repos\\work\\EFCoreLibrary\\maintenance\\EFCoreLibrary.Maintenance.SqlServer\\EFCoreLibrary.Maintenance.SqlServer.csproj -c Release --no-restore --no-incremental --artifacts-path D:\\Media\\User\\source\\repos\\CostVision\\artifacts\\compile-check\\efcorelibrary-08a -p:GeneratePackageOnBuild=false -p:GenerateDocumentationFile=true -p:EnableSourceControlManagerQueries=false -p:IncludeSourceRevisionInInformationalVersion=false -p:Deterministic=true -p:PathMap=D:\\Media\\User\\source\\repos\\work\\EFCoreLibrary=/_/EFCoreLibrary -v:quiet -flp:logfile=artifacts/compile-check/stage08a/library-build.log"
+  ],
+  "sourceSetAlgorithm": "SHA256(UTF8(concat ordinal-path sorted path + TAB + uppercase file SHA256 + LF)). Build inputs: base and Maintenance/SqlServer .cs/.csproj plus applicable build/package configs, excluding bin/obj/artifacts/tests/.git and other optional modules.",
+  "outputs": [
+    {
+      "file": "EFCoreLibrary.dll",
+      "sha256": "A2D5C72E7B30EC8886D70AFBD9B30F1A424EAD4402F37C5174A58601AD77A11F",
+      "length": 16384,
+      "assemblyVersion": "0.0.5.0",
+      "fileVersion": "0.0.5.0",
+      "productVersion": "0.0.5"
+    },
+    {
+      "file": "EFCoreLibrary.xml",
+      "sha256": "88D7C635179F9D7FA2D08386B99A81A8B04805BDFC2F03DF0C7B7E3E60F11EA0",
+      "length": 138,
+      "assemblyVersion": null,
+      "fileVersion": null,
+      "productVersion": null
+    },
+    {
+      "file": "EFCoreLibrary.Maintenance.dll",
+      "sha256": "24B9B4DF25E519833A25C12DDD036EA9B397AA4DE2E6202B2B5D2DC66B6F3CDB",
+      "length": 75264,
+      "assemblyVersion": "1.0.0.0",
+      "fileVersion": "1.0.0.0",
+      "productVersion": "1.0.0"
+    },
+    {
+      "file": "EFCoreLibrary.Maintenance.xml",
+      "sha256": "827EE183F88C472E43C32C8B1ACD9EAABB3A4D654A541D9F9A7423BAB5F877CC",
+      "length": 50135,
+      "assemblyVersion": null,
+      "fileVersion": null,
+      "productVersion": null
+    },
+    {
+      "file": "EFCoreLibrary.Maintenance.SqlServer.dll",
+      "sha256": "76C83AAAAB8522F598605A3D5E55976E71C6E84ACC51B0CA513E260E9C2C2E4B",
+      "length": 22528,
+      "assemblyVersion": "1.0.0.0",
+      "fileVersion": "1.0.0.0",
+      "productVersion": "1.0.0"
+    },
+    {
+      "file": "EFCoreLibrary.Maintenance.SqlServer.xml",
+      "sha256": "5BACCA79F2F20BAF17EF06B13BAE1EBA2CCA465D7A59F04EF8F341BF53B44FC4",
+      "length": 4973,
+      "assemblyVersion": null,
+      "fileVersion": null,
+      "productVersion": null
+    }
+  ],
+  "repeatBuild": "DLL and XML SHA-256 identical after Build --no-incremental; source set rechecked after build.",
+  "runtimePackageRequirements": [
+    {
+      "name": "Microsoft.EntityFrameworkCore",
+      "version": "10.0.12"
+    },
+    {
+      "name": "Microsoft.EntityFrameworkCore.Relational",
+      "version": "10.0.12"
+    },
+    {
+      "name": "Microsoft.EntityFrameworkCore.SqlServer",
+      "version": "10.0.12"
+    },
+    {
+      "name": "Microsoft.Extensions.DependencyInjection.Abstractions",
+      "version": "10.0.12",
+      "source": "Microsoft.AspNetCore.App shared framework or matching library package closure"
+    },
+    {
+      "name": "Microsoft.Extensions.Logging.Abstractions",
+      "version": "10.0.12",
+      "source": "Microsoft.AspNetCore.App shared framework or matching library package closure"
+    },
+    {
+      "name": "Microsoft.Data.SqlClient",
+      "version": "7.0.2"
+    }
+  ],
+  "libraryResolvedPackages": [
+    {
+      "identity": "Microsoft.Bcl.Cryptography/9.0.13",
+      "nugetSha512": "5T+bH3Lb1nEe8Hf/ixMxLmhlrx5wRi53wv7OhVwG2F1ZviW1ejFRS1NHur3uqPpJRGtkQwUchtY6zhVK2R+v+w=="
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient.Extensions.Abstractions/7.0.2",
+      "nugetSha512": "Zx7z61fG2Nc6LdDn4jA7b5Aj1ABrljkOPRE31RvVUdjF6IgbG60leDUhMCafsnWFgaheiK3iqpLe+kbf5Z5L8Q=="
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient.Internal.Logging/7.0.2",
+      "nugetSha512": "iqgYBbGSVy/DIYWjzmQOa964Kn4rs4wW5vg2IamqVK0fQqfTiILVR5hMK27XWqoyONtAZs+VxH354cPJBtSnbg=="
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient.SNI.runtime/6.0.2",
+      "nugetSha512": "f+pRODTWX7Y67jXO3T5S2dIPZ9qMJNySjlZT/TKmWVNWe19N8jcWmHaqHnnchaq3gxEKv1SWVY5EFzOD06l41w=="
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient/7.0.2",
+      "nugetSha512": "zwv76lANFQQI6Gmp6ntkzMWIWVqm8Wf4Mz00AeGCk1n8HCi5afi6bNynSe18uI0xeL0n6J+Myjk9AiIsL5oSqw=="
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.Abstractions/10.0.12",
+      "nugetSha512": "kDrux7T6C3V/YYYe2LXr7x6AEsVyq5Y2YoTE9er1SwbDtap3z1g8RgxNh5eKQVyB4T+DKvBBJ4Ezd/VZzJQJZg=="
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.Analyzers/10.0.12",
+      "nugetSha512": "Kd4o2oO1A6dfKxjz5LS16QyLtpCFTUiFWwmBABETAXRsSImBdRdWeKjSgbbRhAMiV3a3/nWr95ZtzClT4uaADQ=="
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.Relational/10.0.12",
+      "nugetSha512": "OiHmr8XzX96dbgMsYGe8qoqg4KxibdZG2r0QUVJBGktFInOp8IrABe8jvcbo5hrqeWfbwpK7fCEBiEPbY/ik4A=="
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore/10.0.12",
+      "nugetSha512": "e7OrVN8U5yr4kuwdTHWBHGVQIVsGfMkAr0Ej1/BnrS989Q0XBVANpIzNZ2bc1GvMZ0/XwMt5InTnmKskxGy99Q=="
+    },
+    {
+      "identity": "Microsoft.Extensions.Caching.Abstractions/10.0.12",
+      "nugetSha512": "sI3A6MUAyZwccLnwq0cXuRmC3WBtXieimBWafXSfhRJ4jnM2uGVXrqImDDVyW27u4vVaTOGlJxNJd8d1FGvCNQ=="
+    },
+    {
+      "identity": "Microsoft.Extensions.Caching.Memory/10.0.12",
+      "nugetSha512": "fhC3DHcBcFF4bXvHIxFtXJYNut7q7ZItqNFcgWfrIgmpVImlcEKNHhE7ztpNSPJYMHYYStS5QGND2I5mC26yeA=="
+    },
+    {
+      "identity": "Microsoft.Extensions.Configuration.Abstractions/10.0.12",
+      "nugetSha512": "8xaGcvS/qZ1otoxPQCEJkNva389CVL/plNcvIETZhQTETYdRkYDPEYhUMoAGONo4FU45ufdfE0j29AfWVVj0wA=="
+    },
+    {
+      "identity": "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.12",
+      "nugetSha512": "9/qymSh7hVDMGTGwrLz8MRp5zRyXy9adGDOs4HwRdnLil3oZGYuWeZjbmHgCQ9BL1qBroVfgUK3U/nb61617Cw=="
+    },
+    {
+      "identity": "Microsoft.Extensions.DependencyInjection/10.0.12",
+      "nugetSha512": "lXyK2O5GoYvfxW8eCFcD16JFbcoSTM1sJkAM0UHS1jZyl9NYMW64Tqm6OQFT0IDBjZi+xHt95/Zg+nxZhGFhZg=="
+    },
+    {
+      "identity": "Microsoft.Extensions.Logging.Abstractions/10.0.12",
+      "nugetSha512": "+24lC4plfbEDNfLAdTV/SWKS7dW+16X4HdydO3R++134kSNTzcbYA4KpR1Hdh6uWisB8Za3AzwyOn+K+NxWIug=="
+    },
+    {
+      "identity": "Microsoft.Extensions.Logging/10.0.12",
+      "nugetSha512": "6I46fTPfgYkrjRYfRXbho9WOvOelTnNjWuZws/hzGHDASH1LEJeA4VKK9k3wJvido8o7jJSB5WkMTonX7HM1bA=="
+    },
+    {
+      "identity": "Microsoft.Extensions.Options/10.0.12",
+      "nugetSha512": "TDYD33TSRpXKZWlmTXNlj5kCihxatmv2Ec1u6C+bMYLphCS7PoSLE9Pjd/nunDoE7yETk+LLKjVJX78HYtWjpA=="
+    },
+    {
+      "identity": "Microsoft.Extensions.Primitives/10.0.12",
+      "nugetSha512": "dYfCLR52UA+3DL7C4I/pvSaRPkNqxrUAQmbFL2u0zvYKKzqgrFCJl08Df+F1aYc8leu9JvpC9bsURUdpExcBXQ=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Abstractions/8.16.0",
+      "nugetSha512": "gSxKLWRZzBpIsEoeUPkxfywNCCvRvl7hkq146XHPk5vOQc9izSf1I+uL1vh4y2U19QPxd9Z8K/8AdWyxYz2lSg=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.JsonWebTokens/8.16.0",
+      "nugetSha512": "prBU72cIP4V8E9fhN+o/YdskTsLeIcnKPbhZf0X6mD7fdxoZqnS/NdEkSr+9Zp+2q7OZBOMfNBKGbTbhXODO4w=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Logging/8.16.0",
+      "nugetSha512": "MTzXmETkNQPACR7/XCXM1OGM6oU9RkyibqeJRtO9Ndew2LnGjMf9Atqj2VSf4XC27X0FQycUAlzxxEgQMWn2xQ=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Protocols.OpenIdConnect/8.16.0",
+      "nugetSha512": "h4yVXyJsEBBX5lg2G5ftMsi5JzcNEGAzrNphA6DQ6eOd8P0s+cDCOyPwVTYLePZvJL5unbPvYIvzrbTXzFjXnQ=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Protocols/8.16.0",
+      "nugetSha512": "UFrU7d46UTsPQTa2HIEIpB9H1uJe1BW9FLw5uhEJ2ZuKdur8bcUA/bO5caq5dlBt5gNJeRIB3QQXYNs5fCQCZA=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Tokens/8.16.0",
+      "nugetSha512": "rtViGJcGsN7WcfUNErwNeQgjuU5cJNl6FDQsfi9TncwO+Epzn0FTfBsg3YuFW1Q0Ch/KPxaVdjLw3/+5Z5ceFQ=="
+    },
+    {
+      "identity": "Microsoft.SqlServer.Server/1.0.0",
+      "nugetSha512": "N4KeF3cpcm1PUHym1RmakkzfkEv3GRMyofVv40uXsQhCQeglr2OHNcUk2WOG51AKpGO8ynGpo9M/kFXSzghwug=="
+    },
+    {
+      "identity": "System.Configuration.ConfigurationManager/9.0.13",
+      "nugetSha512": "GbBrJq9S/gYpHzm7Pxx6Y5tDyfSfyxW6tlP5oiKJV38uf19Wp+GIIAnWfyL1zmNiz1+EjwVapw2WkBFvvqKQzg=="
+    },
+    {
+      "identity": "System.Diagnostics.EventLog/9.0.13",
+      "nugetSha512": "675Rk4RwaVrWo09wrR2rpDVKixtgtnhd5NhPrn6O21uj92JvE61KTGupn76M2N6Ff/xJjY3SHSfSg0MIanEzGw=="
+    },
+    {
+      "identity": "System.IdentityModel.Tokens.Jwt/8.16.0",
+      "nugetSha512": "rrs2u7DRMXQG2yh0oVyF/vLwosfRv20Ld2iEpYcKwQWXHjfV+gFXNQsQ9p008kR9Ou4pxBs68Q6/9zC8Gi1wjg=="
+    },
+    {
+      "identity": "System.Security.Cryptography.Pkcs/9.0.13",
+      "nugetSha512": "dxJhkuoaelvWy588wPXjShNks+ZMiSgXnN75/u+DPbER5PqKrLPDftE0BvGM7nDK/scQAVlD+gRXlCAAjWi58Q=="
+    },
+    {
+      "identity": "System.Security.Cryptography.ProtectedData/9.0.13",
+      "nugetSha512": "t8S9IDpjJKsLpLkeBdW8cWtcPyYqrGu93Dej1RO6WwuL/lkFSqWlan3rMJfortqz1mRIh+sys2AFsSA6jWJ3Jg=="
+    }
+  ],
+  "consumerRuntimeAssets": [
+    {
+      "identity": "CostVision.Application/1.0.0",
+      "runtime": [
+        "bin/placeholder/CostVision.Application.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "CostVision.Domain/1.0.0",
+      "runtime": [
+        "bin/placeholder/CostVision.Domain.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "CostVision.Infrastructure/1.0.0",
+      "runtime": [
+        "bin/placeholder/CostVision.Infrastructure.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Humanizer.Core/2.14.1",
+      "runtime": [
+        "lib/net6.0/Humanizer.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "MetadataExtractor/2.9.3",
+      "runtime": [
+        "lib/net8.0/MetadataExtractor.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.Bcl.Cryptography/9.0.13",
+      "runtime": [
+        "lib/net9.0/Microsoft.Bcl.Cryptography.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.Build.Framework/18.0.2",
+      "runtime": [
+        "lib/net10.0/Microsoft.Build.Framework.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.CodeAnalysis.Common/5.0.0",
+      "runtime": [
+        "lib/net9.0/Microsoft.CodeAnalysis.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.CodeAnalysis.CSharp.Workspaces/5.0.0",
+      "runtime": [
+        "lib/net9.0/Microsoft.CodeAnalysis.CSharp.Workspaces.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.CodeAnalysis.CSharp/5.0.0",
+      "runtime": [
+        "lib/net9.0/Microsoft.CodeAnalysis.CSharp.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.CodeAnalysis.Workspaces.Common/5.0.0",
+      "runtime": [
+        "lib/net9.0/Microsoft.CodeAnalysis.Workspaces.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.CodeAnalysis.Workspaces.MSBuild/5.0.0",
+      "runtime": [
+        "lib/net9.0/Microsoft.CodeAnalysis.ExternalAccess.RazorCompiler.dll",
+        "lib/net9.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient.Extensions.Abstractions/7.0.2",
+      "runtime": [
+        "lib/netstandard2.0/Microsoft.Data.SqlClient.Extensions.Abstractions.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient.Internal.Logging/7.0.2",
+      "runtime": [
+        "lib/netstandard2.0/Microsoft.Data.SqlClient.Internal.Logging.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient.SNI.runtime/6.0.2",
+      "runtime": [
+        null
+      ],
+      "runtimeTargets": [
+        "runtimes/win-arm64/native/Microsoft.Data.SqlClient.SNI.dll",
+        "runtimes/win-x64/native/Microsoft.Data.SqlClient.SNI.dll",
+        "runtimes/win-x86/native/Microsoft.Data.SqlClient.SNI.dll"
+      ]
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient/7.0.2",
+      "runtime": [
+        "lib/net9.0/Microsoft.Data.SqlClient.dll"
+      ],
+      "runtimeTargets": [
+        "runtimes/unix/lib/net9.0/Microsoft.Data.SqlClient.dll",
+        "runtimes/win/lib/net9.0/Microsoft.Data.SqlClient.dll"
+      ]
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.Abstractions/10.0.12",
+      "runtime": [
+        "lib/net10.0/Microsoft.EntityFrameworkCore.Abstractions.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.Design/10.0.12",
+      "runtime": [
+        "lib/net10.0/Microsoft.EntityFrameworkCore.Design.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.Relational/10.0.12",
+      "runtime": [
+        "lib/net10.0/Microsoft.EntityFrameworkCore.Relational.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.SqlServer/10.0.12",
+      "runtime": [
+        "lib/net10.0/Microsoft.EntityFrameworkCore.SqlServer.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore/10.0.12",
+      "runtime": [
+        "lib/net10.0/Microsoft.EntityFrameworkCore.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.Extensions.DependencyModel/10.0.12",
+      "runtime": [
+        "lib/net10.0/Microsoft.Extensions.DependencyModel.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Abstractions/8.16.0",
+      "runtime": [
+        "lib/net10.0/Microsoft.IdentityModel.Abstractions.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.IdentityModel.JsonWebTokens/8.16.0",
+      "runtime": [
+        "lib/net10.0/Microsoft.IdentityModel.JsonWebTokens.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Logging/8.16.0",
+      "runtime": [
+        "lib/net10.0/Microsoft.IdentityModel.Logging.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Protocols.OpenIdConnect/8.16.0",
+      "runtime": [
+        "lib/net10.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Protocols/8.16.0",
+      "runtime": [
+        "lib/net10.0/Microsoft.IdentityModel.Protocols.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Tokens/8.16.0",
+      "runtime": [
+        "lib/net10.0/Microsoft.IdentityModel.Tokens.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.OpenApi/3.9.0",
+      "runtime": [
+        "lib/net8.0/Microsoft.OpenApi.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.SqlServer.Server/1.0.0",
+      "runtime": [
+        "lib/netstandard2.0/Microsoft.SqlServer.Server.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Microsoft.VisualStudio.SolutionPersistence/1.0.52",
+      "runtime": [
+        "lib/net8.0/Microsoft.VisualStudio.SolutionPersistence.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Mono.TextTemplating/3.0.0",
+      "runtime": [
+        "lib/net6.0/Mono.TextTemplating.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Newtonsoft.Json/13.0.4",
+      "runtime": [
+        "lib/net6.0/Newtonsoft.Json.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "PdfPig/0.1.15",
+      "runtime": [
+        "lib/net8.0/UglyToad.PdfPig.Core.dll",
+        "lib/net8.0/UglyToad.PdfPig.DocumentLayoutAnalysis.dll",
+        "lib/net8.0/UglyToad.PdfPig.Fonts.dll",
+        "lib/net8.0/UglyToad.PdfPig.Package.dll",
+        "lib/net8.0/UglyToad.PdfPig.Tokenization.dll",
+        "lib/net8.0/UglyToad.PdfPig.Tokens.dll",
+        "lib/net8.0/UglyToad.PdfPig.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Serilog.AspNetCore/10.0.0",
+      "runtime": [
+        "lib/net10.0/Serilog.AspNetCore.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Serilog.Extensions.Hosting/10.0.0",
+      "runtime": [
+        "lib/net10.0/Serilog.Extensions.Hosting.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Serilog.Extensions.Logging/10.0.0",
+      "runtime": [
+        "lib/net10.0/Serilog.Extensions.Logging.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Serilog.Formatting.Compact/3.0.0",
+      "runtime": [
+        "lib/net8.0/Serilog.Formatting.Compact.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Serilog.Settings.Configuration/10.0.1",
+      "runtime": [
+        "lib/net10.0/Serilog.Settings.Configuration.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Serilog.Sinks.Console/6.1.1",
+      "runtime": [
+        "lib/net8.0/Serilog.Sinks.Console.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Serilog.Sinks.Debug/3.0.0",
+      "runtime": [
+        "lib/net8.0/Serilog.Sinks.Debug.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Serilog.Sinks.File/7.0.0",
+      "runtime": [
+        "lib/net9.0/Serilog.Sinks.File.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Serilog/4.4.0",
+      "runtime": [
+        "lib/net10.0/Serilog.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Swashbuckle.AspNetCore.Swagger/10.2.3",
+      "runtime": [
+        "lib/net10.0/Swashbuckle.AspNetCore.Swagger.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Swashbuckle.AspNetCore.SwaggerGen/10.2.3",
+      "runtime": [
+        "lib/net10.0/Swashbuckle.AspNetCore.SwaggerGen.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "Swashbuckle.AspNetCore.SwaggerUI/10.2.3",
+      "runtime": [
+        "lib/net10.0/Swashbuckle.AspNetCore.SwaggerUI.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.CodeDom/6.0.0",
+      "runtime": [
+        "lib/net6.0/System.CodeDom.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.Composition.AttributedModel/9.0.0",
+      "runtime": [
+        "lib/net9.0/System.Composition.AttributedModel.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.Composition.Convention/9.0.0",
+      "runtime": [
+        "lib/net9.0/System.Composition.Convention.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.Composition.Hosting/9.0.0",
+      "runtime": [
+        "lib/net9.0/System.Composition.Hosting.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.Composition.Runtime/9.0.0",
+      "runtime": [
+        "lib/net9.0/System.Composition.Runtime.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.Composition.TypedParts/9.0.0",
+      "runtime": [
+        "lib/net9.0/System.Composition.TypedParts.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.Composition/9.0.0",
+      "runtime": [
+        "lib/netcoreapp2.0/_._"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.Configuration.ConfigurationManager/9.0.13",
+      "runtime": [
+        "lib/net9.0/System.Configuration.ConfigurationManager.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.IdentityModel.Tokens.Jwt/8.16.0",
+      "runtime": [
+        "lib/net10.0/System.IdentityModel.Tokens.Jwt.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "System.Security.Cryptography.Pkcs/9.0.13",
+      "runtime": [
+        "lib/net9.0/System.Security.Cryptography.Pkcs.dll"
+      ],
+      "runtimeTargets": [
+        "runtimes/win/lib/net9.0/System.Security.Cryptography.Pkcs.dll"
+      ]
+    },
+    {
+      "identity": "System.Security.Cryptography.ProtectedData/9.0.13",
+      "runtime": [
+        "lib/net9.0/System.Security.Cryptography.ProtectedData.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    },
+    {
+      "identity": "XmpCore/6.1.10.1",
+      "runtime": [
+        "lib/netstandard2.0/XmpCore.dll"
+      ],
+      "runtimeTargets": [
+        null
+      ]
+    }
+  ],
+  "limitations": [
+    "Base XML is generated but has no public member entries (107 upstream CS1591 warnings).",
+    "No Git revision is claimed; source-set digest identifies actual build inputs.",
+    "Real SQL/backup/restore/HTTP/browser/production acceptance is open.",
+    "Upstream sources are read-only; no pack/publish. HttpClientLibrary.dll unchanged."
+  ]
+}

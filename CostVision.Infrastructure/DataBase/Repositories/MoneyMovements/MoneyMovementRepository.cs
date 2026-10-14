@@ -7,11 +7,11 @@ using System.Linq.Expressions;
 namespace CostVision.Infrastructure.DataBase.Repositories.MoneyMovements
 {
     public class MoneyMovementRepository(
-        ICreateItemRepository<MoneyMovement, AppDbContextBase> createRepository,
-        IDeleteItemRepository<MoneyMovement, AppDbContextBase> deleteRepository,
-        IGetItemByIdRepository<MoneyMovement, Guid, AppDbContextBase> getItemByIdRepository,
-        IGetItemByPredicateRepository<MoneyMovement, AppDbContextBase> getItemByPredicateRepository,
-        IQueryRepository<MoneyMovement, AppDbContextBase> queryRepository) : IMoneyMovementRepository
+        IContextCreateItemRepository<MoneyMovement, CostVisionContextKey> createRepository,
+        IContextDeleteItemRepository<MoneyMovement, CostVisionContextKey> deleteRepository,
+        IContextGetItemByIdRepository<MoneyMovement, Guid, CostVisionContextKey> getItemByIdRepository,
+        IContextGetItemByPredicateRepository<MoneyMovement, CostVisionContextKey> getItemByPredicateRepository,
+        IContextQueryRepository<MoneyMovement, CostVisionContextKey> queryRepository) : IMoneyMovementRepository
     {
         public Task<MoneyMovement?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);

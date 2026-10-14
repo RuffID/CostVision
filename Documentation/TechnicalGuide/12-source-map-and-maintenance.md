@@ -11,7 +11,8 @@
 | `CostVision.Application/UseCases` | Правила доступа, создание, изменение, импорт и отчётность |
 | `CostVision.Application/Extensions/FinancialDataAccess.cs` | Область финансового чтения и композиция выражений доступа для use case |
 | `CostVision.Infrastructure/DataBase` | Контекст, конфигурации, репозитории и generated-миграции |
-| `CostVision.Infrastructure/Services` | Внешний API, преобразование, QR/PDF, backup и фоновые задачи |
+| `CostVision.Infrastructure/Services` | Внешний API, преобразование, QR/PDF, библиотечный maintenance startup/readiness/safe logger и фоновые задачи |
+| `libs` | Base/Maintenance/SqlServer DLL/XML, воспроизводимый manifest 08A и неизменённая HttpClientLibrary |
 | `CostVision.Web/Pages` | Razor-каркас и HTTP-обработчики |
 | `CostVision.Web/Web` | Авторизация, Options, middleware и HTTP-маппинг |
 | `CostVision.Web/wwwroot/ts` | Собственный клиентский код |

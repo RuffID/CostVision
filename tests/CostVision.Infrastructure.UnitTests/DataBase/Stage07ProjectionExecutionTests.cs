@@ -72,6 +72,8 @@ public class Stage07ProjectionExecutionTests
             new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
         await using AsyncServiceScope scope = provider.CreateAsyncScope();
         IReceiptRepository receipts = scope.ServiceProvider.GetRequiredService<IReceiptRepository>();
+        IProductRepository products = scope.ServiceProvider.GetRequiredService<IProductRepository>();
+        IStoreRepository stores = scope.ServiceProvider.GetRequiredService<IStoreRepository>();
         DateTime date = new(2026, 1, 15);
 
         // Act
@@ -80,17 +82,27 @@ public class Stage07ProjectionExecutionTests
         List<Guid> page = await receipts.GetProjectedItemsAsync(receipt => receipt.DateTime >= date,
             query => query.OrderByDescending(receipt => receipt.DateTime).ThenBy(receipt => receipt.Id)
                 .Skip(2).Take(1).Select(receipt => receipt.Id), token);
+        int productCount = await products.CountByPredicateAsync(product => product.NormalizedName == "TEST-PRODUCT", token);
+        int storeCount = await stores.CountByPredicateAsync(store => store.NormalizedName == "TEST-STORE", token);
 
         // Assert
         Assert.Equal(4, Assert.Single(count));
         Assert.Equal(id, Assert.Single(page));
-        Assert.Equal(2, sql.Count);
+        Assert.Equal(4, sql.Count);
+        Assert.Equal(4, productCount);
+        Assert.Equal(4, storeCount);
         Assert.Contains("COUNT(*)", sql[0]);
         Assert.Contains("WHERE", sql[0]);
         Assert.Contains("ORDER BY", sql[1]);
         Assert.Contains("OFFSET", sql[1]);
         Assert.Contains("FETCH NEXT", sql[1]);
         Assert.DoesNotContain("[RowVersion]", sql[1]);
+        Assert.Contains("COUNT(*)", sql[2]);
+        Assert.Contains("COUNT(*)", sql[3]);
+        Assert.Contains("WHERE", sql[2]);
+        Assert.Contains("WHERE", sql[3]);
+        Assert.Contains("TEST-PRODUCT", sql[2]);
+        Assert.Contains("TEST-STORE", sql[3]);
         Assert.Contains(date, values);
         Assert.Empty(scope.ServiceProvider.GetRequiredService<ApplicationContext>().ChangeTracker.Entries());
         connection.Verify(item => item.OpenAsync(It.IsAny<CancellationToken>()), Times.Never);

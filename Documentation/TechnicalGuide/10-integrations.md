@@ -30,9 +30,9 @@ Hosted service создаёт async scope на запуск, вызывает Re
 
 ## Локальные библиотеки
 
-В `libs` находятся `EFCoreLibrary.dll` и `HttpClientLibrary.dll`, подключённые через HintPath. Первая предоставляет базовые репозитории и адаптер контекста, вторая — HTTP-клиент, используемый Infrastructure.
+В `libs` находятся base EFCoreLibrary `0.0.5`, Maintenance и Maintenance.SqlServer `1.0.0` (фактические default версии upstream проектов), три XML и [manifest 08A](../../libs/efcorelibrary-delivery-08a.json). Все HintPath относительные; production не зависит от соседнего репозитория. HttpClientLibrary не обновлена и сохраняет прежний SHA-256.
 
-Исходники/XML/PDB библиотек в дереве проекта отсутствуют. В 08 добавлено [описание принятой поставки](../../libs/README.md): версии/хеши, metadata/используемые сигнатуры, compiled-зависимости и неизвестный upstream. IEntity не содержит DbContext, но сборка EFCoreLibrary ссылается на EF Core 10.0.3.0; project использует 10.0.10. Изолированные проверки подтверждают только конкретную поверхность, не универсальную совместимость. При обновлении проверять actual типы/defaults, DI/tracker/transactions и query/provider отдельно; скрытые retry или транзакционные гарантии не предполагаются.
+В [описании поставки](../../libs/README.md) зафиксированы источник, digest 71 build inputs, SDK/команды, версии/хеши DLL/XML и runtime dependency closure. EF Core/runtime/provider/Relational/Design/Tools согласованы на `10.0.12`, SqlClient `7.0.2`. Actual base metadata ссылается на EF `10.0.12.0`; IEntity не содержит DbContext, но Domain остаётся зависимым от всей DLL. Base XML не содержит public member entries и не объявляется полной документацией. Изолированные проверки actual DLL/DI/transactions/fake commands не являются SQL/Linux/runtime deployment-приёмкой.
 
 ## Граница проверки
 

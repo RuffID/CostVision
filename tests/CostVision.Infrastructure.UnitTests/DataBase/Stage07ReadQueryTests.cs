@@ -106,14 +106,14 @@ public class Stage07ReadQueryTests
     public void SuppliedDll_ListContractPreservesEntityTypeAndDoesNotExposeAggregates()
     {
         // Arrange
-        Type contract = typeof(IGetItemByPredicateRepository<Receipt, AppDbContextBase>);
+        Type contract = typeof(IGetItemByPredicateRepository<Receipt>);
 
         // Act
         MethodInfo list = contract.GetMethod("GetItemsByPredicateAsync")!;
         ParameterInfo[] parameters = list.GetParameters();
         Type queryContract = contract.Assembly.GetType(
-            "EFCoreLibrary.Abstractions.Database.Repository.Base.IQueryRepository`2", throwOnError: true)!
-            .MakeGenericType(typeof(Receipt), typeof(AppDbContextBase));
+            "EFCoreLibrary.Abstractions.Database.Repository.Base.IContextQueryRepository`2", throwOnError: true)!
+            .MakeGenericType(typeof(Receipt), typeof(CostVisionContextKey));
 
         // Assert
         Assert.Equal(typeof(Task<List<Receipt>>), list.ReturnType);
@@ -126,7 +126,8 @@ public class Stage07ReadQueryTests
         Assert.Equal(typeof(Func<IQueryable<Receipt>, IQueryable<Receipt>>), parameters[4].ParameterType);
         Assert.Equal(new[] { "GetItemByPredicateAsync", "GetItemsByPredicateAsync" },
             contract.GetMethods().Select(method => method.Name).OrderBy(name => name));
-        Assert.Equal(typeof(IQueryable<Receipt>), queryContract.GetMethod("Query")!.ReturnType);
+        Assert.Contains(typeof(IQueryRepository<Receipt>), queryContract.GetInterfaces());
+        Assert.Equal(typeof(IQueryable<Receipt>), typeof(IQueryRepository<Receipt>).GetMethod("Query")!.ReturnType);
         Assert.False(queryContract.IsAssignableFrom(typeof(IReceiptRepository)));
     }
 

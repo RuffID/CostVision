@@ -2,7 +2,7 @@
 
 ## Ответственность
 
-Интерфейсы описывают репозитории MoneyMovement и MoneyMovementReceipt.
+Интерфейсы описывают репозитории MoneyMovement и MoneyMovementReceipt и наследуют DLL CRUD/predicate-контракты без context key. EF/predicate/include/tracking сохранены по решению А.
 
 ## Контракты и границы
 

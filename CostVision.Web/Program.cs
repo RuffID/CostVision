@@ -33,12 +33,16 @@ if (builder.Environment.IsDevelopment())
     });
 }
 
-WebApplication app = builder.Build();
+await using WebApplication app = builder.Build();
 
 app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-await app.InitializeDatabaseAsync();
+if (!await app.InitializeDatabaseAsync(app.Lifetime.ApplicationStopping))
+{
+    Environment.ExitCode = 1;
+    return;
+}
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>
@@ -54,4 +58,4 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
