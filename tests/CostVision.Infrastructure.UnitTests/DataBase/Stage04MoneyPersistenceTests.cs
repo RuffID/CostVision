@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Data;
 using System.Globalization;
 using System.Linq.Expressions;
@@ -68,7 +69,7 @@ public class Stage04MoneyPersistenceTests
                     return Task.FromResult(new List<MoneyMovement>());
                 });
             movements.Setup(x => x.Create(It.IsAny<MoneyMovement>()));
-            Mock<IUnitOfWork> work = new(MockBehavior.Strict);
+            Mock<ITestStorage> work = new(MockBehavior.Strict);
             work.SetupGet(x => x.AccountMember).Returns(members.Object);
             work.SetupGet(x => x.MoneyMovement).Returns(movements.Object);
             work.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -76,7 +77,7 @@ public class Stage04MoneyPersistenceTests
                 It.IsAny<CancellationToken>())).Returns<Func<CancellationToken, Task>, IsolationLevel, CancellationToken>((action, isolation, ct) => action(ct));
 
             // Act
-            var result = await new ImportMoneyMovementsUseCase(work.Object).ExecuteAsync(new()
+            var result = await TestUseCaseFactory.CreateImportMoneyMovementsUseCase(work.Object).ExecuteAsync(new()
             {
                 AccountId = account.Id,
                 Rows = [new() { Amount = 123.45m, OccurredAt = new DateTime(2026, 10, 13),

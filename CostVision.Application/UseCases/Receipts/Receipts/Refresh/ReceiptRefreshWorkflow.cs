@@ -9,7 +9,7 @@ using System.Data;
 namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
 {
     public class ReceiptRefreshWorkflow(
-        IUnitOfWork unitOfWork,
+        IReceiptRefreshUnitOfWork unitOfWork,
         IExternalReceiptProvider externalReceiptProvider,
         TimeProvider timeProvider) : IReceiptRefreshWorkflow
     {

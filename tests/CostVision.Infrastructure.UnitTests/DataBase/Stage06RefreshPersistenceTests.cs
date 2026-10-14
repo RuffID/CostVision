@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -104,8 +105,8 @@ public class Stage06RefreshPersistenceTests
         // Act
         await using AsyncServiceScope first = provider.CreateAsyncScope();
         await using AsyncServiceScope second = provider.CreateAsyncScope();
-        IUnitOfWork firstWork = first.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        IUnitOfWork secondWork = second.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        IReceiptRefreshUnitOfWork firstWork = first.ServiceProvider.GetRequiredService<IReceiptRefreshUnitOfWork>();
+        IReceiptRefreshUnitOfWork secondWork = second.ServiceProvider.GetRequiredService<IReceiptRefreshUnitOfWork>();
         ApplicationContext firstContext = first.ServiceProvider.GetRequiredService<ApplicationContext>();
         ApplicationContext secondContext = second.ServiceProvider.GetRequiredService<ApplicationContext>();
         IReceiptRefreshWorkflow firstWorkflow = first.ServiceProvider.GetRequiredService<IReceiptRefreshWorkflow>();
@@ -117,7 +118,7 @@ public class Stage06RefreshPersistenceTests
         Assert.NotSame(firstContext, secondContext);
         Assert.NotSame(firstWorkflow, secondWorkflow);
         Assert.NotNull(pending);
-        Assert.Same(firstWork, first.ServiceProvider.GetRequiredService<IUnitOfWork>());
+        Assert.Same(firstWork, first.ServiceProvider.GetRequiredService<IReceiptRefreshUnitOfWork>());
         Assert.Equal(System.Data.ConnectionState.Closed, firstContext.Database.GetDbConnection().State);
         Assert.Equal(System.Data.ConnectionState.Closed, secondContext.Database.GetDbConnection().State);
     }
@@ -163,14 +164,14 @@ public class Stage06RefreshPersistenceTests
                 queries.Add(include(context.Set<Receipt>().AsNoTracking().Where(predicate)).Take(take!.Value).ToQueryString());
                 return include(new[] { receipt }.AsQueryable().Where(predicate)).Take(take.Value).ToList();
             });
-        Mock<IUnitOfWork> work = new(MockBehavior.Strict);
+        Mock<ITestStorage> work = new(MockBehavior.Strict);
         work.SetupGet(item => item.Receipt).Returns(repository.Object);
         Mock<IReceiptRefreshWorkflow> workflow = new(MockBehavior.Strict);
         workflow.Setup(item => item.RefreshScheduledAsync(It.IsAny<Receipt>(), It.IsAny<DateTime>(),
                 It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, "not available"));
         Mock<IServiceProvider> provider = new(MockBehavior.Strict);
-        provider.Setup(item => item.GetService(typeof(IUnitOfWork))).Returns(work.Object);
+        provider.Setup(item => item.GetService(typeof(IReceiptRepository))).Returns(repository.Object);
         provider.Setup(item => item.GetService(typeof(IReceiptRefreshWorkflow))).Returns(workflow.Object);
         Mock<IServiceScopeFactory> factory = new(MockBehavior.Strict);
         factory.Setup(item => item.CreateScope()).Returns(() =>

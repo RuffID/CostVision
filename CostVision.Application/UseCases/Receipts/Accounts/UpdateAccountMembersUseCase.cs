@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
-    public class UpdateAccountMembersUseCase(IUnitOfWork unitOfWork) : IUpdateAccountMembersUseCase
+    public class UpdateAccountMembersUseCase(IAccountMembershipUnitOfWork unitOfWork) : IUpdateAccountMembersUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(Guid accountId, Guid ownerUserId, IReadOnlyCollection<UpdateAccountMemberRequest> members, CancellationToken ct)
         {

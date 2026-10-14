@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
@@ -34,8 +35,8 @@ public class UpdateUserUseCaseTests
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
         passwordHasher.Setup(hasher => hasher.Hash("NewPassword1!")).Returns("new-hash");
 
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository, [newRoleId]);
-        UpdateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
+        Mock<ITestStorage> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository, [newRoleId]);
+        UpdateUserUseCase useCase = TestUseCaseFactory.CreateUpdateUserUseCase(unitOfWork.Object, passwordHasher.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
@@ -75,8 +76,8 @@ public class UpdateUserUseCaseTests
             .ReturnsAsync(user);
 
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository, [roleId]);
-        UpdateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
+        Mock<ITestStorage> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository, [roleId]);
+        UpdateUserUseCase useCase = TestUseCaseFactory.CreateUpdateUserUseCase(unitOfWork.Object, passwordHasher.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
@@ -115,8 +116,8 @@ public class UpdateUserUseCaseTests
             .ReturnsAsync(conflictUser);
 
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
-        UpdateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
+        Mock<ITestStorage> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
+        UpdateUserUseCase useCase = TestUseCaseFactory.CreateUpdateUserUseCase(unitOfWork.Object, passwordHasher.Object);
 
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
         {
@@ -144,7 +145,7 @@ public class UpdateUserUseCaseTests
             .ReturnsAsync((User?)null);
 
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        UpdateUserUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
+        UpdateUserUseCase useCase = TestUseCaseFactory.CreateUpdateUserUseCase(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
 
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
         {
@@ -163,7 +164,7 @@ public class UpdateUserUseCaseTests
     {
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        UpdateUserUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
+        UpdateUserUseCase useCase = TestUseCaseFactory.CreateUpdateUserUseCase(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
 
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
         {

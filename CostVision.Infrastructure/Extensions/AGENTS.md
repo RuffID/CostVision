@@ -6,6 +6,8 @@ Extension связывает Application с SQL Server, адаптерами EFC
 
 ## Контракты и границы
 
+Регистрировать один scoped IUnitOfWorkScope и узкие сценарные adapters. Оба DLL-адаптера IAppDbContext<ApplicationContext>/IAppDbContext<AppDbContextBase> используют один ApplicationContext; базовые репозитории и projection разделяют его tracker. Глобальный UoW не регистрируется.
+
 Не выполнять I/O при DI-регистрации. Сверять lifetime и ValidateOnStart; timeout HTTP 180 секунд не является timeout всего сценария.
 
 ## Проверка

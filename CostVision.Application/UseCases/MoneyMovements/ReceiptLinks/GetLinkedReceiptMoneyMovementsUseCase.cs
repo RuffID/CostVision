@@ -1,4 +1,6 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.MoneyMovements.Helpers;
@@ -10,7 +12,7 @@ using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class GetLinkedReceiptMoneyMovementsUseCase(IUnitOfWork unitOfWork) : IGetLinkedReceiptMoneyMovementsUseCase
+    public class GetLinkedReceiptMoneyMovementsUseCase(IReceiptRepository receiptRepository, IMoneyMovementReceiptRepository moneyMovementReceiptRepository) : IGetLinkedReceiptMoneyMovementsUseCase
     {
         public async Task<ServiceResult<List<ReceiptMoneyMovementDto>>> ExecuteAsync(Guid receiptId, Guid currentUserId, CancellationToken ct)
         {
@@ -21,7 +23,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             Expression<Func<Receipt, bool>> receiptPredicate = item => item.Id == receiptId;
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
+            Receipt? receipt = await receiptRepository.GetItemByPredicateAsync(
                 receiptPredicate.WithReceiptReadAccess(item => item, currentUserId),
                 asNoTracking: true,
                 include: query => query
@@ -37,7 +39,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             }
 
             Expression<Func<MoneyMovementReceipt, bool>> linkPredicate = link => link.ReceiptId == receiptId && link.MoneyMovement != null;
-            List<MoneyMovementReceipt> links = await unitOfWork.MoneyMovementReceipt.GetItemsByPredicateAsync(
+            List<MoneyMovementReceipt> links = await moneyMovementReceiptRepository.GetItemsByPredicateAsync(
                 linkPredicate.WithAccountReadAccess(link => link.MoneyMovement!.Account, currentUserId),
                 asNoTracking: true,
                 include: query => query

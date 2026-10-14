@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -41,7 +42,7 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([later, nearest]);
         ProjectedReadTestFactory.Configure(receiptRepository, () => new[] { later, nearest });
-        GetMoneyMovementReceiptCandidatesUseCase useCase = new(CreateUnitOfWork(
+        GetMoneyMovementReceiptCandidatesUseCase useCase = TestUseCaseFactory.CreateGetMoneyMovementReceiptCandidatesUseCase(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository).Object);
 
@@ -72,7 +73,7 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
                 It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(movement);
-        GetMoneyMovementReceiptCandidatesUseCase useCase = new(CreateUnitOfWork(moneyMovementRepository: moneyMovementRepository).Object);
+        GetMoneyMovementReceiptCandidatesUseCase useCase = new(moneyMovementRepository.Object, CreateReceiptRepository().Object);
 
         var result = await useCase.ExecuteAsync(new GetMoneyMovementReceiptCandidatesRequest
         {
@@ -114,7 +115,7 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([later, nearest]);
         ProjectedReadTestFactory.Configure(moneyMovementRepository, () => new[] { later, nearest });
-        GetReceiptMoneyMovementCandidatesUseCase useCase = new(CreateUnitOfWork(
+        GetReceiptMoneyMovementCandidatesUseCase useCase = TestUseCaseFactory.CreateGetReceiptMoneyMovementCandidatesUseCase(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository).Object);
 
@@ -144,7 +145,7 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(receipt);
-        GetReceiptMoneyMovementCandidatesUseCase useCase = new(CreateUnitOfWork(receiptRepository: receiptRepository).Object);
+        GetReceiptMoneyMovementCandidatesUseCase useCase = new(receiptRepository.Object, CreateMoneyMovementRepository().Object);
 
         var result = await useCase.ExecuteAsync(new GetReceiptMoneyMovementCandidatesRequest
         {

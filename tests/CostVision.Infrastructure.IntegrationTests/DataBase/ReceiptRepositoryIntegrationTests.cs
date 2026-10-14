@@ -1,3 +1,4 @@
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Infrastructure.IntegrationTests.DataBase.Seed;
@@ -18,9 +19,9 @@ public class ReceiptRepositoryIntegrationTests(SqlServerContainerFixture fixture
         TestDataIds ids = await seeder.SeedAsync(ct);
 
         await using ServiceProvider serviceProvider = fixture.CreateServiceProvider();
-        IUnitOfWork unitOfWork = serviceProvider.GetRequiredService<IUnitOfWork>();
+        IReceiptRepository receiptRepository = serviceProvider.GetRequiredService<IReceiptRepository>();
 
-        Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
+        Receipt? receipt = await receiptRepository.GetItemByPredicateAsync(
             x => x.Id == ids.ReceiptId,
             asNoTracking: true,
             include: query => query

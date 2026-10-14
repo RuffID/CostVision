@@ -7,14 +7,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class DeleteMoneyMovementUseCase(IUnitOfWork unitOfWork) : IDeleteMoneyMovementUseCase
+    public class DeleteMoneyMovementUseCase(IMoneyMovementRemovalUnitOfWork unitOfWork) : IDeleteMoneyMovementUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(DeleteMoneyMovementRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.MoneyMovementId == Guid.Empty)
                 return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции.");
 
-            ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId, currentUserId, ct);
+            ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork.AccountMember, request.AccountId, currentUserId, ct);
             if (!access.Success)
                 return access.PropagateFailure();
 

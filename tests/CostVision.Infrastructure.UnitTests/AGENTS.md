@@ -6,6 +6,8 @@
 
 ## Контракты и границы
 
+После 07A фикстуры передают actual use case минимальные constructor-зависимости через TestUseCaseFactory. ITestStorage остаётся только набором test mocks; технические Save/transaction callbacks общие, production-контракта со всеми repositories нет.
+
 Сохранять изоляцию от рабочей БД, внешней сети и процессов. Свойства реального SQL и внешнего API этими тестами не подтверждаются.
 
 ## Проверка

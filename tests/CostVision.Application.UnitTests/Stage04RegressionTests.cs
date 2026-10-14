@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Data;
 using System.Globalization;
 using System.Linq.Expressions;
@@ -45,7 +46,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
             };
 
             // Act
-            ServiceResult<BankStatementImportResultDto> result = await new ImportMoneyMovementsUseCase(fixture.Work.Object)
+            ServiceResult<BankStatementImportResultDto> result = await TestUseCaseFactory.CreateImportMoneyMovementsUseCase(fixture.Work.Object)
                 .ExecuteAsync(request, fixture.UserId, TestContext.Current.CancellationToken);
 
             // Assert
@@ -197,7 +198,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         fixture.Receipts.Add(fixture.Receipt());
 
         // Act
-        ServiceResult<int> result = await new AutoLinkExactMoneyMovementReceiptsUseCase(fixture.Work.Object)
+        ServiceResult<int> result = await TestUseCaseFactory.CreateAutoLinkExactMoneyMovementReceiptsUseCase(fixture.Work.Object)
             .ExecuteAsync(fixture.UserId, fixture.Date, fixture.Date, null, TestContext.Current.CancellationToken);
 
         // Assert
@@ -225,7 +226,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         fixture.Receipts.Add(receipt);
 
         // Act
-        ServiceResult result = await new MoveMoneyMovementToAccountUseCase(fixture.Work.Object).ExecuteAsync(new()
+        ServiceResult result = await TestUseCaseFactory.CreateMoveMoneyMovementToAccountUseCase(fixture.Work.Object).ExecuteAsync(new()
         {
             MoneyMovementId = movement.Id,
             SourceAccountId = fixture.Account.Id,
@@ -257,7 +258,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         fixture.Receipts.Add(receipt);
 
         // Act
-        ServiceResult result = await new MoveReceiptToAccountUseCase(fixture.Work.Object)
+        ServiceResult result = await TestUseCaseFactory.CreateMoveReceiptToAccountUseCase(fixture.Work.Object)
             .ExecuteAsync(fixture.Account.Id, fixture.Target.Id, receipt.Id, fixture.UserId, TestContext.Current.CancellationToken);
 
         // Assert
@@ -325,7 +326,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
             Rows = [CreatePreviewRow(fixture.Date, 123.45m, " purchase "), CreatePreviewRow(fixture.Date, 123.450m, "purchase")]
         };
         Mock<IBankStatementParser> parser = CreateParser("test", preview);
-        PreviewBankStatementImportUseCase useCase = new(fixture.Work.Object,
+        PreviewBankStatementImportUseCase useCase = TestUseCaseFactory.CreatePreviewBankStatementImportUseCase(fixture.Work.Object,
             CreateParserRegistry(parser.Object).Object, CreatePdfTextExtractor(["text"]).Object);
         CultureInfo previous = CultureInfo.CurrentCulture;
         try
@@ -405,7 +406,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         }
 
         // Act
-        ServiceResult<int> result = await new AutoLinkExactMoneyMovementReceiptsUseCase(fixture.Work.Object)
+        ServiceResult<int> result = await TestUseCaseFactory.CreateAutoLinkExactMoneyMovementReceiptsUseCase(fixture.Work.Object)
             .ExecuteAsync(fixture.UserId, fixture.Date, fixture.Date, null, TestContext.Current.CancellationToken);
 
         // Assert
@@ -430,7 +431,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         }
 
         // Act
-        ServiceResult<MoneyMovementDto> result = await new CreateMoneyMovementUseCase(fixture.Work.Object).ExecuteAsync(new()
+        ServiceResult<MoneyMovementDto> result = await TestUseCaseFactory.CreateCreateMoneyMovementUseCase(fixture.Work.Object).ExecuteAsync(new()
         {
             AccountId = fixture.Account.Id, Amount = 100, Type = MoneyMovementType.Expense, OccurredAt = fixture.Date
         }, fixture.UserId, TestContext.Current.CancellationToken);
@@ -459,7 +460,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         TestMoneyMovementFactory.CreateLink(movement, first);
 
         // Act
-        ServiceResult result = await new LinkMoneyMovementReceiptUseCase(fixture.Work.Object).ExecuteAsync(new()
+        ServiceResult result = await TestUseCaseFactory.CreateLinkMoneyMovementReceiptUseCase(fixture.Work.Object).ExecuteAsync(new()
         {
             MoneyMovementId = movement.Id, ReceiptId = second.Id
         }, fixture.UserId, TestContext.Current.CancellationToken);
@@ -485,7 +486,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         fixture.Receipts.Add(receipt);
 
         // Act
-        ServiceResult result = await new MoveReceiptToAccountUseCase(fixture.Work.Object).ExecuteAsync(fixture.Account.Id,
+        ServiceResult result = await TestUseCaseFactory.CreateMoveReceiptToAccountUseCase(fixture.Work.Object).ExecuteAsync(fixture.Account.Id,
             fixture.Target.Id, receipt.Id, fixture.UserId, TestContext.Current.CancellationToken);
 
         // Assert
@@ -507,7 +508,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         fixture.Saved.AddRange([movement, duplicate]);
 
         // Act
-        ServiceResult result = await new MoveMoneyMovementToAccountUseCase(fixture.Work.Object).ExecuteAsync(new()
+        ServiceResult result = await TestUseCaseFactory.CreateMoveMoneyMovementToAccountUseCase(fixture.Work.Object).ExecuteAsync(new()
         {
             MoneyMovementId = movement.Id, SourceAccountId = fixture.Account.Id, TargetAccountId = fixture.Target.Id
         }, fixture.UserId, TestContext.Current.CancellationToken);
@@ -531,11 +532,11 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         fixture.Receipts.Add(receipt);
 
         // Act
-        ServiceResult moneyResult = await new MoveMoneyMovementToAccountUseCase(fixture.Work.Object).ExecuteAsync(new()
+        ServiceResult moneyResult = await TestUseCaseFactory.CreateMoveMoneyMovementToAccountUseCase(fixture.Work.Object).ExecuteAsync(new()
         {
             MoneyMovementId = movement.Id, SourceAccountId = fixture.Account.Id, TargetAccountId = fixture.Target.Id
         }, fixture.UserId, TestContext.Current.CancellationToken);
-        ServiceResult receiptResult = await new MoveReceiptToAccountUseCase(fixture.Work.Object).ExecuteAsync(
+        ServiceResult receiptResult = await TestUseCaseFactory.CreateMoveReceiptToAccountUseCase(fixture.Work.Object).ExecuteAsync(
             fixture.Account.Id, fixture.Target.Id, receipt.Id, fixture.UserId, TestContext.Current.CancellationToken);
 
         // Assert
@@ -589,7 +590,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         fixture.Receipts.Add(receipt);
 
         // Act
-        ServiceResult<int> result = await new AutoLinkExactMoneyMovementReceiptsUseCase(fixture.Work.Object)
+        ServiceResult<int> result = await TestUseCaseFactory.CreateAutoLinkExactMoneyMovementReceiptsUseCase(fixture.Work.Object)
             .ExecuteAsync(fixture.UserId, fixture.Date, fixture.Date, null, TestContext.Current.CancellationToken);
 
         // Assert
@@ -628,7 +629,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
         public DateTime Date { get; } = new(2026, 10, 13, 12, 30, 0);
         public Account Account { get; }
         public Account Target { get; }
-        public Mock<IUnitOfWork> Work { get; } = new(MockBehavior.Strict);
+        public Mock<ITestStorage> Work { get; } = new(MockBehavior.Strict);
         public List<MoneyMovement> Saved { get; } = [];
         public List<MoneyMovement> Created { get; } = [];
         public List<Receipt> Receipts { get; } = [];
@@ -770,7 +771,7 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
 
         public Task<ServiceResult<BankStatementImportResultDto>> Import(params BankStatementImportRowRequest[] rows)
         {
-            return new ImportMoneyMovementsUseCase(Work.Object).ExecuteAsync(new()
+            return TestUseCaseFactory.CreateImportMoneyMovementsUseCase(Work.Object).ExecuteAsync(new()
             {
                 AccountId = Account.Id, Rows = rows.ToList()
             }, UserId, TestContext.Current.CancellationToken);

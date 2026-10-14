@@ -73,7 +73,21 @@ namespace CostVision.Infrastructure.Extensions
             services.AddSingleton<IReceiptRefreshBackgroundScheduler, MidnightReceiptRefreshBackgroundScheduler>();
             services.AddHostedService<ReceiptRefreshBackgroundService>();
 
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IUnitOfWorkScope, UnitOfWorkScope>();
+            services.AddScoped<IUserManagementUnitOfWork, UserManagementUnitOfWork>();
+            services.AddScoped<IAccountCreationUnitOfWork, AccountCreationUnitOfWork>();
+            services.AddScoped<IAccountMembershipUnitOfWork, AccountMembershipUnitOfWork>();
+            services.AddScoped<IReceiptCreationUnitOfWork, ReceiptCreationUnitOfWork>();
+            services.AddScoped<IReceiptTransferUnitOfWork, ReceiptTransferUnitOfWork>();
+            services.AddScoped<IReceiptRemovalUnitOfWork, ReceiptRemovalUnitOfWork>();
+            services.AddScoped<IReceiptRefreshUnitOfWork, ReceiptRefreshUnitOfWork>();
+            services.AddScoped<IProductNamingUnitOfWork, ProductNamingUnitOfWork>();
+            services.AddScoped<IStoreNamingUnitOfWork, StoreNamingUnitOfWork>();
+            services.AddScoped<IBankStatementImportUnitOfWork, BankStatementImportUnitOfWork>();
+            services.AddScoped<IMoneyMovementEditUnitOfWork, MoneyMovementEditUnitOfWork>();
+            services.AddScoped<IMoneyMovementRemovalUnitOfWork, MoneyMovementRemovalUnitOfWork>();
+            services.AddScoped<IReceiptLinkUnitOfWork, ReceiptLinkUnitOfWork>();
+            services.AddScoped<IReceiptReconciliationUnitOfWork, ReceiptReconciliationUnitOfWork>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IAccountRepository, AccountRepository>();

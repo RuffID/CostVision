@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -29,7 +30,7 @@ public class GetUserAccountsUseCaseTests
         Assert.NotNull(membership);
         List<AccountMember> memberships = [membership];
         List<Account> accounts = [account];
-        GetUserAccountsUseCase useCase = new(CreateUnitOfWork(memberships, accounts).Object);
+        GetUserAccountsUseCase useCase = TestUseCaseFactory.CreateGetUserAccountsUseCase(CreateUnitOfWork(memberships, accounts).Object);
 
         ServiceResult<List<UserAccountViewModel>> result = await useCase.ExecuteAsync(userId, includeArchived: false, CancellationToken.None);
 
@@ -48,7 +49,7 @@ public class GetUserAccountsUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsEmptyList_WhenUserHasNoMemberships()
     {
-        GetUserAccountsUseCase useCase = new(CreateUnitOfWork([], []).Object);
+        GetUserAccountsUseCase useCase = TestUseCaseFactory.CreateGetUserAccountsUseCase(CreateUnitOfWork([], []).Object);
 
         ServiceResult<List<UserAccountViewModel>> result = await useCase.ExecuteAsync(Guid.NewGuid(), includeArchived: false, CancellationToken.None);
 
@@ -56,7 +57,7 @@ public class GetUserAccountsUseCaseTests
         Assert.Empty(result.Data);
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(List<AccountMember> memberships, List<Account> accounts)
+    private static Mock<ITestStorage> CreateUnitOfWork(List<AccountMember> memberships, List<Account> accounts)
     {
         Mock<IAccountMemberRepository> accountMemberRepository = new(MockBehavior.Strict);
         accountMemberRepository
@@ -80,7 +81,7 @@ public class GetUserAccountsUseCaseTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(accounts);
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.AccountMember).Returns(accountMemberRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         return unitOfWork;

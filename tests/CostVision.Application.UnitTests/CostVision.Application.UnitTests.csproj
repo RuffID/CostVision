@@ -25,4 +25,9 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\ITestStorage.cs" Link="ITestStorage.cs" />
+    <Compile Include="..\TestUseCaseFactory.cs" Link="TestUseCaseFactory.cs" />
+  </ItemGroup>
+
 </Project>

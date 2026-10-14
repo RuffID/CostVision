@@ -2,7 +2,7 @@
 
 ## Ответственность
 
-UnitOfWork агрегирует репозитории общего контекста и реализует сохранение, transaction, commit и rollback.
+UnitOfWorkScope владеет сохранением, transaction, commit/rollback и общим флагом отказа. ScenarioUnitOfWork делегирует технические операции; 14 узких adapters предоставляют только репозитории своего сценария.
 
 ## Контракты и границы
 
@@ -10,7 +10,7 @@ UnitOfWork агрегирует репозитории общего контек
 
 Перегрузка транзакции с IsolationLevel передаёт изоляцию в DatabaseFacade реального IAppDbContext<ApplicationContext> и не сохраняет автоматически. Прежняя перегрузка остаётся с автоматическим SaveChanges. SQL Server 2601/2627 преобразуются в ReceiptWriteConflictException для известного author identity index/PK_ReceiptAccounts и отдельно для IX_Products_NormalizedName/IX_Stores_NormalizedName_NormalizedAddress. AdaptiveName и неизвестные ограничения не входят в классификацию. Имя в значении ключа не считается именем ограничения. SQL Server 1205 внутри явной транзакции возвращается как отдельный конкурентный отказ, без скрытого повтора. DbUpdateConcurrencyException распространяется до workflow для Conflict; явная транзакция блокирует дальнейшее сохранение после любого отказа.
 
-После ошибки явной транзакции scope нельзя использовать для следующего сохранения: rollback не сбрасывает change tracker. Повтор SaveChanges или явной транзакции даёт fail-fast. Подставное DbConnection проверяет вызов API и rollback, но не диапазонные блокировки SQL Server.
+Все adapters одного DI scope делегируют одному UnitOfWorkScope; у них нет отдельных контекстов или флагов. Вложенная/конкурирующая транзакция отвергается до второго Begin. Даже перехваченный внутри action отказ Save не позволяет commit. После ошибки сохранения или транзакции scope нельзя использовать для следующего сохранения: rollback не сбрасывает change tracker. Повтор SaveChanges или любой перегрузки транзакции через другую обёртку даёт fail-fast. Новый DI scope независим. Подставное DbConnection проверяет вызов API и rollback, но не диапазонные блокировки SQL Server.
 
 ProjectedReadQuery применяет predicate к IQueryRepository<TEntity, AppDbContextBase>.Query(asNoTracking: true) и материализует переданную проекцию через ToListAsync(ct). Он не выбирает бизнес-фильтры, не исполняет SQL вручную и не создаёт контекст; адаптеры используют ту же scoped-сессию DLL.
 

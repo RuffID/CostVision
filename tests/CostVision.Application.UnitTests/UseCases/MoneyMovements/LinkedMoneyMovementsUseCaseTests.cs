@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -44,7 +45,7 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<MoneyMovementReceipt>, IQueryable<MoneyMovementReceipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([oldLink, newLink]);
-        GetLinkedMoneyMovementReceiptsUseCase useCase = new(CreateUnitOfWork(
+        GetLinkedMoneyMovementReceiptsUseCase useCase = TestUseCaseFactory.CreateGetLinkedMoneyMovementReceiptsUseCase(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             moneyMovementReceiptRepository: linkRepository).Object);
 
@@ -79,7 +80,7 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<MoneyMovementReceipt>, IQueryable<MoneyMovementReceipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        GetLinkedMoneyMovementReceiptsUseCase useCase = new(CreateUnitOfWork(
+        GetLinkedMoneyMovementReceiptsUseCase useCase = TestUseCaseFactory.CreateGetLinkedMoneyMovementReceiptsUseCase(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             moneyMovementReceiptRepository: linkRepository).Object);
 
@@ -119,7 +120,7 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<MoneyMovementReceipt>, IQueryable<MoneyMovementReceipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([oldLink, newLink]);
-        GetLinkedReceiptMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
+        GetLinkedReceiptMoneyMovementsUseCase useCase = TestUseCaseFactory.CreateGetLinkedReceiptMoneyMovementsUseCase(CreateUnitOfWork(
             receiptRepository: receiptRepository,
             moneyMovementReceiptRepository: linkRepository).Object);
 
@@ -140,7 +141,7 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((Receipt?)null);
-        GetLinkedReceiptMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
+        GetLinkedReceiptMoneyMovementsUseCase useCase = TestUseCaseFactory.CreateGetLinkedReceiptMoneyMovementsUseCase(CreateUnitOfWork(
             receiptRepository: receiptRepository,
             moneyMovementReceiptRepository: CreateMoneyMovementReceiptRepository()).Object);
 
@@ -174,7 +175,7 @@ public class LinkedMoneyMovementsUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<MoneyMovementReceipt>, IQueryable<MoneyMovementReceipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        GetLinkedReceiptMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
+        GetLinkedReceiptMoneyMovementsUseCase useCase = TestUseCaseFactory.CreateGetLinkedReceiptMoneyMovementsUseCase(CreateUnitOfWork(
             receiptRepository: receiptRepository,
             moneyMovementReceiptRepository: linkRepository).Object);
 

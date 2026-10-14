@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.UseCases.MoneyMovements;
@@ -29,7 +30,7 @@ public class GetMoneyMovementAccountsUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<Account>, IQueryable<Account>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([bAccount, aAccount]);
-        GetMoneyMovementAccountsUseCase useCase = new(CreateUnitOfWork(accountRepository: accountRepository).Object);
+        GetMoneyMovementAccountsUseCase useCase = TestUseCaseFactory.CreateGetMoneyMovementAccountsUseCase(CreateUnitOfWork(accountRepository: accountRepository).Object);
 
         var result = await useCase.ExecuteAsync(userId, CancellationToken.None);
 

@@ -168,7 +168,7 @@ public sealed class TestWebApplication : IDisposable
         services.AddSingleton<IMarkUserActivityUseCase>(MarkUserActivity);
         services.AddSingleton<IGetDashboardIncomeExpenseReportUseCase, FakeDashboardIncomeExpenseReportUseCase>();
         services.AddSingleton<IGetUserAccountsUseCase, FakeGetUserAccountsUseCase>();
-        services.AddSingleton(CreateUnitOfWork());
+        services.AddSingleton(CreateUserRepository());
 
         services.AddRazorPages()
             .AddApplicationPart(typeof(LoginModel).Assembly);
@@ -197,7 +197,7 @@ public sealed class TestWebApplication : IDisposable
         });
     }
 
-    private IUnitOfWork CreateUnitOfWork()
+    private IUserRepository CreateUserRepository()
     {
         Mock<IUserRepository> userRepository = new();
         userRepository
@@ -209,10 +209,7 @@ public sealed class TestWebApplication : IDisposable
             .ReturnsAsync((Guid id, bool _, Func<IQueryable<User>, IQueryable<User>>? _, CancellationToken _) =>
                 id == ActiveUser.Id ? ActiveUser : null);
 
-        Mock<IUnitOfWork> unitOfWork = new();
-        unitOfWork.SetupGet(current => current.User).Returns(userRepository.Object);
-
-        return unitOfWork.Object;
+        return userRepository.Object;
     }
 
     private static string GetWebProjectPath()

@@ -6,6 +6,8 @@
 
 ## Контракты и границы
 
+Stage07aUnitOfWorkTests выполняет actual AddApplication/AddInfrastructure/DLL без hosting: все узкие adapters, общий tracker, независимые scopes, token/owner/isolation, auto/explicit Save, промежуточный ID, rollback и fail-fast через другую обёртку. RecordingContext и DbConnection/DbTransaction подставные: generated ID и Save наблюдаются без SQL. Перехваченный отказ и конкурирующая/вложенная транзакция не допускают commit. Эти результаты не доказывают реальный SQL rollback, EF fixup или отсутствие гонки.
+
 Это проверка построенной модели, не миграции и не фактической уникальности SQL. Изменение relationship согласовать с интеграционными сценариями.
 
 Stage04MoneyPersistenceTests подтверждает отсутствие уникального импортного ключа, составной PK денежной связи и precision/длину полей. Реальный предикат ImportMoneyMovements переводится через ToQueryString в ru-RU/en-US без выполнения SQL. Эти проверки не подтверждают диапазонные блокировки, фактическую схему, колляцию или отсутствие конкурентного дубля.

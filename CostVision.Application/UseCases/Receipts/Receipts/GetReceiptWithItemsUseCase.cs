@@ -1,4 +1,5 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.Service.Receipts;
 using CostVision.Application.Models.Dtos.Mappers;
 using CostVision.Application.Models.Dtos.Receipts;
@@ -10,7 +11,7 @@ using CostVision.Application.Extensions;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
-    public class GetReceiptWithItemsUseCase(IUnitOfWork unitOfWork, IReceiptAccessVerificationService accessVerification) : IGetReceiptWithItemsUseCase
+    public class GetReceiptWithItemsUseCase(IReceiptRepository receiptRepository, IReceiptAccessVerificationService accessVerification) : IGetReceiptWithItemsUseCase
     {
         public async Task<ServiceResult<ReceiptDto>> ExecuteAsync(Guid receiptId, User currentUser, CancellationToken ct)
         {
@@ -19,7 +20,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор чека.");
             }
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
+            Receipt? receipt = await receiptRepository.GetItemByPredicateAsync(
                 receipt => receipt.Id == receiptId,
                 asNoTracking: false,
                 include: query => query
@@ -48,7 +49,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.Forbidden, "Нет доступа к этому чеку.");
             }
 
-            ReceiptDto dto = await ReceiptDocumentReportProjection.MapAsync(unitOfWork, receipt, currentUser.Id, ct);
+            ReceiptDto dto = await ReceiptDocumentReportProjection.MapAsync(receiptRepository, receipt, currentUser.Id, ct);
             return ServiceResult<ReceiptDto>.Ok(dto);
         }
     }

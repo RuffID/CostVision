@@ -119,17 +119,10 @@ public class RefreshPendingReceiptsUseCaseTests
         return receiptRepository;
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository)
-    {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
-        unitOfWork.Setup(item => item.Receipt).Returns(receiptRepository.Object);
-        return unitOfWork;
-    }
-
     private static IServiceScopeFactory CreateScopeFactory(Mock<IReceiptRepository> receipts, Mock<IReceiptRefreshWorkflow> workflow)
     {
         Mock<IServiceProvider> provider = new(MockBehavior.Strict);
-        provider.Setup(item => item.GetService(typeof(IUnitOfWork))).Returns(CreateUnitOfWork(receipts).Object);
+        provider.Setup(item => item.GetService(typeof(IReceiptRepository))).Returns(receipts.Object);
         provider.Setup(item => item.GetService(typeof(IReceiptRefreshWorkflow))).Returns(workflow.Object);
         Mock<IServiceScopeFactory> factory = new(MockBehavior.Strict);
         factory.Setup(item => item.CreateScope()).Returns(() =>

@@ -6,6 +6,8 @@
 
 ## Контракты и границы
 
+Создание использует IAccountCreationUnitOfWork, участники — IAccountMembershipUnitOfWork, перенос — IReceiptTransferUnitOfWork, отвязка — IReceiptRemovalUnitOfWork. Детали счёта получают Account + IUnitOfWorkScope; read-only и валидатор создания получают минимальные repositories напрямую.
+
 Не понижать владельца; Viewer не получает изменения. ValidateReceiptCreationAccess загружает Account участника и запрещает добавление чеков в архив до создания/привязки. Чтение истории и её изменение не получают этот запрет автоматически. Перенос/отвязка собственного чека и изменение общего счёта имеют разные права.
 
 GetUserAccounts читает счета через область FinancialDataAccess с Members и CreatedByUser. Роль определяется общим GetRequiredAccountRole, без предварительного отсеивания владельца по отдельному списку membership и без запасного Owner; несогласованная owner membership — явная ошибка инварианта.

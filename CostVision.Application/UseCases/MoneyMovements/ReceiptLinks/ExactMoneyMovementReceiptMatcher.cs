@@ -1,4 +1,6 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Extensions;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Enums.MoneyMovements;
@@ -14,10 +16,10 @@ internal static class ExactMoneyMovementReceiptMatcher
 {
     // Все чтения выполняются вызывающим сценарием внутри Serializable до записи связей.
     public static async Task<List<MoneyMovementReceipt>> LoadAndBuildAsync(
-        IUnitOfWork unitOfWork, Guid currentUserId, DateTime periodStart, DateTime periodEnd,
+        IMoneyMovementRepository moneyMovementRepository, IReceiptRepository receiptRepository, Guid currentUserId, DateTime periodStart, DateTime periodEnd,
         Guid? accountId, Guid? onlyMovementId, CancellationToken ct)
     {
-        List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
+        List<MoneyMovement> movements = await moneyMovementRepository.GetItemsByPredicateAsync(
             movement => movement.OccurredAt >= periodStart && movement.OccurredAt < periodEnd &&
                 movement.Type == MoneyMovementType.Expense && !movement.ReceiptLinks.Any() &&
                 (!accountId.HasValue || movement.AccountId == accountId.Value) &&
@@ -36,7 +38,7 @@ internal static class ExactMoneyMovementReceiptMatcher
             receipt.DateTime >= periodStart && receipt.DateTime < periodEnd &&
             receipt.OperationType == ReceiptOperationType.Income && !receipt.MoneyMovementLinks.Any() &&
             (!accountId.HasValue || receipt.Accounts.Any(link => link.AccountId == accountId.Value));
-        List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
+        List<Receipt> receipts = await receiptRepository.GetItemsByPredicateAsync(
             receiptPredicate.WithReceiptReadAccess(receipt => receipt, currentUserId), asNoTracking: true,
             include: query => query.Include(receipt => receipt.Accounts).ThenInclude(link => link.Account)
                 .ThenInclude(account => account!.Members).Include(receipt => receipt.MoneyMovementLinks).AsSplitQuery(), ct: ct);

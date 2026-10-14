@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -65,13 +66,13 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(
             accountMemberRepository: accountMemberRepository,
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository,
             setupSaveChanges: true,
             setupTransaction: true);
-        CreateMoneyMovementUseCase useCase = new(unitOfWork.Object);
+        CreateMoneyMovementUseCase useCase = TestUseCaseFactory.CreateCreateMoneyMovementUseCase(unitOfWork.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new CreateMoneyMovementRequest
@@ -154,7 +155,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         Mock<IMoneyMovementReceiptRepository> linkRepository = CreateMoneyMovementReceiptRepository();
         linkRepository.Setup(repository => repository.CreateRange(It.IsAny<IEnumerable<MoneyMovementReceipt>>()))
             .Callback<IEnumerable<MoneyMovementReceipt>>(links => createdLink = Assert.Single(links));
-        CreateMoneyMovementUseCase useCase = new(CreateUnitOfWork(
+        CreateMoneyMovementUseCase useCase = TestUseCaseFactory.CreateCreateMoneyMovementUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             moneyMovementReceiptRepository: linkRepository,
@@ -187,7 +188,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         Mock<IAccountMemberRepository> accountMemberRepository = expectedErrorType == ServiceErrorType.NotFound
             ? CreateAccountMemberRepositorySequence([(AccountMember?)null])
             : CreateAccountMemberRepositorySequence([]);
-        CreateMoneyMovementUseCase useCase = new(CreateUnitOfWork(
+        CreateMoneyMovementUseCase useCase = TestUseCaseFactory.CreateCreateMoneyMovementUseCase(CreateUnitOfWork(
             accountMemberRepository: accountMemberRepository,
             moneyMovementRepository: CreateMoneyMovementRepository()).Object);
 
@@ -211,7 +212,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         [
             CreateMember(accountId, userId, AccountAccessRole.Viewer)
         ]);
-        CreateMoneyMovementUseCase useCase = new(CreateUnitOfWork(
+        CreateMoneyMovementUseCase useCase = TestUseCaseFactory.CreateCreateMoneyMovementUseCase(CreateUnitOfWork(
             accountMemberRepository: accountMemberRepository,
             moneyMovementRepository: CreateMoneyMovementRepository()).Object);
 
@@ -229,7 +230,7 @@ public class CreateMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task CreateMoneyMovement_ReturnsBadRequest_WhenDateIsDefault()
     {
-        CreateMoneyMovementUseCase useCase = new(CreateUnitOfWork(
+        CreateMoneyMovementUseCase useCase = TestUseCaseFactory.CreateCreateMoneyMovementUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([]),
             moneyMovementRepository: CreateMoneyMovementRepository()).Object);
 

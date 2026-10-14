@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Application.UseCases.Authorize.Users;
@@ -20,8 +21,8 @@ public class ToggleUserActiveUseCaseTests
             .Setup(repository => repository.GetItemByIdAsync(userId, It.IsAny<bool>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
-        ToggleUserActiveUseCase useCase = new(unitOfWork.Object);
+        Mock<ITestStorage> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
+        ToggleUserActiveUseCase useCase = TestUseCaseFactory.CreateToggleUserActiveUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(userId, CancellationToken.None);
 
@@ -42,7 +43,7 @@ public class ToggleUserActiveUseCaseTests
             .Setup(repository => repository.GetItemByIdAsync(userId, It.IsAny<bool>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
-        ToggleUserActiveUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object);
+        ToggleUserActiveUseCase useCase = TestUseCaseFactory.CreateToggleUserActiveUseCase(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object);
 
         var result = await useCase.ExecuteAsync(userId, CancellationToken.None);
 
@@ -60,7 +61,7 @@ public class ToggleUserActiveUseCaseTests
             .Setup(repository => repository.GetItemByIdAsync(userId, It.IsAny<bool>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
-        ToggleUserActiveUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object);
+        ToggleUserActiveUseCase useCase = TestUseCaseFactory.CreateToggleUserActiveUseCase(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object);
 
         var result = await useCase.ExecuteAsync(userId, CancellationToken.None);
 

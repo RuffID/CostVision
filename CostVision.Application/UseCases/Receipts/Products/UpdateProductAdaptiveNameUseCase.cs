@@ -7,7 +7,7 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.Receipts.Products
 {
-    public class UpdateProductAdaptiveNameUseCase(IUnitOfWork unitOfWork) : IUpdateProductAdaptiveNameUseCase
+    public class UpdateProductAdaptiveNameUseCase(IProductNamingUnitOfWork unitOfWork) : IUpdateProductAdaptiveNameUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(UpdateProductAdaptiveNameRequest request, Guid currentUserId, CancellationToken ct)
         {

@@ -1,4 +1,5 @@
 ﻿using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
@@ -8,7 +9,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     internal static class MoneyMovementAccountAccessValidator
     {
-        public static async Task<ServiceResult<AccountMember>> GetEditableAccountMemberAsync(IUnitOfWork unitOfWork, Guid accountId, Guid currentUserId, CancellationToken ct, bool requireActive = false)
+        public static async Task<ServiceResult<AccountMember>> GetEditableAccountMemberAsync(IAccountMemberRepository accountMemberRepository, Guid accountId, Guid currentUserId, CancellationToken ct, bool requireActive = false)
         {
             if (accountId == Guid.Empty)
             {
@@ -21,7 +22,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 include = query => query.Include(member => member.Account);
             }
 
-            AccountMember? membership = await unitOfWork.AccountMember.GetItemByPredicateAsync(
+            AccountMember? membership = await accountMemberRepository.GetItemByPredicateAsync(
                 member => member.AccountId == accountId && member.UserId == currentUserId,
                 asNoTracking: true,
                 include: include,

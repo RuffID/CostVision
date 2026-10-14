@@ -1,4 +1,5 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Application.Abstractions.Service.Authorize;
 using CostVision.Application.Models.Dtos.Authorization;
 using CostVision.Domain.Models.Authorization;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Authorize.Authentication
 {
-    public class AuthenticateUserUseCase(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher) : IAuthenticateUserUseCase
+    public class AuthenticateUserUseCase(IUnitOfWorkScope unitOfWork, IUserRepository userRepository, IPasswordHasher passwordHasher) : IAuthenticateUserUseCase
     {
         public async Task<ServiceResult<AuthenticatedUserDto>> ExecuteAsync(LoginRequest request, CancellationToken ct)
         {
@@ -20,7 +21,7 @@ namespace CostVision.Application.UseCases.Authorize.Authentication
             string normalizedLogin = request.Login.Trim().ToUpperInvariant();
             string password = request.Password.Trim();
 
-            User? user = await unitOfWork.User.GetItemByPredicateAsync(
+            User? user = await userRepository.GetItemByPredicateAsync(
                 user => user.Login.ToUpper() == normalizedLogin,
                 asNoTracking: false,
                 include: query => query.Include(user => user.Roles),

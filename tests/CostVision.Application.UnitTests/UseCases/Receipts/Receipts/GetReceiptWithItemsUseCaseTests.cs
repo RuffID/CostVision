@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -21,7 +22,7 @@ public class GetReceiptWithItemsUseCaseTests
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(true);
 
-        GetReceiptWithItemsUseCase useCase = new(CreateUnitOfWork(receipt).Object, accessVerification.Object);
+        GetReceiptWithItemsUseCase useCase = TestUseCaseFactory.CreateGetReceiptWithItemsUseCase(CreateUnitOfWork(receipt).Object, accessVerification.Object);
 
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
 
@@ -38,7 +39,7 @@ public class GetReceiptWithItemsUseCaseTests
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(false);
 
-        GetReceiptWithItemsUseCase useCase = new(CreateUnitOfWork(receipt).Object, accessVerification.Object);
+        GetReceiptWithItemsUseCase useCase = TestUseCaseFactory.CreateGetReceiptWithItemsUseCase(CreateUnitOfWork(receipt).Object, accessVerification.Object);
 
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
 
@@ -50,7 +51,7 @@ public class GetReceiptWithItemsUseCaseTests
     public async Task ExecuteAsync_ReturnsNotFound_WhenReceiptDoesNotExist()
     {
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
-        GetReceiptWithItemsUseCase useCase = new(CreateUnitOfWork(null).Object, accessVerification.Object);
+        GetReceiptWithItemsUseCase useCase = TestUseCaseFactory.CreateGetReceiptWithItemsUseCase(CreateUnitOfWork(null).Object, accessVerification.Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), TestUserFactory.Create(), CancellationToken.None);
 
@@ -62,10 +63,10 @@ public class GetReceiptWithItemsUseCaseTests
     public async Task ExecuteAsync_ReturnsBadRequest_WhenReceiptIdIsEmpty()
     {
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
-        GetReceiptWithItemsUseCase useCase = new(unitOfWork.Object, accessVerification.Object);
+        GetReceiptWithItemsUseCase useCase = TestUseCaseFactory.CreateGetReceiptWithItemsUseCase(unitOfWork.Object, accessVerification.Object);
 
         var result = await useCase.ExecuteAsync(Guid.Empty, TestUserFactory.Create(), CancellationToken.None);
 
@@ -73,7 +74,7 @@ public class GetReceiptWithItemsUseCaseTests
         Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Receipt? receipt)
+    private static Mock<ITestStorage> CreateUnitOfWork(Receipt? receipt)
     {
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         receiptRepository
@@ -98,7 +99,7 @@ public class GetReceiptWithItemsUseCaseTests
                 return Task.FromResult(available);
             });
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
 
         return unitOfWork;

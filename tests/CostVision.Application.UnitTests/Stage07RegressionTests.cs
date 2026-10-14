@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using System.Reflection;
 using CostVision.Application.Abstractions.DataBase.Repositories;
@@ -33,7 +34,7 @@ public class Stage07RegressionTests
             data.Account.Id, 100m, data.Date, data.UserId, type: MoneyMovementType.Expense, comment: "match"));
         data.Movements.Add(TestMoneyMovementFactory.CreateManual(accountId: data.Account.Id,
             occurredAt: data.Date.AddHours(1), userId: data.UserId, amount: 900m, comment: "excluded"));
-        GetMoneyMovementListUseCase useCase = new(data.Work.Object);
+        GetMoneyMovementListUseCase useCase = TestUseCaseFactory.CreateGetMoneyMovementListUseCase(data.Work.Object);
 
         // Act
         var first = await useCase.ExecuteAsync(data.UserId, data.Date, data.Date, null, CancellationToken.None,
@@ -68,7 +69,7 @@ public class Stage07RegressionTests
         data.AddPurchase(secondStore, data.AddProduct("Copy"), identity: "same", authorId: Guid.NewGuid());
         data.AddPurchase(secondStore, data.AddProduct("Second"), identity: "second");
         data.AddPurchase(otherStore, data.AddProduct("Third"), identity: "third", type: ReceiptOperationType.RefundIncome);
-        GetStoreListUseCase useCase = new(data.Work.Object);
+        GetStoreListUseCase useCase = TestUseCaseFactory.CreateGetStoreListUseCase(data.Work.Object);
 
         // Act
         var first = await useCase.ExecuteAsync(new() { GroupByName = true, PageSize = 1 }, data.UserId, CancellationToken.None);
@@ -100,7 +101,7 @@ public class Stage07RegressionTests
         MoneyMovement movement = TestMoneyMovementFactory.CreateManual(accountId: data.Account.Id,
             occurredAt: data.Date, userId: data.UserId);
         data.Movements.Add(movement);
-        GetMoneyMovementReceiptCandidatesUseCase useCase = new(data.Work.Object);
+        GetMoneyMovementReceiptCandidatesUseCase useCase = TestUseCaseFactory.CreateGetMoneyMovementReceiptCandidatesUseCase(data.Work.Object);
 
         // Act
         var first = await useCase.ExecuteAsync(new()
@@ -152,7 +153,7 @@ public class Stage07RegressionTests
         MoneyMovement secondNearest = TestMoneyMovementFactory.CreateManual(accountId: data.Account.Id,
             occurredAt: anchor.AddTicks(-2), userId: data.UserId);
         data.Movements.AddRange([far, secondNearest, nearest]);
-        GetReceiptMoneyMovementCandidatesUseCase useCase = new(data.Work.Object);
+        GetReceiptMoneyMovementCandidatesUseCase useCase = TestUseCaseFactory.CreateGetReceiptMoneyMovementCandidatesUseCase(data.Work.Object);
 
         // Act
         var first = await useCase.ExecuteAsync(new() { ReceiptId = receipt.Id, PageSize = 1 },
@@ -221,11 +222,11 @@ public class Stage07RegressionTests
         }
 
         // Act
-        await new GetProductListUseCase(data.Work.Object).ExecuteAsync(new()
+        await TestUseCaseFactory.CreateGetProductListUseCase(data.Work.Object).ExecuteAsync(new()
         {
             DateFrom = data.Date, DateTo = data.Date, AccountId = selectedAccountId, PageSize = 1
         }, data.UserId, CancellationToken.None);
-        await new GetStoreListUseCase(data.Work.Object).ExecuteAsync(new()
+        await TestUseCaseFactory.CreateGetStoreListUseCase(data.Work.Object).ExecuteAsync(new()
         {
             DateFrom = data.Date, DateTo = data.Date, AccountId = selectedAccountId, PageSize = 1
         }, data.UserId, CancellationToken.None);
@@ -257,11 +258,11 @@ public class Stage07RegressionTests
         data.AddPurchase(store, earlier);
 
         // Act
-        var first = await new GetProductListUseCase(data.Work.Object).ExecuteAsync(new()
+        var first = await TestUseCaseFactory.CreateGetProductListUseCase(data.Work.Object).ExecuteAsync(new()
         {
             Page = 1, PageSize = 1, SortBy = sortBy
         }, data.UserId, CancellationToken.None);
-        var last = await new GetProductListUseCase(data.Work.Object).ExecuteAsync(new()
+        var last = await TestUseCaseFactory.CreateGetProductListUseCase(data.Work.Object).ExecuteAsync(new()
         {
             Page = 99, PageSize = 1, SortBy = sortBy
         }, data.UserId, CancellationToken.None);
@@ -288,7 +289,7 @@ public class Stage07RegressionTests
         data.AddPurchase(store, data.AddProduct("Refund"), identity: "refund", type: ReceiptOperationType.RefundIncome);
 
         // Act
-        var result = await new GetStoreReceiptListUseCase(data.Work.Object).ExecuteAsync(new()
+        var result = await TestUseCaseFactory.CreateGetStoreReceiptListUseCase(data.Work.Object).ExecuteAsync(new()
         {
             StoreId = store.Id, PageSize = 1
         }, data.UserId, CancellationToken.None);
@@ -312,7 +313,7 @@ public class Stage07RegressionTests
         Store store = data.AddStore("Empty");
 
         // Act
-        var result = await new GetStoreReceiptListUseCase(data.Work.Object).ExecuteAsync(new()
+        var result = await TestUseCaseFactory.CreateGetStoreReceiptListUseCase(data.Work.Object).ExecuteAsync(new()
         {
             StoreId = store.Id, Page = 99, PageSize = 1
         }, data.UserId, CancellationToken.None);
@@ -331,7 +332,7 @@ public class Stage07RegressionTests
         public Guid UserId { get; } = Guid.NewGuid();
         public DateTime Date { get; } = new(2026, 1, 15);
         public Account Account { get; }
-        public Mock<IUnitOfWork> Work { get; } = new(MockBehavior.Strict);
+        public Mock<ITestStorage> Work { get; } = new(MockBehavior.Strict);
         public List<Product> Products { get; } = [];
         public List<Store> Stores { get; } = [];
         public List<Receipt> Receipts { get; } = [];

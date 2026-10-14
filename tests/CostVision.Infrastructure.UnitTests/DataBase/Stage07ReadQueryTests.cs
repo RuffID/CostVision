@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using System.Reflection;
 using CostVision.Application.Abstractions.DataBase;
@@ -67,26 +68,26 @@ public class Stage07ReadQueryTests
                 new[] { movement }.AsQueryable().FirstOrDefault(predicate));
         Mock<IReceiptItemRepository> items = new(MockBehavior.Strict);
         ProjectedQueryCapture.Configure(items, context, () => Array.Empty<ReceiptItem>(), itemSql);
-        Mock<IUnitOfWork> work = new(MockBehavior.Strict);
+        Mock<ITestStorage> work = new(MockBehavior.Strict);
         work.SetupGet(item => item.Receipt).Returns(receipts.Object);
         work.SetupGet(item => item.MoneyMovement).Returns(movements.Object);
         work.SetupGet(item => item.ReceiptItem).Returns(items.Object);
 
         // Act
-        await new GetReceiptListPageUseCase(work.Object).ExecuteAsync(user, new()
+        await TestUseCaseFactory.CreateGetReceiptListPageUseCase(work.Object).ExecuteAsync(user, new()
         {
             DateFrom = date, DateTo = date, Search = "fn", SearchMode = "fn", OperationFilter = operationFilter,
             PageSize = 1
         }, TestContext.Current.CancellationToken);
-        await new GetMoneyMovementListUseCase(work.Object).ExecuteAsync(user.Id, date, date, account.Id,
+        await TestUseCaseFactory.CreateGetMoneyMovementListUseCase(work.Object).ExecuteAsync(user.Id, date, date, account.Id,
             TestContext.Current.CancellationToken, pageSize: 1, search: "Comment", receiptFilter: "amountMismatch");
-        await new GetMoneyMovementReceiptCandidatesUseCase(work.Object).ExecuteAsync(new()
+        await TestUseCaseFactory.CreateGetMoneyMovementReceiptCandidatesUseCase(work.Object).ExecuteAsync(new()
         {
             MoneyMovementId = movement.Id, PageSize = 1, UseAmountFilter = true
         }, user.Id, TestContext.Current.CancellationToken);
-        await new GetProductStorePurchasesUseCase(work.Object).ExecuteAsync(new() { ProductId = Guid.NewGuid() },
+        await TestUseCaseFactory.CreateGetProductStorePurchasesUseCase(work.Object).ExecuteAsync(new() { ProductId = Guid.NewGuid() },
             user.Id, TestContext.Current.CancellationToken);
-        await new GetDashboardIncomeExpenseReportUseCase(work.Object).ExecuteAsync(user, new()
+        await TestUseCaseFactory.CreateGetDashboardIncomeExpenseReportUseCase(work.Object).ExecuteAsync(user, new()
         {
             DateFrom = date, DateTo = date, ExpenseSource = "receiptsAndMoneyMovements", Period = "day", StoreNames = ["Shop"]
         }, TestContext.Current.CancellationToken);
@@ -162,16 +163,16 @@ public class Stage07ReadQueryTests
                 storeSql = include(context.Set<Store>().AsNoTracking().Where(predicate)).AsSingleQuery().ToQueryString();
                 return [];
             });
-        Mock<IUnitOfWork> work = new(MockBehavior.Strict);
+        Mock<ITestStorage> work = new(MockBehavior.Strict);
         work.SetupGet(item => item.Product).Returns(products.Object);
         work.SetupGet(item => item.Store).Returns(stores.Object);
 
         // Act
-        await new GetProductListUseCase(work.Object).ExecuteAsync(new()
+        await TestUseCaseFactory.CreateGetProductListUseCase(work.Object).ExecuteAsync(new()
         {
             DateFrom = date, DateTo = date, AccountId = accountId
         }, userId, TestContext.Current.CancellationToken);
-        await new GetStoreListUseCase(work.Object).ExecuteAsync(new()
+        await TestUseCaseFactory.CreateGetStoreListUseCase(work.Object).ExecuteAsync(new()
         {
             DateFrom = date, DateTo = date, AccountId = accountId
         }, userId, TestContext.Current.CancellationToken);

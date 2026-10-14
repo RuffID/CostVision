@@ -1,4 +1,5 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Enums.Authorization;
@@ -6,14 +7,14 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
-    public class UpdateAccountUseCase(IUnitOfWork unitOfWork) : IUpdateAccountUseCase
+    public class UpdateAccountUseCase(IUnitOfWorkScope unitOfWork, IAccountRepository accountRepository) : IUpdateAccountUseCase
     {
         public async Task<ServiceResult<UserAccountViewModel>> ExecuteAsync(Guid ownerUserId, UpdateAccountRequest request, CancellationToken ct)
         {
             if (request.AccountId == Guid.Empty)
                 return ServiceResult<UserAccountViewModel>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор счёта.");
 
-            Account? current = await unitOfWork.Account.GetItemByPredicateAsync(item => item.Id == request.AccountId && item.CreatedByUserId == ownerUserId, ct: ct);
+            Account? current = await accountRepository.GetItemByPredicateAsync(item => item.Id == request.AccountId && item.CreatedByUserId == ownerUserId, ct: ct);
             if (current == null)
                 return ServiceResult<UserAccountViewModel>.Fail(ServiceErrorType.NotFound, "Счёт не найден.");
 

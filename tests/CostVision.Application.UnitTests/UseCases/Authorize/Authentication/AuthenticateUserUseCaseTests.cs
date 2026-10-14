@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
@@ -29,8 +30,8 @@ public class AuthenticateUserUseCaseTests
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
         passwordHasher.Setup(hasher => hasher.Verify("password", "hash")).Returns(true);
 
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
-        AuthenticateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
+        Mock<ITestStorage> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
+        AuthenticateUserUseCase useCase = TestUseCaseFactory.CreateAuthenticateUserUseCase(unitOfWork.Object, passwordHasher.Object);
 
         DateTime beforeLoginAtUtc = DateTime.UtcNow;
         var result = await useCase.ExecuteAsync(new LoginRequest { Login = "user", Password = "password" }, CancellationToken.None);
@@ -62,7 +63,7 @@ public class AuthenticateUserUseCaseTests
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
         passwordHasher.Setup(hasher => hasher.Verify("bad", "hash")).Returns(false);
 
-        AuthenticateUserUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
+        AuthenticateUserUseCase useCase = TestUseCaseFactory.CreateAuthenticateUserUseCase(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
 
         var result = await useCase.ExecuteAsync(new LoginRequest { Login = "user", Password = "bad" }, CancellationToken.None);
 
@@ -87,8 +88,8 @@ public class AuthenticateUserUseCaseTests
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
         passwordHasher.Setup(hasher => hasher.Verify("password", "hash")).Returns(true);
 
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
-        AuthenticateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
+        Mock<ITestStorage> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository);
+        AuthenticateUserUseCase useCase = TestUseCaseFactory.CreateAuthenticateUserUseCase(unitOfWork.Object, passwordHasher.Object);
 
         var result = await useCase.ExecuteAsync(new LoginRequest { Login = "user", Password = "password" }, CancellationToken.None);
 
@@ -103,7 +104,7 @@ public class AuthenticateUserUseCaseTests
     {
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        AuthenticateUserUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
+        AuthenticateUserUseCase useCase = TestUseCaseFactory.CreateAuthenticateUserUseCase(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
 
         var result = await useCase.ExecuteAsync(new LoginRequest { Login = " ", Password = " " }, CancellationToken.None);
 

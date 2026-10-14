@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -28,7 +29,7 @@ public class ProductAdditionalTests
                 It.IsAny<Func<IQueryable<Product>, IQueryable<Product>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        GetProductListUseCase useCase = new(CreateUnitOfWork(productRepository).Object);
+        GetProductListUseCase useCase = TestUseCaseFactory.CreateGetProductListUseCase(CreateUnitOfWork(productRepository).Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new GetProductListRequest { Search = "milk" }, Guid.NewGuid(), CancellationToken.None);
@@ -46,7 +47,7 @@ public class ProductAdditionalTests
     {
         // Arrange
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
-        UpdateProductAdaptiveNameUseCase useCase = new(CreateUnitOfWork(productRepository).Object);
+        UpdateProductAdaptiveNameUseCase useCase = TestUseCaseFactory.CreateUpdateProductAdaptiveNameUseCase(CreateUnitOfWork(productRepository).Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new UpdateProductAdaptiveNameRequest
@@ -60,9 +61,9 @@ public class ProductAdditionalTests
         Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IProductRepository> productRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IProductRepository> productRepository)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Product).Returns(productRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         return unitOfWork;

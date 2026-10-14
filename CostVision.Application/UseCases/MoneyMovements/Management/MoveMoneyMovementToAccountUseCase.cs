@@ -10,7 +10,7 @@ using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class MoveMoneyMovementToAccountUseCase(IUnitOfWork unitOfWork) : IMoveMoneyMovementToAccountUseCase
+    public class MoveMoneyMovementToAccountUseCase(IMoneyMovementEditUnitOfWork unitOfWork) : IMoveMoneyMovementToAccountUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(MoveMoneyMovementToAccountRequest request, Guid currentUserId, CancellationToken ct)
         {
@@ -27,7 +27,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (request.SourceAccountId != Guid.Empty)
             {
                 ServiceResult<AccountMember> sourceAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(
-                    unitOfWork, request.SourceAccountId, currentUserId, ct);
+                    unitOfWork.AccountMember, request.SourceAccountId, currentUserId, ct);
                 if (!sourceAccess.Success)
                 {
                     return sourceAccess.PropagateFailure();
@@ -35,7 +35,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             }
 
             ServiceResult<AccountMember> targetAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(
-                unitOfWork, request.TargetAccountId, currentUserId, ct);
+                unitOfWork.AccountMember, request.TargetAccountId, currentUserId, ct);
             if (!targetAccess.Success)
             {
                 return targetAccess.PropagateFailure();

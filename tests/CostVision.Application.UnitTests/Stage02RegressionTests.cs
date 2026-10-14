@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using System.Reflection;
 using CostVision.Application.Abstractions.DataBase.Repositories;
@@ -46,12 +47,12 @@ public class Stage02RegressionTests
         ServiceResult result;
         if (store)
         {
-            result = await new UpdateStoreAdaptiveNameUseCase(data.Work.Object)
+            result = await TestUseCaseFactory.CreateUpdateStoreAdaptiveNameUseCase(data.Work.Object)
                 .ExecuteAsync(new() { StoreId = data.Store.Id, AdaptiveName = "Changed" }, data.User.Id, CancellationToken.None);
         }
         else
         {
-            result = await new UpdateProductAdaptiveNameUseCase(data.Work.Object)
+            result = await TestUseCaseFactory.CreateUpdateProductAdaptiveNameUseCase(data.Work.Object)
                 .ExecuteAsync(new() { ProductId = data.Product.Id, AdaptiveName = "Changed" }, data.User.Id, CancellationToken.None);
         }
 
@@ -89,11 +90,11 @@ public class Stage02RegressionTests
         ServiceResult result;
         if (update)
         {
-            result = await new UpdateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
+            result = await TestUseCaseFactory.CreateUpdateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
         }
         else
         {
-            result = await new CreateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
+            result = await TestUseCaseFactory.CreateCreateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
         }
 
         // Assert
@@ -115,7 +116,7 @@ public class Stage02RegressionTests
         Fixture data = new();
 
         // Act
-        var result = await new AuthenticateUserUseCase(data.Work.Object, data.Hasher.Object)
+        var result = await TestUseCaseFactory.CreateAuthenticateUserUseCase(data.Work.Object, data.Hasher.Object)
             .ExecuteAsync(new() { Login = " USER ", Password = " Password1! " }, CancellationToken.None);
 
         // Assert
@@ -138,7 +139,7 @@ public class Stage02RegressionTests
         data.Account.Archive();
 
         // Act
-        ServiceResult result = await new ValidateReceiptCreationAccessUseCase(data.Work.Object)
+        ServiceResult result = await TestUseCaseFactory.CreateValidateReceiptCreationAccessUseCase(data.Work.Object)
             .ExecuteAsync(data.Account.Id, data.User.Id, CancellationToken.None);
 
         // Assert
@@ -169,7 +170,7 @@ public class Stage02RegressionTests
         ServiceErrorType? error;
         if (import)
         {
-            var result = await new ImportMoneyMovementsUseCase(data.Work.Object).ExecuteAsync(new()
+            var result = await TestUseCaseFactory.CreateImportMoneyMovementsUseCase(data.Work.Object).ExecuteAsync(new()
             {
                 AccountId = data.Account.Id,
                 Rows = [new()
@@ -183,7 +184,7 @@ public class Stage02RegressionTests
         }
         else
         {
-            var result = await new CreateMoneyMovementUseCase(data.Work.Object).ExecuteAsync(new()
+            var result = await TestUseCaseFactory.CreateCreateMoneyMovementUseCase(data.Work.Object).ExecuteAsync(new()
             {
                 AccountId = data.Account.Id, Amount = 10, Type = MoneyMovementType.Expense, OccurredAt = DateTime.Today
             }, data.User.Id, CancellationToken.None);
@@ -239,11 +240,11 @@ public class Stage02RegressionTests
         Func<Task> action;
         if (moneyAccounts)
         {
-            action = async () => await new GetMoneyMovementAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, CancellationToken.None);
+            action = async () => await TestUseCaseFactory.CreateGetMoneyMovementAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, CancellationToken.None);
         }
         else
         {
-            action = async () => await new GetUserAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, true, CancellationToken.None);
+            action = async () => await TestUseCaseFactory.CreateGetUserAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, true, CancellationToken.None);
         }
 
         // Assert
@@ -371,7 +372,7 @@ public class Stage02RegressionTests
         };
 
         // Act
-        ServiceResult result = await new UpdateUserUseCase(data.Work.Object, data.Hasher.Object)
+        ServiceResult result = await TestUseCaseFactory.CreateUpdateUserUseCase(data.Work.Object, data.Hasher.Object)
             .ExecuteAsync(request, CancellationToken.None);
 
         // Assert
@@ -401,11 +402,11 @@ public class Stage02RegressionTests
         ServiceResult result;
         if (update)
         {
-            result = await new UpdateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
+            result = await TestUseCaseFactory.CreateUpdateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
         }
         else
         {
-            result = await new CreateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
+            result = await TestUseCaseFactory.CreateCreateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
         }
 
         // Assert
@@ -426,7 +427,7 @@ public class Stage02RegressionTests
         Fixture data = new();
 
         // Act
-        var result = await new AuthenticateUserUseCase(data.Work.Object, data.Hasher.Object)
+        var result = await TestUseCaseFactory.CreateAuthenticateUserUseCase(data.Work.Object, data.Hasher.Object)
             .ExecuteAsync(new() { Login = " USER ", Password = " Wrong1! " }, CancellationToken.None);
 
         // Assert
@@ -448,7 +449,7 @@ public class Stage02RegressionTests
         // Arrange
         Fixture data = new(AccountAccessRole.Owner);
         data.Account.Archive();
-        ValidateReceiptCreationAccessUseCase access = new(data.Work.Object);
+        ValidateReceiptCreationAccessUseCase access = TestUseCaseFactory.CreateValidateReceiptCreationAccessUseCase(data.Work.Object);
         Mock<IQrParser> parser = new(MockBehavior.Strict);
 
         // Act
@@ -456,7 +457,7 @@ public class Stage02RegressionTests
         ServiceErrorType? error;
         if (scanned)
         {
-            var result = await new SaveReceiptsScannedUseCase(data.Work.Object, access, parser.Object)
+            var result = await TestUseCaseFactory.CreateSaveReceiptsScannedUseCase(data.Work.Object, access, parser.Object)
                 .ExecuteAsync(new() { AccountId = data.Account.Id, Results = [new() { DecodedText = "qr" }] },
                     data.User.Id, CancellationToken.None);
             success = result.Success;
@@ -464,7 +465,7 @@ public class Stage02RegressionTests
         }
         else
         {
-            var result = await new SaveManualReceiptUseCase(data.Work.Object, access)
+            var result = await TestUseCaseFactory.CreateSaveManualReceiptUseCase(data.Work.Object, access)
                 .ExecuteAsync(new() { AccountId = data.Account.Id }, data.User.Id, CancellationToken.None);
             success = result.Success;
             error = result.Error?.Type;
@@ -494,12 +495,12 @@ public class Stage02RegressionTests
         data.Work.Setup(work => work.MoneyMovement).Returns(movements.Object);
 
         // Act
-        ServiceResult result = await new UpdateMoneyMovementCommentUseCase(data.Work.Object).ExecuteAsync(new()
+        ServiceResult result = await TestUseCaseFactory.CreateUpdateMoneyMovementCommentUseCase(data.Work.Object).ExecuteAsync(new()
         {
             AccountId = data.Account.Id, MoneyMovementId = movement.Id, Comment = "Historical"
         }, data.User.Id, CancellationToken.None);
-        var accounts = await new GetUserAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, true, CancellationToken.None);
-        var activeAccounts = await new GetMoneyMovementAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, CancellationToken.None);
+        var accounts = await TestUseCaseFactory.CreateGetUserAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, true, CancellationToken.None);
+        var activeAccounts = await TestUseCaseFactory.CreateGetMoneyMovementAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, CancellationToken.None);
 
         // Assert
         Assert.True(result.Success);
@@ -531,11 +532,11 @@ public class Stage02RegressionTests
         ServiceResult result;
         if (update)
         {
-            result = await new UpdateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
+            result = await TestUseCaseFactory.CreateUpdateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
         }
         else
         {
-            result = await new CreateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
+            result = await TestUseCaseFactory.CreateCreateUserUseCase(data.Work.Object, data.Hasher.Object).ExecuteAsync(request, CancellationToken.None);
         }
 
         // Assert
@@ -565,8 +566,8 @@ public class Stage02RegressionTests
         Fixture data = new(role);
 
         // Act
-        var receiptAccounts = await new GetUserAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, false, CancellationToken.None);
-        var moneyAccounts = await new GetMoneyMovementAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, CancellationToken.None);
+        var receiptAccounts = await TestUseCaseFactory.CreateGetUserAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, false, CancellationToken.None);
+        var moneyAccounts = await TestUseCaseFactory.CreateGetMoneyMovementAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, CancellationToken.None);
 
         // Assert
         Assert.True(receiptAccounts.Success);
@@ -585,8 +586,8 @@ public class Stage02RegressionTests
         Assert.True(data.Account.TryRemoveMember(data.User.Id, out _, out _));
 
         // Act
-        var removedReceiptAccounts = await new GetUserAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, false, CancellationToken.None);
-        var removedMoneyAccounts = await new GetMoneyMovementAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, CancellationToken.None);
+        var removedReceiptAccounts = await TestUseCaseFactory.CreateGetUserAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, false, CancellationToken.None);
+        var removedMoneyAccounts = await TestUseCaseFactory.CreateGetMoneyMovementAccountsUseCase(data.Work.Object).ExecuteAsync(data.User.Id, CancellationToken.None);
 
         // Assert
         Assert.True(removedReceiptAccounts.Success);
@@ -605,7 +606,7 @@ public class Stage02RegressionTests
         public Product Product { get; } = TestReceiptFactory.CreateProduct("Milk", "Common");
         public Store Store { get; } = TestReceiptFactory.CreateStore("Shop");
         public List<Receipt> Receipts { get; } = [];
-        public Mock<IUnitOfWork> Work { get; } = new(MockBehavior.Strict);
+        public Mock<ITestStorage> Work { get; } = new(MockBehavior.Strict);
         public Mock<IUserRepository> Users { get; } = new(MockBehavior.Strict);
         public Mock<IPasswordHasher> Hasher { get; } = new(MockBehavior.Strict);
 
@@ -712,11 +713,11 @@ public class Stage02RegressionTests
         {
             if (store)
             {
-                return await new UpdateStoreAdaptiveNameUseCase(Work.Object)
+                return await TestUseCaseFactory.CreateUpdateStoreAdaptiveNameUseCase(Work.Object)
                     .ExecuteAsync(new() { StoreId = Store.Id, AdaptiveName = name }, User.Id, CancellationToken.None);
             }
 
-            return await new UpdateProductAdaptiveNameUseCase(Work.Object)
+            return await TestUseCaseFactory.CreateUpdateProductAdaptiveNameUseCase(Work.Object)
                 .ExecuteAsync(new() { ProductId = Product.Id, AdaptiveName = name }, User.Id, CancellationToken.None);
         }
 

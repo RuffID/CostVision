@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class LinkMoneyMovementReceiptUseCase(IUnitOfWork unitOfWork) : ILinkMoneyMovementReceiptUseCase
+    public class LinkMoneyMovementReceiptUseCase(IReceiptLinkUnitOfWork unitOfWork) : ILinkMoneyMovementReceiptUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(LinkMoneyMovementReceiptRequest request, Guid currentUserId, CancellationToken ct)
         {
@@ -42,7 +42,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return ServiceResult.Fail(ServiceErrorType.NotFound, "Операция не найдена.");
             }
 
-            ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, movement.AccountId, currentUserId, ct);
+            ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork.AccountMember, movement.AccountId, currentUserId, ct);
             if (!access.Success)
             {
                 return access.PropagateFailure();

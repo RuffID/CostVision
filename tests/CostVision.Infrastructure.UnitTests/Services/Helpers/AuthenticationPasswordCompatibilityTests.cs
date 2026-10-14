@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using System.Security.Cryptography;
 using CostVision.Application.Abstractions.DataBase.Repositories;
@@ -26,7 +27,7 @@ public class AuthenticationPasswordCompatibilityTests
         byte[] key = Rfc2898DeriveBytes.Pbkdf2("Password1!", salt, 100000, HashAlgorithmName.SHA256, 32);
         string storedHash = $"{Convert.ToHexString(key)}:{Convert.ToHexString(salt)}:100000:SHA256";
         Fixture data = new(storedHash);
-        AuthenticateUserUseCase login = new(data.Work.Object, new Hasher());
+        AuthenticateUserUseCase login = TestUseCaseFactory.CreateAuthenticateUserUseCase(data.Work.Object, new Hasher());
 
         // Act
         var result = await login.ExecuteAsync(new() { Login = " USER ", Password = password }, CancellationToken.None);
@@ -46,7 +47,7 @@ public class AuthenticationPasswordCompatibilityTests
         Fixture data = new("existing-hash");
         Hasher hasher = new();
         data.Items.Clear();
-        CreateUserUseCase create = new(data.Work.Object, hasher);
+        CreateUserUseCase create = TestUseCaseFactory.CreateCreateUserUseCase(data.Work.Object, hasher);
         UserUpsertRequest request = new()
         {
             Login = " NewUser ", Name = " New User ", Password = " Password1! ", RoleIds = [data.Role.Id]
@@ -62,7 +63,7 @@ public class AuthenticationPasswordCompatibilityTests
         Assert.True(hasher.Verify("Password1!", user.PasswordHash));
 
         // Act
-        var firstLogin = await new AuthenticateUserUseCase(data.Work.Object, hasher)
+        var firstLogin = await TestUseCaseFactory.CreateAuthenticateUserUseCase(data.Work.Object, hasher)
             .ExecuteAsync(new() { Login = " NEWUSER ", Password = " Password1! " }, CancellationToken.None);
 
         // Assert
@@ -74,8 +75,8 @@ public class AuthenticationPasswordCompatibilityTests
         request.Password = " Changed1! ";
 
         // Act
-        ServiceResult changed = await new UpdateUserUseCase(data.Work.Object, hasher).ExecuteAsync(request, CancellationToken.None);
-        var changedLogin = await new AuthenticateUserUseCase(data.Work.Object, hasher)
+        ServiceResult changed = await TestUseCaseFactory.CreateUpdateUserUseCase(data.Work.Object, hasher).ExecuteAsync(request, CancellationToken.None);
+        var changedLogin = await TestUseCaseFactory.CreateAuthenticateUserUseCase(data.Work.Object, hasher)
             .ExecuteAsync(new() { Login = "newuser", Password = " Changed1! " }, CancellationToken.None);
 
         // Assert
@@ -90,7 +91,7 @@ public class AuthenticationPasswordCompatibilityTests
         request.Password = " ";
 
         // Act
-        ServiceResult emptyUpdate = await new UpdateUserUseCase(data.Work.Object, hasher).ExecuteAsync(request, CancellationToken.None);
+        ServiceResult emptyUpdate = await TestUseCaseFactory.CreateUpdateUserUseCase(data.Work.Object, hasher).ExecuteAsync(request, CancellationToken.None);
 
         // Assert
         Assert.True(emptyUpdate.Success);
@@ -99,7 +100,7 @@ public class AuthenticationPasswordCompatibilityTests
 
     private class Fixture
     {
-        public Mock<IUnitOfWork> Work { get; } = new(MockBehavior.Strict);
+        public Mock<ITestStorage> Work { get; } = new(MockBehavior.Strict);
         public Mock<IUserRepository> Users { get; } = new(MockBehavior.Strict);
         public List<User> Items { get; } = [];
         public Role Role { get; }

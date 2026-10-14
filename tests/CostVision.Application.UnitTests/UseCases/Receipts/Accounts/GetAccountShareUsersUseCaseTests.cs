@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
@@ -26,7 +27,7 @@ public class GetAccountShareUsersUseCaseTests
             TestUserFactory.Create(selectedUserId, "beta", "Beta"),
             TestUserFactory.Create(availableUserId, "alpha", "Alpha")
         ];
-        GetAccountShareUsersUseCase useCase = new(CreateUnitOfWork(account, users).Object);
+        GetAccountShareUsersUseCase useCase = TestUseCaseFactory.CreateGetAccountShareUsersUseCase(CreateUnitOfWork(account, users).Object);
 
         var result = await useCase.ExecuteAsync(account.Id, ownerUserId, CancellationToken.None);
 
@@ -41,7 +42,7 @@ public class GetAccountShareUsersUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsNotFound_WhenAccountDoesNotBelongToOwner()
     {
-        GetAccountShareUsersUseCase useCase = new(CreateUnitOfWork(null, []).Object);
+        GetAccountShareUsersUseCase useCase = TestUseCaseFactory.CreateGetAccountShareUsersUseCase(CreateUnitOfWork(null, []).Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
 
@@ -49,7 +50,7 @@ public class GetAccountShareUsersUseCaseTests
         Assert.Equal(ServiceErrorType.NotFound, result.Error?.Type);
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Account? account, List<User> users)
+    private static Mock<ITestStorage> CreateUnitOfWork(Account? account, List<User> users)
     {
         Mock<IAccountRepository> accountRepository = new(MockBehavior.Strict);
         accountRepository
@@ -74,7 +75,7 @@ public class GetAccountShareUsersUseCaseTests
                 .ReturnsAsync(users);
         }
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.User).Returns(userRepository.Object);
         return unitOfWork;

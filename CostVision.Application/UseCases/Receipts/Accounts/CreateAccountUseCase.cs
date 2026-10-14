@@ -6,7 +6,7 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
-    public class CreateAccountUseCase(IUnitOfWork unitOfWork) : ICreateAccountUseCase
+    public class CreateAccountUseCase(IAccountCreationUnitOfWork unitOfWork) : ICreateAccountUseCase
     {
         public async Task<ServiceResult<UserAccountViewModel>> ExecuteAsync(Guid ownerUserId, CreateAccountRequest request, CancellationToken ct)
         {

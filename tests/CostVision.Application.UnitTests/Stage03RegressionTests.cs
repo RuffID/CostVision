@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Globalization;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
@@ -411,14 +412,14 @@ public class Stage03RegressionTests
             bool success;
             if (storeReport)
             {
-                ServiceResult<StoreReceiptListDto> result = await new GetStoreReceiptListUseCase(fixture.Work.Object)
+                ServiceResult<StoreReceiptListDto> result = await TestUseCaseFactory.CreateGetStoreReceiptListUseCase(fixture.Work.Object)
                     .ExecuteAsync(new GetStoreReceiptListRequest { StoreId = store.Id, PageSize = 10 }, fixture.UserId, CancellationToken.None);
                 success = result.Success;
                 rows = result.Data?.Items;
             }
             else
             {
-                ServiceResult<List<ReceiptDto>> result = await new GetReceiptListUseCase(fixture.Work.Object)
+                ServiceResult<List<ReceiptDto>> result = await TestUseCaseFactory.CreateGetReceiptListUseCase(fixture.Work.Object)
                     .ExecuteAsync(TestUserFactory.Create(fixture.UserId), new DateTime(2026, 1, 1), new DateTime(2026, 1, 1), CancellationToken.None);
                 success = result.Success;
                 rows = result.Data;
@@ -453,7 +454,7 @@ public class Stage03RegressionTests
         fixture.AddPersisted(duplicate ? "first" : "other", Guid.NewGuid(), target.Id);
 
         // Act
-        ServiceResult result = await new MoveReceiptToAccountUseCase(fixture.Work.Object)
+        ServiceResult result = await TestUseCaseFactory.CreateMoveReceiptToAccountUseCase(fixture.Work.Object)
             .ExecuteAsync(source.Id, target.Id, own.Id, fixture.UserId, CancellationToken.None);
 
         // Assert
@@ -480,7 +481,7 @@ public class Stage03RegressionTests
             .ThrowsAsync(new ReceiptWriteConflictException("Conflict", new InvalidOperationException()));
 
         // Act
-        ServiceResult result = await new MoveReceiptToAccountUseCase(fixture.Work.Object)
+        ServiceResult result = await TestUseCaseFactory.CreateMoveReceiptToAccountUseCase(fixture.Work.Object)
             .ExecuteAsync(source.Id, target.Id, own.Id, fixture.UserId, CancellationToken.None);
 
         // Assert
@@ -493,7 +494,7 @@ public class Stage03RegressionTests
     private class Fixture
     {
         public Guid UserId { get; } = Guid.NewGuid();
-        public Mock<IUnitOfWork> Work { get; } = new(MockBehavior.Strict);
+        public Mock<ITestStorage> Work { get; } = new(MockBehavior.Strict);
         public List<Receipt> Created { get; } = [];
         public List<ReceiptAccount> Links { get; } = [];
         public List<ReceiptAccount> DeletedLinks { get; } = [];
@@ -579,8 +580,8 @@ public class Stage03RegressionTests
                 FiscalDriveNumber = "fn", FiscalDocumentNumber = "fd", FiscalSign = key,
                 DateTime = new DateTime(2026, 1, 1), Sum = 123.45m, OperationType = (int)ReceiptOperationType.Income
             });
-            Scan = new(Work.Object, access.Object, parser.Object);
-            Manual = new(Work.Object, access.Object);
+            Scan = TestUseCaseFactory.CreateSaveReceiptsScannedUseCase(Work.Object, access.Object, parser.Object);
+            Manual = TestUseCaseFactory.CreateSaveManualReceiptUseCase(Work.Object, access.Object);
         }
 
         private async Task RunTransactionAsync(Func<CancellationToken, Task> action, CancellationToken ct)

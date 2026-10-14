@@ -1,4 +1,6 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Authorization;
@@ -8,14 +10,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
-    public class GetAccountShareUsersUseCase(IUnitOfWork unitOfWork) : IGetAccountShareUsersUseCase
+    public class GetAccountShareUsersUseCase(IAccountRepository accountRepository, IUserRepository userRepository) : IGetAccountShareUsersUseCase
     {
         public async Task<ServiceResult<List<AccountShareUserDto>>> ExecuteAsync(Guid accountId, Guid ownerUserId, CancellationToken ct)
         {
             if (accountId == Guid.Empty)
                 return ServiceResult<List<AccountShareUserDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор счёта.");
 
-            Account? account = await unitOfWork.Account.GetItemByPredicateAsync(
+            Account? account = await accountRepository.GetItemByPredicateAsync(
                 account => account.Id == accountId && account.CreatedByUserId == ownerUserId,
                 asNoTracking: true,
                 include: query => query.Include(account => account.Members),
@@ -27,7 +29,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 .Where(member => member.UserId != ownerUserId)
                 .ToDictionary(member => member.UserId, member => member.Role);
 
-            List<User> users = await unitOfWork.User.GetItemsByPredicateAsync(user => user.IsActive && user.Id != ownerUserId, asNoTracking: true, ct: ct);
+            List<User> users = await userRepository.GetItemsByPredicateAsync(user => user.IsActive && user.Id != ownerUserId, asNoTracking: true, ct: ct);
 
             List<AccountShareUserDto> items = users
                 .OrderBy(user => user.Name)

@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class ImportMoneyMovementsUseCase(IUnitOfWork unitOfWork) : IImportMoneyMovementsUseCase
+    public class ImportMoneyMovementsUseCase(IBankStatementImportUnitOfWork unitOfWork) : IImportMoneyMovementsUseCase
     {
         public async Task<ServiceResult<BankStatementImportResultDto>> ExecuteAsync(SaveBankStatementImportRequest request, Guid currentUserId, CancellationToken ct)
         {
@@ -22,7 +22,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return ServiceResult<BankStatementImportResultDto>.Fail(ServiceErrorType.Validation, "Нет строк для импорта.");
             }
 
-            ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId, currentUserId, ct, requireActive: true);
+            ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork.AccountMember, request.AccountId, currentUserId, ct, requireActive: true);
             if (!accountAccess.Success)
             {
                 return accountAccess.PropagateFailure<BankStatementImportResultDto>();

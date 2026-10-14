@@ -1,4 +1,5 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Domain.Models.Enums.Authorization;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Application.Models.Responses.Results;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
-    public class ValidateReceiptCreationAccessUseCase(IUnitOfWork unitOfWork) : IValidateReceiptCreationAccessUseCase
+    public class ValidateReceiptCreationAccessUseCase(IAccountMemberRepository accountMemberRepository) : IValidateReceiptCreationAccessUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(Guid accountId, Guid userId, CancellationToken ct)
         {
@@ -15,7 +16,7 @@ namespace CostVision.Application.UseCases.Receipts.Accounts
                 return ServiceResult.Fail(ServiceErrorType.Validation, "Некорректный идентификатор счёта.");
             }
 
-            AccountMember? membership = await unitOfWork.AccountMember.GetItemByPredicateAsync(
+            AccountMember? membership = await accountMemberRepository.GetItemByPredicateAsync(
                 member => member.AccountId == accountId && member.UserId == userId,
                 asNoTracking: true,
                 include: query => query.Include(member => member.Account),

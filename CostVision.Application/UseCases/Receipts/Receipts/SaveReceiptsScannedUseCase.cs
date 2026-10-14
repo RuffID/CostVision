@@ -13,7 +13,7 @@ using System.Data;
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
     public class SaveReceiptsScannedUseCase(
-        IUnitOfWork unitOfWork,
+        IReceiptCreationUnitOfWork unitOfWork,
         IValidateReceiptCreationAccessUseCase validateReceiptCreationAccessUseCase,
         IQrParser qrParser) : ISaveReceiptsScannedUseCase
     {

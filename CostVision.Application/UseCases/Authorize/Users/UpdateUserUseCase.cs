@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Authorize.Users
 {
-    public class UpdateUserUseCase(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher) : IUpdateUserUseCase
+    public class UpdateUserUseCase(IUserManagementUnitOfWork unitOfWork, IPasswordHasher passwordHasher) : IUpdateUserUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(UserUpsertRequest request, CancellationToken ct)
         {
@@ -46,7 +46,7 @@ namespace CostVision.Application.UseCases.Authorize.Users
                 }
             }
 
-            ServiceResult rolesResult = await UserUpsertRequestValidator.ValidateRoleIdsAsync(unitOfWork, validationResult.Data!, ct);
+            ServiceResult rolesResult = await UserUpsertRequestValidator.ValidateRoleIdsAsync(unitOfWork.Role, validationResult.Data!, ct);
             if (!rolesResult.Success)
             {
                 return rolesResult;

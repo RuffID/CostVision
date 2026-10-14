@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Application.Abstractions.Service.Authorize;
@@ -23,7 +24,7 @@ public class AuthenticateUserAdditionalTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        AuthenticateUserUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
+        AuthenticateUserUseCase useCase = TestUseCaseFactory.CreateAuthenticateUserUseCase(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
 
         var result = await useCase.ExecuteAsync(new LoginRequest { Login = "missing", Password = "password" }, CancellationToken.None);
 

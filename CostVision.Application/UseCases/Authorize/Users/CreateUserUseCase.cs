@@ -7,7 +7,7 @@ using CostVision.Application.UseCases.Authorize.Users.Helpers;
 
 namespace CostVision.Application.UseCases.Authorize.Users
 {
-    public class CreateUserUseCase(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher) : ICreateUserUseCase
+    public class CreateUserUseCase(IUserManagementUnitOfWork unitOfWork, IPasswordHasher passwordHasher) : ICreateUserUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(UserUpsertRequest request, CancellationToken ct)
         {
@@ -27,7 +27,7 @@ namespace CostVision.Application.UseCases.Authorize.Users
                 return ServiceResult.Fail(ServiceErrorType.Conflict, "Пользователь с таким логином уже существует");
             }
 
-            ServiceResult rolesResult = await UserUpsertRequestValidator.ValidateRoleIdsAsync(unitOfWork, validationResult.Data!, ct);
+            ServiceResult rolesResult = await UserUpsertRequestValidator.ValidateRoleIdsAsync(unitOfWork.Role, validationResult.Data!, ct);
             if (!rolesResult.Success)
             {
                 return rolesResult;

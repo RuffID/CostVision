@@ -1,3 +1,5 @@
+using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Domain.Models.Enums.Authorization;
@@ -24,19 +26,21 @@ public class RepositoryCrudIntegrationTests(SqlServerContainerFixture fixture) :
 
         await using (ServiceProvider createServiceProvider = fixture.CreateServiceProvider())
         {
-            IUnitOfWork createUnitOfWork = createServiceProvider.GetRequiredService<IUnitOfWork>();
+            IUnitOfWorkScope createScope = createServiceProvider.GetRequiredService<IUnitOfWorkScope>();
 
-            createUnitOfWork.User.Create(user);
-            createUnitOfWork.Account.Create(account);
-            createUnitOfWork.AccountMember.Create(member);
-            await createUnitOfWork.SaveChangesAsync(ct);
+            createServiceProvider.GetRequiredService<IUserRepository>().Create(user);
+            createServiceProvider.GetRequiredService<IAccountRepository>().Create(account);
+            createServiceProvider.GetRequiredService<IAccountMemberRepository>().Create(member);
+            await createScope.SaveChangesAsync(ct);
         }
 
         await using ServiceProvider serviceProvider = fixture.CreateServiceProvider();
-        IUnitOfWork unitOfWork = serviceProvider.GetRequiredService<IUnitOfWork>();
+        IAccountRepository accountRepository = serviceProvider.GetRequiredService<IAccountRepository>();
+        IAccountMemberRepository accountMemberRepository = serviceProvider.GetRequiredService<IAccountMemberRepository>();
+        IUnitOfWorkScope storage = serviceProvider.GetRequiredService<IUnitOfWorkScope>();
 
-        Account? createdAccount = await unitOfWork.Account.GetItemByIdAsync(accountId, asNoTracking: true, ct: ct);
-        AccountMember? createdMember = await unitOfWork.AccountMember.GetItemByPredicateAsync(
+        Account? createdAccount = await accountRepository.GetItemByIdAsync(accountId, asNoTracking: true, ct: ct);
+        AccountMember? createdMember = await accountMemberRepository.GetItemByPredicateAsync(
             x => x.AccountId == accountId && x.UserId == userId,
             asNoTracking: true,
             ct: ct);
@@ -46,10 +50,10 @@ public class RepositoryCrudIntegrationTests(SqlServerContainerFixture fixture) :
         Assert.NotNull(createdMember);
         Assert.Equal(AccountAccessRole.Owner, createdMember.Role);
 
-        unitOfWork.AccountMember.Delete(createdMember);
-        await unitOfWork.SaveChangesAsync(ct);
+        accountMemberRepository.Delete(createdMember);
+        await storage.SaveChangesAsync(ct);
 
-        AccountMember? deletedMember = await unitOfWork.AccountMember.GetItemByPredicateAsync(
+        AccountMember? deletedMember = await accountMemberRepository.GetItemByPredicateAsync(
             x => x.AccountId == accountId && x.UserId == userId,
             asNoTracking: true,
             ct: ct);

@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Data;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
@@ -220,8 +221,9 @@ public class Stage06BatchTests
             registrations.AddSingleton<TimeProvider>(clock);
             registrations.AddSingleton(provider.Object);
             registrations.AddScoped(_ => new Context(this));
-            registrations.AddScoped<IUnitOfWork>(scope => scope.GetRequiredService<Context>().Work.Object);
-            registrations.AddScoped<IReceiptRefreshWorkflow, ReceiptRefreshWorkflow>();
+            registrations.AddScoped<IReceiptRepository>(scope => scope.GetRequiredService<Context>().Work.Object.Receipt);
+            registrations.AddScoped<IReceiptRefreshWorkflow>(scope => TestUseCaseFactory.CreateReceiptRefreshWorkflow(
+                scope.GetRequiredService<Context>().Work.Object, scope.GetRequiredService<IExternalReceiptProvider>(), scope.GetRequiredService<TimeProvider>()));
             services = registrations.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
         }
 
@@ -268,7 +270,7 @@ public class Stage06BatchTests
             private bool failed;
             private Guid trackedReceiptId;
             private Receipt? trackedReceipt;
-            public Mock<IUnitOfWork> Work { get; } = new(MockBehavior.Strict);
+            public Mock<ITestStorage> Work { get; } = new(MockBehavior.Strict);
 
             public Context(Fixture data)
             {

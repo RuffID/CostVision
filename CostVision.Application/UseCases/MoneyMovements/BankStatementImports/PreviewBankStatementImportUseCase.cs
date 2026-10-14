@@ -1,4 +1,6 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.Service.MoneyMovements;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
@@ -9,7 +11,7 @@ using CostVision.Domain.Models.MoneyMovements;
 namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class PreviewBankStatementImportUseCase(
-        IUnitOfWork unitOfWork,
+        IMoneyMovementRepository moneyMovementRepository, IAccountMemberRepository accountMemberRepository,
         IBankStatementParserRegistry parserRegistry,
         IBankStatementPdfTextExtractor pdfTextExtractor) : IPreviewBankStatementImportUseCase
     {
@@ -22,7 +24,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (!parser.CanParseFile(fileName))
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, $"Загрузите файл выписки в формате: {parser.Description}.");
 
-            ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, accountId, currentUserId, ct);
+            ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(accountMemberRepository, accountId, currentUserId, ct);
             if (!accountAccess.Success)
                 return accountAccess.PropagateFailure<BankStatementImportPreviewDto>();
 
@@ -48,7 +50,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             DateTime minDate = rows.Min(row => row.OccurredAt).Date;
             DateTime maxDate = rows.Max(row => row.OccurredAt).Date.AddDays(1);
 
-            return await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
+            return await moneyMovementRepository.GetItemsByPredicateAsync(
                 movement => movement.AccountId == accountId &&
                             movement.Source == MoneyMovementSource.BankStatementImport &&
                             movement.ImportComment != null &&

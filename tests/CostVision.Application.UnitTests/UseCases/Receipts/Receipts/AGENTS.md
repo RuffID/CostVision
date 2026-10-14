@@ -6,6 +6,8 @@
 
 ## Контракты и границы
 
+После 07A фикстуры передают actual use case минимальные constructor-зависимости через TestUseCaseFactory. ITestStorage остаётся только набором test mocks; технические Save/transaction callbacks общие, production-контракта со всеми repositories нет.
+
 Проверять повторы внутри QR-пакета, несовпадение внешних реквизитов, ошибки до мутации и retry. Mock-проверки не заменяют сохранение графа в SQL.
 
 Создание чеков использует явную Serializable-перегрузку UoW без автоматического сохранения; фабрики подставного UoW должны выполнять action с исходным CancellationToken. Подробные проверки локального пакета и реальных predicate находятся также в Stage03RegressionTests в корне проекта тестов.

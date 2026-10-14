@@ -6,6 +6,8 @@
 
 ## Контракты и границы
 
+Create получает IReceiptLinkUnitOfWork, comment/transfer — IMoneyMovementEditUnitOfWork, delete — IMoneyMovementRemovalUnitOfWork. Валидатор принимает только AccountMember repository; matcher получает MoneyMovement/Receipt напрямую и не открывает транзакцию. Все adapters используют общий scope.
+
 Проверять исходный и целевой счёт, исполнителя и связи. Ожидаемый отказ не должен оставлять частичную запись; многошаговые изменения выполняются через UoW.
 
 Валидатор разрешает мутации только Owner/Editor. Создание вызывает общий ExactMoneyMovementReceiptMatcher внутри Serializable; первая явная запись даёт ID операции, вторая сохраняет найденную связь. Перенос загружает ReceiptLinks/Receipt/Accounts внутри Serializable и до мутации проверяет общий целевой счёт либо собственный чек без счетов. Несовместимость требует ручной отвязки. Импортную операцию нельзя перенести в счёт с тем же импортным ключом. При отказе транзакции нужен новый scope; SQL-блокировки unit-тестами не подтверждаются.

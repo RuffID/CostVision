@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -50,7 +51,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
                 null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([existing]);
-        PreviewBankStatementImportUseCase useCase = new(
+        PreviewBankStatementImportUseCase useCase = TestUseCaseFactory.CreatePreviewBankStatementImportUseCase(
             CreateUnitOfWork(
                 accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
                 moneyMovementRepository: moneyMovementRepository).Object,
@@ -77,7 +78,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             Errors = [new BankStatementImportLineErrorDto { LineNumber = 1, Message = "bad", RawText = "raw" }]
         };
         Mock<IBankStatementParser> parser = CreateParser("test", preview);
-        PreviewBankStatementImportUseCase useCase = new(
+        PreviewBankStatementImportUseCase useCase = TestUseCaseFactory.CreatePreviewBankStatementImportUseCase(
             CreateUnitOfWork(
                 accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
                 moneyMovementRepository: CreateMoneyMovementRepository()).Object,
@@ -95,8 +96,9 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     {
         Mock<IBankStatementParser> parser = CreateParser("test", new BankStatementImportPreviewDto());
         parser.Setup(item => item.CanParseFile("statement.txt")).Returns(false);
-        PreviewBankStatementImportUseCase useCase = new(
-            CreateUnitOfWork().Object,
+        PreviewBankStatementImportUseCase useCase = TestUseCaseFactory.CreatePreviewBankStatementImportUseCase(
+            CreateUnitOfWork(accountMemberRepository: CreateAccountMemberRepositorySequence([]),
+                moneyMovementRepository: CreateMoneyMovementRepository()).Object,
             CreateParserRegistry(parser.Object).Object,
             CreatePdfTextExtractor(["page text"]).Object);
 
@@ -112,12 +114,14 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         Mock<IBankStatementParser> parser = CreateParser("test", new BankStatementImportPreviewDto());
-        PreviewBankStatementImportUseCase unknownBankUseCase = new(
-            CreateUnitOfWork().Object,
+        PreviewBankStatementImportUseCase unknownBankUseCase = TestUseCaseFactory.CreatePreviewBankStatementImportUseCase(
+            CreateUnitOfWork(accountMemberRepository: CreateAccountMemberRepositorySequence([]),
+                moneyMovementRepository: CreateMoneyMovementRepository()).Object,
             CreateParserRegistry(parser.Object).Object,
             CreatePdfTextExtractor(["page text"]).Object);
-        PreviewBankStatementImportUseCase emptyPdfUseCase = new(
-            CreateUnitOfWork(accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)])).Object,
+        PreviewBankStatementImportUseCase emptyPdfUseCase = TestUseCaseFactory.CreatePreviewBankStatementImportUseCase(
+            CreateUnitOfWork(accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
+                moneyMovementRepository: CreateMoneyMovementRepository()).Object,
             CreateParserRegistry(parser.Object).Object,
             CreatePdfTextExtractor([" "]).Object);
 
@@ -147,11 +151,11 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             .ReturnsAsync([]);
         moneyMovementRepository.Setup(repository => repository.Create(It.IsAny<MoneyMovement>()))
             .Callback<MoneyMovement>(movement => createdMovement = movement);
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             setupTransaction: true);
-        ImportMoneyMovementsUseCase useCase = new(unitOfWork.Object);
+        ImportMoneyMovementsUseCase useCase = TestUseCaseFactory.CreateImportMoneyMovementsUseCase(unitOfWork.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new SaveBankStatementImportRequest
@@ -201,7 +205,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
                 null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([duplicate]);
-        ImportMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
+        ImportMoneyMovementsUseCase useCase = TestUseCaseFactory.CreateImportMoneyMovementsUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             setupTransaction: true).Object);
@@ -240,7 +244,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     public async Task ImportMoneyMovements_SkipsInvalidRows()
     {
         Guid accountId = Guid.NewGuid();
-        ImportMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
+        ImportMoneyMovementsUseCase useCase = TestUseCaseFactory.CreateImportMoneyMovementsUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, Guid.NewGuid(), AccountAccessRole.Editor)]),
             moneyMovementRepository: CreateMoneyMovementRepository()).Object);
 
@@ -285,7 +289,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([duplicate]);
 
-        ImportMoneyMovementsUseCase useCase = new(CreateUnitOfWork(
+        ImportMoneyMovementsUseCase useCase = TestUseCaseFactory.CreateImportMoneyMovementsUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             setupTransaction: true).Object);

@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -17,7 +18,7 @@ namespace CostVision.Application.UnitTests.UseCases.MoneyMovements;
 
 public abstract class MoneyMovementUseCaseTestBase
 {
-    protected static Mock<IUnitOfWork> CreateUnitOfWork(
+    protected static Mock<ITestStorage> CreateUnitOfWork(
         Mock<IAccountRepository>? accountRepository = null,
         Mock<IAccountMemberRepository>? accountMemberRepository = null,
         Mock<IMoneyMovementRepository>? moneyMovementRepository = null,
@@ -26,7 +27,7 @@ public abstract class MoneyMovementUseCaseTestBase
         bool setupSaveChanges = false,
         bool setupTransaction = false)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
 
         if (accountRepository != null)
             unitOfWork.Setup(item => item.Account).Returns(accountRepository.Object);

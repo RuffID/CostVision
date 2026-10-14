@@ -5,7 +5,7 @@ using System.Data;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class AutoLinkExactMoneyMovementReceiptsUseCase(IUnitOfWork unitOfWork) : IAutoLinkExactMoneyMovementReceiptsUseCase
+    public class AutoLinkExactMoneyMovementReceiptsUseCase(IReceiptReconciliationUnitOfWork unitOfWork) : IAutoLinkExactMoneyMovementReceiptsUseCase
     {
         public async Task<ServiceResult<int>> ExecuteAsync(Guid currentUserId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct)
         {
@@ -22,7 +22,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 await unitOfWork.ExecuteInTransaction(async transactionCt =>
                 {
                     List<MoneyMovementReceipt> links = await ExactMoneyMovementReceiptMatcher.LoadAndBuildAsync(
-                        unitOfWork, currentUserId, periodStart, periodEnd, accountId, null, transactionCt);
+                        unitOfWork.MoneyMovement, unitOfWork.Receipt, currentUserId, periodStart, periodEnd, accountId, null, transactionCt);
                     if (links.Count == 0)
                     {
                         return;

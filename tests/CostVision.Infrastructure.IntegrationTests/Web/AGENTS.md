@@ -6,6 +6,8 @@ TestWebApplication собирает тестовый HTTP-конвейер; те
 
 ## Контракты и границы
 
+TestWebApplication регистрирует IUserRepository напрямую для GetActiveUser; глобальный UoW не нужен. Compile-check не запускает hosting и не подтверждает HTTP-приёмку.
+
 Это hosting/TestServer, его запуск требует отдельного разрешения. Отличия тестовой композиции от Program.cs фиксировать явно; не объявлять production-приёмку по тестовому хосту.
 
 ## Проверка

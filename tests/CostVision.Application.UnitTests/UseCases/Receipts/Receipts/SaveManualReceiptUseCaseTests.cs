@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -23,8 +24,8 @@ public class SaveManualReceiptUseCaseTests
         Mock<IValidateReceiptCreationAccessUseCase> accessUseCase = new(MockBehavior.Strict);
         accessUseCase.Setup(item => item.ExecuteAsync(accountId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult.Fail(ServiceErrorType.Forbidden, "Нет доступа."));
-        SaveManualReceiptUseCase useCase = new(
-            new Mock<IUnitOfWork>(MockBehavior.Strict).Object,
+        SaveManualReceiptUseCase useCase = TestUseCaseFactory.CreateSaveManualReceiptUseCase(
+            new Mock<ITestStorage>(MockBehavior.Strict).Object,
             accessUseCase.Object);
 
         ServiceResult<AddReceiptManualResponse> result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
@@ -47,8 +48,8 @@ public class SaveManualReceiptUseCaseTests
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepositoryForSequence(null, null);
         receiptRepository.Setup(repository => repository.Create(It.IsAny<Receipt>()))
             .Callback<Receipt>(receipt => createdReceipt = receipt);
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict));
-        SaveManualReceiptUseCase useCase = new(unitOfWork.Object, CreateAccessUseCase().Object);
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict));
+        SaveManualReceiptUseCase useCase = TestUseCaseFactory.CreateSaveManualReceiptUseCase(unitOfWork.Object, CreateAccessUseCase().Object);
 
         ServiceResult<AddReceiptManualResponse> result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
         {
@@ -80,8 +81,8 @@ public class SaveManualReceiptUseCaseTests
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepositoryForSequence(null, existingReceipt, loadedReceipt);
         Mock<IReceiptAccountRepository> receiptAccountRepository = new(MockBehavior.Strict);
         receiptAccountRepository.Setup(repository => repository.Create(It.IsAny<ReceiptAccount>()));
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receiptRepository, receiptAccountRepository);
-        SaveManualReceiptUseCase useCase = new(unitOfWork.Object, CreateAccessUseCase().Object);
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(receiptRepository, receiptAccountRepository);
+        SaveManualReceiptUseCase useCase = TestUseCaseFactory.CreateSaveManualReceiptUseCase(unitOfWork.Object, CreateAccessUseCase().Object);
 
         // Act
         ServiceResult<AddReceiptManualResponse> result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
@@ -106,7 +107,7 @@ public class SaveManualReceiptUseCaseTests
         Receipt existingReceipt = TestReceiptFactory.Create(Guid.NewGuid());
         Receipt loadedReceipt = TestReceiptFactory.Create(existingReceipt.Id);
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepositoryForSequence(existingReceipt, loadedReceipt);
-        SaveManualReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, CreateAccessUseCase().Object);
+        SaveManualReceiptUseCase useCase = TestUseCaseFactory.CreateSaveManualReceiptUseCase(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, CreateAccessUseCase().Object);
 
         ServiceResult<AddReceiptManualResponse> result = await useCase.ExecuteAsync(new ReceiptManualCreateRequest
         {
@@ -123,8 +124,8 @@ public class SaveManualReceiptUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsValidationFailure_WhenReceiptDataIsInvalid()
     {
-        SaveManualReceiptUseCase useCase = new(
-            new Mock<IUnitOfWork>(MockBehavior.Strict).Object,
+        SaveManualReceiptUseCase useCase = TestUseCaseFactory.CreateSaveManualReceiptUseCase(
+            new Mock<ITestStorage>(MockBehavior.Strict).Object,
             new Mock<IValidateReceiptCreationAccessUseCase>(MockBehavior.Strict).Object);
         ManualReceiptInput input = CreateInput();
         input.FiscalDriveNumber = string.Empty;
@@ -166,9 +167,9 @@ public class SaveManualReceiptUseCaseTests
         return repository;
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         TestUnitOfWorkFactory.SetupReceiptTransaction(unitOfWork);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.ReceiptAccount).Returns(receiptAccountRepository.Object);

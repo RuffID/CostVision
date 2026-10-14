@@ -1,4 +1,5 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Application.Models.Dtos.Authorization;
 using CostVision.Application.Models.Responses.Results;
@@ -6,11 +7,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Authorize.Users
 {
-    public class GetUserUseCase(IUnitOfWork unitOfWork) : IGetUserUseCase
+    public class GetUserUseCase(IUserRepository userRepository) : IGetUserUseCase
     {
         public async Task<ServiceResult<UserEditDto>> ExecuteAsync(Guid id, CancellationToken ct)
         {
-            User? user = await unitOfWork.User.GetItemByPredicateAsync(
+            User? user = await userRepository.GetItemByPredicateAsync(
                 user => user.Id == id,
                 asNoTracking: true,
                 include: query => query.Include(user => user.UserRoles),

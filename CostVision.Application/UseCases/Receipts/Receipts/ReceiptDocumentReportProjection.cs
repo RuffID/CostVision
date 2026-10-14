@@ -1,4 +1,5 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Extensions;
 using CostVision.Application.Models.Dtos.Mappers;
 using CostVision.Application.Models.Dtos.Receipts;
@@ -9,9 +10,9 @@ namespace CostVision.Application.UseCases.Receipts.Receipts;
 
 internal static class ReceiptDocumentReportProjection
 {
-    public static async Task<ReceiptDto> MapAsync(IUnitOfWork unitOfWork, Receipt receipt, Guid currentUserId, CancellationToken ct)
+    public static async Task<ReceiptDto> MapAsync(IReceiptRepository receiptRepository, Receipt receipt, Guid currentUserId, CancellationToken ct)
     {
-        List<Receipt> copies = await unitOfWork.Receipt.GetItemsByPredicateAsync(
+        List<Receipt> copies = await receiptRepository.GetItemsByPredicateAsync(
             ReceiptIdentityPredicates.ForDocument(receipt.GetIdentity()).WithReceiptReadAccess(item => item, currentUserId),
             asNoTracking: true,
             include: query => query.Include(item => item.MoneyMovementLinks)

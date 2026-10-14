@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -27,10 +28,10 @@ public class UpdateAccountUseCaseTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(current);
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-        UpdateAccountUseCase useCase = new(unitOfWork.Object);
+        UpdateAccountUseCase useCase = TestUseCaseFactory.CreateUpdateAccountUseCase(unitOfWork.Object);
 
         UpdateAccountRequest request = new()
         {
@@ -66,9 +67,9 @@ public class UpdateAccountUseCaseTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((Account?)null);
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
-        UpdateAccountUseCase useCase = new(unitOfWork.Object);
+        UpdateAccountUseCase useCase = TestUseCaseFactory.CreateUpdateAccountUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), new UpdateAccountRequest
         {
@@ -85,8 +86,9 @@ public class UpdateAccountUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsBadRequest_WhenAccountIdIsEmpty()
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
-        UpdateAccountUseCase useCase = new(unitOfWork.Object);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
+        Mock<IAccountRepository> accountRepository = new(MockBehavior.Strict);
+        UpdateAccountUseCase useCase = new(unitOfWork.Object, accountRepository.Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), new UpdateAccountRequest
         {
@@ -116,9 +118,9 @@ public class UpdateAccountUseCaseTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(current);
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
-        UpdateAccountUseCase useCase = new(unitOfWork.Object);
+        UpdateAccountUseCase useCase = TestUseCaseFactory.CreateUpdateAccountUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(ownerUserId, new UpdateAccountRequest
         {

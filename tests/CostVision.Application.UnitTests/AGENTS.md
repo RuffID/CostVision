@@ -6,6 +6,8 @@
 
 ## Контракты и границы
 
+После 07A фикстуры передают actual use case минимальные constructor-зависимости через TestUseCaseFactory. ITestStorage остаётся только набором test mocks; технические Save/transaction callbacks общие, production-контракта со всеми repositories нет.
+
 Stage02RegressionTests выполняет реальные predicate-выражения над графами для каталога, ролей, входа и счетов; проверяет отказ до мутации/сохранения, архивную границу и owner membership. Include и SQL им не подтверждаются. TestUnitOfWorkFactory получает существующие role ID явно; пустой default не означает существование любой роли.
 
 Новый default не должен скрывать значимое условие сценария. Linked compile и фабрики сверять со всеми потребителями; не превращать mock-тесты в доказательство SQL.

@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Extensions;
 using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Dtos.Receipts;
@@ -10,7 +11,7 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.Receipts.Products;
 
-public class GetProductListUseCase(IUnitOfWork unitOfWork) : IGetProductListUseCase
+public class GetProductListUseCase(IProductRepository productRepository) : IGetProductListUseCase
 {
     public async Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, Guid currentUserId, CancellationToken ct)
     {
@@ -32,7 +33,7 @@ public class GetProductListUseCase(IUnitOfWork unitOfWork) : IGetProductListUseC
             (search == null || search == "" || product.Name.Contains(search) ||
              (product.AdaptiveName != null && product.AdaptiveName.Contains(search)));
 
-        List<ReadQueryTotals> summaries = await unitOfWork.Product.GetProjectedItemsAsync(predicate,
+        List<ReadQueryTotals> summaries = await productRepository.GetProjectedItemsAsync(predicate,
             query => Project(query, itemPredicate, request.UseAdaptiveNames).GroupBy(item => 1)
                 .Select(group => new ReadQueryTotals
                 {
@@ -42,7 +43,7 @@ public class GetProductListUseCase(IUnitOfWork unitOfWork) : IGetProductListUseC
         ReadQueryTotals totals = summaries.SingleOrDefault() ?? new ReadQueryTotals();
         int totalPages = Math.Max(1, (int)Math.Ceiling(totals.Count / (double)pageSize));
         int page = Math.Clamp(request.Page, 1, totalPages);
-        List<ProductListItemDto> items = await unitOfWork.Product.GetProjectedItemsAsync(predicate,
+        List<ProductListItemDto> items = await productRepository.GetProjectedItemsAsync(predicate,
             query => Sort(Project(query, itemPredicate, request.UseAdaptiveNames), request.SortBy, request.SortDirection)
                 .Skip((page - 1) * pageSize).Take(pageSize), ct);
 

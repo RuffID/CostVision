@@ -1,4 +1,5 @@
 ﻿using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Dtos.Mappers;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Responses.Results;
@@ -10,7 +11,7 @@ using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
-    public class GetReceiptListUseCase(IUnitOfWork unitOfWork) : IGetReceiptListUseCase
+    public class GetReceiptListUseCase(IReceiptRepository receiptRepository) : IGetReceiptListUseCase
     {
         public async Task<ServiceResult<List<ReceiptDto>>> ExecuteAsync(User currentUser, DateTime dateFrom, DateTime dateTo, CancellationToken ct)
         {
@@ -25,7 +26,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
             Expression<Func<Receipt, bool>> receiptPredicate = receipt => receipt.DateTime >= periodStart &&
                            receipt.DateTime < periodEnd;
 
-            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
+            List<Receipt> receipts = await receiptRepository.GetItemsByPredicateAsync(
                 receiptPredicate.WithReceiptReadAccess(receipt => receipt, currentUser.Id),
                 asNoTracking: true,
                 include: query => query

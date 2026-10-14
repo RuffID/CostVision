@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -34,9 +35,9 @@ public class GetProductListUseCaseTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Product).Returns(productRepository.Object);
-        GetProductListUseCase useCase = new(unitOfWork.Object);
+        GetProductListUseCase useCase = TestUseCaseFactory.CreateGetProductListUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(new GetProductListRequest
         {
@@ -79,9 +80,9 @@ public class GetProductListUseCaseTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Product).Returns(productRepository.Object);
-        GetProductListUseCase useCase = new(unitOfWork.Object);
+        GetProductListUseCase useCase = TestUseCaseFactory.CreateGetProductListUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(new GetProductListRequest
         {

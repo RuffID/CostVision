@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -37,13 +38,13 @@ public class Stage05ReportQueryTests
         // Act
         if (refresh)
         {
-            var result = await new RefreshReceiptFromApiUseCase(data.Work.Object, access.Object, workflow.Object)
+            var result = await TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(data.Work.Object, access.Object, workflow.Object)
                 .ExecuteAsync(data.Receipt.Id, data.User, TestContext.Current.CancellationToken);
             Assert.True(result.Success);
         }
         else
         {
-            var result = await new GetReceiptWithItemsUseCase(data.Work.Object, access.Object)
+            var result = await TestUseCaseFactory.CreateGetReceiptWithItemsUseCase(data.Work.Object, access.Object)
                 .ExecuteAsync(data.Receipt.Id, data.User, TestContext.Current.CancellationToken);
             Assert.True(result.Success);
         }
@@ -68,16 +69,16 @@ public class Stage05ReportQueryTests
         using Fixture data = new();
 
         // Act
-        var dashboard = await new GetDashboardIncomeExpenseReportUseCase(data.Work.Object).ExecuteAsync(data.User, new()
+        var dashboard = await TestUseCaseFactory.CreateGetDashboardIncomeExpenseReportUseCase(data.Work.Object).ExecuteAsync(data.User, new()
         {
             DateFrom = data.Date, DateTo = data.Date, Period = "day", ExpenseSource = "receiptsAndMoneyMovements",
             AccountIds = [Guid.NewGuid()], StoreNames = ["Store"]
         }, TestContext.Current.CancellationToken);
-        var candidates = await new GetReceiptMoneyMovementCandidatesUseCase(data.Work.Object).ExecuteAsync(new()
+        var candidates = await TestUseCaseFactory.CreateGetReceiptMoneyMovementCandidatesUseCase(data.Work.Object).ExecuteAsync(new()
         {
             ReceiptId = data.Receipt.Id, DateFrom = data.Date.AddDays(-1), DateTo = data.Date.AddDays(1), AmountTolerance = 1m
         }, data.User.Id, TestContext.Current.CancellationToken);
-        var list = await new GetReceiptListPageUseCase(data.Work.Object)
+        var list = await TestUseCaseFactory.CreateGetReceiptListPageUseCase(data.Work.Object)
             .ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date }, TestContext.Current.CancellationToken);
 
         // Assert
@@ -106,7 +107,7 @@ public class Stage05ReportQueryTests
         public Receipt Receipt { get; }
         public List<string> ReceiptListSql { get; } = [];
         public List<string> MovementSql { get; } = [];
-        public Mock<IUnitOfWork> Work { get; } = new(MockBehavior.Strict);
+        public Mock<ITestStorage> Work { get; } = new(MockBehavior.Strict);
 
         public Fixture()
         {

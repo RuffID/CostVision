@@ -11,7 +11,7 @@ using System.Data;
 namespace CostVision.Application.UseCases.Receipts.Receipts
 {
     public class SaveManualReceiptUseCase(
-        IUnitOfWork unitOfWork,
+        IReceiptCreationUnitOfWork unitOfWork,
         IValidateReceiptCreationAccessUseCase validateReceiptCreationAccessUseCase) : ISaveManualReceiptUseCase
     {
         public async Task<ServiceResult<AddReceiptManualResponse>> ExecuteAsync(ReceiptManualCreateRequest request, Guid currentUserId, CancellationToken ct)

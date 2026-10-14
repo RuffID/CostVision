@@ -1,4 +1,5 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Extensions;
 using System.Linq.Expressions;
@@ -9,12 +10,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
-    public class GetUserAccountsUseCase(IUnitOfWork unitOfWork) : IGetUserAccountsUseCase
+    public class GetUserAccountsUseCase(IAccountRepository accountRepository) : IGetUserAccountsUseCase
     {
         public async Task<ServiceResult<List<UserAccountViewModel>>> ExecuteAsync(Guid userId, bool includeArchived, CancellationToken ct)
         {
             Expression<Func<Account, bool>> predicate = account => includeArchived || !account.IsArchived;
-            List<Account> accounts = await unitOfWork.Account.GetItemsByPredicateAsync(
+            List<Account> accounts = await accountRepository.GetItemsByPredicateAsync(
                 predicate.WithAccountReadAccess(account => account, userId),
                 asNoTracking: true,
                 include: query => query.Include(account => account.CreatedByUser).Include(account => account.Members),

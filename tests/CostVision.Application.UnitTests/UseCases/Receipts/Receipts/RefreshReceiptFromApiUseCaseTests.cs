@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -25,7 +26,7 @@ public class RefreshReceiptFromApiUseCaseTests
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
         refreshWorkflow.Setup(workflow => workflow.RefreshAsync(receipt, It.IsAny<CancellationToken>(), It.IsAny<Guid>()))
             .ReturnsAsync(ServiceResult<Receipt>.Ok(receipt));
-        RefreshReceiptFromApiUseCase useCase = new(CreateUnitOfWork(receipt).Object, accessVerification.Object, refreshWorkflow.Object);
+        RefreshReceiptFromApiUseCase useCase = TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(CreateUnitOfWork(receipt).Object, accessVerification.Object, refreshWorkflow.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
@@ -44,7 +45,7 @@ public class RefreshReceiptFromApiUseCaseTests
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         accessVerification.Setup(service => service.UserHasAccessToReceipt(currentUser, receipt)).Returns(false);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
-        RefreshReceiptFromApiUseCase useCase = new(CreateUnitOfWork(receipt).Object, accessVerification.Object, refreshWorkflow.Object);
+        RefreshReceiptFromApiUseCase useCase = TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(CreateUnitOfWork(receipt).Object, accessVerification.Object, refreshWorkflow.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
@@ -60,7 +61,7 @@ public class RefreshReceiptFromApiUseCaseTests
         // Arrange
         Mock<IReceiptAccessVerificationService> accessVerification = new(MockBehavior.Strict);
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
-        RefreshReceiptFromApiUseCase useCase = new(CreateUnitOfWork(null).Object, accessVerification.Object, refreshWorkflow.Object);
+        RefreshReceiptFromApiUseCase useCase = TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(CreateUnitOfWork(null).Object, accessVerification.Object, refreshWorkflow.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), TestUserFactory.Create(), CancellationToken.None);
@@ -82,7 +83,7 @@ public class RefreshReceiptFromApiUseCaseTests
         Mock<IReceiptRefreshWorkflow> refreshWorkflow = new(MockBehavior.Strict);
         refreshWorkflow.Setup(workflow => workflow.RefreshAsync(receipt, It.IsAny<CancellationToken>(), It.IsAny<Guid>()))
             .ReturnsAsync(ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, "Provider error"));
-        RefreshReceiptFromApiUseCase useCase = new(CreateUnitOfWork(receipt).Object, accessVerification.Object, refreshWorkflow.Object);
+        RefreshReceiptFromApiUseCase useCase = TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(CreateUnitOfWork(receipt).Object, accessVerification.Object, refreshWorkflow.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(receipt.Id, currentUser, CancellationToken.None);
@@ -91,7 +92,7 @@ public class RefreshReceiptFromApiUseCaseTests
         Assert.False(result.Success);
         Assert.Equal(ServiceErrorType.ExternalService, result.Error?.Type);
     }
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Receipt? receipt)
+    private static Mock<ITestStorage> CreateUnitOfWork(Receipt? receipt)
     {
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         receiptRepository
@@ -117,7 +118,7 @@ public class RefreshReceiptFromApiUseCaseTests
 
                 return Task.FromResult(available);
             });
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
         return unitOfWork;
     }

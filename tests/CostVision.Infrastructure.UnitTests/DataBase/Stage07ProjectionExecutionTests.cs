@@ -1,3 +1,4 @@
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using System.Data;
 using System.Data.Common;
 using CostVision.Application.Abstractions.DataBase.Repositories;
@@ -70,13 +71,13 @@ public class Stage07ProjectionExecutionTests
         await using ServiceProvider provider = registrations.BuildServiceProvider(
             new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
         await using AsyncServiceScope scope = provider.CreateAsyncScope();
-        IUnitOfWork work = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        IReceiptRepository receipts = scope.ServiceProvider.GetRequiredService<IReceiptRepository>();
         DateTime date = new(2026, 1, 15);
 
         // Act
-        List<int> count = await work.Receipt.GetProjectedItemsAsync(receipt => receipt.DateTime >= date,
+        List<int> count = await receipts.GetProjectedItemsAsync(receipt => receipt.DateTime >= date,
             query => query.GroupBy(receipt => 1).Select(group => group.Count()), token);
-        List<Guid> page = await work.Receipt.GetProjectedItemsAsync(receipt => receipt.DateTime >= date,
+        List<Guid> page = await receipts.GetProjectedItemsAsync(receipt => receipt.DateTime >= date,
             query => query.OrderByDescending(receipt => receipt.DateTime).ThenBy(receipt => receipt.Id)
                 .Skip(2).Take(1).Select(receipt => receipt.Id), token);
 

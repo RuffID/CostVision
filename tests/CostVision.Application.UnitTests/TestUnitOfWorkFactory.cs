@@ -1,4 +1,5 @@
-﻿using CostVision.Application.Abstractions.DataBase.Repositories;
+﻿using CostVision.Tests;
+using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using Moq;
 using System.Linq.Expressions;
@@ -10,14 +11,14 @@ namespace CostVision.Application.UnitTests;
 
 internal static class TestUnitOfWorkFactory
 {
-    public static void SetupReceiptTransaction(Mock<IUnitOfWork> work)
+    public static void SetupReceiptTransaction(Mock<ITestStorage> work)
     {
         work.Setup(item => item.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(),
             IsolationLevel.Serializable, It.IsAny<CancellationToken>()))
             .Returns((Func<CancellationToken, Task> action, IsolationLevel isolation, CancellationToken ct) => action(ct));
     }
 
-    public static Mock<IUnitOfWork> CreateWithUserRepository(Mock<IUserRepository> userRepository, List<Guid>? existingRoleIds = null)
+    public static Mock<ITestStorage> CreateWithUserRepository(Mock<IUserRepository> userRepository, List<Guid>? existingRoleIds = null)
     {
         List<Role> roles = [];
         foreach (Guid roleId in existingRoleIds ?? [])
@@ -39,7 +40,7 @@ internal static class TestUnitOfWorkFactory
                 Func<IQueryable<Role>, IQueryable<Role>> include, CancellationToken ct) =>
                 Task.FromResult(roles.Where(predicate.Compile()).ToList()));
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(work => work.Role).Returns(roleRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.User).Returns(userRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);

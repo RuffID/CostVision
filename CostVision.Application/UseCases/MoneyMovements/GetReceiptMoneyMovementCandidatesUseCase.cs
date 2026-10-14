@@ -1,5 +1,7 @@
 using CostVision.Application.Models.Dtos;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
@@ -12,7 +14,7 @@ using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class GetReceiptMoneyMovementCandidatesUseCase(IUnitOfWork unitOfWork) : IGetReceiptMoneyMovementCandidatesUseCase
+    public class GetReceiptMoneyMovementCandidatesUseCase(IReceiptRepository receiptRepository, IMoneyMovementRepository moneyMovementRepository) : IGetReceiptMoneyMovementCandidatesUseCase
     {
         private const decimal DEFAULT_TIME_WINDOW_HOURS = 1m;
         private const decimal MINUTES_PER_HOUR = 60m;
@@ -27,7 +29,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             Expression<Func<Receipt, bool>> receiptPredicate = item => item.Id == request.ReceiptId;
 
-            Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
+            Receipt? receipt = await receiptRepository.GetItemByPredicateAsync(
                 receiptPredicate.WithReceiptReadAccess(item => item, currentUserId),
                 asNoTracking: true,
                 include: query => query
@@ -75,14 +77,14 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 amountTolerance, request.ExcludeLinkedMoneyMovements);
 
 
-            List<int> counts = await unitOfWork.MoneyMovement.GetProjectedItemsAsync(movementPredicate,
+            List<int> counts = await moneyMovementRepository.GetProjectedItemsAsync(movementPredicate,
                 query => query.GroupBy(item => 1).Select(group => group.Count()), ct);
             int count = counts.SingleOrDefault();
             int pageSize = Math.Clamp(request.PageSize, 1, 100);
             int pages = Math.Max(1, (int)Math.Ceiling(count / (double)pageSize));
             int page = Math.Clamp(request.Page, 1, pages);
 
-            List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
+            List<MoneyMovement> movements = await moneyMovementRepository.GetItemsByPredicateAsync(
                 movementPredicate,
                 skip: (page - 1) * pageSize,
                 take: pageSize,

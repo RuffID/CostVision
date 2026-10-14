@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -27,7 +28,7 @@ public class UpdateMoneyMovementCommentUseCaseTests : MoneyMovementUseCaseTestBa
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(movement)
             .ReturnsAsync(movement);
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence(
             [
                 CreateMember(accountId, userId, AccountAccessRole.Editor),
@@ -35,7 +36,7 @@ public class UpdateMoneyMovementCommentUseCaseTests : MoneyMovementUseCaseTestBa
             ]),
             moneyMovementRepository: moneyMovementRepository,
             setupSaveChanges: true);
-        UpdateMoneyMovementCommentUseCase useCase = new(unitOfWork.Object);
+        UpdateMoneyMovementCommentUseCase useCase = TestUseCaseFactory.CreateUpdateMoneyMovementCommentUseCase(unitOfWork.Object);
 
         var updateResult = await useCase.ExecuteAsync(new UpdateMoneyMovementCommentRequest
         {
@@ -77,10 +78,10 @@ public class UpdateMoneyMovementCommentUseCaseTests : MoneyMovementUseCaseTestBa
                 null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateMovement(Guid.NewGuid(), accountId, 100, DateTime.Today, userId));
-        UpdateMoneyMovementCommentUseCase tooLongUseCase = new(CreateUnitOfWork(
+        UpdateMoneyMovementCommentUseCase tooLongUseCase = TestUseCaseFactory.CreateUpdateMoneyMovementCommentUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: existingMovementRepository).Object);
-        UpdateMoneyMovementCommentUseCase missingUseCase = new(CreateUnitOfWork(
+        UpdateMoneyMovementCommentUseCase missingUseCase = TestUseCaseFactory.CreateUpdateMoneyMovementCommentUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: missingMovementRepository).Object);
 

@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -23,8 +24,8 @@ public class RemoveReceiptFromAccountUseCaseTests
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository(receipt);
         Mock<IReceiptAccountRepository> receiptAccountRepository = new(MockBehavior.Strict);
         receiptAccountRepository.Setup(repository => repository.Delete(link));
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receiptRepository, receiptAccountRepository);
-        RemoveReceiptFromAccountUseCase useCase = new(unitOfWork.Object);
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(receiptRepository, receiptAccountRepository);
+        RemoveReceiptFromAccountUseCase useCase = TestUseCaseFactory.CreateRemoveReceiptFromAccountUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(accountId, receiptId, userId, CancellationToken.None);
 
@@ -44,7 +45,7 @@ public class RemoveReceiptFromAccountUseCaseTests
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository(receipt);
         receiptRepository.Setup(repository => repository.Delete(receipt));
         Mock<IReceiptAccountRepository> receiptAccountRepository = new(MockBehavior.Strict);
-        RemoveReceiptFromAccountUseCase useCase = new(CreateUnitOfWork(receiptRepository, receiptAccountRepository).Object);
+        RemoveReceiptFromAccountUseCase useCase = TestUseCaseFactory.CreateRemoveReceiptFromAccountUseCase(CreateUnitOfWork(receiptRepository, receiptAccountRepository).Object);
 
         var result = await useCase.ExecuteAsync(accountId, receipt.Id, userId, CancellationToken.None);
 
@@ -61,7 +62,7 @@ public class RemoveReceiptFromAccountUseCaseTests
         account.TryAddMember(userId, AccountAccessRole.Viewer, out _, out _);
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
         AddAccount(receipt, account);
-        RemoveReceiptFromAccountUseCase useCase = new(CreateUnitOfWork(CreateReceiptRepository(receipt), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);
+        RemoveReceiptFromAccountUseCase useCase = TestUseCaseFactory.CreateRemoveReceiptFromAccountUseCase(CreateUnitOfWork(CreateReceiptRepository(receipt), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);
 
         var result = await useCase.ExecuteAsync(accountId, receipt.Id, userId, CancellationToken.None);
 
@@ -72,7 +73,7 @@ public class RemoveReceiptFromAccountUseCaseTests
     [Fact]
     public async Task ExecuteAsync_ReturnsNotFound_WhenReceiptDoesNotExist()
     {
-        RemoveReceiptFromAccountUseCase useCase = new(CreateUnitOfWork(CreateReceiptRepository(null), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);
+        RemoveReceiptFromAccountUseCase useCase = TestUseCaseFactory.CreateRemoveReceiptFromAccountUseCase(CreateUnitOfWork(CreateReceiptRepository(null), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
 
@@ -99,9 +100,9 @@ public class RemoveReceiptFromAccountUseCaseTests
         return link!;
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.ReceiptAccount).Returns(receiptAccountRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);

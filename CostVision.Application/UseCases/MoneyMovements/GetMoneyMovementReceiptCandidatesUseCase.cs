@@ -1,4 +1,6 @@
 ﻿using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Models.Dtos;
 using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Application.Models.Dtos.MoneyMovements;
@@ -13,7 +15,7 @@ using System.Linq.Expressions;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class GetMoneyMovementReceiptCandidatesUseCase(IUnitOfWork unitOfWork) : IGetMoneyMovementReceiptCandidatesUseCase
+    public class GetMoneyMovementReceiptCandidatesUseCase(IMoneyMovementRepository moneyMovementRepository, IReceiptRepository receiptRepository) : IGetMoneyMovementReceiptCandidatesUseCase
     {
         private const decimal DEFAULT_TIME_WINDOW_HOURS = 1m;
         private const decimal MINUTES_PER_HOUR = 60m;
@@ -28,7 +30,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             Expression<Func<MoneyMovement, bool>> movementPredicate = item => item.Id == request.MoneyMovementId;
 
-            MoneyMovement? movement = await unitOfWork.MoneyMovement.GetItemByPredicateAsync(
+            MoneyMovement? movement = await moneyMovementRepository.GetItemByPredicateAsync(
                 movementPredicate.WithAccountReadAccess(item => item.Account, currentUserId),
                 asNoTracking: true,
                 include: query => query
@@ -76,20 +78,20 @@ namespace CostVision.Application.UseCases.MoneyMovements
                             (!receipt.Accounts.Any() && receipt.CreatedByUserId == currentUserId));
 
             receiptPredicate = receiptPredicate.WithReceiptReadAccess(item => item, currentUserId);
-            List<int> counts = await unitOfWork.Receipt.GetProjectedItemsAsync(receiptPredicate,
+            List<int> counts = await receiptRepository.GetProjectedItemsAsync(receiptPredicate,
                 query => ReceiptReadQueries.Documents(query).GroupBy(item => 1).Select(group => group.Count()), ct);
             int count = counts.SingleOrDefault();
             int pageSize = Math.Clamp(request.PageSize, 1, 100);
             int pages = Math.Max(1, (int)Math.Ceiling(count / (double)pageSize));
             int page = Math.Clamp(request.Page, 1, pages);
-            List<Guid> ids = await unitOfWork.Receipt.GetProjectedItemsAsync(receiptPredicate,
+            List<Guid> ids = await receiptRepository.GetProjectedItemsAsync(receiptPredicate,
                 query => ReadQueryOrdering.ByDistance(ReceiptReadQueries.Documents(query), item => item.DateTime,
                     movement.OccurredAt, item => item.TotalSum, movement.Amount, item => item.Id)
                     .Skip((page - 1) * pageSize).Take(pageSize).Select(item => item.Id), ct);
             List<Receipt> receipts = [];
             if (ids.Count > 0)
             {
-                receipts = await unitOfWork.Receipt.GetProjectedItemsAsync(receiptPredicate,
+                receipts = await receiptRepository.GetProjectedItemsAsync(receiptPredicate,
                     query => ReceiptReadQueries.WithReportGraph(ReceiptReadQueries.CopiesForPage(query, ids)), ct);
             }
 

@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -25,8 +26,8 @@ public class SaveReceiptsScannedUseCaseTests
         Mock<IValidateReceiptCreationAccessUseCase> accessUseCase = new(MockBehavior.Strict);
         accessUseCase.Setup(item => item.ExecuteAsync(accountId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult.Fail(ServiceErrorType.Forbidden, "Нет доступа."));
-        SaveReceiptsScannedUseCase useCase = new(
-            new Mock<IUnitOfWork>(MockBehavior.Strict).Object,
+        SaveReceiptsScannedUseCase useCase = TestUseCaseFactory.CreateSaveReceiptsScannedUseCase(
+            new Mock<ITestStorage>(MockBehavior.Strict).Object,
             accessUseCase.Object,
             new Mock<IQrParser>(MockBehavior.Strict).Object);
 
@@ -52,7 +53,7 @@ public class SaveReceiptsScannedUseCaseTests
             .Callback<Receipt>(receipt => createdReceipt = receipt);
         Mock<IQrParser> qrParser = new(MockBehavior.Strict);
         qrParser.Setup(parser => parser.Parse("qr")).Returns(CreateParsed());
-        SaveReceiptsScannedUseCase useCase = new(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, CreateAccessUseCase().Object, qrParser.Object);
+        SaveReceiptsScannedUseCase useCase = TestUseCaseFactory.CreateSaveReceiptsScannedUseCase(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, CreateAccessUseCase().Object, qrParser.Object);
 
         ServiceResult<AddReceiptScanResponse> result = await useCase.ExecuteAsync(new QrScanRequest
         {
@@ -77,7 +78,7 @@ public class SaveReceiptsScannedUseCaseTests
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
         Mock<IQrParser> qrParser = new(MockBehavior.Strict);
         qrParser.Setup(parser => parser.Parse("bad")).Returns((QrParsed)null!);
-        SaveReceiptsScannedUseCase useCase = new(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, CreateAccessUseCase().Object, qrParser.Object);
+        SaveReceiptsScannedUseCase useCase = TestUseCaseFactory.CreateSaveReceiptsScannedUseCase(CreateUnitOfWork(receiptRepository, new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object, CreateAccessUseCase().Object, qrParser.Object);
 
         ServiceResult<AddReceiptScanResponse> result = await useCase.ExecuteAsync(new QrScanRequest
         {
@@ -101,7 +102,7 @@ public class SaveReceiptsScannedUseCaseTests
         receiptAccountRepository.Setup(repository => repository.Create(It.IsAny<ReceiptAccount>()));
         Mock<IQrParser> qrParser = new(MockBehavior.Strict);
         qrParser.Setup(parser => parser.Parse("qr")).Returns(CreateParsed());
-        SaveReceiptsScannedUseCase useCase = new(CreateUnitOfWork(receiptRepository, receiptAccountRepository).Object, CreateAccessUseCase().Object, qrParser.Object);
+        SaveReceiptsScannedUseCase useCase = TestUseCaseFactory.CreateSaveReceiptsScannedUseCase(CreateUnitOfWork(receiptRepository, receiptAccountRepository).Object, CreateAccessUseCase().Object, qrParser.Object);
 
         ServiceResult<AddReceiptScanResponse> result = await useCase.ExecuteAsync(new QrScanRequest
         {
@@ -141,9 +142,9 @@ public class SaveReceiptsScannedUseCaseTests
         return repository;
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         TestUnitOfWorkFactory.SetupReceiptTransaction(unitOfWork);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.ReceiptAccount).Returns(receiptAccountRepository.Object);

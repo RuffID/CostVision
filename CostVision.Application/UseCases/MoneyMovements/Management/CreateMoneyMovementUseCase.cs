@@ -11,7 +11,7 @@ using System.Data;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class CreateMoneyMovementUseCase(IUnitOfWork unitOfWork) : ICreateMoneyMovementUseCase
+    public class CreateMoneyMovementUseCase(IReceiptLinkUnitOfWork unitOfWork) : ICreateMoneyMovementUseCase
     {
         public async Task<ServiceResult<MoneyMovementDto>> ExecuteAsync(CreateMoneyMovementRequest request, Guid currentUserId, CancellationToken ct)
         {
@@ -34,7 +34,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             MoneyMovement newMovement = movement!;
 
             ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(
-                unitOfWork, request.AccountId, currentUserId, ct, requireActive: true);
+                unitOfWork.AccountMember, request.AccountId, currentUserId, ct, requireActive: true);
             if (!access.Success)
             {
                 return access.PropagateFailure<MoneyMovementDto>();
@@ -99,7 +99,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             DateTime periodEnd = periodStart.AddDays(1);
 
             List<MoneyMovementReceipt> links = await ExactMoneyMovementReceiptMatcher.LoadAndBuildAsync(
-                unitOfWork, currentUserId, periodStart, periodEnd, movement.AccountId, movement.Id, ct);
+                unitOfWork.MoneyMovement, unitOfWork.Receipt, currentUserId, periodStart, periodEnd, movement.AccountId, movement.Id, ct);
             if (links.Count == 0)
             {
                 return;

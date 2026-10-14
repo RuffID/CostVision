@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -39,8 +40,8 @@ public class MoveReceiptToAccountUseCaseTests
         receiptAccountRepository.Setup(repository => repository.Delete(sourceLink!));
         receiptAccountRepository.Setup(repository => repository.Create(It.IsAny<ReceiptAccount>()))
             .Callback<ReceiptAccount>(link => createdLink = link);
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receiptRepository, accountRepository, receiptAccountRepository);
-        MoveReceiptToAccountUseCase useCase = new(unitOfWork.Object);
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(receiptRepository, accountRepository, receiptAccountRepository);
+        MoveReceiptToAccountUseCase useCase = TestUseCaseFactory.CreateMoveReceiptToAccountUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(sourceAccountId, targetAccountId, receiptId, userId, CancellationToken.None);
 
@@ -65,7 +66,7 @@ public class MoveReceiptToAccountUseCaseTests
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(receipt);
-        MoveReceiptToAccountUseCase useCase = new(CreateUnitOfWork(receiptRepository, CreateAccountRepository(null), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);
+        MoveReceiptToAccountUseCase useCase = TestUseCaseFactory.CreateMoveReceiptToAccountUseCase(CreateUnitOfWork(receiptRepository, CreateAccountRepository(null), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), receiptId, Guid.NewGuid(), CancellationToken.None);
 
@@ -93,7 +94,7 @@ public class MoveReceiptToAccountUseCaseTests
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(receipt);
-        MoveReceiptToAccountUseCase useCase = new(CreateUnitOfWork(receiptRepository, CreateAccountRepository(null), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);
+        MoveReceiptToAccountUseCase useCase = TestUseCaseFactory.CreateMoveReceiptToAccountUseCase(CreateUnitOfWork(receiptRepository, CreateAccountRepository(null), new Mock<IReceiptAccountRepository>(MockBehavior.Strict)).Object);
 
         var result = await useCase.ExecuteAsync(sourceAccountId, targetAccountId, receiptId, userId, CancellationToken.None);
 
@@ -122,9 +123,9 @@ public class MoveReceiptToAccountUseCaseTests
         return repository;
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IAccountRepository> accountRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository, Mock<IAccountRepository> accountRepository, Mock<IReceiptAccountRepository> receiptAccountRepository)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         TestUnitOfWorkFactory.SetupReceiptTransaction(unitOfWork);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);

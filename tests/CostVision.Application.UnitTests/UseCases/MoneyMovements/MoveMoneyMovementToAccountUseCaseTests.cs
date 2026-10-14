@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -34,11 +35,11 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
                 It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(movement);
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(
             accountMemberRepository: accountMemberRepository,
             moneyMovementRepository: moneyMovementRepository,
             setupSaveChanges: true);
-        MoveMoneyMovementToAccountUseCase useCase = new(unitOfWork.Object);
+        MoveMoneyMovementToAccountUseCase useCase = TestUseCaseFactory.CreateMoveMoneyMovementToAccountUseCase(unitOfWork.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new MoveMoneyMovementToAccountRequest
@@ -74,7 +75,7 @@ public class MoveMoneyMovementToAccountUseCaseTests : MoneyMovementUseCaseTestBa
                 It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((MoneyMovement?)null);
-        MoveMoneyMovementToAccountUseCase useCase = new(CreateUnitOfWork(
+        MoveMoneyMovementToAccountUseCase useCase = TestUseCaseFactory.CreateMoveMoneyMovementToAccountUseCase(CreateUnitOfWork(
             accountMemberRepository: accountMemberRepository,
             moneyMovementRepository: moneyMovementRepository,
             setupSaveChanges: true).Object);

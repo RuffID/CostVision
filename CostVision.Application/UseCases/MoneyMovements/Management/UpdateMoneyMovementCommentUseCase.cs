@@ -6,7 +6,7 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class UpdateMoneyMovementCommentUseCase(IUnitOfWork unitOfWork) : IUpdateMoneyMovementCommentUseCase
+    public class UpdateMoneyMovementCommentUseCase(IMoneyMovementEditUnitOfWork unitOfWork) : IUpdateMoneyMovementCommentUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(UpdateMoneyMovementCommentRequest request, Guid currentUserId, CancellationToken ct)
         {
@@ -15,7 +15,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             if (request.AccountId.HasValue && request.AccountId.Value != Guid.Empty)
             {
-                ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, request.AccountId.Value, currentUserId, ct);
+                ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork.AccountMember, request.AccountId.Value, currentUserId, ct);
                 if (!access.Success)
                     return access.PropagateFailure();
             }

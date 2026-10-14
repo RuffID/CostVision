@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Extensions;
 using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Dtos.Mappers;
@@ -11,7 +13,7 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.Receipts.Stores;
 
-public class GetStoreReceiptListUseCase(IUnitOfWork unitOfWork) : IGetStoreReceiptListUseCase
+public class GetStoreReceiptListUseCase(IReceiptRepository receiptRepository, IMoneyMovementRepository moneyMovementRepository) : IGetStoreReceiptListUseCase
 {
     public async Task<ServiceResult<StoreReceiptListDto>> ExecuteAsync(GetStoreReceiptListRequest request, Guid currentUserId, CancellationToken ct)
     {
@@ -30,24 +32,24 @@ public class GetStoreReceiptListUseCase(IUnitOfWork unitOfWork) : IGetStoreRecei
         Expression<Func<Receipt, bool>> predicate = receipt => receipt.Store != null &&
             ((storeId.HasValue && receipt.StoreId == storeId.Value) || (groupKey != null && receipt.Store.NormalizedName == groupKey));
         predicate = predicate.WithReceiptReadAccess(receipt => receipt, currentUserId);
-        List<ReadQueryTotals> summaries = await unitOfWork.Receipt.GetProjectedItemsAsync(predicate,
+        List<ReadQueryTotals> summaries = await receiptRepository.GetProjectedItemsAsync(predicate,
             query => ReceiptReadQueries.Totals(ReceiptReadQueries.Documents(query)), ct);
         ReadQueryTotals totals = ReceiptReadQueries.GetTotals(summaries);
         int pageSize = Math.Clamp(request.PageSize, 1, 100);
         int totalPages = Math.Max(1, (int)Math.Ceiling(totals.Count / (double)pageSize));
         int page = Math.Clamp(request.Page, 1, totalPages);
-        List<Guid> ids = await unitOfWork.Receipt.GetProjectedItemsAsync(predicate,
+        List<Guid> ids = await receiptRepository.GetProjectedItemsAsync(predicate,
             query => ReceiptReadQueries.PageIds(ReceiptReadQueries.Documents(query), (page - 1) * pageSize, pageSize), ct);
         List<ReceiptDto> items = [];
         if (ids.Count > 0)
         {
-            List<Receipt> copies = await unitOfWork.Receipt.GetProjectedItemsAsync(predicate,
+            List<Receipt> copies = await receiptRepository.GetProjectedItemsAsync(predicate,
                 query => ReceiptReadQueries.WithReportGraph(ReceiptReadQueries.CopiesForPage(query, ids)), ct);
             Dictionary<ReceiptIdentity, int> positions = copies.Where(copy => ids.Contains(copy.Id))
                 .ToDictionary(copy => copy.GetIdentity(), copy => ids.IndexOf(copy.Id));
             items = copies.GroupBy(copy => copy.GetIdentity()).OrderBy(group => positions[group.Key])
                 .Select(group => group.MapReceiptGroupDto(currentUserId)).ToList();
-            await ReceiptReportCandidateCounts.FillAsync(unitOfWork, items, currentUserId, ct);
+            await ReceiptReportCandidateCounts.FillAsync(receiptRepository, moneyMovementRepository, items, currentUserId, ct);
         }
 
         return ServiceResult<StoreReceiptListDto>.Ok(new StoreReceiptListDto

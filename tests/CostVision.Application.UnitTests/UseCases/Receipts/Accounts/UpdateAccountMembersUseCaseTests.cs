@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
@@ -41,8 +42,8 @@ public class UpdateAccountMembersUseCaseTests
             .Callback<IEnumerable<AccountMember>>(members => removedMembers = members.ToList());
         accountMemberRepository.Setup(repository => repository.CreateRange(It.IsAny<IEnumerable<AccountMember>>()))
             .Callback<IEnumerable<AccountMember>>(members => addedMember = members.Single());
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(accountRepository, userRepository, accountMemberRepository);
-        UpdateAccountMembersUseCase useCase = new(unitOfWork.Object);
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(accountRepository, userRepository, accountMemberRepository);
+        UpdateAccountMembersUseCase useCase = TestUseCaseFactory.CreateUpdateAccountMembersUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(accountId, ownerUserId,
         [
@@ -69,7 +70,7 @@ public class UpdateAccountMembersUseCaseTests
         Account account = TestAccountFactory.Create(accountId, ownerUserId);
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         Mock<IAccountMemberRepository> accountMemberRepository = new(MockBehavior.Strict);
-        UpdateAccountMembersUseCase useCase = new(CreateUnitOfWork(CreateAccountRepository(account), userRepository, accountMemberRepository).Object);
+        UpdateAccountMembersUseCase useCase = TestUseCaseFactory.CreateUpdateAccountMembersUseCase(CreateUnitOfWork(CreateAccountRepository(account), userRepository, accountMemberRepository).Object);
 
         var result = await useCase.ExecuteAsync(accountId, ownerUserId,
         [
@@ -87,7 +88,7 @@ public class UpdateAccountMembersUseCaseTests
         Guid accountId = Guid.NewGuid();
         Account account = TestAccountFactory.Create(accountId, ownerUserId);
         Mock<IAccountMemberRepository> accountMemberRepository = new(MockBehavior.Strict);
-        UpdateAccountMembersUseCase useCase = new(CreateUnitOfWork(CreateAccountRepository(account), CreateUsersRepository([]), accountMemberRepository).Object);
+        UpdateAccountMembersUseCase useCase = TestUseCaseFactory.CreateUpdateAccountMembersUseCase(CreateUnitOfWork(CreateAccountRepository(account), CreateUsersRepository([]), accountMemberRepository).Object);
 
         var result = await useCase.ExecuteAsync(accountId, ownerUserId,
         [
@@ -104,7 +105,7 @@ public class UpdateAccountMembersUseCaseTests
         Mock<IAccountRepository> accountRepository = CreateAccountRepository(null);
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         Mock<IAccountMemberRepository> accountMemberRepository = new(MockBehavior.Strict);
-        UpdateAccountMembersUseCase useCase = new(CreateUnitOfWork(accountRepository, userRepository, accountMemberRepository).Object);
+        UpdateAccountMembersUseCase useCase = TestUseCaseFactory.CreateUpdateAccountMembersUseCase(CreateUnitOfWork(accountRepository, userRepository, accountMemberRepository).Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), Guid.NewGuid(), [], CancellationToken.None);
 
@@ -140,9 +141,9 @@ public class UpdateAccountMembersUseCaseTests
         return repository;
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IAccountRepository> accountRepository, Mock<IUserRepository> userRepository, Mock<IAccountMemberRepository> accountMemberRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IAccountRepository> accountRepository, Mock<IUserRepository> userRepository, Mock<IAccountMemberRepository> accountMemberRepository)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.User).Returns(userRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.AccountMember).Returns(accountMemberRepository.Object);

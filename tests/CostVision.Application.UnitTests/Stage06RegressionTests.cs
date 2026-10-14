@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.Service.Receipts;
 using CostVision.Application.Models.Responses.Results;
@@ -84,11 +85,11 @@ public class Stage06RegressionTests
     {
         // Arrange
         Receipt receipt = TestReceiptFactory.Create();
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         Mock<IExternalReceiptProvider> provider = new(MockBehavior.Strict);
         provider.Setup(value => value.GetReceiptAsync(receipt, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Receipt>.Ok(DifferentIdentity(receipt, "fn")));
-        ReceiptRefreshWorkflow workflow = new(unitOfWork.Object, provider.Object, TimeProvider.System);
+        ReceiptRefreshWorkflow workflow = TestUseCaseFactory.CreateReceiptRefreshWorkflow(unitOfWork.Object, provider.Object, TimeProvider.System);
 
         // Act
         ServiceResult<Receipt> result = await workflow.RefreshAsync(receipt, CancellationToken.None, receipt.CreatedByUserId);
@@ -316,7 +317,7 @@ public class Stage06RegressionTests
         data.ReturnExternal("Milk");
 
         // Act
-        ServiceResult<ReceiptDto> result = await new RefreshReceiptFromApiUseCase(data.Work.Object, access.Object, data.Workflow)
+        ServiceResult<ReceiptDto> result = await TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(data.Work.Object, access.Object, data.Workflow)
             .ExecuteAsync(data.Snapshot.Id, user, CancellationToken.None);
 
         // Assert
@@ -412,7 +413,7 @@ public class Stage06RegressionTests
         data.ReturnExternal("Milk");
 
         // Act
-        ServiceResult<ReceiptDto> result = await new RefreshReceiptFromApiUseCase(data.Work.Object, access.Object, data.Workflow)
+        ServiceResult<ReceiptDto> result = await TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(data.Work.Object, access.Object, data.Workflow)
             .ExecuteAsync(data.Snapshot.Id, user, CancellationToken.None);
 
         // Assert
@@ -459,7 +460,7 @@ public class Stage06RegressionTests
         public DateTime Now { get; } = new(2026, 10, 13, 0, 0, 0, DateTimeKind.Utc);
         public Receipt Snapshot { get; } = TestReceiptFactory.Create();
         public Receipt Current { get; }
-        public Mock<IUnitOfWork> Work { get; } = new(MockBehavior.Strict);
+        public Mock<ITestStorage> Work { get; } = new(MockBehavior.Strict);
         public Mock<IExternalReceiptProvider> Provider { get; } = new(MockBehavior.Strict);
         public Mock<IReceiptRepository> ReceiptRepository { get; } = new(MockBehavior.Strict);
         public ReceiptRefreshWorkflow Workflow { get; }
@@ -557,7 +558,7 @@ public class Stage06RegressionTests
                         inTransaction = false;
                     }
                 });
-            Workflow = new ReceiptRefreshWorkflow(Work.Object, Provider.Object, new FixedClock(new DateTimeOffset(Now), TimeZoneInfo.Utc));
+            Workflow = TestUseCaseFactory.CreateReceiptRefreshWorkflow(Work.Object, Provider.Object, new FixedClock(new DateTimeOffset(Now), TimeZoneInfo.Utc));
         }
 
         public Receipt External(params string[] names)

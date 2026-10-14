@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -47,7 +48,7 @@ public class GetMoneyMovementListUseCaseTests : MoneyMovementUseCaseTestBase
             .ReturnsAsync([matchingReceipt]);
         ProjectedReadTestFactory.Configure(receiptRepository, () => new[] { matchingReceipt });
         ProjectedReadTestFactory.Configure(moneyMovementRepository, () => new[] { second, first });
-        GetMoneyMovementListUseCase useCase = new(CreateUnitOfWork(
+        GetMoneyMovementListUseCase useCase = TestUseCaseFactory.CreateGetMoneyMovementListUseCase(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository).Object);
 
@@ -64,7 +65,7 @@ public class GetMoneyMovementListUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task GetMoneyMovementList_ReturnsBadRequest_WhenPeriodIsInvalid()
     {
-        GetMoneyMovementListUseCase useCase = new(CreateUnitOfWork(
+        GetMoneyMovementListUseCase useCase = TestUseCaseFactory.CreateGetMoneyMovementListUseCase(CreateUnitOfWork(
             moneyMovementRepository: CreateMoneyMovementRepository(),
             receiptRepository: CreateReceiptRepository()).Object);
 
@@ -98,7 +99,7 @@ public class GetMoneyMovementListUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
         ProjectedReadTestFactory.Configure(moneyMovementRepository, () => Array.Empty<MoneyMovement>());
-        GetMoneyMovementListUseCase useCase = new(CreateUnitOfWork(
+        GetMoneyMovementListUseCase useCase = TestUseCaseFactory.CreateGetMoneyMovementListUseCase(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository).Object);
 

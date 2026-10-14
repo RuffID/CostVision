@@ -6,7 +6,7 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
-    public class UnlinkMoneyMovementReceiptUseCase(IUnitOfWork unitOfWork) : IUnlinkMoneyMovementReceiptUseCase
+    public class UnlinkMoneyMovementReceiptUseCase(IMoneyMovementRemovalUnitOfWork unitOfWork) : IUnlinkMoneyMovementReceiptUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(UnlinkMoneyMovementReceiptRequest request, Guid currentUserId, CancellationToken ct)
         {
@@ -17,7 +17,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (movement == null)
                 return ServiceResult.Fail(ServiceErrorType.NotFound, "Операция не найдена.");
 
-            ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork, movement.AccountId, currentUserId, ct);
+            ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(unitOfWork.AccountMember, movement.AccountId, currentUserId, ct);
             if (!access.Success)
                 return access.PropagateFailure();
 

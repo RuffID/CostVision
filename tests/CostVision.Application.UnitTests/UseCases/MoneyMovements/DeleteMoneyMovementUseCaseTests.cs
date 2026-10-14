@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -33,12 +34,12 @@ public class DeleteMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
         moneyMovementRepository.Setup(repository => repository.Delete(movement));
         Mock<IMoneyMovementReceiptRepository> linkRepository = CreateMoneyMovementReceiptRepository();
         linkRepository.Setup(repository => repository.DeleteRange(It.IsAny<IEnumerable<MoneyMovementReceipt>>()));
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             moneyMovementReceiptRepository: linkRepository,
             setupTransaction: true);
-        DeleteMoneyMovementUseCase useCase = new(unitOfWork.Object);
+        DeleteMoneyMovementUseCase useCase = TestUseCaseFactory.CreateDeleteMoneyMovementUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(new DeleteMoneyMovementRequest { MoneyMovementId = movement.Id, AccountId = accountId }, userId, CancellationToken.None);
 
@@ -61,12 +62,12 @@ public class DeleteMoneyMovementUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((MoneyMovement?)null);
-        DeleteMoneyMovementUseCase missingMovementUseCase = new(CreateUnitOfWork(
+        DeleteMoneyMovementUseCase missingMovementUseCase = TestUseCaseFactory.CreateDeleteMoneyMovementUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: missingMovementRepository,
             moneyMovementReceiptRepository: CreateMoneyMovementReceiptRepository(),
             setupTransaction: true).Object);
-        DeleteMoneyMovementUseCase forbiddenUseCase = new(CreateUnitOfWork(
+        DeleteMoneyMovementUseCase forbiddenUseCase = TestUseCaseFactory.CreateDeleteMoneyMovementUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Viewer)]),
             moneyMovementRepository: CreateMoneyMovementRepository()).Object);
 

@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -103,9 +104,9 @@ public class Stage05RegressionTests
             .ReturnsAsync(ServiceResult<Receipt>.Ok(first));
 
         // Act
-        var list = await new GetReceiptListUseCase(data.Work.Object).ExecuteAsync(data.User, data.Date, data.Date, CancellationToken.None);
-        var details = await new GetReceiptWithItemsUseCase(data.Work.Object, access.Object).ExecuteAsync(first.Id, data.User, CancellationToken.None);
-        var refreshed = await new RefreshReceiptFromApiUseCase(data.Work.Object, access.Object, refresh.Object).ExecuteAsync(first.Id, data.User, CancellationToken.None);
+        var list = await TestUseCaseFactory.CreateGetReceiptListUseCase(data.Work.Object).ExecuteAsync(data.User, data.Date, data.Date, CancellationToken.None);
+        var details = await TestUseCaseFactory.CreateGetReceiptWithItemsUseCase(data.Work.Object, access.Object).ExecuteAsync(first.Id, data.User, CancellationToken.None);
+        var refreshed = await TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(data.Work.Object, access.Object, refresh.Object).ExecuteAsync(first.Id, data.User, CancellationToken.None);
 
         // Assert
         Assert.True(list.Success);
@@ -136,13 +137,13 @@ public class Stage05RegressionTests
         TestMoneyMovementFactory.CreateLink(occupied, TestReceiptFactory.Create());
 
         // Act
-        var candidates = await new GetReceiptMoneyMovementCandidatesUseCase(data.Work.Object).ExecuteAsync(new()
+        var candidates = await TestUseCaseFactory.CreateGetReceiptMoneyMovementCandidatesUseCase(data.Work.Object).ExecuteAsync(new()
         {
             ReceiptId = receipt.Id, DateFrom = data.Date.AddDays(-1), DateTo = data.Date.AddDays(1), AmountTolerance = 1m
         }, data.User.Id, CancellationToken.None);
-        var list = await new GetReceiptListPageUseCase(data.Work.Object)
+        var list = await TestUseCaseFactory.CreateGetReceiptListPageUseCase(data.Work.Object)
             .ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date, PageSize = 10 }, CancellationToken.None);
-        var store = await new GetStoreReceiptListUseCase(data.Work.Object)
+        var store = await TestUseCaseFactory.CreateGetStoreReceiptListUseCase(data.Work.Object)
             .ExecuteAsync(new() { StoreId = data.Store.Id, PageSize = 10 }, data.User.Id, CancellationToken.None);
 
         // Assert
@@ -482,7 +483,7 @@ public class Stage05RegressionTests
         Mock<IReceiptRefreshWorkflow> workflow = new(MockBehavior.Strict);
 
         // Act
-        var result = await new RefreshReceiptFromApiUseCase(data.Work.Object, permissive.Object, workflow.Object)
+        var result = await TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(data.Work.Object, permissive.Object, workflow.Object)
             .ExecuteAsync(receipt.Id, data.User, CancellationToken.None);
 
         // Assert
@@ -528,8 +529,8 @@ public class Stage05RegressionTests
         data.Work.Setup(work => work.ReceiptItem).Returns(items.Object);
 
         // Act
-        var list = await new GetProductListUseCase(data.Work.Object).ExecuteAsync(new(), data.User.Id, CancellationToken.None);
-        var purchases = await new GetProductStorePurchasesUseCase(data.Work.Object)
+        var list = await TestUseCaseFactory.CreateGetProductListUseCase(data.Work.Object).ExecuteAsync(new(), data.User.Id, CancellationToken.None);
+        var purchases = await TestUseCaseFactory.CreateGetProductStorePurchasesUseCase(data.Work.Object)
             .ExecuteAsync(new() { ProductId = product.Id }, data.User.Id, CancellationToken.None);
 
         // Assert
@@ -584,7 +585,7 @@ public class Stage05RegressionTests
 
         // Act
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            new RefreshReceiptFromApiUseCase(data.Work.Object, access.Object, refresh.Object)
+            TestUseCaseFactory.CreateRefreshReceiptFromApiUseCase(data.Work.Object, access.Object, refresh.Object)
                 .ExecuteAsync(receipt.Id, data.User, CancellationToken.None));
 
         // Assert
@@ -606,11 +607,11 @@ public class Stage05RegressionTests
         data.SetupStores(data.Store);
 
         // Act
-        var list = await new GetReceiptListPageUseCase(data.Work.Object)
+        var list = await TestUseCaseFactory.CreateGetReceiptListPageUseCase(data.Work.Object)
             .ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date, PageSize = 1 }, CancellationToken.None);
-        var storeReceipts = await new GetStoreReceiptListUseCase(data.Work.Object)
+        var storeReceipts = await TestUseCaseFactory.CreateGetStoreReceiptListUseCase(data.Work.Object)
             .ExecuteAsync(new() { StoreId = data.Store.Id, PageSize = 1 }, data.User.Id, CancellationToken.None);
-        var stores = await new GetStoreListUseCase(data.Work.Object)
+        var stores = await TestUseCaseFactory.CreateGetStoreListUseCase(data.Work.Object)
             .ExecuteAsync(new() { GroupByName = groupStores }, data.User.Id, CancellationToken.None);
         var dashboard = await data.Dashboard("receipts");
 
@@ -650,7 +651,7 @@ public class Stage05RegressionTests
         data.SetupStores(data.Store, otherStore);
 
         // Act
-        var result = await new GetStoreListUseCase(data.Work.Object)
+        var result = await TestUseCaseFactory.CreateGetStoreListUseCase(data.Work.Object)
             .ExecuteAsync(new() { GroupByName = true }, data.User.Id, CancellationToken.None);
 
         // Assert
@@ -673,7 +674,7 @@ public class Stage05RegressionTests
         data.SetupStores(data.Store);
 
         // Act
-        var result = await new GetStoreListUseCase(data.Work.Object)
+        var result = await TestUseCaseFactory.CreateGetStoreListUseCase(data.Work.Object)
             .ExecuteAsync(new() { AccountId = hidden.Id }, data.User.Id, CancellationToken.None);
 
         // Assert
@@ -692,7 +693,7 @@ public class Stage05RegressionTests
         public List<Receipt> Receipts { get; } = [];
         public List<MoneyMovement> Movements { get; } = [];
         public List<string> ReceiptIncludes { get; } = [];
-        public Mock<IUnitOfWork> Work { get; } = new(MockBehavior.Strict);
+        public Mock<ITestStorage> Work { get; } = new(MockBehavior.Strict);
 
         public Fixture(AccountAccessRole role = AccountAccessRole.Owner)
         {
@@ -784,7 +785,7 @@ public class Stage05RegressionTests
             string source, List<Guid>? accounts = null, DateTime? from = null, DateTime? to = null,
             string period = "day", List<string>? stores = null, bool withoutAccount = false)
         {
-            return new GetDashboardIncomeExpenseReportUseCase(Work.Object).ExecuteAsync(User, new DashboardIncomeExpenseReportRequest
+            return TestUseCaseFactory.CreateGetDashboardIncomeExpenseReportUseCase(Work.Object).ExecuteAsync(User, new DashboardIncomeExpenseReportRequest
             {
                 DateFrom = from ?? Date, DateTo = to ?? Date, Period = period, ExpenseSource = source,
                 AccountIds = accounts ?? [], StoreNames = stores ?? [], IncludeWithoutAccount = withoutAccount

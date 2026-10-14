@@ -27,7 +27,7 @@ public class Stage03UnitOfWorkTests
         using ApplicationContext context = CreateContext(connection.Object);
         Mock<IAppDbContext<ApplicationContext>> port = new();
         port.SetupGet(item => item.Database).Returns(context.Database);
-        UnitOfWork work = CreateWork(port.Object);
+        UnitOfWorkScope work = CreateWork(port.Object);
         bool actionExecuted = false;
 
         // Act
@@ -56,7 +56,7 @@ public class Stage03UnitOfWorkTests
         port.SetupGet(item => item.Database).Returns(context.Database);
         DbUpdateException failure = new("unrelated storage error");
         port.Setup(item => item.SaveChanges(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
-        UnitOfWork work = CreateWork(port.Object);
+        UnitOfWorkScope work = CreateWork(port.Object);
 
         // Act
         DbUpdateException thrown = await Assert.ThrowsAsync<DbUpdateException>(() =>
@@ -97,7 +97,7 @@ public class Stage03UnitOfWorkTests
         SqlException sql = CreateSqlException(number, prefix + " '" + constraint + "'.");
         DbUpdateException failure = new("write failed", sql);
         port.Setup(item => item.SaveChanges(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
-        UnitOfWork work = CreateWork(port.Object);
+        UnitOfWorkScope work = CreateWork(port.Object);
 
         // Act
         Exception? thrown = await Record.ExceptionAsync(() => work.ExecuteInTransaction(
@@ -166,12 +166,8 @@ public class Stage03UnitOfWorkTests
         return new ApplicationContext(new DbContextOptionsBuilder<ApplicationContext>().UseSqlServer(connection).Options);
     }
 
-    private static UnitOfWork CreateWork(IAppDbContext<ApplicationContext> context)
+    private static UnitOfWorkScope CreateWork(IAppDbContext<ApplicationContext> context)
     {
-        return new UnitOfWork(context,
-            Mock.Of<IUserRepository>(), Mock.Of<IRoleRepository>(), Mock.Of<IAccountRepository>(),
-            Mock.Of<IReceiptRepository>(), Mock.Of<IReceiptItemRepository>(), Mock.Of<IStoreRepository>(),
-            Mock.Of<IProductRepository>(), Mock.Of<IReceiptAccountRepository>(), Mock.Of<IAccountMemberRepository>(),
-            Mock.Of<IMoneyMovementRepository>(), Mock.Of<IMoneyMovementReceiptRepository>());
+        return new UnitOfWorkScope(context);
     }
 }

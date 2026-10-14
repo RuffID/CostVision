@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Extensions;
 using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Dtos.MoneyMovements;
@@ -10,7 +12,7 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.MoneyMovements;
 
-public class GetMoneyMovementListUseCase(IUnitOfWork unitOfWork) : IGetMoneyMovementListUseCase
+public class GetMoneyMovementListUseCase(IMoneyMovementRepository moneyMovementRepository, IReceiptRepository receiptRepository) : IGetMoneyMovementListUseCase
 {
     public async Task<ServiceResult<MoneyMovementListDto>> ExecuteAsync(Guid currentUserId, DateTime dateFrom,
         DateTime dateTo, Guid? accountId, CancellationToken ct, int page = 1, int pageSize = 20,
@@ -38,7 +40,7 @@ public class GetMoneyMovementListUseCase(IUnitOfWork unitOfWork) : IGetMoneyMove
                  Math.Abs(movement.Amount - movement.ReceiptLinks.Select(link => link.Receipt!).AsQueryable()
                      .Where(visibleReceipt).Sum(receipt => receipt.TotalSum)) >= 0.01m));
         predicate = predicate.WithAccountReadAccess(movement => movement.Account, currentUserId);
-        List<ReadQueryTotals> summaries = await unitOfWork.MoneyMovement.GetProjectedItemsAsync(predicate,
+        List<ReadQueryTotals> summaries = await moneyMovementRepository.GetProjectedItemsAsync(predicate,
             query => query.GroupBy(movement => 1).Select(group => new ReadQueryTotals
             {
                 Count = group.Count(),
@@ -49,7 +51,7 @@ public class GetMoneyMovementListUseCase(IUnitOfWork unitOfWork) : IGetMoneyMove
         pageSize = Math.Clamp(pageSize, 1, 100);
         int pages = Math.Max(1, (int)Math.Ceiling(totals.Count / (double)pageSize));
         page = Math.Clamp(page, 1, pages);
-        List<MoneyMovementDto> items = await unitOfWork.MoneyMovement.GetProjectedItemsAsync(predicate,
+        List<MoneyMovementDto> items = await moneyMovementRepository.GetProjectedItemsAsync(predicate,
             query => query.OrderByDescending(movement => movement.OccurredAt).ThenBy(movement => movement.Id)
                 .Skip((page - 1) * pageSize).Take(pageSize).Select(movement => new MoneyMovementDto
                 {
@@ -73,7 +75,7 @@ public class GetMoneyMovementListUseCase(IUnitOfWork unitOfWork) : IGetMoneyMove
                 receipt.TotalSum == movement.Amount && !receipt.MoneyMovementLinks.Any() &&
                 (movement.AccountId == Guid.Empty ? !receipt.Accounts.Any() : receipt.Accounts.Any(link => link.AccountId == movement.AccountId));
             candidates = candidates.WithReceiptReadAccess(receipt => receipt, currentUserId);
-            List<int> counts = await unitOfWork.Receipt.GetProjectedItemsAsync(candidates,
+            List<int> counts = await receiptRepository.GetProjectedItemsAsync(candidates,
                 query => query.GroupBy(receipt => 1).Select(group => group.Count()), ct);
             movement.AvailableReceiptCount = counts.SingleOrDefault();
         }

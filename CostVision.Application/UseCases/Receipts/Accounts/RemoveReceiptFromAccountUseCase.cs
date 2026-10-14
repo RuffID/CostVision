@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
-    public class RemoveReceiptFromAccountUseCase(IUnitOfWork unitOfWork) : IRemoveReceiptFromAccountUseCase
+    public class RemoveReceiptFromAccountUseCase(IReceiptRemovalUnitOfWork unitOfWork) : IRemoveReceiptFromAccountUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(Guid accountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
         {

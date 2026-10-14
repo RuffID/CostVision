@@ -6,6 +6,8 @@
 
 ## Контракты и границы
 
+После 07A фикстуры передают actual use case минимальные constructor-зависимости через TestUseCaseFactory. ITestStorage остаётся только набором test mocks; технические Save/transaction callbacks общие, production-контракта со всеми repositories нет.
+
 Проверять неверный пароль, отсутствие/неактивность пользователя и время входа; эти тесты не проверяют cookie HTTP.
 
 ## Проверка

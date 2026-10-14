@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
@@ -26,8 +27,8 @@ public class CreateAccountUseCaseTests
         accountMemberRepository.Setup(repository => repository.Create(It.IsAny<AccountMember>()))
             .Callback<AccountMember>(member => createdMember = member);
 
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(accountRepository, accountMemberRepository);
-        CreateAccountUseCase useCase = new(unitOfWork.Object);
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(accountRepository, accountMemberRepository);
+        CreateAccountUseCase useCase = TestUseCaseFactory.CreateCreateAccountUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(ownerUserId, new CreateAccountRequest
         {
@@ -57,7 +58,7 @@ public class CreateAccountUseCaseTests
     {
         Mock<IAccountRepository> accountRepository = new(MockBehavior.Strict);
         Mock<IAccountMemberRepository> accountMemberRepository = new(MockBehavior.Strict);
-        CreateAccountUseCase useCase = new(CreateUnitOfWork(accountRepository, accountMemberRepository).Object);
+        CreateAccountUseCase useCase = TestUseCaseFactory.CreateCreateAccountUseCase(CreateUnitOfWork(accountRepository, accountMemberRepository).Object);
 
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), new CreateAccountRequest
         {
@@ -69,9 +70,9 @@ public class CreateAccountUseCaseTests
         Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IAccountRepository> accountRepository, Mock<IAccountMemberRepository> accountMemberRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IAccountRepository> accountRepository, Mock<IAccountMemberRepository> accountMemberRepository)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Account).Returns(accountRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.AccountMember).Returns(accountMemberRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))

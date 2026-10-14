@@ -10,7 +10,7 @@ CostVision - веб-приложение для учёта расходов по
 - TypeScript для клиентской логики в `CostVision.Web/wwwroot/ts`.
 - Слои `Domain`, `Application`, `Infrastructure`, `Web`.
 - Entity Framework Core через `ApplicationContext`.
-- Доступ к данным через `IUnitOfWork` и репозитории.
+- Доступ к данным через узкие сценарные UoW и общий `IUnitOfWorkScope`; read-only получает репозитории напрямую.
 - Результаты use case возвращаются через `ServiceResult` / `ServiceResult<T>` и мапятся в JSON через `JsonResultMapper`.
 
 Основные предметные области:
@@ -74,7 +74,7 @@ CostVision - веб-приложение для учёта расходов по
 - Бизнес-сценарии размещать в use case слоя `Application`.
 - PageModel не должен содержать бизнес-логику: он принимает request, вызывает use case и возвращает JSON/result.
 - Проверки доступа пользователя к счетам и чекам держать в use case или специализированных application helper/service, а не в Razor Page.
-- Транзакционные сценарии выполнять через `IUnitOfWork.ExecuteInTransaction`.
+- Транзакционные сценарии выполнять через сценарный UoW / `IUnitOfWorkScope.ExecuteInTransaction`. Все обёртки одного DI scope используют один контекст и общий флаг отказа; у составной операции один владелец транзакции.
 
 ## Frontend
 

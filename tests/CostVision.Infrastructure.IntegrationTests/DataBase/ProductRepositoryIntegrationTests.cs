@@ -1,3 +1,4 @@
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Infrastructure.IntegrationTests.Fixtures;
@@ -15,14 +16,16 @@ public class ProductRepositoryIntegrationTests(SqlServerContainerFixture fixture
     {
         CancellationToken ct = TestContext.Current.CancellationToken;
         await using ServiceProvider serviceProvider = fixture.CreateServiceProvider();
-        IUnitOfWork unitOfWork = serviceProvider.GetRequiredService<IUnitOfWork>();
+        IProductRepository productRepository = serviceProvider.GetRequiredService<IProductRepository>();
+        IUnitOfWorkScope storage = serviceProvider.GetRequiredService<IUnitOfWorkScope>();
 
         Assert.True(Product.TryCreate("Milk", "milk", out Product? product, out string? firstError), firstError);
         Assert.True(Product.TryCreate("Milk duplicate", "milk", out Product? duplicate, out string? secondError), secondError);
-        unitOfWork.Product.CreateRange([product!, duplicate!]);
+        productRepository.CreateRange([product!, duplicate!]);
 
-        DbUpdateException exception = await Assert.ThrowsAsync<DbUpdateException>(() => unitOfWork.SaveChangesAsync(ct));
+        ReceiptWriteConflictException exception = await Assert.ThrowsAsync<ReceiptWriteConflictException>(() => storage.SaveChangesAsync(ct));
 
+        Assert.IsType<DbUpdateException>(exception.InnerException);
         Assert.IsType<SqlException>(exception.GetBaseException());
     }
 }

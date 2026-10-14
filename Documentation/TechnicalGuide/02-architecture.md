@@ -41,7 +41,7 @@ Application организован по use case, а не по HTTP-страни
 - каталоги товаров и магазинов;
 - денежные операции, PDF-импорт и сверка;
 - dashboard;
-- контракты `IUnitOfWork`, репозиториев, внешнего receipt provider, QR parser, PDF extractor и password hasher.
+- контракты `IUnitOfWorkScope`, узких сценарных UoW, репозиториев, внешнего receipt provider, QR parser, PDF extractor и password hasher.
 
 Регистрации перечислены в [ApplicationServiceCollectionExtensions](../../CostVision.Application/Extensions/ApplicationServiceCollectionExtensions.cs). Application зависит от EF Core: [AppDbContextBase](../../CostVision.Application/Abstractions/DataBase/AppDbContextBase.cs) наследует `DbContext`, а контракты репозиториев связаны с этим контекстом через `EFCoreLibrary`. SQL Server provider и конкретный `ApplicationContext` находятся в Infrastructure. Это фактическая граница; освобождение Application от EF запланировано отдельно.
 
@@ -50,7 +50,7 @@ Application организован по use case, а не по HTTP-страни
 Infrastructure реализует application-порты:
 
 - [ApplicationContext](../../CostVision.Infrastructure/DataBase/ApplicationContext.cs) и entity configurations;
-- [UnitOfWork](../../CostVision.Infrastructure/DataBase/Repositories/UnitOfWork.cs) и тонкие типизированные репозитории;
+- [UnitOfWorkScope](../../CostVision.Infrastructure/DataBase/Repositories/UnitOfWorkScope.cs), сценарные adapters и тонкие типизированные репозитории;
 - [ExternalReceiptProvider](../../CostVision.Infrastructure/Services/Receipts/ExternalReceiptProvider.cs), HTTP-запрос и преобразователи ответа;
 - [QrParser](../../CostVision.Infrastructure/Services/Receipts/QrParser.cs);
 - PDF text extractor и три bank statement parser в Application;
@@ -73,9 +73,11 @@ AJAX-ответы формируются через [JsonResultMapper](../../Cos
 
 ## Транзакционные границы
 
-[IUnitOfWork.ExecuteInTransaction](../../CostVision.Application/Abstractions/DataBase/Repositories/IUnitOfWork.cs) применяется, когда сценарий меняет несколько записей: состав участников, перемещение/создание операций, импорт, массовая точная сверка и связи. Реализация начинает EF transaction, выполняет action и сохраняет изменения как одно действие.
+После 07A глобальный UoW с 11 репозиториями удалён. Read-only и helpers получают необходимые репозитории напрямую; запись использует 14 узких сценарных UoW либо один репозиторий и технический [IUnitOfWorkScope](../../CostVision.Application/Abstractions/DataBase/Repositories/IUnitOfWorkScope.cs). Наборы зависимостей и владельцы каждой транзакции указаны в [карте потребителей 07A](../Plans/project-refactoring-2026-10-13/07a-consumer-map.md).
 
-Внешний HTTP-вызов refresh выполняется до локального `SaveChanges`; обновление магазина, товаров, позиций и чека сохраняется согласованно. Фоновые ошибки записывают состояние retry отдельным успешным локальным сохранением.
+Один scoped UnitOfWorkScope управляет транзакцией, сохранением и состоянием отказа общего ApplicationContext. ScenarioUnitOfWork только делегирует технические операции; отдельные adapters не создают контексты или флаги отказа. Разные DI scope независимы. Обычная перегрузка ExecuteInTransaction сохраняет после action; явная с IsolationLevel не сохраняет автоматически. Вложенная/конкурирующая транзакция отвергается до второго Begin. Отказ сохранения или транзакции блокирует обе перегрузки и Save через все adapters, включая перехваченный внутри action отказ; повтор требует нового scope.
+
+Serializable сохраняет чтения/проверки и запись сценариев создания/переноса чеков, импорта, создания операций, привязки и сверки. Создание операции сохраняет её для ID, затем связь при наличии. Provider refresh вызывается до короткой Serializable-транзакции; граф чека и каталоги сохраняются одним явным Save. Retry-state записывается в новом scope после освобождения отказавшего. Изолированные DI/transaction-тесты не подтверждают SQL-атомарность или конкурентность.
 
 ## Время и идентичность
 

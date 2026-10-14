@@ -1,4 +1,5 @@
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
@@ -28,8 +29,8 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 List<Receipt> batch;
                 await using (AsyncServiceScope scope = scopeFactory.CreateAsyncScope())
                 {
-                    IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                    batch = await unitOfWork.Receipt.GetItemsByPredicateAsync(
+                    IReceiptRepository receiptRepository = scope.ServiceProvider.GetRequiredService<IReceiptRepository>();
+                    batch = await receiptRepository.GetItemsByPredicateAsync(
                         receipt => receipt.RefreshStatus == ReceiptRefreshStatus.Pending &&
                             receipt.RefreshAttemptCount < ReceiptRefreshPolicy.MAX_ATTEMPTS &&
                             (!receipt.NextRefreshAttemptAtUtc.HasValue || receipt.NextRefreshAttemptAtUtc <= runAtUtc) &&

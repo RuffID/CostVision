@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.UseCases.Receipts.Receipts;
@@ -23,8 +24,8 @@ public class DeleteReceiptUseCaseTests
             .ReturnsAsync(receipt);
         receiptRepository.Setup(repository => repository.Delete(receipt));
 
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receiptRepository);
-        DeleteReceiptUseCase useCase = new(unitOfWork.Object);
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(receiptRepository);
+        DeleteReceiptUseCase useCase = TestUseCaseFactory.CreateDeleteReceiptUseCase(unitOfWork.Object);
 
         var result = await useCase.ExecuteAsync(receiptId, TestUserFactory.Create(userId), CancellationToken.None);
 
@@ -45,7 +46,7 @@ public class DeleteReceiptUseCaseTests
             .Setup(repository => repository.GetItemByIdAsync(receiptId, false, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(receipt);
 
-        DeleteReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
+        DeleteReceiptUseCase useCase = TestUseCaseFactory.CreateDeleteReceiptUseCase(CreateUnitOfWork(receiptRepository).Object);
 
         var result = await useCase.ExecuteAsync(receiptId, TestUserFactory.Create(), CancellationToken.None);
 
@@ -62,7 +63,7 @@ public class DeleteReceiptUseCaseTests
             .Setup(repository => repository.GetItemByIdAsync(receiptId, false, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Receipt?)null);
 
-        DeleteReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
+        DeleteReceiptUseCase useCase = TestUseCaseFactory.CreateDeleteReceiptUseCase(CreateUnitOfWork(receiptRepository).Object);
 
         var result = await useCase.ExecuteAsync(receiptId, TestUserFactory.Create(), CancellationToken.None);
 
@@ -74,7 +75,7 @@ public class DeleteReceiptUseCaseTests
     public async Task ExecuteAsync_ReturnsBadRequest_WhenReceiptIdIsEmpty()
     {
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
-        DeleteReceiptUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
+        DeleteReceiptUseCase useCase = TestUseCaseFactory.CreateDeleteReceiptUseCase(CreateUnitOfWork(receiptRepository).Object);
 
         var result = await useCase.ExecuteAsync(Guid.Empty, TestUserFactory.Create(), CancellationToken.None);
 
@@ -82,9 +83,9 @@ public class DeleteReceiptUseCaseTests
         Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 

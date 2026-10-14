@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -50,12 +51,12 @@ public class AutoLinkExactMoneyMovementReceiptsUseCaseTests : MoneyMovementUseCa
         Mock<IMoneyMovementReceiptRepository> linkRepository = CreateMoneyMovementReceiptRepository();
         linkRepository.Setup(repository => repository.CreateRange(It.IsAny<IEnumerable<MoneyMovementReceipt>>()))
             .Callback<IEnumerable<MoneyMovementReceipt>>(links => createdLinks = links.ToList());
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository,
             moneyMovementReceiptRepository: linkRepository,
             setupTransaction: true);
-        AutoLinkExactMoneyMovementReceiptsUseCase useCase = new(unitOfWork.Object);
+        AutoLinkExactMoneyMovementReceiptsUseCase useCase = TestUseCaseFactory.CreateAutoLinkExactMoneyMovementReceiptsUseCase(unitOfWork.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(userId, date, date, accountId, CancellationToken.None);
@@ -100,7 +101,7 @@ public class AutoLinkExactMoneyMovementReceiptsUseCaseTests : MoneyMovementUseCa
                 CreateReceipt(Guid.NewGuid(), userId, accountId, 100, date),
                 CreateReceipt(Guid.NewGuid(), userId, accountId, 100, date)
             ]);
-        AutoLinkExactMoneyMovementReceiptsUseCase useCase = new(CreateUnitOfWork(
+        AutoLinkExactMoneyMovementReceiptsUseCase useCase = TestUseCaseFactory.CreateAutoLinkExactMoneyMovementReceiptsUseCase(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository,
             moneyMovementReceiptRepository: CreateMoneyMovementReceiptRepository(),

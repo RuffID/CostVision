@@ -1,5 +1,7 @@
 using CostVision.Application.Extensions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Models.Dtos.Dashboard;
 using CostVision.Application.Models.Requests.Dashboard;
 using CostVision.Application.Models.Responses.Results;
@@ -12,7 +14,7 @@ using CostVision.Domain.Models.Enums.Receipts;
 
 namespace CostVision.Application.UseCases.Dashboard
 {
-    public class GetDashboardIncomeExpenseReportUseCase(IUnitOfWork unitOfWork) : IGetDashboardIncomeExpenseReportUseCase
+    public class GetDashboardIncomeExpenseReportUseCase(IReceiptRepository receiptRepository, IMoneyMovementRepository moneyMovementRepository) : IGetDashboardIncomeExpenseReportUseCase
     {
         private const string PERIOD_DAY = "day";
         private const string PERIOD_MONTH = "month";
@@ -65,13 +67,13 @@ namespace CostVision.Application.UseCases.Dashboard
             List<string> stores = [];
             if (expenseSource != EXPENSE_SOURCE_MONEY_MOVEMENTS)
             {
-                stores.AddRange(await unitOfWork.Receipt.GetProjectedItemsAsync(receiptPredicate,
+                stores.AddRange(await receiptRepository.GetProjectedItemsAsync(receiptPredicate,
                     query => query.Select(storeName).Distinct(), ct));
             }
 
             if (expenseSource != EXPENSE_SOURCE_RECEIPTS)
             {
-                stores.AddRange(await unitOfWork.MoneyMovement.GetProjectedItemsAsync(movementPredicate,
+                stores.AddRange(await moneyMovementRepository.GetProjectedItemsAsync(movementPredicate,
                     query => query.SelectMany(movement => movement.ReceiptLinks.Select(link => link.Receipt!))
                         .Where(visibleReceipt).Select(storeName).Distinct(), ct));
             }
@@ -86,7 +88,7 @@ namespace CostVision.Application.UseCases.Dashboard
             List<DashboardReceiptReadDto> receiptRows = [];
             if (expenseSource != EXPENSE_SOURCE_MONEY_MOVEMENTS)
             {
-                receiptRows = await unitOfWork.Receipt.GetProjectedItemsAsync(receiptPredicate,
+                receiptRows = await receiptRepository.GetProjectedItemsAsync(receiptPredicate,
                     query => query.Where(receipt => receipt.OperationType == ReceiptOperationType.Expense ||
                         receipt.OperationType == ReceiptOperationType.RefundIncome || selectedStores.Count == 0 ||
                         selectedStores.Contains((receipt.Store != null && receipt.Store.AdaptiveName != null && receipt.Store.AdaptiveName.Trim() != "" ? receipt.Store.AdaptiveName :
@@ -103,7 +105,7 @@ namespace CostVision.Application.UseCases.Dashboard
             List<DashboardPaymentReadDto> paymentRows = [];
             if (expenseSource != EXPENSE_SOURCE_RECEIPTS)
             {
-                paymentRows = await unitOfWork.MoneyMovement.GetProjectedItemsAsync(movementPredicate,
+                paymentRows = await moneyMovementRepository.GetProjectedItemsAsync(movementPredicate,
                     query => query.Where(movement => movement.Type == MoneyMovementType.Income || selectedStores.Count == 0 ||
                         movement.ReceiptLinks.Select(link => link.Receipt!).AsQueryable().Where(visibleReceipt).Any(selectedStore))
                         .Select(movement => new DashboardPaymentReadDto

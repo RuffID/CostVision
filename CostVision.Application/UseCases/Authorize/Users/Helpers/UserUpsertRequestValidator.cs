@@ -1,6 +1,7 @@
 using CostVision.Application.Models.Requests.Authorize;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
 using CostVision.Domain.Models.Authorization;
 
 namespace CostVision.Application.UseCases.Authorize.Users.Helpers
@@ -58,9 +59,9 @@ namespace CostVision.Application.UseCases.Authorize.Users.Helpers
             return ServiceResult<List<Guid>>.Ok(roleIds);
         }
 
-        public static async Task<ServiceResult> ValidateRoleIdsAsync(IUnitOfWork unitOfWork, List<Guid> roleIds, CancellationToken ct)
+        public static async Task<ServiceResult> ValidateRoleIdsAsync(IRoleRepository roleRepository, List<Guid> roleIds, CancellationToken ct)
         {
-            List<Role> roles = await unitOfWork.Role.GetItemsByPredicateAsync(
+            List<Role> roles = await roleRepository.GetItemsByPredicateAsync(
                 role => roleIds.Contains(role.Id), asNoTracking: true, ct: ct);
             HashSet<Guid> existingIds = roles.Select(role => role.Id).ToHashSet();
             if (roleIds.Any(roleId => !existingIds.Contains(roleId)))

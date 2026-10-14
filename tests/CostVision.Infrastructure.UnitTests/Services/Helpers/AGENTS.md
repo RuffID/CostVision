@@ -6,6 +6,8 @@
 
 ## Контракты и границы
 
+После 07A фикстуры передают actual use case минимальные constructor-зависимости через TestUseCaseFactory. ITestStorage остаётся только набором test mocks; технические Save/transaction callbacks общие, production-контракта со всеми repositories нет.
+
 Проверять границы доступа и стабильность нормализации; не ослаблять параметры hashing и не выводить пароль. AuthenticationPasswordCompatibilityTests запускает реальные create/update/login и Hasher с подставным хранением: проверяет сохранённый формат PBKDF2, пробелы по краям и пустое обновление без смены hash. Это не проверка рабочей БД или cookie.
 
 ## Проверка

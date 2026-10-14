@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Authorization;
@@ -33,8 +34,8 @@ public class CreateUserUseCaseTests
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
         passwordHasher.Setup(hasher => hasher.Hash("Password1!")).Returns("hashed-password");
 
-        Mock<IUnitOfWork> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository, [roleId]);
-        CreateUserUseCase useCase = new(unitOfWork.Object, passwordHasher.Object);
+        Mock<ITestStorage> unitOfWork = TestUnitOfWorkFactory.CreateWithUserRepository(userRepository, [roleId]);
+        CreateUserUseCase useCase = TestUseCaseFactory.CreateCreateUserUseCase(unitOfWork.Object, passwordHasher.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
@@ -69,7 +70,7 @@ public class CreateUserUseCaseTests
             .ReturnsAsync(TestUserFactory.Create(login: "user"));
 
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        CreateUserUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
+        CreateUserUseCase useCase = TestUseCaseFactory.CreateCreateUserUseCase(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
 
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
         {
@@ -88,7 +89,7 @@ public class CreateUserUseCaseTests
     {
         Mock<IUserRepository> userRepository = new(MockBehavior.Strict);
         Mock<IPasswordHasher> passwordHasher = new(MockBehavior.Strict);
-        CreateUserUseCase useCase = new(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
+        CreateUserUseCase useCase = TestUseCaseFactory.CreateCreateUserUseCase(TestUnitOfWorkFactory.CreateWithUserRepository(userRepository).Object, passwordHasher.Object);
 
         var result = await useCase.ExecuteAsync(new UserUpsertRequest
         {

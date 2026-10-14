@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -31,8 +32,8 @@ public class UpdateProductAdaptiveNameUseCaseTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((Product?)null);
 
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(productRepository);
-        UpdateProductAdaptiveNameUseCase useCase = new(unitOfWork.Object);
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(productRepository);
+        UpdateProductAdaptiveNameUseCase useCase = TestUseCaseFactory.CreateUpdateProductAdaptiveNameUseCase(unitOfWork.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new UpdateProductAdaptiveNameRequest
@@ -60,7 +61,7 @@ public class UpdateProductAdaptiveNameUseCaseTests
             .Setup(repository => repository.GetItemByIdAsync(productId, It.IsAny<bool>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
 
-        UpdateProductAdaptiveNameUseCase useCase = new(CreateUnitOfWork(productRepository).Object);
+        UpdateProductAdaptiveNameUseCase useCase = TestUseCaseFactory.CreateUpdateProductAdaptiveNameUseCase(CreateUnitOfWork(productRepository).Object);
 
         var result = await useCase.ExecuteAsync(new UpdateProductAdaptiveNameRequest
         {
@@ -83,7 +84,7 @@ public class UpdateProductAdaptiveNameUseCaseTests
             .Setup(repository => repository.GetItemByIdAsync(productId, It.IsAny<bool>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Product?)null);
 
-        UpdateProductAdaptiveNameUseCase useCase = new(CreateUnitOfWork(productRepository).Object);
+        UpdateProductAdaptiveNameUseCase useCase = TestUseCaseFactory.CreateUpdateProductAdaptiveNameUseCase(CreateUnitOfWork(productRepository).Object);
 
         var result = await useCase.ExecuteAsync(new UpdateProductAdaptiveNameRequest
         {
@@ -101,7 +102,7 @@ public class UpdateProductAdaptiveNameUseCaseTests
     {
         // Arrange
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
-        UpdateProductAdaptiveNameUseCase useCase = new(CreateUnitOfWork(productRepository).Object);
+        UpdateProductAdaptiveNameUseCase useCase = TestUseCaseFactory.CreateUpdateProductAdaptiveNameUseCase(CreateUnitOfWork(productRepository).Object);
 
         var result = await useCase.ExecuteAsync(new UpdateProductAdaptiveNameRequest
         {
@@ -114,14 +115,14 @@ public class UpdateProductAdaptiveNameUseCaseTests
         Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IProductRepository> productRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IProductRepository> productRepository)
     {
         Mock<IReceiptRepository> receipts = new(MockBehavior.Strict);
         receipts.Setup(repository => repository.GetItemByPredicateAsync(
             It.IsAny<Expression<Func<Receipt, bool>>>(), true, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(TestReceiptFactory.Create());
 
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(work => work.Receipt).Returns(receipts.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.Product).Returns(productRepository.Object);
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);

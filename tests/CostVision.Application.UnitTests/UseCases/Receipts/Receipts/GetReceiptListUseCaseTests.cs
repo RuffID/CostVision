@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
@@ -29,7 +30,7 @@ public class GetReceiptListUseCaseTests
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(receipts);
-        GetReceiptListUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
+        GetReceiptListUseCase useCase = TestUseCaseFactory.CreateGetReceiptListUseCase(CreateUnitOfWork(receiptRepository).Object);
 
         ServiceResult<List<ReceiptDto>> result = await useCase.ExecuteAsync(currentUser, new DateTime(2026, 1, 1), new DateTime(2026, 1, 31), CancellationToken.None);
 
@@ -42,7 +43,7 @@ public class GetReceiptListUseCaseTests
     public async Task ExecuteAsync_ReturnsBadRequest_WhenDateToIsBeforeDateFrom()
     {
         Mock<IReceiptRepository> receiptRepository = new(MockBehavior.Strict);
-        GetReceiptListUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
+        GetReceiptListUseCase useCase = TestUseCaseFactory.CreateGetReceiptListUseCase(CreateUnitOfWork(receiptRepository).Object);
 
         ServiceResult<List<ReceiptDto>> result = await useCase.ExecuteAsync(TestUserFactory.Create(), new DateTime(2026, 2, 1), new DateTime(2026, 1, 1), CancellationToken.None);
 
@@ -63,7 +64,7 @@ public class GetReceiptListUseCaseTests
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        GetReceiptListUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
+        GetReceiptListUseCase useCase = TestUseCaseFactory.CreateGetReceiptListUseCase(CreateUnitOfWork(receiptRepository).Object);
 
         ServiceResult<List<ReceiptDto>> result = await useCase.ExecuteAsync(TestUserFactory.Create(), new DateTime(2026, 1, 1), new DateTime(2026, 1, 31), CancellationToken.None);
 
@@ -91,7 +92,7 @@ public class GetReceiptListUseCaseTests
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([firstDuplicate, newestReceipt, secondDuplicate]);
-        GetReceiptListUseCase useCase = new(CreateUnitOfWork(receiptRepository).Object);
+        GetReceiptListUseCase useCase = TestUseCaseFactory.CreateGetReceiptListUseCase(CreateUnitOfWork(receiptRepository).Object);
 
         ServiceResult<List<ReceiptDto>> result = await useCase.ExecuteAsync(currentUser, new DateTime(2026, 1, 1), new DateTime(2026, 1, 31), CancellationToken.None);
 
@@ -103,9 +104,9 @@ public class GetReceiptListUseCaseTests
         Assert.Equal(oldDate, result.Data[1].DateTime);
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository)
+    private static Mock<ITestStorage> CreateUnitOfWork(Mock<IReceiptRepository> receiptRepository)
     {
-        Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        Mock<ITestStorage> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(unitOfWork => unitOfWork.Receipt).Returns(receiptRepository.Object);
         return unitOfWork;
     }

@@ -32,6 +32,8 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/06-receipt-refresh.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/07-bounded-read-queries.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/07a-scenario-unit-of-work.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/07a-consumer-map.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-08-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/08-application-and-persistence-boundaries.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/09-web-and-http-contracts.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/10-frontend-request-coordination.md" />
@@ -65,6 +67,8 @@
     <File Path="libs/HttpClientLibrary.dll" />
   </Folder>
   <Folder Name="/tests/">
+    <File Path="tests/ITestStorage.cs" />
+    <File Path="tests/TestUseCaseFactory.cs" />
     <File Path="tests/Frontend/moneyMovementImport.test.mts" />
     <File Path="tests/Frontend/boundedReads.test.mts" />
     <Project Path="tests/CostVision.Application.UnitTests/CostVision.Application.UnitTests.csproj" />

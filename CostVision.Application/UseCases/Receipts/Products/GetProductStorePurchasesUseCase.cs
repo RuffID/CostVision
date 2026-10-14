@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Extensions;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
@@ -9,7 +10,7 @@ using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.Receipts.Products;
 
-public class GetProductStorePurchasesUseCase(IUnitOfWork unitOfWork) : IGetProductStorePurchasesUseCase
+public class GetProductStorePurchasesUseCase(IReceiptItemRepository receiptItemRepository) : IGetProductStorePurchasesUseCase
 {
     public async Task<ServiceResult<List<ProductStorePurchaseDto>>> ExecuteAsync(GetProductStorePurchasesRequest request, Guid currentUserId, CancellationToken ct)
     {
@@ -21,7 +22,7 @@ public class GetProductStorePurchasesUseCase(IUnitOfWork unitOfWork) : IGetProdu
         Expression<Func<ReceiptItem, bool>> predicate = item => item.ProductId == request.ProductId &&
             item.Receipt != null && item.Receipt.Store != null;
         predicate = predicate.WithReceiptReadAccess(item => item.Receipt, currentUserId);
-        List<ProductStorePurchaseDto> result = await unitOfWork.ReceiptItem.GetProjectedItemsAsync(predicate,
+        List<ProductStorePurchaseDto> result = await receiptItemRepository.GetProjectedItemsAsync(predicate,
             query => query.GroupBy(item => new
             {
                 item.Receipt!.StoreId,

@@ -1,6 +1,6 @@
 # Техническое руководство CostVision
 
-Руководство описывает устройство проекта по исходникам на 13.10.2026. [Бизнес-раздел](../Business/README.md) объясняет правила продукта, а [план рефакторинга](../Plans/project-refactoring-2026-10-13/README.md) фиксирует обнаруженные дефекты и будущие изменения. Описание кода не является подтверждением запуска, прохождения тестов или проверки рабочей базы.
+Руководство описывает устройство проекта по исходникам с актуализацией 07A на 14.10.2026. [Бизнес-раздел](../Business/README.md) объясняет правила продукта, а [план рефакторинга](../Plans/project-refactoring-2026-10-13/README.md) фиксирует обнаруженные дефекты и будущие изменения. Описание кода не является подтверждением запуска, прохождения тестов или проверки рабочей базы.
 
 ## Навигация
 
@@ -26,7 +26,7 @@
 - [Регистрация Infrastructure](../../CostVision.Infrastructure/Extensions/InfrastructureServiceCollectionExtensions.cs) — EF, внешние сервисы и фоновые задачи.
 - [Регистрация Web](../../CostVision.Web/Web/Extensions/ServiceCollectionExtensions.cs) — страницы, cookie, политики и Data Protection.
 - [ApplicationContext](../../CostVision.Infrastructure/DataBase/ApplicationContext.cs) — модель хранения.
-- [IUnitOfWork](../../CostVision.Application/Abstractions/DataBase/Repositories/IUnitOfWork.cs) — репозитории и транзакционные операции.
+- [IUnitOfWorkScope](../../CostVision.Application/Abstractions/DataBase/Repositories/IUnitOfWorkScope.cs) — общий scope сохранения/транзакции без репозиториев; [карта 07A](../Plans/project-refactoring-2026-10-13/07a-consumer-map.md) — узкие UoW и владельцы сценариев.
 - [JsonResultMapper](../../CostVision.Web/Web/Mappers/JsonResultMapper.cs) — преобразование результата в HTTP.
 
 ## Термины

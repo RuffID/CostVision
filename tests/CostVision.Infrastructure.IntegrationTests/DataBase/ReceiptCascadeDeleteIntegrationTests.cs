@@ -1,3 +1,4 @@
+using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Domain.Models.Receipts;
 using CostVision.Infrastructure.DataBase;
@@ -20,12 +21,13 @@ public class ReceiptCascadeDeleteIntegrationTests(SqlServerContainerFixture fixt
 
         await using ServiceProvider serviceProvider = fixture.CreateServiceProvider();
         ApplicationContext context = serviceProvider.GetRequiredService<ApplicationContext>();
-        IUnitOfWork unitOfWork = serviceProvider.GetRequiredService<IUnitOfWork>();
-        Receipt receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(x => x.Id == ids.ReceiptId, ct: ct)
+        IReceiptRepository receiptRepository = serviceProvider.GetRequiredService<IReceiptRepository>();
+        IUnitOfWorkScope storage = serviceProvider.GetRequiredService<IUnitOfWorkScope>();
+        Receipt receipt = await receiptRepository.GetItemByPredicateAsync(x => x.Id == ids.ReceiptId, ct: ct)
             ?? throw new InvalidOperationException("Seeded receipt was not found.");
 
-        unitOfWork.Receipt.Delete(receipt);
-        await unitOfWork.SaveChangesAsync(ct);
+        receiptRepository.Delete(receipt);
+        await storage.SaveChangesAsync(ct);
 
         Assert.False(await context.Set<ReceiptItem>().AnyAsync(x => x.ReceiptId == ids.ReceiptId, ct));
         Assert.False(await context.Set<ReceiptAccount>().AnyAsync(x => x.ReceiptId == ids.ReceiptId, ct));

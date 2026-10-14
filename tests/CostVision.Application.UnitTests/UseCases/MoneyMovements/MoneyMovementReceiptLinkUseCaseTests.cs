@@ -1,3 +1,4 @@
+using CostVision.Tests;
 using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
@@ -45,13 +46,13 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
             .ReturnsAsync((MoneyMovementReceipt?)null);
         linkRepository.Setup(repository => repository.Create(It.IsAny<MoneyMovementReceipt>()))
             .Callback<MoneyMovementReceipt>(link => createdLink = link);
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(
+        Mock<ITestStorage> unitOfWork = CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository,
             moneyMovementReceiptRepository: linkRepository,
             setupTransaction: true);
-        LinkMoneyMovementReceiptUseCase useCase = new(unitOfWork.Object);
+        LinkMoneyMovementReceiptUseCase useCase = TestUseCaseFactory.CreateLinkMoneyMovementReceiptUseCase(unitOfWork.Object);
 
         // Act
         var result = await useCase.ExecuteAsync(new LinkMoneyMovementReceiptRequest
@@ -94,7 +95,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
                 null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(TestMoneyMovementFactory.CreateLink(movement.Id, Guid.NewGuid(), userId));
-        LinkMoneyMovementReceiptUseCase useCase = new(CreateUnitOfWork(
+        LinkMoneyMovementReceiptUseCase useCase = TestUseCaseFactory.CreateLinkMoneyMovementReceiptUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository,
@@ -124,7 +125,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
         missingMovementRepository
             .Setup(repository => repository.GetItemByIdAsync(movementId, true, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync((MoneyMovement?)null);
-        LinkMoneyMovementReceiptUseCase missingMovementUseCase = new(CreateUnitOfWork(
+        LinkMoneyMovementReceiptUseCase missingMovementUseCase = TestUseCaseFactory.CreateLinkMoneyMovementReceiptUseCase(CreateUnitOfWork(
             moneyMovementRepository: missingMovementRepository,
             receiptRepository: CreateReceiptRepository(),
             moneyMovementReceiptRepository: CreateMoneyMovementReceiptRepository(),
@@ -142,7 +143,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((Receipt?)null);
-        LinkMoneyMovementReceiptUseCase missingReceiptUseCase = new(CreateUnitOfWork(
+        LinkMoneyMovementReceiptUseCase missingReceiptUseCase = TestUseCaseFactory.CreateLinkMoneyMovementReceiptUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: movementRepository,
             receiptRepository: missingReceiptRepository,
@@ -181,7 +182,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(link);
         linkRepository.Setup(repository => repository.Delete(link));
-        UnlinkMoneyMovementReceiptUseCase useCase = new(CreateUnitOfWork(
+        UnlinkMoneyMovementReceiptUseCase useCase = TestUseCaseFactory.CreateUnlinkMoneyMovementReceiptUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             moneyMovementReceiptRepository: linkRepository,
@@ -215,7 +216,7 @@ public class MoneyMovementReceiptLinkUseCaseTests : MoneyMovementUseCaseTestBase
                 null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((MoneyMovementReceipt?)null);
-        UnlinkMoneyMovementReceiptUseCase useCase = new(CreateUnitOfWork(
+        UnlinkMoneyMovementReceiptUseCase useCase = TestUseCaseFactory.CreateUnlinkMoneyMovementReceiptUseCase(CreateUnitOfWork(
             accountMemberRepository: CreateAccountMemberRepositorySequence([CreateMember(accountId, userId, AccountAccessRole.Editor)]),
             moneyMovementRepository: moneyMovementRepository,
             moneyMovementReceiptRepository: linkRepository).Object);

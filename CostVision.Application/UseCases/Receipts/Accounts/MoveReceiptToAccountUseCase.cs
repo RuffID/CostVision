@@ -9,7 +9,7 @@ using System.Data;
 
 namespace CostVision.Application.UseCases.Receipts.Accounts
 {
-    public class MoveReceiptToAccountUseCase(IUnitOfWork unitOfWork) : IMoveReceiptToAccountUseCase
+    public class MoveReceiptToAccountUseCase(IReceiptTransferUnitOfWork unitOfWork) : IMoveReceiptToAccountUseCase
     {
         public async Task<ServiceResult> ExecuteAsync(Guid sourceAccountId, Guid targetAccountId, Guid receiptId, Guid currentUserId, CancellationToken ct)
         {
