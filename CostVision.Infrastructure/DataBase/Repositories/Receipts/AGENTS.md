@@ -8,6 +8,8 @@
 
 Не добавлять методы GetByIdWith/GetAccessible и подобные. Для чтения использовать существующие базовые predicate/include-контракты.
 
+Receipt/ReceiptItem/Product/Store передают общий projection-контракт в ProjectedReadQuery через существующий IQueryRepository DLL. Count, группировка, агрегаты и Skip/Take остаются на стороне Application; самостоятельных сценарных query-методов здесь нет.
+
 ## Проверка
 
 Чистые преобразователи и модель проверяются в Infrastructure.UnitTests; SQL, backup и hosted-компоненты — отдельными интеграционными проверками с требуемым разрешением.

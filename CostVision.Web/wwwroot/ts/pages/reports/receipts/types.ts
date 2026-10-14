@@ -59,6 +59,8 @@ export interface ReceiptMoneyMovementDto {
 }
 
 export interface GetReceiptMoneyMovementCandidatesRequest {
+    page?: number;
+    pageSize?: number;
     receiptId: string;
     useTimeWindow: boolean;
     timeWindowHours: number | null;

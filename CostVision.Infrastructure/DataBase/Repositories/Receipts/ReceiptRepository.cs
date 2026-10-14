@@ -10,7 +10,8 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
         ICreateItemRepository<Receipt, AppDbContextBase> createRepository,
         IDeleteItemRepository<Receipt, AppDbContextBase> deleteRepository,
         IGetItemByIdRepository<Receipt, Guid, AppDbContextBase> getItemByIdRepository,
-        IGetItemByPredicateRepository<Receipt, AppDbContextBase> getItemByPredicateRepository) : IReceiptRepository
+        IGetItemByPredicateRepository<Receipt, AppDbContextBase> getItemByPredicateRepository,
+        IQueryRepository<Receipt, AppDbContextBase> queryRepository) : IReceiptRepository
     {
         public Task<Receipt?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<Receipt>, IQueryable<Receipt>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -20,6 +21,12 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
 
         public Task<List<Receipt>> GetItemsByPredicateAsync(Expression<Func<Receipt, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<Receipt>, IQueryable<Receipt>>? include = null, CancellationToken ct = default)
             => getItemByPredicateRepository.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
+
+        public Task<List<TResult>> GetProjectedItemsAsync<TResult>(Expression<Func<Receipt, bool>>? predicate,
+            Func<IQueryable<Receipt>, IQueryable<TResult>> query, CancellationToken ct = default)
+        {
+            return ProjectedReadQuery.ExecuteAsync(queryRepository, predicate, query, ct);
+        }
 
         public void Create(Receipt item) => createRepository.Create(item);
 

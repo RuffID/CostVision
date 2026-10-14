@@ -12,7 +12,8 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
         ICreateItemRepository<Product, AppDbContextBase> createRepository,
         IGetItemByIdRepository<Product, Guid, AppDbContextBase> getItemByIdRepository,
         IGetItemByPredicateRepository<Product, AppDbContextBase> getItemByPredicateRepository,
-        IAppDbContext<AppDbContextBase> context) : IProductRepository
+        IAppDbContext<AppDbContextBase> context,
+        IQueryRepository<Product, AppDbContextBase> queryRepository) : IProductRepository
     {
         public Task<Product?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<Product>, IQueryable<Product>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -31,6 +32,12 @@ namespace CostVision.Infrastructure.DataBase.Repositories.Receipts
                 query = query.Where(predicate);
 
             return query.CountAsync(ct);
+        }
+
+        public Task<List<TResult>> GetProjectedItemsAsync<TResult>(Expression<Func<Product, bool>>? predicate,
+            Func<IQueryable<Product>, IQueryable<TResult>> query, CancellationToken ct = default)
+        {
+            return ProjectedReadQuery.ExecuteAsync(queryRepository, predicate, query, ct);
         }
 
         public void Create(Product item) => createRepository.Create(item);

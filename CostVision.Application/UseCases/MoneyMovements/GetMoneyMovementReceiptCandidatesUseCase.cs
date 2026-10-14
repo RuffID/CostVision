@@ -1,4 +1,6 @@
 ﻿using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Models.Dtos;
+using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
@@ -17,11 +19,11 @@ namespace CostVision.Application.UseCases.MoneyMovements
         private const decimal MINUTES_PER_HOUR = 60m;
         private const decimal DEFAULT_AMOUNT_TOLERANCE = 1m;
 
-        public async Task<ServiceResult<List<MoneyMovementReceiptDto>>> ExecuteAsync(GetMoneyMovementReceiptCandidatesRequest request, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult<PagedListDto<MoneyMovementReceiptDto>>> ExecuteAsync(GetMoneyMovementReceiptCandidatesRequest request, Guid currentUserId, CancellationToken ct)
         {
             if (request.MoneyMovementId == Guid.Empty)
             {
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции.");
+                return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции.");
             }
 
             Expression<Func<MoneyMovement, bool>> movementPredicate = item => item.Id == request.MoneyMovementId;
@@ -36,7 +38,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             if (movement == null)
             {
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.NotFound, "Операция не найдена или доступ к ней отсутствует.");
+                return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.NotFound, "Операция не найдена или доступ к ней отсутствует.");
             }
 
             DateTime? dateFrom = request.DateFrom?.Date;
@@ -47,7 +49,7 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 decimal timeWindowHours = request.TimeWindowHours.GetValueOrDefault(DEFAULT_TIME_WINDOW_HOURS);
                 if (timeWindowHours < 0)
                 {
-                    return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Допуск по времени не может быть отрицательным.");
+                    return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Допуск по времени не может быть отрицательным.");
                 }
 
                 double timeWindowMinutes = (double)(timeWindowHours * MINUTES_PER_HOUR);
@@ -57,13 +59,13 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
             if (dateFrom.HasValue && dateToExclusive.HasValue && dateToExclusive.Value < dateFrom.Value)
             {
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
+                return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
             }
 
             decimal amountTolerance = request.AmountTolerance.GetValueOrDefault(DEFAULT_AMOUNT_TOLERANCE);
             if (amountTolerance < 0)
             {
-                return ServiceResult<List<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Допуск по сумме не может быть отрицательным.");
+                return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Допуск по сумме не может быть отрицательным.");
             }
 
             Expression<Func<Receipt, bool>> receiptPredicate = receipt => (!dateFrom.HasValue || receipt.DateTime >= dateFrom.Value) &&
@@ -73,29 +75,34 @@ namespace CostVision.Application.UseCases.MoneyMovements
                            (receipt.Accounts.Any(link => link.AccountId == movement.AccountId) ||
                             (!receipt.Accounts.Any() && receipt.CreatedByUserId == currentUserId));
 
-            List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
-                receiptPredicate.WithReceiptReadAccess(receipt => receipt, currentUserId),
-                asNoTracking: true,
-                include: query => query
-                    .Include(receipt => receipt.Store)
-                    .Include(receipt => receipt.CreatedByUser)
-                    .Include(receipt => receipt.Accounts)
-                        .ThenInclude(link => link.Account)
-                            .ThenInclude(account => account!.Members)
-                    .Include(receipt => receipt.MoneyMovementLinks)
-                        .ThenInclude(link => link.MoneyMovement)
-                            .ThenInclude(movement => movement!.Account)
-                                .ThenInclude(account => account!.Members)
-                    .AsSplitQuery(),
-                ct: ct);
+            receiptPredicate = receiptPredicate.WithReceiptReadAccess(item => item, currentUserId);
+            List<int> counts = await unitOfWork.Receipt.GetProjectedItemsAsync(receiptPredicate,
+                query => ReceiptReadQueries.Documents(query).GroupBy(item => 1).Select(group => group.Count()), ct);
+            int count = counts.SingleOrDefault();
+            int pageSize = Math.Clamp(request.PageSize, 1, 100);
+            int pages = Math.Max(1, (int)Math.Ceiling(count / (double)pageSize));
+            int page = Math.Clamp(request.Page, 1, pages);
+            List<Guid> ids = await unitOfWork.Receipt.GetProjectedItemsAsync(receiptPredicate,
+                query => ReadQueryOrdering.ByDistance(ReceiptReadQueries.Documents(query), item => item.DateTime,
+                    movement.OccurredAt, item => item.TotalSum, movement.Amount, item => item.Id)
+                    .Skip((page - 1) * pageSize).Take(pageSize).Select(item => item.Id), ct);
+            List<Receipt> receipts = [];
+            if (ids.Count > 0)
+            {
+                receipts = await unitOfWork.Receipt.GetProjectedItemsAsync(receiptPredicate,
+                    query => ReceiptReadQueries.WithReportGraph(ReceiptReadQueries.CopiesForPage(query, ids)), ct);
+            }
+
+            Dictionary<ReceiptIdentity, int> positions = receipts.Where(copy => ids.Contains(copy.Id))
+                .ToDictionary(copy => copy.GetIdentity(), copy => ids.IndexOf(copy.Id));
 
             List<MoneyMovementReceiptDto> result = receipts
-                .OrderBy(receipt => Math.Abs((receipt.DateTime - movement.OccurredAt).Ticks))
-                .ThenBy(receipt => Math.Abs(receipt.TotalSum - movement.Amount))
+                .OrderBy(receipt => positions[receipt.GetIdentity()])
+                .ThenBy(receipt => receipt.Id.ToString(), StringComparer.Ordinal)
                 .Select(receipt => receipt.MapReceiptLinkDto(currentUserId))
                 .ToList();
 
-            return ServiceResult<List<MoneyMovementReceiptDto>>.Ok(result);
+            return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Ok(PagedListDto<MoneyMovementReceiptDto>.Create(result, count, page, pageSize));
         }
     }
 }

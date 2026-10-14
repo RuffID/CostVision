@@ -2,7 +2,7 @@
 
 ## Ответственность
 
-ApplicationServiceCollectionExtensions регистрирует use case, workflow и банковские парсеры.
+ApplicationServiceCollectionExtensions регистрирует use case, workflow и банковские парсеры; helpers задают доступ, финансовые правила, фискальные predicates и порядок read-запросов.
 
 FinancialDataAccess задаёт проверки чтения счёта/чека и добавляет их к выражениям запросов. Подстановка параметров оставляет обычное дерево выражения без Invoke или Compile внутри запроса; SQL-перевод требует отдельной реляционной проверки.
 
@@ -17,6 +17,8 @@ ReceiptFinancialRules задаёт утверждённые направлени
 ReceiptIdentityPredicates компонует ForDocument, ForAuthorCopy и InAccount для ручного ввода, QR и переноса. Предикаты состоят из сравнения полей и Any по связям; без Invoke/Compile внутри SQL-запроса. Реальная SQL-материализация и конкуренция проверяются отдельно от ToQueryString.
 
 Не добавлять запуск сценариев, БД или внешней сети в регистрацию. Сверять наличие интерфейса, реализации, lifetime и потребителя.
+
+ReceiptFinancialRules предоставляет переводимые expression-селекторы количества и признака веса для агрегатов каталога; единицы совпадают с NormalizeQuantity. ReadQueryOrdering строит точное расстояние даты в 100-нс интервалах из переводимых date parts, затем расстояние суммы и уникальный ID. DateTime.Ticks/вычитание дат внутри SQL не используются; ToQueryString не заменяет проверку реального provider.
 
 ## Проверка
 

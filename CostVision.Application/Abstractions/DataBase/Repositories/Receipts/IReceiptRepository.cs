@@ -8,7 +8,8 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories.Receipts
         ICreateItemRepository<Receipt, AppDbContextBase>,
         IDeleteItemRepository<Receipt, AppDbContextBase>,
         IGetItemByIdRepository<Receipt, Guid, AppDbContextBase>,
-        IGetItemByPredicateRepository<Receipt, AppDbContextBase>
+        IGetItemByPredicateRepository<Receipt, AppDbContextBase>,
+        IProjectedReadRepository<Receipt>
     {
     }
 }

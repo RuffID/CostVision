@@ -140,14 +140,14 @@ public class Stage05RegressionTests
         {
             ReceiptId = receipt.Id, DateFrom = data.Date.AddDays(-1), DateTo = data.Date.AddDays(1), AmountTolerance = 1m
         }, data.User.Id, CancellationToken.None);
-        var list = await new GetReceiptListPageUseCase(new GetReceiptListUseCase(data.Work.Object), data.Work.Object)
+        var list = await new GetReceiptListPageUseCase(data.Work.Object)
             .ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date, PageSize = 10 }, CancellationToken.None);
         var store = await new GetStoreReceiptListUseCase(data.Work.Object)
             .ExecuteAsync(new() { StoreId = data.Store.Id, PageSize = 10 }, data.User.Id, CancellationToken.None);
 
         // Assert
         Assert.True(candidates.Success);
-        Assert.Equal(2, candidates.Data.Count);
+        Assert.Equal(2, candidates.Data.Items.Count);
         Assert.True(list.Success);
         Assert.True(store.Success);
         Assert.Equal(2, Assert.Single(list.Data.Items).AvailableMoneyMovementCount);
@@ -517,12 +517,14 @@ public class Stage05RegressionTests
                 Func<IQueryable<Product>, IQueryable<Product>> include, CancellationToken ct) =>
                 Task.FromResult(new[] { product }.Where(predicate.Compile()).ToList()));
         Mock<IReceiptItemRepository> items = new(MockBehavior.Strict);
+        ProjectedReadTestFactory.Configure(items, () => new[] { item! });
         items.Setup(repository => repository.GetItemsByPredicateAsync(It.IsAny<Expression<Func<ReceiptItem, bool>>>(),
             It.IsAny<int>(), It.IsAny<int?>(), true, It.IsAny<Func<IQueryable<ReceiptItem>, IQueryable<ReceiptItem>>>(), It.IsAny<CancellationToken>()))
             .Returns((Expression<Func<ReceiptItem, bool>> predicate, int skip, int? take, bool tracking,
                 Func<IQueryable<ReceiptItem>, IQueryable<ReceiptItem>> include, CancellationToken ct) =>
                 Task.FromResult(new[] { item }.Where(predicate.Compile()).ToList()));
         data.Work.Setup(work => work.Product).Returns(products.Object);
+        ProjectedReadTestFactory.Configure(products, () => new[] { product });
         data.Work.Setup(work => work.ReceiptItem).Returns(items.Object);
 
         // Act
@@ -604,7 +606,7 @@ public class Stage05RegressionTests
         data.SetupStores(data.Store);
 
         // Act
-        var list = await new GetReceiptListPageUseCase(new GetReceiptListUseCase(data.Work.Object), data.Work.Object)
+        var list = await new GetReceiptListPageUseCase(data.Work.Object)
             .ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date, PageSize = 1 }, CancellationToken.None);
         var storeReceipts = await new GetStoreReceiptListUseCase(data.Work.Object)
             .ExecuteAsync(new() { StoreId = data.Store.Id, PageSize = 1 }, data.User.Id, CancellationToken.None);
@@ -702,6 +704,7 @@ public class Stage05RegressionTests
             }
 
             Mock<IReceiptRepository> receipts = new(MockBehavior.Strict);
+            ProjectedReadTestFactory.Configure(receipts, () => Receipts);
             receipts.Setup(repository => repository.GetItemsByPredicateAsync(It.IsAny<Expression<Func<Receipt, bool>>>(),
                 It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(), It.IsAny<CancellationToken>()))
                 .Returns((Expression<Func<Receipt, bool>> predicate, int skip, int? take, bool tracking,
@@ -719,6 +722,7 @@ public class Stage05RegressionTests
                     return Task.FromResult(Receipts.FirstOrDefault(predicate.Compile()));
                 });
             Mock<IMoneyMovementRepository> movements = new(MockBehavior.Strict);
+            ProjectedReadTestFactory.Configure(movements, () => Movements);
             movements.Setup(repository => repository.GetItemsByPredicateAsync(It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
                 It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(), It.IsAny<CancellationToken>()))
                 .Returns((Expression<Func<MoneyMovement, bool>> predicate, int skip, int? take, bool tracking,
@@ -748,6 +752,7 @@ public class Stage05RegressionTests
             }
 
             Mock<IStoreRepository> repository = new(MockBehavior.Strict);
+            ProjectedReadTestFactory.Configure(repository, () => stores);
             repository.Setup(item => item.GetItemsByPredicateAsync(It.IsAny<Expression<Func<Store, bool>>>(),
                 It.IsAny<int>(), It.IsAny<int?>(), true, It.IsAny<Func<IQueryable<Store>, IQueryable<Store>>>(), It.IsAny<CancellationToken>()))
                 .Returns((Expression<Func<Store, bool>> predicate, int skip, int? take, bool tracking,

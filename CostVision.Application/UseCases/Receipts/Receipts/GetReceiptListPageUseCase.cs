@@ -1,94 +1,54 @@
+using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Extensions;
+using CostVision.Application.Models.Dtos;
+using CostVision.Application.Models.Dtos.Mappers;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.Authorization;
-using CostVision.Application.Extensions;
+using CostVision.Domain.Models.Receipts;
 
-namespace CostVision.Application.UseCases.Receipts.Receipts
+namespace CostVision.Application.UseCases.Receipts.Receipts;
+
+public class GetReceiptListPageUseCase(IUnitOfWork unitOfWork) : IGetReceiptListPageUseCase
 {
-    public class GetReceiptListPageUseCase(
-        IGetReceiptListUseCase getReceiptListUseCase,
-        IUnitOfWork unitOfWork) : IGetReceiptListPageUseCase
+    public async Task<ServiceResult<ReceiptListDto>> ExecuteAsync(User currentUser, GetReceiptListRequest request, CancellationToken ct)
     {
-        public async Task<ServiceResult<ReceiptListDto>> ExecuteAsync(User currentUser, GetReceiptListRequest request, CancellationToken ct)
+        if (request.DateTo.Date < request.DateFrom.Date)
         {
-            ServiceResult<List<ReceiptDto>> receiptListResult = await getReceiptListUseCase.ExecuteAsync(currentUser, request.DateFrom, request.DateTo, ct);
-
-            if (!receiptListResult.Success)
-            {
-                return receiptListResult.PropagateFailure<ReceiptListDto>();
-            }
-
-            List<ReceiptDto> receipts = receiptListResult.Data;
-            receipts = ApplyFilters(receipts, request);
-
-            int pageSize = Math.Clamp(request.PageSize, 1, 100);
-            int totalCount = receipts.Count;
-            int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-            int page = Math.Min(Math.Max(request.Page, 1), totalPages);
-            var totals = ReceiptFinancialRules.CalculateTotals(receipts.Select(receipt => (receipt.OperationType, receipt.TotalSum)));
-
-            if (receipts.Count == 0)
-            {
-                return ServiceResult<ReceiptListDto>.Ok(new ReceiptListDto { Page = page, PageSize = pageSize, TotalPages = totalPages });
-            }
-
-            List<ReceiptDto> pageReceipts = receipts.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-            await ReceiptReportCandidateCounts.FillAsync(unitOfWork, pageReceipts, currentUser.Id, ct);
-
-            return ServiceResult<ReceiptListDto>.Ok(new ReceiptListDto
-            {
-                Items = pageReceipts,
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount,
-                TotalPages = totalPages,
-                HasPreviousPage = page > 1,
-                HasNextPage = page < totalPages,
-                TotalSum = totals.Expense,
-                IncomeSum = totals.Income
-            });
+            return ServiceResult<ReceiptListDto>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
         }
 
-        private static List<ReceiptDto> ApplyFilters(List<ReceiptDto> receipts, GetReceiptListRequest request)
+        DateTime start = request.DateFrom.Date;
+        DateTime end = request.DateTo.Date.AddDays(1);
+        Expression<Func<Receipt, bool>> predicate = receipt => receipt.DateTime >= start && receipt.DateTime < end;
+        predicate = predicate.WithReceiptReadAccess(receipt => receipt, currentUser.Id);
+        List<ReadQueryTotals> summaries = await unitOfWork.Receipt.GetProjectedItemsAsync(predicate,
+            query => ReceiptReadQueries.Totals(ReceiptReadQueries.FilterDocuments(query, request, currentUser.Id)), ct);
+        ReadQueryTotals totals = ReceiptReadQueries.GetTotals(summaries);
+        int pageSize = Math.Clamp(request.PageSize, 1, 100);
+        int totalPages = Math.Max(1, (int)Math.Ceiling(totals.Count / (double)pageSize));
+        int page = Math.Clamp(request.Page, 1, totalPages);
+        List<Guid> ids = await unitOfWork.Receipt.GetProjectedItemsAsync(predicate,
+            query => ReceiptReadQueries.PageIds(ReceiptReadQueries.FilterDocuments(query, request, currentUser.Id),
+                (page - 1) * pageSize, pageSize), ct);
+        List<ReceiptDto> items = [];
+        if (ids.Count > 0)
         {
-            IEnumerable<ReceiptDto> query = receipts;
-
-            if (request.AccountId.HasValue)
-                query = query.Where(receipt => receipt.Accounts.Any(account => account.Id == request.AccountId.Value));
-
-            string search = request.Search?.Trim() ?? string.Empty;
-            if (!string.IsNullOrEmpty(search))
-            {
-                string normalizedSearch = search.ToLowerInvariant();
-                query = query.Where(receipt => MatchesSearch(receipt, normalizedSearch, request.SearchMode));
-            }
-
-            query = request.OperationFilter switch
-            {
-                "withoutOperations" => query.Where(receipt => receipt.MoneyMovementCount == 0),
-                "withOperations" => query.Where(receipt => receipt.MoneyMovementCount > 0),
-                "amountMismatch" => query.Where(receipt => receipt.MoneyMovementCount > 0 && Math.Abs(receipt.TotalSum - receipt.MoneyMovementsTotalSum) >= 0.01m),
-                _ => query
-            };
-
-            return query.ToList();
+            List<Receipt> copies = await unitOfWork.Receipt.GetProjectedItemsAsync(predicate,
+                query => ReceiptReadQueries.WithReportGraph(ReceiptReadQueries.CopiesForPage(query, ids)), ct);
+            Dictionary<ReceiptIdentity, int> positions = copies.Where(copy => ids.Contains(copy.Id))
+                .ToDictionary(copy => copy.GetIdentity(), copy => ids.IndexOf(copy.Id));
+            items = copies.GroupBy(copy => copy.GetIdentity()).OrderBy(group => positions[group.Key])
+                .Select(group => group.MapReceiptGroupDto(currentUser.Id)).ToList();
+            await ReceiptReportCandidateCounts.FillAsync(unitOfWork, items, currentUser.Id, ct);
         }
 
-        private static bool MatchesSearch(ReceiptDto receipt, string search, string? mode)
+        return ServiceResult<ReceiptListDto>.Ok(new ReceiptListDto
         {
-            string store = receipt.RetailPlace.ToLowerInvariant();
-            string accounts = string.Join(" ", receipt.Accounts.Select(account => account.Name)).ToLowerInvariant();
-            return mode switch
-            {
-                "sum" => receipt.TotalSum.ToString().Contains(search),
-                "shop" => store.Contains(search) || accounts.Contains(search),
-                "fn" => receipt.FiscalDriveNumber.ToLowerInvariant().Contains(search),
-                "fd" => receipt.FiscalDocumentNumber.ToLowerInvariant().Contains(search),
-                "fp" => receipt.FiscalSign.ToLowerInvariant().Contains(search),
-                _ => store.Contains(search) || accounts.Contains(search) || receipt.TotalSum.ToString().Contains(search) || receipt.FiscalDriveNumber.ToLowerInvariant().Contains(search) || receipt.FiscalDocumentNumber.ToLowerInvariant().Contains(search) || receipt.FiscalSign.ToLowerInvariant().Contains(search)
-            };
-        }
+            Items = items, Page = page, PageSize = pageSize, TotalCount = totals.Count, TotalPages = totalPages,
+            HasPreviousPage = page > 1, HasNextPage = page < totalPages, TotalSum = totals.Expense, IncomeSum = totals.Income
+        });
     }
 }

@@ -513,6 +513,7 @@ public class Stage03RegressionTests
                 .Returns((Func<CancellationToken, Task> action, IsolationLevel isolation, CancellationToken ct) => RunTransactionAsync(action, ct));
 
             Mock<IReceiptRepository> receipts = new(MockBehavior.Strict);
+            ProjectedReadTestFactory.Configure(receipts, () => _persisted.Select(receipt => _tracked[receipt.Id]));
             receipts.Setup(repository => repository.GetItemByPredicateAsync(
                 It.IsAny<Expression<Func<Receipt, bool>>>(), It.IsAny<bool>(),
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>?>(), It.IsAny<CancellationToken>()))
@@ -556,6 +557,7 @@ public class Stage03RegressionTests
                     Func<IQueryable<Account>, IQueryable<Account>>? include, CancellationToken ct) =>
                     Task.FromResult(_accounts.FirstOrDefault(predicate.Compile())));
             Mock<IMoneyMovementRepository> movements = new(MockBehavior.Strict);
+            ProjectedReadTestFactory.Configure(movements, () => Array.Empty<MoneyMovement>());
             movements.Setup(repository => repository.GetItemsByPredicateAsync(
                 It.IsAny<Expression<Func<MoneyMovement, bool>>>(), It.IsAny<int>(), It.IsAny<int?>(),
                 It.IsAny<bool>(), It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>?>(), It.IsAny<CancellationToken>()))

@@ -14,6 +14,8 @@ Stage03ReceiptPersistenceTests проверяет фактические author 
 
 Синтетические SqlException создаются в тесте через внутренние конструкторы установленного SqlClient; при изменении версии проверять их сигнатуры. Это проверка классификации/rollback без SQL, а не доказательство фактических сообщений сервера или конкурентных исходов.
 
+Stage07ReadQueryTests проверяет фактический API DLL и перевод root filters/count/totals/Skip/Take/групп всех затронутых чтений через SQL Server ToQueryString без соединения. ProjectedQueryCapture материализует только LINQ samples. Stage07ProjectionExecutionTests исполняет общий adapter через настоящую DI/DLL на подставном DbConnection, проверяя форму COUNT/страницы, тип результата, отмену и отсутствие tracking. Эти проверки не подтверждают реальные планы, строки, snapshot, collation или производительность.
+
 ## Проверка
 
 Stage06RefreshPersistenceTests проверяет RowVersion/RefreshRevision metadata и SQL-перевод actual пакетного predicate/order/take/Guid cursor без соединения. Actual AddApplication/AddInfrastructure и поставленные DLL разрешаются в независимых scopes с разными ApplicationContext/UoW; hosting не запускается. Отдельный тест actual DLL выполняет пакетный запрос на подставном DbConnection и проверяет ORDER BY/TOP(32) без открытия реального соединения. Известные normalized-индексы распознаются отдельно от unknown/AdaptiveName; Stage03UnitOfWorkTests проверяет их перевод/rollback синтетическими SqlException. Это не применённая миграция или проверка конкуренции на двух соединениях.

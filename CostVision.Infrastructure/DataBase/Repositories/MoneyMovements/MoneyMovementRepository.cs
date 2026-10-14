@@ -10,7 +10,8 @@ namespace CostVision.Infrastructure.DataBase.Repositories.MoneyMovements
         ICreateItemRepository<MoneyMovement, AppDbContextBase> createRepository,
         IDeleteItemRepository<MoneyMovement, AppDbContextBase> deleteRepository,
         IGetItemByIdRepository<MoneyMovement, Guid, AppDbContextBase> getItemByIdRepository,
-        IGetItemByPredicateRepository<MoneyMovement, AppDbContextBase> getItemByPredicateRepository) : IMoneyMovementRepository
+        IGetItemByPredicateRepository<MoneyMovement, AppDbContextBase> getItemByPredicateRepository,
+        IQueryRepository<MoneyMovement, AppDbContextBase> queryRepository) : IMoneyMovementRepository
     {
         public Task<MoneyMovement?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>? include = null, CancellationToken ct = default)
             => getItemByIdRepository.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -20,6 +21,12 @@ namespace CostVision.Infrastructure.DataBase.Repositories.MoneyMovements
 
         public Task<List<MoneyMovement>> GetItemsByPredicateAsync(Expression<Func<MoneyMovement, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>? include = null, CancellationToken ct = default)
             => getItemByPredicateRepository.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
+
+        public Task<List<TResult>> GetProjectedItemsAsync<TResult>(Expression<Func<MoneyMovement, bool>>? predicate,
+            Func<IQueryable<MoneyMovement>, IQueryable<TResult>> query, CancellationToken ct = default)
+        {
+            return ProjectedReadQuery.ExecuteAsync(queryRepository, predicate, query, ct);
+        }
 
         public void Create(MoneyMovement item) => createRepository.Create(item);
 

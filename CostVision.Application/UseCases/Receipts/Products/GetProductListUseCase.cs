@@ -1,155 +1,115 @@
+using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Extensions;
+using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
-using CostVision.Application.Extensions;
+using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
-using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 
-namespace CostVision.Application.UseCases.Receipts.Products
+namespace CostVision.Application.UseCases.Receipts.Products;
+
+public class GetProductListUseCase(IUnitOfWork unitOfWork) : IGetProductListUseCase
 {
-    public class GetProductListUseCase(IUnitOfWork unitOfWork) : IGetProductListUseCase
+    public async Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, Guid currentUserId, CancellationToken ct)
     {
-        private const int MIN_PAGE = 1;
-        private const int MIN_PAGE_SIZE = 1;
-        private const int MAX_PAGE_SIZE = 100;
-        private const string SORT_BY_NAME = "name";
-        private const string SORT_BY_RECEIPT_COUNT = "receiptCount";
-        private const string SORT_BY_AVERAGE_PRICE = "averagePrice";
-        private const string SORT_DIRECTION_DESC = "desc";
+        int pageSize = Math.Clamp(request.PageSize, 1, 100);
+        string? search = request.Search?.Trim();
+        DateTime? periodStart = request.DateFrom?.Date;
+        DateTime? periodEnd = request.DateTo?.Date.AddDays(1);
+        Expression<Func<ReceiptItem, bool>> itemPredicate = item =>
+            item.Receipt != null &&
+            (!periodStart.HasValue || item.Receipt.DateTime >= periodStart.Value) &&
+            (!periodEnd.HasValue || item.Receipt.DateTime < periodEnd.Value) &&
+            (!request.AccountId.HasValue || item.Receipt.Accounts.Any(link =>
+                link.AccountId == request.AccountId.Value && link.Account != null &&
+                (link.Account.CreatedByUserId == currentUserId ||
+                 link.Account.Members.Any(member => member.UserId == currentUserId))));
+        itemPredicate = itemPredicate.WithReceiptReadAccess(item => item.Receipt, currentUserId);
+        Expression<Func<Product, bool>> predicate = product =>
+            product.ReceiptItems.AsQueryable().Any(itemPredicate) &&
+            (search == null || search == "" || product.Name.Contains(search) ||
+             (product.AdaptiveName != null && product.AdaptiveName.Contains(search)));
 
-        public async Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, Guid currentUserId, CancellationToken ct)
+        List<ReadQueryTotals> summaries = await unitOfWork.Product.GetProjectedItemsAsync(predicate,
+            query => Project(query, itemPredicate, request.UseAdaptiveNames).GroupBy(item => 1)
+                .Select(group => new ReadQueryTotals
+                {
+                    Count = group.Count(),
+                    Expense = group.Sum(item => item.TotalSum)
+                }), ct);
+        ReadQueryTotals totals = summaries.SingleOrDefault() ?? new ReadQueryTotals();
+        int totalPages = Math.Max(1, (int)Math.Ceiling(totals.Count / (double)pageSize));
+        int page = Math.Clamp(request.Page, 1, totalPages);
+        List<ProductListItemDto> items = await unitOfWork.Product.GetProjectedItemsAsync(predicate,
+            query => Sort(Project(query, itemPredicate, request.UseAdaptiveNames), request.SortBy, request.SortDirection)
+                .Skip((page - 1) * pageSize).Take(pageSize), ct);
+
+        return ServiceResult<ProductListDto>.Ok(new ProductListDto
         {
-            int page = Math.Max(request.Page, MIN_PAGE);
-            int pageSize = Math.Clamp(request.PageSize, MIN_PAGE_SIZE, MAX_PAGE_SIZE);
-            string? search = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim();
-            Expression<Func<Product, bool>> predicate = product =>
-                product.ReceiptItems.Any(item =>
-                    item.Receipt != null &&
-                    (
-                        item.Receipt.CreatedByUserId == currentUserId ||
-                        item.Receipt.Accounts.Any(link =>
-                            link.Account != null &&
-                            (
-                                link.Account.CreatedByUserId == currentUserId ||
-                                link.Account.Members.Any(member => member.UserId == currentUserId)
-                            ))
-                    )) &&
-                (search == null ||
-                 product.Name.Contains(search) ||
-                 (product.AdaptiveName != null && product.AdaptiveName.Contains(search)));
-            List<Product> products = await unitOfWork.Product.GetItemsByPredicateAsync(
-                predicate,
-                asNoTracking: true,
-                include: query => query
-                    .Include(product => product.ReceiptItems)
-                    .ThenInclude(item => item.Receipt)
-                    .ThenInclude(receipt => receipt!.Accounts)
-                    .ThenInclude(link => link.Account)
-                    .ThenInclude(account => account!.Members)
-                    .AsSplitQuery(),
-                ct: ct);
+            Items = items, Page = page, PageSize = pageSize, TotalCount = totals.Count,
+            TotalPages = totalPages, HasPreviousPage = page > 1, HasNextPage = page < totalPages,
+            TotalSum = totals.Expense
+        });
+    }
 
-            List<ProductListItemDto> allItems = products
-                .Select(product => CreateProductListItem(product, request, currentUserId))
-                .Where(item => item.ReceiptCount > 0)
-                .ToList();
+    internal static IQueryable<ProductListItemDto> Project(IQueryable<Product> source,
+        Expression<Func<ReceiptItem, bool>> predicate, bool useAdaptiveNames)
+    {
+        return source.Select(product => new
+        {
+            product.Id, product.Name, product.AdaptiveName,
+            ReceiptCount = product.ReceiptItems.AsQueryable().Where(predicate).Select(item => item.ReceiptId).Distinct().Count(),
+            TotalSum = product.ReceiptItems.AsQueryable().Where(predicate).Sum(item => item.Sum),
+            Quantity = product.ReceiptItems.AsQueryable().Where(predicate).Sum(ReceiptFinancialRules.NormalizedItemQuantity),
+            WeightedKinds = product.ReceiptItems.AsQueryable().Where(predicate).Select(ReceiptFinancialRules.WeightedItem).Distinct().Count(),
+            IsWeighted = product.ReceiptItems.AsQueryable().Where(predicate).Any(ReceiptFinancialRules.WeightedItem)
+        }).Select(product => new ProductListItemDto
+        {
+            Id = product.Id, Name = product.Name, AdaptiveName = product.AdaptiveName,
+            DisplayName = useAdaptiveNames && product.AdaptiveName != null && product.AdaptiveName != "" ? product.AdaptiveName : product.Name,
+            ReceiptCount = product.ReceiptCount, TotalSum = product.TotalSum,
+            AveragePrice = product.WeightedKinds == 1 && product.Quantity != 0 ? product.TotalSum / product.Quantity : null,
+            AveragePriceIsWeighted = product.WeightedKinds == 1 ? product.IsWeighted : null
+        });
+    }
 
-            int totalCount = allItems.Count;
-            int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-            page = Math.Min(page, totalPages);
-            int skip = (page - 1) * pageSize;
-
-            List<ProductListItemDto> items = SortItems(allItems, request.SortBy, request.SortDirection)
-                .Skip(skip)
-                .Take(pageSize)
-                .ToList();
-
-            ProductListDto result = new()
+    private static IOrderedQueryable<ProductListItemDto> Sort(IQueryable<ProductListItemDto> items, string? sortBy, string? sortDirection)
+    {
+        bool descending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        IOrderedQueryable<ProductListItemDto> ordered;
+        if (sortBy == "receiptCount")
+        {
+            if (descending)
             {
-                Items = items,
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount,
-                TotalPages = totalPages,
-                HasPreviousPage = page > MIN_PAGE,
-                HasNextPage = page < totalPages,
-                TotalSum = allItems.Sum(item => item.TotalSum)
-            };
-
-            return ServiceResult<ProductListDto>.Ok(result);
-        }
-
-        private static List<ProductListItemDto> SortItems(List<ProductListItemDto> items, string? sortBy, string? sortDirection)
-        {
-            bool isDescending = string.Equals(sortDirection, SORT_DIRECTION_DESC, StringComparison.OrdinalIgnoreCase);
-            string normalizedSortBy = string.IsNullOrWhiteSpace(sortBy) ? SORT_BY_NAME : sortBy.Trim();
-
-            IOrderedEnumerable<ProductListItemDto> orderedItems = normalizedSortBy switch
+                ordered = items.OrderByDescending(item => item.ReceiptCount).ThenBy(item => item.Name);
+            }
+            else
             {
-                SORT_BY_RECEIPT_COUNT => isDescending
-                    ? items.OrderByDescending(item => item.ReceiptCount).ThenBy(item => item.Name)
-                    : items.OrderBy(item => item.ReceiptCount).ThenBy(item => item.Name),
-                SORT_BY_AVERAGE_PRICE => isDescending
-                    ? items.OrderByDescending(item => item.AveragePrice.HasValue).ThenByDescending(item => item.AveragePrice).ThenBy(item => item.Name)
-                    : items.OrderByDescending(item => item.AveragePrice.HasValue).ThenBy(item => item.AveragePrice).ThenBy(item => item.Name),
-                _ => isDescending
-                    ? items.OrderByDescending(item => item.Name).ThenByDescending(item => item.ReceiptCount)
-                    : items.OrderBy(item => item.Name).ThenByDescending(item => item.ReceiptCount)
-            };
-
-            return orderedItems.ToList();
+                ordered = items.OrderBy(item => item.ReceiptCount).ThenBy(item => item.Name);
+            }
         }
-
-        private static ProductListItemDto CreateProductListItem(Product product, GetProductListRequest request, Guid currentUserId)
+        else if (sortBy == "averagePrice")
         {
-            List<ReceiptItem> accessibleReceiptItems = product.ReceiptItems
-                .Where(item => item.Receipt != null && IsReceiptAccessible(item.Receipt, request, currentUserId))
-                .ToList();
-            List<bool> weightedVariants = accessibleReceiptItems
-                .Select(item => ReceiptFinancialRules.IsWeighted(item.ItemsQuantityMeasure))
-                .Distinct()
-                .ToList();
-            bool hasSingleQuantityMeasure = weightedVariants.Count == 1;
-            decimal totalQuantity = accessibleReceiptItems.Sum(item => ReceiptFinancialRules.NormalizeQuantity(item.Quantity, item.ItemsQuantityMeasure));
-
-            return new ProductListItemDto
+            if (descending)
             {
-                Id = product.Id,
-                Name = product.Name,
-                AdaptiveName = product.AdaptiveName,
-                DisplayName = request.UseAdaptiveNames && !string.IsNullOrWhiteSpace(product.AdaptiveName)
-                    ? product.AdaptiveName
-                    : product.Name,
-                ReceiptCount = accessibleReceiptItems.Select(item => item.ReceiptId).Distinct().Count(),
-                AveragePrice = hasSingleQuantityMeasure && totalQuantity != 0
-                    ? accessibleReceiptItems.Sum(item => item.Sum) / totalQuantity
-                    : null,
-                AveragePriceIsWeighted = hasSingleQuantityMeasure ? weightedVariants[0] : null,
-                TotalSum = accessibleReceiptItems.Sum(item => item.Sum)
-            };
+                ordered = items.OrderByDescending(item => item.AveragePrice.HasValue).ThenByDescending(item => item.AveragePrice).ThenBy(item => item.Name);
+            }
+            else
+            {
+                ordered = items.OrderByDescending(item => item.AveragePrice.HasValue).ThenBy(item => item.AveragePrice).ThenBy(item => item.Name);
+            }
         }
-
-
-
-        private static bool IsReceiptAccessible(Receipt receipt, GetProductListRequest request, Guid currentUserId)
+        else if (descending)
         {
-            if (request.DateFrom.HasValue && receipt.DateTime.Date < request.DateFrom.Value.Date ||
-                request.DateTo.HasValue && receipt.DateTime.Date > request.DateTo.Value.Date ||
-                request.AccountId.HasValue && !receipt.Accounts.Any(link => link.AccountId == request.AccountId.Value))
-                return false;
-
-            if (receipt.CreatedByUserId == currentUserId)
-                return true;
-
-            return receipt.Accounts.Any(link =>
-                link.Account != null &&
-                (
-                    link.Account.CreatedByUserId == currentUserId ||
-                    link.Account.Members.Any(member => member.UserId == currentUserId)
-                ));
+            ordered = items.OrderByDescending(item => item.Name).ThenByDescending(item => item.ReceiptCount);
+        }
+        else
+        {
+            ordered = items.OrderBy(item => item.Name).ThenByDescending(item => item.ReceiptCount);
         }
 
+        return ordered.ThenBy(item => item.Id);
     }
 }

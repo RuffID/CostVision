@@ -1,4 +1,5 @@
 ﻿using CostVision.Web.Mappers;
+using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.MoneyMovements;
@@ -32,9 +33,9 @@ namespace CostVision.Web.Pages
             return JsonResultMapper.ToJsonResult(result);
         }
 
-        public async Task<JsonResult> OnGetListAsync([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] Guid? accountId, CancellationToken ct)
+        public async Task<JsonResult> OnGetListAsync([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] Guid? accountId, CancellationToken ct, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] string? receiptFilter = null)
         {
-            ServiceResult<List<MoneyMovementDto>> result = await moneyMovementsPageUseCase.GetListAsync(CurrentUser.Id, dateFrom, dateTo, accountId, ct);
+            ServiceResult<MoneyMovementListDto> result = await moneyMovementsPageUseCase.GetListAsync(CurrentUser.Id, dateFrom, dateTo, accountId, ct, page, pageSize, search, receiptFilter);
             return JsonResultMapper.ToJsonResult(result);
         }
 
@@ -46,7 +47,7 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetReceiptCandidatesAsync([FromQuery] GetMoneyMovementReceiptCandidatesRequest request, CancellationToken ct)
         {
-            ServiceResult<List<MoneyMovementReceiptDto>> result = await moneyMovementsPageUseCase.GetReceiptCandidatesAsync(request, CurrentUser.Id, ct);
+            ServiceResult<PagedListDto<MoneyMovementReceiptDto>> result = await moneyMovementsPageUseCase.GetReceiptCandidatesAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 

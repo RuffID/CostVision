@@ -8,6 +8,17 @@ namespace CostVision.Domain.Models.Receipts;
 /// </summary>
 public record ReceiptIdentity
 {
+    public ReceiptIdentity(string fiscalDriveNumber, string fiscalDocumentNumber, string fiscalSign,
+        DateTime dateTime, decimal totalSum, ReceiptOperationType operationType)
+    {
+        FiscalDriveNumber = fiscalDriveNumber;
+        FiscalDocumentNumber = fiscalDocumentNumber;
+        FiscalSign = fiscalSign;
+        DateTime = dateTime;
+        TotalSum = totalSum;
+        OperationType = operationType;
+    }
+
     internal ReceiptIdentity(Receipt receipt)
     {
         FiscalDriveNumber = receipt.FiscalDriveNumber;

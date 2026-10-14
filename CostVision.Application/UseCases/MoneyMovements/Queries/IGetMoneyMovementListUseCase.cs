@@ -5,6 +5,6 @@ namespace CostVision.Application.UseCases.MoneyMovements
 {
     public interface IGetMoneyMovementListUseCase
     {
-        Task<ServiceResult<List<MoneyMovementDto>>> ExecuteAsync(Guid currentUserId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct);
+        Task<ServiceResult<MoneyMovementListDto>> ExecuteAsync(Guid currentUserId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct, int page = 1, int pageSize = 20, string? search = null, string? receiptFilter = null);
     }
 }

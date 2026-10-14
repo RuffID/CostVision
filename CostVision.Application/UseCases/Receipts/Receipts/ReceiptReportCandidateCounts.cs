@@ -23,31 +23,21 @@ internal static class ReceiptReportCandidateCounts
         List<Receipt> receipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
             receiptPredicate.WithReceiptReadAccess(receipt => receipt, currentUserId),
             asNoTracking: true,
-            include: query => query.Include(receipt => receipt.Accounts)
-                .ThenInclude(link => link.Account).ThenInclude(account => account!.Members).AsSplitQuery(), ct: ct);
+            include: query => query.Include(receipt => receipt.Accounts), ct: ct);
         if (receipts.Count == 0)
         {
             return;
         }
-
-        DateTime dateFrom = receipts.Min(receipt => receipt.DateTime).Date.AddDays(-1);
-        DateTime dateToExclusive = receipts.Max(receipt => receipt.DateTime).Date.AddDays(2);
-        Expression<Func<MoneyMovement, bool>> movementPredicate = movement =>
-            movement.OccurredAt >= dateFrom && movement.OccurredAt < dateToExclusive && !movement.ReceiptLinks.Any();
-        List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
-            movementPredicate.WithAccountReadAccess(movement => movement.Account, currentUserId),
-            asNoTracking: true,
-            include: query => query.Include(movement => movement.Account)
-                .ThenInclude(account => account!.Members).Include(movement => movement.ReceiptLinks).AsSplitQuery(), ct: ct);
 
         Dictionary<Guid, Receipt> receiptsById = receipts.ToDictionary(receipt => receipt.Id);
         foreach (ReceiptDto item in items)
         {
             if (receiptsById.TryGetValue(item.Id, out Receipt? receipt))
             {
-                // Этот уже доступный набор выполняется в памяти; EF-запрос выше сохраняет предикат доступа.
-                item.AvailableMoneyMovementCount = movements.AsQueryable()
-                    .Count(ReceiptMoneyMovementCandidateRules.ForInitialModal(receipt, currentUserId));
+                List<int> counts = await unitOfWork.MoneyMovement.GetProjectedItemsAsync(
+                    ReceiptMoneyMovementCandidateRules.ForInitialModal(receipt, currentUserId),
+                    query => query.GroupBy(movement => 1).Select(group => group.Count()), ct);
+                item.AvailableMoneyMovementCount = counts.SingleOrDefault();
             }
         }
     }

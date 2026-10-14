@@ -1,6 +1,8 @@
+import { createPageNavigation } from "../../shared/paging.js";
+import type { MoneyMovementList } from "./types.js";
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { BootstrapModal, createBootstrapModal } from "../../shared/bootstrap.js";
-import { formatMoneyRub, formatRuNumber, normalizeSingleLineTextValue } from "../../shared/formatters.js";
+import { formatMoneyRub, formatRuNumber } from "../../shared/formatters.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
 import { createMoneyMovement, deleteMoneyMovement, linkMoneyMovementReceipt, loadAccounts, loadImportBanks, loadLinkedReceipts, loadMoneyMovements, loadReceiptCandidates, moveMoneyMovementToAccount, openReceipt, unlinkMoneyMovementReceipt, updateMoneyMovementComment } from "./api.js";
 import { formatDateForQuery, getDateRangeByPeriodPreset } from "./dateRange.js";
@@ -12,6 +14,15 @@ import { MONEY_MOVEMENT_TYPE_EXPENSE, MONEY_MOVEMENT_TYPE_INCOME, type CreateMon
 import { getMoneyMovementsUi, type MoneyMovementsUi } from "./ui.js";
 import { renderReceiptDetails as renderReceiptDetailsModal } from "../reports/receipts/ui/receiptDetailsModal.js";
 
+let movementPage = 1;
+let candidatePage = 1;
+let movementFilterKey = "";
+let candidateFilterKey = "";
+let movementRequest = 0;
+let candidateRequest = 0;
+let movementTotals: MoneyMovementList | null = null;
+let movementNavigation: ReturnType<typeof createPageNavigation>;
+let candidateNavigation: ReturnType<typeof createPageNavigation>;
 let ui: MoneyMovementsUi;
 let forgeryToken: string | null;
 let moveAccountModal: BootstrapModal;
@@ -27,6 +38,14 @@ document.addEventListener("DOMContentLoaded", () => {
 async function initMoneyMovementsPage(): Promise<void> {
     ui = getMoneyMovementsUi();
     forgeryToken = getRequestVerificationToken();
+    movementNavigation = createPageNavigation(ui.list, async page => {
+        movementPage = page;
+        await reloadMovements();
+    }, error => showAlertMessage(ui.alert, getErrorMessage(error)));
+    candidateNavigation = createPageNavigation(ui.receiptCandidates, async page => {
+        candidatePage = page;
+        await reloadReceiptCandidates();
+    }, error => showReceiptsAlert(getErrorMessage(error)), "Документов");
     moveAccountModal = createBootstrapModal(ui.moveAccountModal);
     deleteModal = createBootstrapModal(ui.deleteModal);
     importModal = createBootstrapModal(ui.importModal);
@@ -51,7 +70,7 @@ function bindEvents(): void {
     ui.applyFilterButton.addEventListener("click", handleApplyFilterClick);
     ui.periodPresetSelect.addEventListener("change", handlePeriodPresetChange);
     ui.searchInput.addEventListener("input", handleSearchInput);
-    ui.receiptFilterSelect.addEventListener("change", renderMovements);
+    ui.receiptFilterSelect.addEventListener("change", () => { void handleApplyFilterClick(); });
     ui.list.addEventListener("click", handleMoneyMovementListClick);
     ui.moveTargetAccountSelect.addEventListener("change", updateMoveActionState);
     ui.confirmMoveAccountButton.addEventListener("click", handleConfirmMoveAccountClick);
@@ -92,6 +111,8 @@ async function loadInitialData(): Promise<void> {
 }
 
 function resetReceiptsModal(): void {
+    candidateRequest++;
+    candidateNavigation.clear();
     state.selectedReceiptsMoneyMovementId = null;
     state.linkedReceipts = [];
     state.receiptCandidates = [];
@@ -137,44 +158,34 @@ async function reloadMovements(): Promise<void> {
     state.dateTo = ui.dateToInput.value;
     state.selectedAccountId = ui.filterAccountSelect.value;
     const accountId = state.selectedAccountId === MONEY_MOVEMENT_ACCOUNT_FILTER_WITHOUT_ACCOUNT
-        ? ""
+        ? "00000000-0000-0000-0000-000000000000"
         : state.selectedAccountId;
-    state.movements = await loadMoneyMovements(forgeryToken, state.dateFrom, state.dateTo, accountId);
+    const key = JSON.stringify([state.dateFrom, state.dateTo, accountId, state.searchQuery, ui.receiptFilterSelect.value]);
+    if (key !== movementFilterKey) {
+        movementPage = 1;
+        movementFilterKey = key;
+    }
+    const requestId = ++movementRequest;
+    movementTotals = null;
+    state.movements = [];
+    movementNavigation.clear();
+    renderMovements();
+    const response = await loadMoneyMovements(forgeryToken, state.dateFrom, state.dateTo, accountId,
+        movementPage, state.searchQuery, ui.receiptFilterSelect.value);
+    if (requestId !== movementRequest) {
+        return;
+    }
+    movementTotals = response;
+    movementPage = response.page;
+    state.movements = response.items;
+    movementNavigation.render(response);
     state.editingCommentMovementId = null;
     renderMovements();
 }
 
 function renderMovements(): void {
-    const filteredMovements = applySearchFilter(state.movements);
-    renderMoneyMovementList(ui.list, filteredMovements, state.accounts, state.editingCommentMovementId);
-    renderSummary(ui.count, ui.incomeSum, ui.expenseSum, filteredMovements);
-}
-
-function applySearchFilter(movements: MoneyMovementDto[]): MoneyMovementDto[] {
-    const query = normalizeSearchText(state.searchQuery).toLowerCase();
-    let result = movements;
-
-    if (state.selectedAccountId === MONEY_MOVEMENT_ACCOUNT_FILTER_WITHOUT_ACCOUNT) {
-        result = result.filter(movement => !movement.accountId);
-    }
-
-    if (ui.receiptFilterSelect.value === "withoutReceipts") {
-        result = result.filter(movement => movement.linkedReceiptCount === 0);
-    } else if (ui.receiptFilterSelect.value === "withReceipts") {
-        result = result.filter(movement => movement.linkedReceiptCount > 0);
-    } else if (ui.receiptFilterSelect.value === "amountMismatch") {
-        result = result.filter(movement => movement.linkedReceiptCount > 0 && Math.abs(movement.amount - movement.linkedReceiptsTotalSum) >= 0.01);
-    }
-
-    if (!query) {
-        return result;
-    }
-
-    return result.filter(movement => {
-        const comment = normalizeSearchText(movement.comment).toLowerCase();
-        const importComment = normalizeSearchText(movement.importComment).toLowerCase();
-        return comment.includes(query) || importComment.includes(query);
-    });
+    renderMoneyMovementList(ui.list, state.movements, state.accounts, state.editingCommentMovementId);
+    renderSummary(ui.count, ui.incomeSum, ui.expenseSum, movementTotals);
 }
 
 function handleMoneyMovementListClick(event: MouseEvent): void {
@@ -233,6 +244,8 @@ async function handleOpenReceiptsClick(button: HTMLButtonElement): Promise<void>
         return;
     }
 
+    candidatePage = 1;
+    candidateNavigation.clear();
     state.selectedReceiptsMoneyMovementId = moneyMovementId;
     ui.receiptsInfo.textContent = getMovementInfoText(movement);
     initReceiptsFilters(movement);
@@ -372,7 +385,12 @@ async function reloadLinkedReceipts(): Promise<void> {
         return;
     }
 
-    state.linkedReceipts = await loadLinkedReceipts(forgeryToken, state.selectedReceiptsMoneyMovementId);
+    const selectedId = state.selectedReceiptsMoneyMovementId;
+    const receipts = await loadLinkedReceipts(forgeryToken, selectedId);
+    if (selectedId !== state.selectedReceiptsMoneyMovementId) {
+        return;
+    }
+    state.linkedReceipts = receipts;
     renderLinkedReceipts(ui.linkedReceipts, state.linkedReceipts);
 }
 
@@ -381,7 +399,22 @@ async function reloadReceiptCandidates(): Promise<void> {
         return;
     }
 
-    state.receiptCandidates = await loadReceiptCandidates(forgeryToken, readReceiptCandidatesRequest(state.selectedReceiptsMoneyMovementId));
+    const request = readReceiptCandidatesRequest(state.selectedReceiptsMoneyMovementId);
+    const key = JSON.stringify(request);
+    if (key !== candidateFilterKey) {
+        candidatePage = 1;
+        candidateFilterKey = key;
+    }
+    const selectedId = state.selectedReceiptsMoneyMovementId;
+    const requestId = ++candidateRequest;
+    candidateNavigation.clear();
+    const response = await loadReceiptCandidates(forgeryToken, { ...request, page: candidatePage, pageSize: 20 });
+    if (selectedId !== state.selectedReceiptsMoneyMovementId || requestId !== candidateRequest) {
+        return;
+    }
+    candidatePage = response.page;
+    state.receiptCandidates = response.items;
+    candidateNavigation.render(response);
     renderReceiptCandidates(ui.receiptCandidates, state.receiptCandidates);
 }
 
@@ -821,11 +854,7 @@ function handleSearchInput(): void {
         clearTimeout(state.searchDebounceTimerId);
     }
 
-    state.searchDebounceTimerId = window.setTimeout(renderMovements, 250);
-}
-
-function normalizeSearchText(value: unknown): string {
-    return normalizeSingleLineTextValue(value);
+    state.searchDebounceTimerId = window.setTimeout(() => { void handleApplyFilterClick(); }, 250);
 }
 
 function formatDateInput(date: Date): string {

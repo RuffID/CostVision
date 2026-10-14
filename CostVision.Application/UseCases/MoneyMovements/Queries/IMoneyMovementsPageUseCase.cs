@@ -1,3 +1,4 @@
+using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.MoneyMovements;
@@ -13,11 +14,11 @@ namespace CostVision.Application.UseCases.MoneyMovements
 
         Task<ServiceResult<List<BankStatementImportBankDto>>> GetImportBanksAsync(CancellationToken ct);
 
-        Task<ServiceResult<List<MoneyMovementDto>>> GetListAsync(Guid userId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct);
+        Task<ServiceResult<MoneyMovementListDto>> GetListAsync(Guid userId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct, int page = 1, int pageSize = 20, string? search = null, string? receiptFilter = null);
 
         Task<ServiceResult<List<MoneyMovementReceiptDto>>> GetLinkedReceiptsAsync(Guid moneyMovementId, Guid userId, CancellationToken ct);
 
-        Task<ServiceResult<List<MoneyMovementReceiptDto>>> GetReceiptCandidatesAsync(GetMoneyMovementReceiptCandidatesRequest request, Guid userId, CancellationToken ct);
+        Task<ServiceResult<PagedListDto<MoneyMovementReceiptDto>>> GetReceiptCandidatesAsync(GetMoneyMovementReceiptCandidatesRequest request, Guid userId, CancellationToken ct);
 
         Task<ServiceResult<MoneyMovementDto>> CreateAsync(CreateMoneyMovementRequest request, Guid userId, CancellationToken ct);
 

@@ -3,6 +3,7 @@ using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Web.Mappers;
 using CostVision.Application.Models.Dtos.Receipts;
+using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Requests.Receipts;
@@ -83,7 +84,7 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetMoneyMovementCandidatesAsync([FromQuery] GetReceiptMoneyMovementCandidatesRequest request, CancellationToken ct)
         {
-            ServiceResult<List<ReceiptMoneyMovementDto>> result = await getReceiptMoneyMovementCandidatesUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+            ServiceResult<PagedListDto<ReceiptMoneyMovementDto>> result = await getReceiptMoneyMovementCandidatesUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 

@@ -19,6 +19,7 @@ namespace CostVision.Application.Models.Dtos.Mappers
 
             ReceiptDto representativeReceipt = groupedReceipts
                 .OrderByDescending(receipt => receipt.Accounts.Any(account => account.CanEditReceipt))
+                .ThenBy(receipt => receipt.Id.ToString(), StringComparer.Ordinal)
                 .First();
 
             List<ReceiptAccountDto> mergedAccounts = groupedReceipts
@@ -26,8 +27,10 @@ namespace CostVision.Application.Models.Dtos.Mappers
                 .GroupBy(account => account.Id)
                 .Select(group => group
                     .OrderByDescending(account => account.CanEditReceipt)
+                    .ThenBy(account => account.ReceiptId.ToString(), StringComparer.Ordinal)
                     .First())
                 .OrderBy(account => account.Name)
+                .ThenBy(account => account.Id)
                 .ToList();
 
             representativeReceipt.Accounts = mergedAccounts;

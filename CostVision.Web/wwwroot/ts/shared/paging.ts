@@ -1,0 +1,70 @@
+export interface PagedList<T> {
+    items: T[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+export function createPageNavigation(after: HTMLElement, load: (page: number) => Promise<void>,
+    onError: (error: unknown) => void, countLabel = "Всего"): {
+        render: (page: PagedList<unknown>) => void;
+        clear: () => void;
+    } {
+    const container = document.createElement("nav");
+    container.classList.add("d-flex", "gap-2", "align-items-center", "my-2");
+    container.setAttribute("aria-label", "Страницы списка");
+    const previous = document.createElement("button");
+    const next = document.createElement("button");
+    const label = document.createElement("span");
+    previous.type = next.type = "button";
+    previous.textContent = "Назад";
+    next.textContent = "Далее";
+    previous.classList.add("btn", "btn-sm", "btn-outline-secondary");
+    next.classList.add("btn", "btn-sm", "btn-outline-secondary");
+    label.classList.add("small", "text-muted");
+    container.append(previous, label, next);
+    after.after(container);
+    let current: PagedList<unknown> | null = null;
+    let busy = false;
+    container.hidden = true;
+
+    async function navigate(delta: number): Promise<void> {
+        if (!current || busy) {
+            return;
+        }
+
+        busy = true;
+        previous.disabled = next.disabled = true;
+        try {
+            await load(current.page + delta);
+        } catch (error) {
+            onError(error);
+        } finally {
+            busy = false;
+            if (current) {
+                previous.disabled = !current.hasPreviousPage;
+                next.disabled = !current.hasNextPage;
+            }
+        }
+    }
+
+    previous.addEventListener("click", () => { void navigate(-1); });
+    next.addEventListener("click", () => { void navigate(1); });
+    return {
+        render(page): void {
+            current = page;
+            container.hidden = false;
+            label.textContent = `Страница ${page.page} из ${page.totalPages} · ${countLabel}: ${page.totalCount}`;
+            previous.disabled = busy || !page.hasPreviousPage;
+            next.disabled = busy || !page.hasNextPage;
+        },
+        clear(): void {
+            current = null;
+            container.hidden = true;
+            previous.disabled = next.disabled = true;
+        }
+    };
+}

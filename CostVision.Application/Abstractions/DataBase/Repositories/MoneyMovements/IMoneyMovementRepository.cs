@@ -1,5 +1,4 @@
-﻿using CostVision.Application.Abstractions.DataBase;
-using CostVision.Domain.Models.MoneyMovements;
+﻿using CostVision.Domain.Models.MoneyMovements;
 using EFCoreLibrary.Abstractions.Database.Repository.Base;
 
 namespace CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements
@@ -8,7 +7,8 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovemen
         ICreateItemRepository<MoneyMovement, AppDbContextBase>,
         IDeleteItemRepository<MoneyMovement, AppDbContextBase>,
         IGetItemByIdRepository<MoneyMovement, Guid, AppDbContextBase>,
-        IGetItemByPredicateRepository<MoneyMovement, AppDbContextBase>
+        IGetItemByPredicateRepository<MoneyMovement, AppDbContextBase>,
+        IProjectedReadRepository<MoneyMovement>
     {
     }
 }

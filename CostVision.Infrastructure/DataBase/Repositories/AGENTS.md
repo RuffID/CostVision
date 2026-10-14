@@ -12,6 +12,8 @@ UnitOfWork агрегирует репозитории общего контек
 
 После ошибки явной транзакции scope нельзя использовать для следующего сохранения: rollback не сбрасывает change tracker. Повтор SaveChanges или явной транзакции даёт fail-fast. Подставное DbConnection проверяет вызов API и rollback, но не диапазонные блокировки SQL Server.
 
+ProjectedReadQuery применяет predicate к IQueryRepository<TEntity, AppDbContextBase>.Query(asNoTracking: true) и материализует переданную проекцию через ToListAsync(ct). Он не выбирает бизнес-фильтры, не исполняет SQL вручную и не создаёт контекст; адаптеры используют ту же scoped-сессию DLL.
+
 ## Проверка
 
 Чистые преобразователи и модель проверяются в Infrastructure.UnitTests; SQL, backup и hosted-компоненты — отдельными интеграционными проверками с требуемым разрешением.

@@ -51,6 +51,7 @@ CostVision - веб-приложение для учёта расходов по
 
 - В репозиториях не добавлять специализированные методы для конкретных выборок вроде `GetByIdWith...`, `Get...With...`, `GetAccessible...`, `GetWithout...` и похожих.
 - Для чтения использовать базовые методы репозитория: `GetItemByPredicateAsync`, `GetItemsByPredicateAsync` или `GetItemByIdAsync` с `predicate` и нужным `include`.
+- Для count, скалярных агрегатов и страниц разрешён согласованный общий `GetProjectedItemsAsync<TResult>(predicate, query, ct)`: query-композицию задаёт Application, Infrastructure исполняет её без tracking через `IQueryRepository.Query` поставленной DLL. Специализированные выборки и SQL вручную не добавлять.
 - Фильтры и графы загрузки (`Include`, `ThenInclude`, `AsSplitQuery`) описывать на стороне вызывающего кода, если это не нарушает существующий контракт слоя.
 - Репозитории должны оставаться тонкими обертками над базовыми CRUD/query-абстракциями и не содержать бизнес-сценарии.
 

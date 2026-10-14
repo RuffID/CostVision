@@ -16,6 +16,7 @@ public class ProductAdditionalTests
     {
         // Arrange
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
+        ProjectedReadTestFactory.Configure(productRepository, () => Array.Empty<Product>());
         productRepository.Setup(repository => repository.CountByPredicateAsync(It.IsAny<Expression<Func<Product, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(0);
         productRepository

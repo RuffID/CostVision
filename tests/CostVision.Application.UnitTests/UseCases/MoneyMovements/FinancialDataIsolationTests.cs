@@ -2,6 +2,7 @@ using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.Service.Receipts;
+using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Dtos.Receipts;
 using CostVision.Application.Models.Requests.MoneyMovements;
@@ -105,18 +106,18 @@ public class FinancialDataIsolationTests
         Assert.Equal(data.Receipt.Id, dto.ReceiptId);
         Assert.Equal("Shared", dto.AccountName);
 
-        ServiceResult<List<MoneyMovementReceiptDto>> candidates = await new GetMoneyMovementReceiptCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<MoneyMovementReceiptDto>> candidates = await new GetMoneyMovementReceiptCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { MoneyMovementId = data.Visible.Id, UseAmountFilter = false, ExcludeLinkedReceipts = false },
                 data.User.Id, CancellationToken.None);
         Assert.True(candidates.Success);
-        Assert.NotNull(candidates.Data);
-        Assert.Equal("Shared", Assert.Single(candidates.Data).AccountName);
+        Assert.NotNull(candidates.Data.Items);
+        Assert.Equal("Shared", Assert.Single(candidates.Data.Items).AccountName);
 
-        ServiceResult<List<MoneyMovementDto>> movements = await new GetMoneyMovementListUseCase(data.UnitOfWork.Object)
+        ServiceResult<MoneyMovementListDto> movements = await new GetMoneyMovementListUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(data.User.Id, data.Date, data.Date, null, CancellationToken.None);
         Assert.True(movements.Success);
-        Assert.NotNull(movements.Data);
-        MoneyMovementDto movementDto = Assert.Single(movements.Data);
+        Assert.NotNull(movements.Data.Items);
+        MoneyMovementDto movementDto = Assert.Single(movements.Data.Items);
         Assert.Equal(1, movementDto.LinkedReceiptCount);
         Assert.Equal(data.Receipt.TotalSum, movementDto.LinkedReceiptsTotalSum);
     }
@@ -129,20 +130,20 @@ public class FinancialDataIsolationTests
         Assert.True(authored.TryMoveToAccount(data.Shared, out _));
         data.Movements.Add(authored);
         Assert.True(data.Shared.TryRemoveMember(data.User.Id, out _, out _));
-        ServiceResult<List<MoneyMovementDto>> list = await new GetMoneyMovementListUseCase(data.UnitOfWork.Object)
+        ServiceResult<MoneyMovementListDto> list = await new GetMoneyMovementListUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(data.User.Id, data.Date, data.Date, data.Shared.Id, CancellationToken.None);
         Assert.True(list.Success);
-        Assert.NotNull(list.Data);
-        Assert.Empty(list.Data);
+        Assert.NotNull(list.Data.Items);
+        Assert.Empty(list.Data.Items);
 
-        ServiceResult<List<ReceiptMoneyMovementDto>> forward = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<ReceiptMoneyMovementDto>> forward = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { ReceiptId = data.Receipt.Id, UseAmountFilter = false, ExcludeLinkedMoneyMovements = false },
                 data.User.Id, CancellationToken.None);
         Assert.True(forward.Success);
-        Assert.NotNull(forward.Data);
-        Assert.Empty(forward.Data);
+        Assert.NotNull(forward.Data.Items);
+        Assert.Empty(forward.Data.Items);
 
-        ServiceResult<List<MoneyMovementReceiptDto>> reverse = await new GetMoneyMovementReceiptCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<MoneyMovementReceiptDto>> reverse = await new GetMoneyMovementReceiptCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { MoneyMovementId = authored.Id }, data.User.Id, CancellationToken.None);
         Assert.False(reverse.Success);
         ServiceResult<List<MoneyMovementReceiptDto>> links = await new GetLinkedMoneyMovementReceiptsUseCase(data.UnitOfWork.Object)
@@ -165,7 +166,7 @@ public class FinancialDataIsolationTests
         MoneyMovement authored = TestMoneyMovementFactory.CreateManual(userId: data.User.Id, occurredAt: data.Date);
         Assert.True(authored.TryMoveToAccount(data.Private, out _));
         data.Movements.Add(authored);
-        GetReceiptListPageUseCase page = new(new GetReceiptListUseCase(data.UnitOfWork.Object), data.UnitOfWork.Object);
+        GetReceiptListPageUseCase page = new(data.UnitOfWork.Object);
         ServiceResult<ReceiptListDto> result = await page.ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date }, CancellationToken.None);
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
@@ -181,7 +182,7 @@ public class FinancialDataIsolationTests
     public async Task PrivateAccountFilterAndSearch_CannotDiscoverSharedReceipt()
     {
         Fixture data = new(AccountAccessRole.Viewer);
-        GetReceiptListPageUseCase page = new(new GetReceiptListUseCase(data.UnitOfWork.Object), data.UnitOfWork.Object);
+        GetReceiptListPageUseCase page = new(data.UnitOfWork.Object);
         ServiceResult<ReceiptListDto> filtered = await page.ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date, AccountId = data.Private.Id }, CancellationToken.None);
         Assert.True(filtered.Success);
         Assert.NotNull(filtered.Data);
@@ -202,19 +203,19 @@ public class FinancialDataIsolationTests
     public async Task VisibleCandidatesAndStoreTotals_AgreeAcrossRoles(AccountAccessRole role, RoleType globalRole)
     {
         Fixture data = new(role, globalRole);
-        ServiceResult<List<ReceiptMoneyMovementDto>> forward = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<ReceiptMoneyMovementDto>> forward = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { ReceiptId = data.Receipt.Id, UseAmountFilter = false, ExcludeLinkedMoneyMovements = false },
                 data.User.Id, CancellationToken.None);
         Assert.True(forward.Success);
-        Assert.NotNull(forward.Data);
-        Assert.Equal(data.Visible.Id, Assert.Single(forward.Data).MoneyMovementId);
+        Assert.NotNull(forward.Data.Items);
+        Assert.Equal(data.Visible.Id, Assert.Single(forward.Data.Items).MoneyMovementId);
 
-        ServiceResult<List<MoneyMovementReceiptDto>> reverse = await new GetMoneyMovementReceiptCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<MoneyMovementReceiptDto>> reverse = await new GetMoneyMovementReceiptCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { MoneyMovementId = data.Visible.Id, UseAmountFilter = false, ExcludeLinkedReceipts = false },
                 data.User.Id, CancellationToken.None);
         Assert.True(reverse.Success);
-        Assert.NotNull(reverse.Data);
-        Assert.Equal("Shared", Assert.Single(reverse.Data).AccountName);
+        Assert.NotNull(reverse.Data.Items);
+        Assert.Equal("Shared", Assert.Single(reverse.Data.Items).AccountName);
 
         ServiceResult<StoreReceiptListDto> store = await new GetStoreReceiptListUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { StoreId = data.Store.Id }, data.User.Id, CancellationToken.None);
@@ -225,11 +226,11 @@ public class FinancialDataIsolationTests
         Assert.Equal(1, dto.MoneyMovementCount);
         Assert.Equal(40m, dto.MoneyMovementsTotalSum);
 
-        ServiceResult<List<MoneyMovementDto>> movements = await new GetMoneyMovementListUseCase(data.UnitOfWork.Object)
+        ServiceResult<MoneyMovementListDto> movements = await new GetMoneyMovementListUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(data.User.Id, data.Date, data.Date, null, CancellationToken.None);
         Assert.True(movements.Success);
-        Assert.NotNull(movements.Data);
-        MoneyMovementDto movement = Assert.Single(movements.Data);
+        Assert.NotNull(movements.Data.Items);
+        MoneyMovementDto movement = Assert.Single(movements.Data.Items);
         Assert.Equal(data.Visible.Id, movement.Id);
         Assert.Equal(1, movement.LinkedReceiptCount);
         Assert.Equal(100m, movement.LinkedReceiptsTotalSum);
@@ -255,17 +256,17 @@ public class FinancialDataIsolationTests
         Assert.False(details.Success);
         Assert.Equal(ServiceErrorType.Forbidden, details.Error?.Type);
 
-        ServiceResult<List<ReceiptMoneyMovementDto>> candidates = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<ReceiptMoneyMovementDto>> candidates = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { ReceiptId = data.Receipt.Id }, data.User.Id, CancellationToken.None);
         Assert.False(candidates.Success);
         ServiceResult<List<ReceiptMoneyMovementDto>> links = await new GetLinkedReceiptMoneyMovementsUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(data.Receipt.Id, data.User.Id, CancellationToken.None);
         Assert.False(links.Success);
-        ServiceResult<List<MoneyMovementDto>> movements = await new GetMoneyMovementListUseCase(data.UnitOfWork.Object)
+        ServiceResult<MoneyMovementListDto> movements = await new GetMoneyMovementListUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(data.User.Id, data.Date, data.Date, null, CancellationToken.None);
         Assert.True(movements.Success);
-        Assert.NotNull(movements.Data);
-        Assert.Empty(movements.Data);
+        Assert.NotNull(movements.Data.Items);
+        Assert.Empty(movements.Data.Items);
     }
 
     [Fact]
@@ -278,12 +279,12 @@ public class FinancialDataIsolationTests
         MoneyMovement hidden = data.Movements.Single(movement => movement.Id != data.Visible.Id);
         data.Receipts.Add(unlinked);
         data.Links.Add(TestMoneyMovementFactory.CreateLink(hidden, unlinked, data.User.Id));
-        ServiceResult<List<MoneyMovementReceiptDto>> receipts = await new GetMoneyMovementReceiptCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<MoneyMovementReceiptDto>> receipts = await new GetMoneyMovementReceiptCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { MoneyMovementId = data.Visible.Id, UseAmountFilter = false, ExcludeLinkedReceipts = false },
                 data.User.Id, CancellationToken.None);
         Assert.True(receipts.Success);
-        Assert.NotNull(receipts.Data);
-        Assert.False(receipts.Data.Single(receipt => receipt.ReceiptId == unlinked.Id).IsLinkedToOtherMoneyMovement);
+        Assert.NotNull(receipts.Data.Items);
+        Assert.False(receipts.Data.Items.Single(receipt => receipt.ReceiptId == unlinked.Id).IsLinkedToOtherMoneyMovement);
 
         MoneyMovement visible = TestMoneyMovementFactory.CreateManual(userId: data.Shared.CreatedByUserId, occurredAt: data.Date);
         Assert.True(visible.TryMoveToAccount(data.Shared, out _));
@@ -291,12 +292,12 @@ public class FinancialDataIsolationTests
         Assert.True(privateReceipt.TryAddAccount(data.Private, out _, out _));
         data.Movements.Add(visible);
         data.Links.Add(TestMoneyMovementFactory.CreateLink(visible, privateReceipt, data.User.Id));
-        ServiceResult<List<ReceiptMoneyMovementDto>> movements = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<ReceiptMoneyMovementDto>> movements = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { ReceiptId = data.Receipt.Id, UseAmountFilter = false, ExcludeLinkedMoneyMovements = false },
                 data.User.Id, CancellationToken.None);
         Assert.True(movements.Success);
-        Assert.NotNull(movements.Data);
-        Assert.False(movements.Data.Single(movement => movement.MoneyMovementId == visible.Id).IsLinkedToOtherReceipt);
+        Assert.NotNull(movements.Data.Items);
+        Assert.False(movements.Data.Items.Single(movement => movement.MoneyMovementId == visible.Id).IsLinkedToOtherReceipt);
     }
 
     [Fact]
@@ -309,7 +310,7 @@ public class FinancialDataIsolationTests
         MoneyMovement hidden = data.Movements.Single(movement => movement.Id != data.Visible.Id);
         data.Links.Add(TestMoneyMovementFactory.CreateLink(hidden, hiddenLinksOnly, data.User.Id));
         data.Receipts.Add(hiddenLinksOnly);
-        GetReceiptListPageUseCase page = new(new GetReceiptListUseCase(data.UnitOfWork.Object), data.UnitOfWork.Object);
+        GetReceiptListPageUseCase page = new(data.UnitOfWork.Object);
         ServiceResult<ReceiptListDto> without = await page.ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date, OperationFilter = "withoutOperations" }, CancellationToken.None);
         Assert.True(without.Success);
         Assert.NotNull(without.Data);
@@ -342,7 +343,7 @@ public class FinancialDataIsolationTests
         Assert.True(data.Shared.TryRemoveMember(data.User.Id, out _, out _));
         MoneyMovement owned = TestMoneyMovementFactory.CreateManual(userId: data.User.Id, occurredAt: data.Date);
         data.Movements.Add(owned);
-        GetReceiptListPageUseCase page = new(new GetReceiptListUseCase(data.UnitOfWork.Object), data.UnitOfWork.Object);
+        GetReceiptListPageUseCase page = new(data.UnitOfWork.Object);
         ServiceResult<ReceiptListDto> result = await page.ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date }, CancellationToken.None);
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
@@ -350,11 +351,11 @@ public class FinancialDataIsolationTests
         Assert.Equal(0, dto.AvailableMoneyMovementCount);
         Assert.DoesNotContain("HasAccountLinks", System.Text.Json.JsonSerializer.Serialize(dto), StringComparison.OrdinalIgnoreCase);
 
-        ServiceResult<List<ReceiptMoneyMovementDto>> candidates = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<ReceiptMoneyMovementDto>> candidates = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { ReceiptId = data.Receipt.Id }, data.User.Id, CancellationToken.None);
         Assert.True(candidates.Success);
-        Assert.NotNull(candidates.Data);
-        Assert.Empty(candidates.Data);
+        Assert.NotNull(candidates.Data.Items);
+        Assert.Empty(candidates.Data.Items);
         ServiceResult<StoreReceiptListDto> store = await new GetStoreReceiptListUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { StoreId = data.Store.Id }, data.User.Id, CancellationToken.None);
         Assert.True(store.Success);
@@ -371,16 +372,16 @@ public class FinancialDataIsolationTests
         MoneyMovement owned = TestMoneyMovementFactory.CreateManual(userId: data.User.Id, occurredAt: data.Date);
         data.Receipts.Add(own);
         data.Movements.Add(owned);
-        GetReceiptListPageUseCase page = new(new GetReceiptListUseCase(data.UnitOfWork.Object), data.UnitOfWork.Object);
+        GetReceiptListPageUseCase page = new(data.UnitOfWork.Object);
         ServiceResult<ReceiptListDto> result = await page.ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date }, CancellationToken.None);
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
         Assert.Equal(1, result.Data.Items.Single(receipt => receipt.Id == own.Id).AvailableMoneyMovementCount);
-        ServiceResult<List<ReceiptMoneyMovementDto>> candidates = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
+        ServiceResult<PagedListDto<ReceiptMoneyMovementDto>> candidates = await new GetReceiptMoneyMovementCandidatesUseCase(data.UnitOfWork.Object)
             .ExecuteAsync(new() { ReceiptId = own.Id }, data.User.Id, CancellationToken.None);
         Assert.True(candidates.Success);
-        Assert.NotNull(candidates.Data);
-        Assert.Equal(owned.Id, Assert.Single(candidates.Data).MoneyMovementId);
+        Assert.NotNull(candidates.Data.Items);
+        Assert.Equal(owned.Id, Assert.Single(candidates.Data.Items).MoneyMovementId);
     }
 
     private class Fixture
@@ -424,6 +425,7 @@ public class FinancialDataIsolationTests
             Links.Add(TestMoneyMovementFactory.CreateLink(hidden, Receipt, User.Id));
 
             Mock<IReceiptRepository> receipts = new(MockBehavior.Strict);
+            ProjectedReadTestFactory.Configure(receipts, () => Receipts);
             receipts.Setup(repository => repository.GetItemsByPredicateAsync(It.IsAny<Expression<Func<Receipt, bool>>>(),
                 It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(), It.IsAny<CancellationToken>()))
                 .Returns((Expression<Func<Receipt, bool>> predicate, int skip, int? take, bool tracking,
@@ -433,6 +435,7 @@ public class FinancialDataIsolationTests
                 .Returns((Expression<Func<Receipt, bool>> predicate, bool tracking,
                     Func<IQueryable<Receipt>, IQueryable<Receipt>> include, CancellationToken ct) => Task.FromResult(Receipts.FirstOrDefault(predicate.Compile())));
             Mock<IMoneyMovementRepository> movements = new(MockBehavior.Strict);
+            ProjectedReadTestFactory.Configure(movements, () => Movements);
             movements.Setup(repository => repository.GetItemsByPredicateAsync(It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
                 It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(), It.IsAny<CancellationToken>()))
                 .Returns((Expression<Func<MoneyMovement, bool>> predicate, int skip, int? take, bool tracking,

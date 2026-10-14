@@ -1,10 +1,11 @@
+import type { PagedList } from "../../shared/paging.js";
 import { buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
-import type { BankStatementImportBankDto, BankStatementImportPreviewDto, BankStatementImportResultDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, GetMoneyMovementReceiptCandidatesRequest, LinkMoneyMovementReceiptRequest, MoneyMovementDto, MoneyMovementReceiptDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UnlinkMoneyMovementReceiptRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel, ReceiptDto } from "./types.js";
+import type { BankStatementImportBankDto, BankStatementImportPreviewDto, BankStatementImportResultDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, GetMoneyMovementReceiptCandidatesRequest, LinkMoneyMovementReceiptRequest, MoneyMovementDto, MoneyMovementList, MoneyMovementReceiptDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UnlinkMoneyMovementReceiptRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel, ReceiptDto } from "./types.js";
 
 type AccountListResponse = ServiceResultWithData<UserAccountViewModel[]>;
 type ImportBankListResponse = ServiceResultWithData<BankStatementImportBankDto[]>;
 type ImportPreviewResponse = ServiceResultWithData<BankStatementImportPreviewDto>;
-type MoneyMovementListResponse = ServiceResultWithData<MoneyMovementDto[]>;
+type MoneyMovementListResponse = ServiceResultWithData<MoneyMovementList>;
 type MoneyMovementResponse = ServiceResultWithData<MoneyMovementDto>;
 type MoneyMovementReceiptListResponse = ServiceResultWithData<MoneyMovementReceiptDto[]>;
 type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
@@ -21,17 +22,21 @@ export async function loadImportBanks(forgeryToken: string | null): Promise<Bank
     return unwrapServiceResult<BankStatementImportBankDto[]>(response);
 }
 
-export async function loadMoneyMovements(forgeryToken: string | null, dateFrom: string, dateTo: string, accountId: string): Promise<MoneyMovementDto[]> {
+export async function loadMoneyMovements(forgeryToken: string | null, dateFrom: string, dateTo: string, accountId: string, page = 1, search = "", receiptFilter = ""): Promise<MoneyMovementList> {
     const params = new URLSearchParams();
     params.set("dateFrom", dateFrom);
     params.set("dateTo", dateTo);
+    params.set("page", String(page));
+    params.set("pageSize", "20");
+    params.set("search", search);
+    params.set("receiptFilter", receiptFilter);
 
     if (accountId) {
         params.set("accountId", accountId);
     }
 
     const response = await sendJsonRequest<MoneyMovementListResponse>(`?handler=List&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
-    return unwrapServiceResult<MoneyMovementDto[]>(response);
+    return unwrapServiceResult<MoneyMovementList>(response);
 }
 
 export async function createMoneyMovement(forgeryToken: string | null, request: CreateMoneyMovementRequest): Promise<MoneyMovementDto> {
@@ -65,9 +70,11 @@ export async function loadLinkedReceipts(forgeryToken: string | null, moneyMovem
     return unwrapServiceResult<MoneyMovementReceiptDto[]>(response);
 }
 
-export async function loadReceiptCandidates(forgeryToken: string | null, request: GetMoneyMovementReceiptCandidatesRequest): Promise<MoneyMovementReceiptDto[]> {
+export async function loadReceiptCandidates(forgeryToken: string | null, request: GetMoneyMovementReceiptCandidatesRequest): Promise<PagedList<MoneyMovementReceiptDto>> {
     const params = new URLSearchParams();
     params.set("moneyMovementId", request.moneyMovementId);
+    params.set("page", String(request.page ?? 1));
+    params.set("pageSize", String(request.pageSize ?? 20));
     params.set("useTimeWindow", String(request.useTimeWindow));
     params.set("useAmountFilter", String(request.useAmountFilter));
     params.set("excludeLinkedReceipts", String(request.excludeLinkedReceipts));
@@ -88,8 +95,8 @@ export async function loadReceiptCandidates(forgeryToken: string | null, request
         params.set("timeWindowHours", String(request.timeWindowHours));
     }
 
-    const response = await sendJsonRequest<MoneyMovementReceiptListResponse>(`?handler=ReceiptCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
-    return unwrapServiceResult<MoneyMovementReceiptDto[]>(response);
+    const response = await sendJsonRequest<ServiceResultWithData<PagedList<MoneyMovementReceiptDto>>>(`?handler=ReceiptCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
+    return unwrapServiceResult<PagedList<MoneyMovementReceiptDto>>(response);
 }
 
 export async function openReceipt(forgeryToken: string | null, receiptId: string): Promise<ReceiptDto> {

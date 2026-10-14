@@ -28,6 +28,7 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-05-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-06-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-07-prompt.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-07a-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/06-receipt-refresh.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/07-bounded-read-queries.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/07a-scenario-unit-of-work.md" />
@@ -65,6 +66,7 @@
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Frontend/moneyMovementImport.test.mts" />
+    <File Path="tests/Frontend/boundedReads.test.mts" />
     <Project Path="tests/CostVision.Application.UnitTests/CostVision.Application.UnitTests.csproj" />
     <Project Path="tests/CostVision.Infrastructure.IntegrationTests/CostVision.Infrastructure.IntegrationTests.csproj" />
     <Project Path="tests/CostVision.Infrastructure.UnitTests/CostVision.Infrastructure.UnitTests.csproj" />

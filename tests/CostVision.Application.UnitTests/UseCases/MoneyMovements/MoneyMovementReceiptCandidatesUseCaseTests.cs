@@ -40,6 +40,7 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([later, nearest]);
+        ProjectedReadTestFactory.Configure(receiptRepository, () => new[] { later, nearest });
         GetMoneyMovementReceiptCandidatesUseCase useCase = new(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository).Object);
@@ -53,7 +54,7 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
         }, userId, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Equal([nearest.Id, later.Id], result.Data!.Select(item => item.ReceiptId).ToList());
+        Assert.Equal([nearest.Id, later.Id], result.Data!.Items.Select(item => item.ReceiptId).ToList());
     }
 
     [Fact]
@@ -112,6 +113,7 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
                 It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([later, nearest]);
+        ProjectedReadTestFactory.Configure(moneyMovementRepository, () => new[] { later, nearest });
         GetReceiptMoneyMovementCandidatesUseCase useCase = new(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository).Object);
@@ -125,7 +127,7 @@ public class MoneyMovementReceiptCandidatesUseCaseTests : MoneyMovementUseCaseTe
         }, userId, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Equal([nearest.Id, later.Id], result.Data!.Select(item => item.MoneyMovementId).ToList());
+        Assert.Equal([nearest.Id, later.Id], result.Data!.Items.Select(item => item.MoneyMovementId).ToList());
     }
 
     [Fact]

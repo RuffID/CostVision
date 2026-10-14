@@ -45,6 +45,8 @@ public class GetMoneyMovementListUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([matchingReceipt]);
+        ProjectedReadTestFactory.Configure(receiptRepository, () => new[] { matchingReceipt });
+        ProjectedReadTestFactory.Configure(moneyMovementRepository, () => new[] { second, first });
         GetMoneyMovementListUseCase useCase = new(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository).Object);
@@ -52,7 +54,7 @@ public class GetMoneyMovementListUseCaseTests : MoneyMovementUseCaseTestBase
         var result = await useCase.ExecuteAsync(userId, date, date, accountId, CancellationToken.None);
 
         Assert.True(result.Success);
-        List<MoneyMovementDto> data = result.Data!;
+        List<MoneyMovementDto> data = result.Data!.Items;
         Assert.Equal([first.Id, second.Id], data.Select(item => item.Id).ToList());
         Assert.Equal(1, data[0].AvailableReceiptCount);
         Assert.Equal(0, data[1].AvailableReceiptCount);
@@ -95,6 +97,7 @@ public class GetMoneyMovementListUseCaseTests : MoneyMovementUseCaseTestBase
                 It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
+        ProjectedReadTestFactory.Configure(moneyMovementRepository, () => Array.Empty<MoneyMovement>());
         GetMoneyMovementListUseCase useCase = new(CreateUnitOfWork(
             moneyMovementRepository: moneyMovementRepository,
             receiptRepository: receiptRepository).Object);
@@ -102,6 +105,6 @@ public class GetMoneyMovementListUseCaseTests : MoneyMovementUseCaseTestBase
         var result = await useCase.ExecuteAsync(Guid.NewGuid(), new DateTime(2026, 5, 1), new DateTime(2026, 5, 31), null, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Empty(result.Data!);
+        Assert.Empty(result.Data!.Items);
     }
 }

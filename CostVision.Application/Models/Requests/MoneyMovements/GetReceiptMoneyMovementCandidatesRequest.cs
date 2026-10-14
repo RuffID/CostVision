@@ -2,6 +2,9 @@ namespace CostVision.Application.Models.Requests.MoneyMovements
 {
     public class GetReceiptMoneyMovementCandidatesRequest
     {
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+
         public Guid ReceiptId { get; set; }
 
         public bool UseTimeWindow { get; set; }

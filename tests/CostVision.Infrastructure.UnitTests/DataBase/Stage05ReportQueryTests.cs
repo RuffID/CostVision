@@ -77,7 +77,7 @@ public class Stage05ReportQueryTests
         {
             ReceiptId = data.Receipt.Id, DateFrom = data.Date.AddDays(-1), DateTo = data.Date.AddDays(1), AmountTolerance = 1m
         }, data.User.Id, TestContext.Current.CancellationToken);
-        var list = await new GetReceiptListPageUseCase(new GetReceiptListUseCase(data.Work.Object), data.Work.Object)
+        var list = await new GetReceiptListPageUseCase(data.Work.Object)
             .ExecuteAsync(data.User, new() { DateFrom = data.Date, DateTo = data.Date }, TestContext.Current.CancellationToken);
 
         // Assert
@@ -118,6 +118,7 @@ public class Stage05ReportQueryTests
             Receipt = receipt!;
             Receipt.Id = Guid.NewGuid();
             Mock<IReceiptRepository> receipts = new(MockBehavior.Strict);
+            ProjectedQueryCapture.Configure(receipts, context, () => new[] { Receipt }, ReceiptListSql);
             receipts.Setup(repository => repository.GetItemByPredicateAsync(It.IsAny<Expression<Func<Receipt, bool>>>(),
                 It.IsAny<bool>(), It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(), It.IsAny<CancellationToken>()))
                 .Returns((Expression<Func<Receipt, bool>> predicate, bool tracking,
@@ -135,6 +136,7 @@ public class Stage05ReportQueryTests
                     return Task.FromResult(new[] { Receipt }.Where(predicate.Compile()).ToList());
                 });
             Mock<IMoneyMovementRepository> movements = new(MockBehavior.Strict);
+            ProjectedQueryCapture.Configure(movements, context, () => Array.Empty<MoneyMovement>(), MovementSql);
             movements.Setup(repository => repository.GetItemsByPredicateAsync(It.IsAny<Expression<Func<MoneyMovement, bool>>>(),
                 It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<Func<IQueryable<MoneyMovement>, IQueryable<MoneyMovement>>>(), It.IsAny<CancellationToken>()))
                 .Returns((Expression<Func<MoneyMovement, bool>> predicate, int skip, int? take, bool tracking,

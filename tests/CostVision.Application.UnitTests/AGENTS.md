@@ -14,6 +14,8 @@ Stage03RegressionTests исполняет реальные предикаты н
 
 Stage04RegressionTests проверяет импорт, ID/ключ/источник/счёт, счётчики/ошибки, ru-RU/en-US, роли, оба переноса, общий точный matcher и ручные множественные связи. Pending Create не виден запросам до SaveChanges. FK owner membership согласуется с назначенным ID тестовой фабрики как имитация EF fixup; это не изменение production-контракта. Serializable-заглушка не сохраняет автоматически и не доказывает конкуренцию SQL.
 
+Stage07RegressionTests и ProjectedReadTestFactory исполняют actual predicate/projection над доменными графами: root-фильтры, полные totals/count, устойчивые страницы, группы магазинов/документов, page-only счётчики, точное расстояние дат и границы страниц. Наблюдение root reads обязательно непустое; оно не выдаётся за число SQL-строк. Прежние регрессии 01–06 используют тот же финансовый контракт.
+
 ## Проверка
 
 Stage06RegressionTests проверяет точную identity, подготовку до мутации, timeout/отмену, отказ применения/хранения, RowVersion, увеличение RefreshRevision при совпадающих реквизитах/времени, доступ до записи, ручное восстановление и реальные агрегаты успешного workflow. Stage06BatchTests выполняет actual workflow с настоящими DI scopes и подставными predicate-репозиториями: пакеты 32/3, продолжение после ошибки, отсутствие переноса pending-каталога в следующий scope, retry-state в новом scope, семь неизвестных отказов, ошибку записи retry-state, конфликт каталога и async disposal. Снимки scalar retry-state имитируют материализацию только в тестовой модели; их tracker/commit-модель и часы не доказывают EF fixup, SQL rollback/конкурентность или реальный hosted lifecycle.

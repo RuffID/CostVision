@@ -1,3 +1,4 @@
+import type { PagedList } from "../../../shared/paging.js";
 import { buildJsonHeaders, ServiceResult, ServiceResultWithData, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess } from "../../../shared/http.js";
 import { AvailableAccountDto, GetReceiptMoneyMovementCandidatesRequest, LinkReceiptMoneyMovementRequest, ReceiptDto, ReceiptList, ReceiptMoneyMovementDto } from "./types.js";
 
@@ -91,9 +92,11 @@ export async function loadLinkedMoneyMovementsApi(receiptId: string, forgeryToke
     return unwrapServiceResult(response);
 }
 
-export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMovementCandidatesRequest, forgeryToken: string | null): Promise<ReceiptMoneyMovementDto[]> {
+export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMovementCandidatesRequest, forgeryToken: string | null): Promise<PagedList<ReceiptMoneyMovementDto>> {
     const params = new URLSearchParams();
     params.set("receiptId", request.receiptId);
+    params.set("page", String(request.page ?? 1));
+    params.set("pageSize", String(request.pageSize ?? 20));
     params.set("useTimeWindow", String(request.useTimeWindow));
     params.set("useAmountFilter", String(request.useAmountFilter));
     params.set("excludeLinkedMoneyMovements", String(request.excludeLinkedMoneyMovements));
@@ -114,7 +117,7 @@ export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMov
         params.set("timeWindowHours", String(request.timeWindowHours));
     }
 
-    const response = await sendJsonRequest<ReceiptMoneyMovementListResponse>(`?handler=MoneyMovementCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null);
+    const response = await sendJsonRequest<ServiceResultWithData<PagedList<ReceiptMoneyMovementDto>>>(`?handler=MoneyMovementCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null);
     return unwrapServiceResult(response);
 }
 

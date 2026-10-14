@@ -1,3 +1,10 @@
+import type { PagedList } from "../../shared/paging.js";
+
+export interface MoneyMovementList extends PagedList<MoneyMovementDto> {
+    incomeSum: number;
+    expenseSum: number;
+}
+
 export const MONEY_MOVEMENT_TYPE_EXPENSE = 0;
 export const MONEY_MOVEMENT_TYPE_INCOME = 1;
 
@@ -69,6 +76,8 @@ export interface MoneyMovementReceiptDto {
 }
 
 export interface GetMoneyMovementReceiptCandidatesRequest {
+    page?: number;
+    pageSize?: number;
     moneyMovementId: string;
     useTimeWindow: boolean;
     timeWindowHours: number | null;

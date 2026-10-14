@@ -10,6 +10,8 @@ IUnitOfWork объединяет репозитории, сохранение и
 
 Перегрузка ExecuteInTransaction с IsolationLevel выполняет только action и commit: SaveChangesAsync явно вызывает сценарий. Прежняя перегрузка сохраняет автоматический SaveChanges после action. Для проверки и записи чеков применяется Serializable. ReceiptWriteConflictException — ожидаемый известный конфликт хранения; Application преобразует его в ServiceErrorType.Conflict, не перехватывая произвольные ошибки как дубли.
 
+Общий IProjectedReadRepository<TEntity> добавлен по согласованию этапа 07. GetProjectedItemsAsync<TResult>(predicate, query, ct) сохраняет композицию на стороне вызывающего сценария; Infrastructure исполняет её без tracking через Query API поставленной DLL. Это общий read-контракт без специализированных выборок. Глобальный UoW пока сохранён; его разделение относится к 07A.
+
 ## Проверка
 
 Подходящие изолированные проверки находятся в tests/CostVision.Application.UnitTests. Собирать конкретный затронутый .csproj по корневым правилам; mock-репозитории не подтверждают SQL.

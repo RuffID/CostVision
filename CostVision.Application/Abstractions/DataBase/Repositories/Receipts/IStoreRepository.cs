@@ -7,7 +7,8 @@ namespace CostVision.Application.Abstractions.DataBase.Repositories.Receipts
     public interface IStoreRepository :
         ICreateItemRepository<Store, AppDbContextBase>,
         IGetItemByIdRepository<Store, Guid, AppDbContextBase>,
-        IGetItemByPredicateRepository<Store, AppDbContextBase>
+        IGetItemByPredicateRepository<Store, AppDbContextBase>,
+        IProjectedReadRepository<Store>
     {
         Task<int> CountByPredicateAsync(Expression<Func<Store, bool>>? predicate = null, CancellationToken ct = default);
     }

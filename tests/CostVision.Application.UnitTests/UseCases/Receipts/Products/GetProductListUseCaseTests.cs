@@ -20,6 +20,7 @@ public class GetProductListUseCaseTests
         List<Product> products = [milk, bread];
 
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
+        ProjectedReadTestFactory.Configure(productRepository, () => products);
         productRepository
             .Setup(repository => repository.CountByPredicateAsync(It.IsAny<Expression<Func<Product, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(products.Count);
@@ -64,6 +65,7 @@ public class GetProductListUseCaseTests
         List<Product> products = [CreateProduct("Bread", null, currentUserId, accessibleReceiptCount: 1)];
 
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
+        ProjectedReadTestFactory.Configure(productRepository, () => products);
         productRepository
             .Setup(repository => repository.CountByPredicateAsync(It.IsAny<Expression<Func<Product, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(products.Count);

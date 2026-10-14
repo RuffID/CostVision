@@ -59,18 +59,11 @@ export function renderMoneyMovementList(container: HTMLElement, movements: Money
     }
 }
 
-export function renderSummary(countElement: HTMLElement, incomeElement: HTMLElement, expenseElement: HTMLElement, movements: MoneyMovementDto[]): void {
-    const incomeSum = movements
-        .filter(movement => movement.type === MONEY_MOVEMENT_TYPE_INCOME)
-        .reduce((sum, movement) => sum + Number(movement.amount || 0), 0);
-
-    const expenseSum = movements
-        .filter(movement => movement.type === MONEY_MOVEMENT_TYPE_EXPENSE)
-        .reduce((sum, movement) => sum + Number(movement.amount || 0), 0);
-
-    countElement.textContent = `Операций: ${movements.length}`;
-    incomeElement.textContent = `Приход: ${formatMoneyRub(incomeSum)}`;
-    expenseElement.textContent = `Расход: ${formatMoneyRub(expenseSum)}`;
+export function renderSummary(countElement: HTMLElement, incomeElement: HTMLElement, expenseElement: HTMLElement,
+    totals: { totalCount: number; incomeSum: number; expenseSum: number } | null): void {
+    countElement.textContent = totals ? `Операций: ${totals.totalCount}` : "Операций: —";
+    incomeElement.textContent = totals ? `Приход: ${formatMoneyRub(totals.incomeSum)}` : "Приход: —";
+    expenseElement.textContent = totals ? `Расход: ${formatMoneyRub(totals.expenseSum)}` : "Расход: —";
 }
 
 export function renderImportPreview(container: HTMLElement, rows: BankStatementImportPreviewRowDto[]): void {

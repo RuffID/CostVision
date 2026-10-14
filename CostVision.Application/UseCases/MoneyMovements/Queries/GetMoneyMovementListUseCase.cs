@@ -1,125 +1,88 @@
+using System.Linq.Expressions;
 using CostVision.Application.Abstractions.DataBase.Repositories;
+using CostVision.Application.Extensions;
+using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Dtos.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
-using CostVision.Application.UseCases.MoneyMovements.Helpers;
+using CostVision.Domain.Models.Enums.MoneyMovements;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
-using Microsoft.EntityFrameworkCore;
-using CostVision.Application.Extensions;
-using System.Linq.Expressions;
 
-namespace CostVision.Application.UseCases.MoneyMovements
+namespace CostVision.Application.UseCases.MoneyMovements;
+
+public class GetMoneyMovementListUseCase(IUnitOfWork unitOfWork) : IGetMoneyMovementListUseCase
 {
-    public class GetMoneyMovementListUseCase(IUnitOfWork unitOfWork) : IGetMoneyMovementListUseCase
+    public async Task<ServiceResult<MoneyMovementListDto>> ExecuteAsync(Guid currentUserId, DateTime dateFrom,
+        DateTime dateTo, Guid? accountId, CancellationToken ct, int page = 1, int pageSize = 20,
+        string? search = null, string? receiptFilter = null)
     {
-        public async Task<ServiceResult<List<MoneyMovementDto>>> ExecuteAsync(Guid currentUserId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct)
+        if (dateTo < dateFrom)
         {
-            if (dateTo < dateFrom)
-            {
-                return ServiceResult<List<MoneyMovementDto>>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
-            }
-
-            DateTime periodEnd = dateTo.Date.AddDays(1);
-
-            Expression<Func<MoneyMovement, bool>> movementPredicate = movement => movement.OccurredAt >= dateFrom.Date &&
-                            movement.OccurredAt < periodEnd &&
-                            (!accountId.HasValue || movement.AccountId == accountId.Value);
-
-            List<MoneyMovement> movements = await unitOfWork.MoneyMovement.GetItemsByPredicateAsync(
-                movementPredicate.WithAccountReadAccess(movement => movement.Account, currentUserId),
-                asNoTracking: true,
-                include: query => query
-                    .Include(movement => movement.Account)
-                        .ThenInclude(account => account!.Members)
-                    .Include(movement => movement.PerformedByUser)
-                    .Include(movement => movement.ReceiptLinks)
-                        .ThenInclude(link => link.Receipt)
-                            .ThenInclude(receipt => receipt!.Store)
-                    .Include(movement => movement.ReceiptLinks)
-                        .ThenInclude(link => link.Receipt)
-                            .ThenInclude(receipt => receipt!.Accounts)
-                                .ThenInclude(link => link.Account)
-                                    .ThenInclude(account => account!.Members)
-                    .AsSplitQuery(),
-                ct: ct);
-
-            Expression<Func<Receipt, bool>> receiptPredicate = receipt => receipt.DateTime >= dateFrom.Date &&
-                           receipt.DateTime < periodEnd &&
-                           !receipt.MoneyMovementLinks.Any();
-
-            List<Receipt> availableReceipts = await unitOfWork.Receipt.GetItemsByPredicateAsync(
-                receiptPredicate.WithReceiptReadAccess(receipt => receipt, currentUserId),
-                asNoTracking: true,
-                include: query => query
-                    .Include(receipt => receipt.Store)
-                    .Include(receipt => receipt.Accounts)
-                        .ThenInclude(link => link.Account)
-                            .ThenInclude(account => account!.Members)
-                    .Include(receipt => receipt.MoneyMovementLinks)
-                    .AsSplitQuery(),
-                ct: ct);
-
-            Dictionary<ReceiptAccountMatchKey, int> receiptsByAccount = BuildReceiptsByAccount(availableReceipts);
-            Dictionary<ReceiptWithoutAccountMatchKey, int> receiptsWithoutAccount = BuildReceiptsWithoutAccount(availableReceipts);
-            List<MoneyMovementDto> result = movements
-                .OrderByDescending(movement => movement.OccurredAt)
-                .Select(movement => movement.MapDto(currentUserId, GetAvailableReceiptCount(movement, receiptsByAccount, receiptsWithoutAccount)))
-                .ToList();
-
-            return ServiceResult<List<MoneyMovementDto>>.Ok(result);
+            return ServiceResult<MoneyMovementListDto>.Fail(ServiceErrorType.Validation,
+                "Дата окончания периода не может быть меньше даты начала.");
         }
 
-        private static Dictionary<ReceiptAccountMatchKey, int> BuildReceiptsByAccount(List<Receipt> receipts)
-        {
-            Dictionary<ReceiptAccountMatchKey, int> receiptsByAccount = new();
-
-            foreach (Receipt receipt in receipts)
+        DateTime start = dateFrom.Date;
+        DateTime end = dateTo.Date.AddDays(1);
+        string text = search?.Trim().ToLowerInvariant() ?? "";
+        Expression<Func<Receipt, bool>> visibleReceipt = ((Expression<Func<Receipt, bool>>)(receipt => true)).WithReceiptReadAccess(receipt => receipt, currentUserId);
+        Expression<Func<MoneyMovement, bool>> predicate = movement =>
+            movement.OccurredAt >= start && movement.OccurredAt < end &&
+            (!accountId.HasValue || movement.AccountId == accountId.Value) &&
+            (text == "" || (movement.Comment != null && movement.Comment.ToLower().Contains(text)) ||
+                (movement.ImportComment != null && movement.ImportComment.ToLower().Contains(text))) &&
+            (receiptFilter != "withReceipts" || movement.ReceiptLinks.Select(link => link.Receipt!).AsQueryable().Any(visibleReceipt)) &&
+            (receiptFilter != "withoutReceipts" || !movement.ReceiptLinks.Select(link => link.Receipt!).AsQueryable().Any(visibleReceipt)) &&
+            (receiptFilter != "amountMismatch" ||
+                (movement.ReceiptLinks.Select(link => link.Receipt!).AsQueryable().Any(visibleReceipt) &&
+                 Math.Abs(movement.Amount - movement.ReceiptLinks.Select(link => link.Receipt!).AsQueryable()
+                     .Where(visibleReceipt).Sum(receipt => receipt.TotalSum)) >= 0.01m));
+        predicate = predicate.WithAccountReadAccess(movement => movement.Account, currentUserId);
+        List<ReadQueryTotals> summaries = await unitOfWork.MoneyMovement.GetProjectedItemsAsync(predicate,
+            query => query.GroupBy(movement => 1).Select(group => new ReadQueryTotals
             {
-                foreach (ReceiptAccount accountLink in receipt.Accounts)
+                Count = group.Count(),
+                Income = group.Sum(movement => movement.Type == MoneyMovementType.Income ? movement.Amount : 0m),
+                Expense = group.Sum(movement => movement.Type == MoneyMovementType.Expense ? movement.Amount : 0m)
+            }), ct);
+        ReadQueryTotals totals = summaries.SingleOrDefault() ?? new ReadQueryTotals();
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        int pages = Math.Max(1, (int)Math.Ceiling(totals.Count / (double)pageSize));
+        page = Math.Clamp(page, 1, pages);
+        List<MoneyMovementDto> items = await unitOfWork.MoneyMovement.GetProjectedItemsAsync(predicate,
+            query => query.OrderByDescending(movement => movement.OccurredAt).ThenBy(movement => movement.Id)
+                .Skip((page - 1) * pageSize).Take(pageSize).Select(movement => new MoneyMovementDto
                 {
-                    ReceiptAccountMatchKey key = new(receipt.DateTime.Date, receipt.TotalSum, accountLink.AccountId);
-                    receiptsByAccount.TryGetValue(key, out int count);
-                    receiptsByAccount[key] = count + 1;
-                }
-            }
-
-            return receiptsByAccount;
-        }
-
-        private static Dictionary<ReceiptWithoutAccountMatchKey, int> BuildReceiptsWithoutAccount(List<Receipt> receipts)
+                    Id = movement.Id, AccountId = movement.AccountId == Guid.Empty ? null : movement.AccountId,
+                    AccountName = movement.Account != null ? movement.Account.Name : "",
+                    AccountColorHex = movement.Account != null ? movement.Account.ColorHex : "",
+                    Amount = movement.Amount, Type = movement.Type, OccurredAt = movement.OccurredAt,
+                    Comment = movement.Comment, ImportComment = movement.ImportComment,
+                    PerformedByUserId = movement.PerformedByUserId,
+                    PerformedByUserName = movement.PerformedByUser != null ? movement.PerformedByUser.Name : "",
+                    Source = movement.Source,
+                    LinkedReceiptCount = movement.ReceiptLinks.Select(link => link.Receipt!).AsQueryable().Count(visibleReceipt),
+                    LinkedReceiptsTotalSum = movement.ReceiptLinks.Select(link => link.Receipt!).AsQueryable()
+                        .Where(visibleReceipt).Sum(receipt => receipt.TotalSum)
+                }), ct);
+        foreach (MoneyMovementDto movement in items)
         {
-            Dictionary<ReceiptWithoutAccountMatchKey, int> receiptsWithoutAccount = new();
-
-            foreach (Receipt receipt in receipts)
-            {
-                if (receipt.Accounts.Count != 0)
-                    continue;
-
-                ReceiptWithoutAccountMatchKey key = new(receipt.DateTime.Date, receipt.TotalSum);
-                receiptsWithoutAccount.TryGetValue(key, out int count);
-                receiptsWithoutAccount[key] = count + 1;
-            }
-
-            return receiptsWithoutAccount;
+            DateTime day = movement.OccurredAt.Date;
+            DateTime nextDay = day.AddDays(1);
+            Expression<Func<Receipt, bool>> candidates = receipt => receipt.DateTime >= day && receipt.DateTime < nextDay &&
+                receipt.TotalSum == movement.Amount && !receipt.MoneyMovementLinks.Any() &&
+                (movement.AccountId == Guid.Empty ? !receipt.Accounts.Any() : receipt.Accounts.Any(link => link.AccountId == movement.AccountId));
+            candidates = candidates.WithReceiptReadAccess(receipt => receipt, currentUserId);
+            List<int> counts = await unitOfWork.Receipt.GetProjectedItemsAsync(candidates,
+                query => query.GroupBy(receipt => 1).Select(group => group.Count()), ct);
+            movement.AvailableReceiptCount = counts.SingleOrDefault();
         }
 
-        private static int GetAvailableReceiptCount(
-            MoneyMovement movement,
-            Dictionary<ReceiptAccountMatchKey, int> receiptsByAccount,
-            Dictionary<ReceiptWithoutAccountMatchKey, int> receiptsWithoutAccount)
+        return ServiceResult<MoneyMovementListDto>.Ok(new MoneyMovementListDto
         {
-            if (movement.AccountId == Guid.Empty)
-            {
-                ReceiptWithoutAccountMatchKey withoutAccountKey = new(movement.OccurredAt.Date, movement.Amount);
-                return receiptsWithoutAccount.GetValueOrDefault(withoutAccountKey);
-            }
-
-            ReceiptAccountMatchKey accountKey = new(movement.OccurredAt.Date, movement.Amount, movement.AccountId);
-            return receiptsByAccount.GetValueOrDefault(accountKey);
-        }
-
-        private readonly record struct ReceiptAccountMatchKey(DateTime Date, decimal Amount, Guid AccountId);
-
-        private readonly record struct ReceiptWithoutAccountMatchKey(DateTime Date, decimal Amount);
+            Items = items, Page = page, PageSize = pageSize, TotalCount = totals.Count, TotalPages = pages,
+            HasPreviousPage = page > 1, HasNextPage = page < pages,
+            IncomeSum = totals.Income, ExpenseSum = totals.Expense
+        });
     }
 }

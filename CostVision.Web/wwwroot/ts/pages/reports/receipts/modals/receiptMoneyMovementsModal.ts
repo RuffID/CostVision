@@ -1,3 +1,4 @@
+import { createPageNavigation } from "../../../../shared/paging.js";
 import { createBootstrapModal } from "../../../../shared/bootstrap.js";
 import { clearElement, requireElementById, requireInputById } from "../../../../shared/dom.js";
 import { formatDateForQuery } from "../dateRange.js";
@@ -37,6 +38,16 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
     const elements = getReceiptMoneyMovementsModalElements();
     const bootstrapModal = createBootstrapModal(elements.modalElement);
     let selectedReceiptId: string | null = null;
+    let page = 1;
+    let filterKey = "";
+    let requestNumber = 0;
+    let modalRevision = 0;
+    const navigation = createPageNavigation(elements.candidates, async nextPage => {
+        page = nextPage;
+        if (selectedReceiptId) {
+            await reloadCandidates(selectedReceiptId);
+        }
+    }, error => showAlert(elements, getErrorMessage(error)));
 
     initReceiptMoneyMovementHelpTooltips();
 
@@ -58,6 +69,9 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
     elements.candidates.addEventListener('click', onCandidatesClick);
     elements.modalElement.addEventListener('hidden.bs.modal', function () {
         selectedReceiptId = null;
+        modalRevision++;
+        requestNumber++;
+        navigation.clear();
         hideAlert(elements);
     });
 
@@ -68,6 +82,9 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
             return;
         }
 
+        page = 1;
+        modalRevision++;
+        navigation.clear();
         selectedReceiptId = receiptId;
         elements.info.textContent = buildInfoText(receipt, options.formatCurrency);
         initFilters(elements, receipt);
@@ -89,12 +106,30 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
     }
 
     async function reloadLinkedMovements(receiptId: string): Promise<void> {
+        const revision = modalRevision;
         const movements = await loadLinkedMoneyMovementsApi(receiptId, options.getForgeryToken());
+        if (selectedReceiptId !== receiptId || revision !== modalRevision) {
+            return;
+        }
         renderMovementList(elements.linkedMovements, movements, 'unlink-money-movement', 'Отвязать', 'Привязанных операций нет.', options.formatCurrency);
     }
 
     async function reloadCandidates(receiptId: string): Promise<void> {
-        const movements = await loadMoneyMovementCandidatesApi(readCandidatesRequest(elements, receiptId), options.getForgeryToken());
+        const request = readCandidatesRequest(elements, receiptId);
+        const key = JSON.stringify(request);
+        if (key !== filterKey) {
+            page = 1;
+            filterKey = key;
+        }
+        const sequence = ++requestNumber;
+        navigation.clear();
+        const response = await loadMoneyMovementCandidatesApi({ ...request, page: page, pageSize: 20 }, options.getForgeryToken());
+        if (sequence !== requestNumber || selectedReceiptId !== receiptId) {
+            return;
+        }
+        page = response.page;
+        navigation.render(response);
+        const movements = response.items;
         renderMovementList(elements.candidates, movements, 'link-money-movement', 'Привязать', 'Подходящие операции не найдены.', options.formatCurrency);
     }
 

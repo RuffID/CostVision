@@ -1,4 +1,5 @@
 using CostVision.Application.Models.Dtos.MoneyMovements;
+using CostVision.Application.Models.Dtos;
 using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.MoneyMovements;
@@ -15,6 +16,48 @@ namespace CostVision.Web.UnitTests.Pages;
 public class MoneyMovementsModelTests
 {
     [Fact]
+    public async Task OnGetListAndCandidates_PreserveExplicitPagingFiltersAndFullTotals()
+    {
+        // Arrange
+        User user = TestUsers.Create();
+        DateTime date = new(2026, 1, 15);
+        Guid accountId = Guid.NewGuid();
+        GetMoneyMovementReceiptCandidatesRequest request = new()
+        {
+            MoneyMovementId = Guid.NewGuid(), Page = 2, PageSize = 1
+        };
+        MoneyMovementListDto expectedList = new()
+        {
+            Items = [new MoneyMovementDto { Amount = 1m }], Page = 3, PageSize = 5,
+            TotalCount = 30, IncomeSum = 500m, ExpenseSum = 1000m
+        };
+        PagedListDto<MoneyMovementReceiptDto> expectedCandidates = PagedListDto<MoneyMovementReceiptDto>.Create(
+            [new MoneyMovementReceiptDto(), new MoneyMovementReceiptDto()], 4, 2, 1);
+        Dependencies dependencies = new();
+        dependencies.MoneyMovementsPageUseCase.Setup(useCase => useCase.GetListAsync(user.Id, date, date, accountId,
+            It.IsAny<CancellationToken>(), 3, 5, "coffee", "withReceipts"))
+            .ReturnsAsync(ServiceResult<MoneyMovementListDto>.Ok(expectedList));
+        dependencies.MoneyMovementsPageUseCase.Setup(useCase => useCase.GetReceiptCandidatesAsync(request, user.Id,
+            It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Ok(expectedCandidates));
+        MoneyMovementsModel model = dependencies.CreateModel(user);
+
+        // Act
+        MoneyMovementListDto list = JsonResultAssert.Data<MoneyMovementListDto>(
+            await model.OnGetListAsync(date, date, accountId, CancellationToken.None, 3, 5, "coffee", "withReceipts"));
+        PagedListDto<MoneyMovementReceiptDto> candidates = JsonResultAssert.Data<PagedListDto<MoneyMovementReceiptDto>>(
+            await model.OnGetReceiptCandidatesAsync(request, CancellationToken.None));
+
+        // Assert
+        Assert.Same(expectedList, list);
+        Assert.Equal(30, list.TotalCount);
+        Assert.Equal(1000m, list.ExpenseSum);
+        Assert.Equal(4, candidates.TotalCount);
+        Assert.Equal(2, candidates.Items.Count);
+        Assert.Equal(1, candidates.PageSize);
+        dependencies.MoneyMovementsPageUseCase.VerifyAll();
+    }
+
+    [Fact]
     public async Task OnGetListAsync_CallsListUseCase()
     {
         User currentUser = TestUsers.Create();
@@ -24,14 +67,14 @@ public class MoneyMovementsModelTests
 
         Dependencies dependencies = new();
         dependencies.MoneyMovementsPageUseCase
-            .Setup(useCase => useCase.GetListAsync(currentUser.Id, dateFrom, dateTo, accountId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult<List<MoneyMovementDto>>.Ok([new MoneyMovementDto { Id = Guid.NewGuid() }]));
+            .Setup(useCase => useCase.GetListAsync(currentUser.Id, dateFrom, dateTo, accountId, It.IsAny<CancellationToken>(), 1, 20, null, null))
+            .ReturnsAsync(ServiceResult<MoneyMovementListDto>.Ok(new MoneyMovementListDto { Items = [new MoneyMovementDto { Id = Guid.NewGuid() }] }));
 
         MoneyMovementsModel model = dependencies.CreateModel(currentUser);
 
         JsonResult json = await model.OnGetListAsync(dateFrom, dateTo, accountId, CancellationToken.None);
 
-        Assert.Single(JsonResultAssert.Data<List<MoneyMovementDto>>(json));
+        Assert.Single(JsonResultAssert.Data<MoneyMovementListDto>(json).Items);
     }
 
     [Fact]
