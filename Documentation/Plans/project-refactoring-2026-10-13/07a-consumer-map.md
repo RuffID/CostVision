@@ -1,6 +1,6 @@
 # Карта потребителей и владельцев транзакций 07A
 
-Карта 53 Application-потребителей составлена до переноса 14.10.2026 по actual исходникам после 07; таблица актуализирована по итоговым зависимостям. Read-only получает прямые repository-зависимости; helper не владеет транзакцией. Общий projection/predicate/include контракт 07 сохраняется, EF-зависимости рассматриваются только в 08.
+Карта 53 Application-потребителей составлена до переноса 14.10.2026 по actual исходникам после 07; таблица актуализирована по итоговым зависимостям. Read-only получает прямые repository-зависимости; helper не владеет транзакцией. Общий projection/predicate/include контракт 07 сохраняется. В 08 пользователь отдельно сохранил явную EF/DLL-границу (вариант А); эта карта repositories/транзакций не менялась.
 
 ## Узкие контракты записи
 
@@ -100,6 +100,8 @@ Infrastructure: IUnitOfWorkScope → UnitOfWorkScope, единственный s
 
 AddApplication сохраняет регистрации use case/workflow, их constructors получают новые зависимости. AddInfrastructure регистрирует один scope и каждый узкий adapter вместо глобального UoW. Фикстуры Application проверяют прежние predicates/domain results и используют только тестовый набор mock-репозиториев; он не регистрируется в production. Infrastructure проверяет actual AddApplication/AddInfrastructure/DLL без hosting; integration fixtures переводятся на прямые repository + scope, их SQL/hosting тесты не запускаются.
 
+После08 MoneyMovementsModel вызывает 14 конкретных сценариев напрямую; общий page-фасад/интерфейс/регистрация удалены. PageModel не получает repositories/scope и не открывает транзакцию. PreviewBankStatementImportRequest принадлежит операции, preview проверяет отсутствие/пустоту файла до чтений, Web освобождает поток. Import/Create/Move/Delete/Link/Unlink/Refresh сохраняют владельцев и число/порядок Save из таблицы. [Решение08](08-boundary-decision.md) и [поставка DLL](../../../libs/README.md) описывают текущую границу; новый UoW или отдельный контекст не добавлялись.
+
 ## Открытая приёмка
 
-Открытые проверки и статусы 01–07 сохранены в исходных файлах этапов. Общая scoped-сессия/mock/metadata/ToQueryString не доказывают SQL-конкурентность, rollback/fixup или snapshot. Обязательна пользовательская AddReceiptRowVersion: RowVersion rowversion + RefreshRevision bigint NOT NULL default 0. Миграцию, designer/snapshot и схему 07A не меняет. SQL/БД/hosting/provider HTTP/browser/production не запускаются; 08–15 не начаты.
+Открытые проверки и статусы 01–07 сохранены в исходных файлах этапов, обязательная SQL-приёмка07A также открыта. Общая scoped-сессия/mock/metadata/ToQueryString не доказывают SQL-конкурентность, rollback/fixup или snapshot. Обязательна пользовательская AddReceiptRowVersion: RowVersion rowversion + RefreshRevision bigint NOT NULL default 0. Миграцию, designer/snapshot и схему 07A/08 не меняют. SQL/БД/hosting/provider HTTP/browser/production не запускались. 08 реализован изолированно, проверка не завершена; 09–15 не начаты.

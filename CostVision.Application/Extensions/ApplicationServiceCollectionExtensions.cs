@@ -54,7 +54,6 @@ namespace CostVision.Application.Extensions
             services.AddScoped<IGetRoleListUseCase, GetRoleListUseCase>();
             services.AddScoped<IAuthenticateUserUseCase, AuthenticateUserUseCase>();
             services.AddScoped<IGetActiveUserForRequestUseCase, GetActiveUserForRequestUseCase>();
-            services.AddScoped<IMoneyMovementsPageUseCase, MoneyMovementsPageUseCase>();
             services.AddScoped<ICreateMoneyMovementUseCase, CreateMoneyMovementUseCase>();
             services.AddScoped<IAutoLinkExactMoneyMovementReceiptsUseCase, AutoLinkExactMoneyMovementReceiptsUseCase>();
             services.AddScoped<IGetMoneyMovementListUseCase, GetMoneyMovementListUseCase>();

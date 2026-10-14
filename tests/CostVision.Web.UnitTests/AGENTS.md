@@ -8,6 +8,8 @@
 
 Не запускать приложение для проверки handler. Прямой вызов метода не подтверждает cookie, routing, antiforgery и production DI; для них нужен отдельный разрешённый HTTP-контур.
 
+MoneyMovementsModelTests отдельно разрешает страницу через actual layer DI extensions без хоста: connection остаётся закрытым, tracker пустым. Это проверка production registrations для конкретных constructor-зависимостей, а не приёмка production HTTP/auth-конвейера.
+
 ## Проверка
 
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.

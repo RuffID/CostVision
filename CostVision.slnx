@@ -35,6 +35,8 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/07a-consumer-map.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-08-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/08-application-and-persistence-boundaries.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/08-boundary-decision.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/next-stage-09-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/09-web-and-http-contracts.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/10-frontend-request-coordination.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/11-frontend-decomposition.md" />
@@ -63,6 +65,7 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/libs/">
+    <File Path="libs/README.md" />
     <File Path="libs/EFCoreLibrary.dll" />
     <File Path="libs/HttpClientLibrary.dll" />
   </Folder>

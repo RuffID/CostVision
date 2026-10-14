@@ -16,6 +16,8 @@ FinancialDataIsolationTests выполняет реальные переданн
 
 Getter кандидатов и список операций проверяются через envelopes страниц; linked-list контракты остаются списками. Projection doubles должны исполнять actual predicates и query-композицию; фиктивный total по текущей странице недопустим.
 
+Preview-тесты используют PreviewBankStatementImportRequest с явными FileStream/FileLength. Stage08PreviewBoundaryTests проверяет ранний отказ отсутствующего/пустого файла, настоящие AccountId/UserId predicates над доменным membership, Owner/Editor/Viewer/отсутствие доступа, передачу token/stream, ошибки строк и отсутствие закрытия caller-owned stream. Extraction подставной; SQL/настоящий PDF/HTTP не подтверждаются.
+
 ## Проверка
 
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.

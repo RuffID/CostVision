@@ -29,6 +29,8 @@ Layout выдаёт antiforgery-токен. TypeScript передаёт его �
 
 Новый обработчик не должен переносить бизнес-проверки в PageModel. Он передаёт идентификатор текущего пользователя в use case и сохраняет единый формат ответа.
 
+В 08 MoneyMovementsModel переведён с механического page-фасада на 14 конкретных сценариев. Имена handlers, FromQuery/FromBody/FromForm, параметры страниц/фильтров, multipart bankId/accountId/file и status/envelopes не менялись. Проверка отсутствующего/пустого файла находится в Application preview; Web создаёт PreviewBankStatementImportRequest и освобождает stream после результата или исключения. Никаких Save/transaction/repository-проверок в PageModel нет. Прямые handler-тесты и actual DI без хоста выполнены отдельно; HTTP/auth/antiforgery-приёмка открыта.
+
 ## Ответы и ошибки
 
 [JsonResultMapper](../../CostVision.Web/Web/Mappers/JsonResultMapper.cs) формирует:

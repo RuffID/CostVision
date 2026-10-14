@@ -18,6 +18,8 @@ ReceiptIdentityPredicates компонует ForDocument, ForAuthorCopy и InAcc
 
 Не добавлять запуск сценариев, БД или внешней сети в регистрацию. Сверять наличие интерфейса, реализации, lifetime и потребителя.
 
+MoneyMovements PageModel получает конкретные сценарии: registration общего IMoneyMovementsPageUseCase удалена. PreviewBankStatementImportUseCase остаётся scoped и проверяет file request; UoW и repositories в AddInfrastructure не расширялись.
+
 ReceiptFinancialRules предоставляет переводимые expression-селекторы количества и признака веса для агрегатов каталога; единицы совпадают с NormalizeQuantity. ReadQueryOrdering строит точное расстояние даты в 100-нс интервалах из переводимых date parts, затем расстояние суммы и уникальный ID. DateTime.Ticks/вычитание дат внутри SQL не используются; ToQueryString не заменяет проверку реального provider.
 
 ## Проверка

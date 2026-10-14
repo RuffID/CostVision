@@ -1,12 +1,13 @@
-using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.DataBase.Repositories.MoneyMovements;
 using CostVision.Application.Abstractions.Service.MoneyMovements;
 using CostVision.Application.Models.Dtos.MoneyMovements;
+using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.MoneyMovements.BankStatementImports.Parsing;
 using CostVision.Domain.Models.Enums.MoneyMovements;
 using CostVision.Domain.Models.MoneyMovements;
+using CostVision.Domain.Models.Receipts;
 
 namespace CostVision.Application.UseCases.MoneyMovements
 {
@@ -15,28 +16,43 @@ namespace CostVision.Application.UseCases.MoneyMovements
         IBankStatementParserRegistry parserRegistry,
         IBankStatementPdfTextExtractor pdfTextExtractor) : IPreviewBankStatementImportUseCase
     {
-        public async Task<ServiceResult<BankStatementImportPreviewDto>> ExecuteAsync(string bankId, Guid accountId, string fileName, Stream fileStream, Guid currentUserId, CancellationToken ct)
+        public async Task<ServiceResult<BankStatementImportPreviewDto>> ExecuteAsync(PreviewBankStatementImportRequest request, Guid currentUserId, CancellationToken ct)
         {
-            IBankStatementParser? parser = parserRegistry.FindByBankId(bankId);
+            if (request.FileStream == null || request.FileLength == 0)
+            {
+                return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, "Выберите файл выписки.");
+            }
+
+            IBankStatementParser? parser = parserRegistry.FindByBankId(request.BankId);
             if (parser == null || !parser.IsConfigured)
+            {
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, "Для выбранного банка импорт пока не настроен.");
+            }
 
-            if (!parser.CanParseFile(fileName))
+            if (!parser.CanParseFile(request.FileName))
+            {
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, $"Загрузите файл выписки в формате: {parser.Description}.");
+            }
 
-            ServiceResult<CostVision.Domain.Models.Receipts.AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(accountMemberRepository, accountId, currentUserId, ct);
+            ServiceResult<AccountMember> accountAccess = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(accountMemberRepository, request.AccountId, currentUserId, ct);
             if (!accountAccess.Success)
+            {
                 return accountAccess.PropagateFailure<BankStatementImportPreviewDto>();
+            }
 
-            IReadOnlyList<string> pages = await pdfTextExtractor.ExtractPagesAsync(fileStream, ct);
+            IReadOnlyList<string> pages = await pdfTextExtractor.ExtractPagesAsync(request.FileStream, ct);
             if (pages.Count == 0 || pages.All(string.IsNullOrWhiteSpace))
+            {
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, "В PDF не найден текстовый слой. Загрузите выписку с распознаваемым текстом.");
+            }
 
-            BankStatementImportPreviewDto preview = parser.Parse(accountId, pages);
+            BankStatementImportPreviewDto preview = parser.Parse(request.AccountId, pages);
             if (preview.Rows.Count == 0 && preview.Errors.Count == 0)
+            {
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, BuildEmptyPreviewMessage(pages));
+            }
 
-            MarkDuplicates(preview, await LoadExistingImportedMovementsAsync(accountId, preview.Rows, ct));
+            MarkDuplicates(preview, await LoadExistingImportedMovementsAsync(request.AccountId, preview.Rows, ct));
             MarkPreviewDuplicates(preview);
 
             return ServiceResult<BankStatementImportPreviewDto>.Ok(preview);

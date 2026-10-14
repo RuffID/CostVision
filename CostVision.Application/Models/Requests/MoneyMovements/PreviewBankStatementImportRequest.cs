@@ -1,6 +1,6 @@
 namespace CostVision.Application.Models.Requests.MoneyMovements
 {
-    public class PreviewBankStatementImportPageRequest
+    public class PreviewBankStatementImportRequest
     {
         public string BankId { get; set; } = string.Empty;
 

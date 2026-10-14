@@ -334,8 +334,11 @@ public class Stage04RegressionTests : MoneyMovementUseCaseTestBase
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(previewCulture);
 
             // Act
-            ServiceResult<BankStatementImportPreviewDto> previewResult = await useCase.ExecuteAsync("test", fixture.Account.Id, "test.pdf", new MemoryStream(),
-                fixture.UserId, TestContext.Current.CancellationToken);
+            ServiceResult<BankStatementImportPreviewDto> previewResult = await useCase.ExecuteAsync(new()
+            {
+                BankId = "test", AccountId = fixture.Account.Id, FileName = "test.pdf",
+                FileStream = new MemoryStream([1]), FileLength = 1
+            }, fixture.UserId, TestContext.Current.CancellationToken);
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(saveCulture);
             BankStatementImportRowRequest row = fixture.Row(amount: 123.4500m, importComment: " purchase ");
             row.ReplaceDuplicate = true;

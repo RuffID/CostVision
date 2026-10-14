@@ -10,6 +10,8 @@ ProductsModelTests и StoresModelTests проверяют передачу ко�
 
 List денежных операций проверяет ServiceResult<MoneyMovementListDto> и forwarding параметров страницы. Изолированные прямые handler-вызовы не доказывают routing/antiforgery/cookie или браузерный сценарий.
 
+MoneyMovementsModelTests передаёт strict mocks конкретных сценариев без page-фасада, проверяет все handlers, прежние envelopes/status, пользователя/token/страницы/полные totals, нейтральный preview-request и disposal file stream при результате/исключении. Отдельный тест разрешает страницу через actual AddApplication/AddInfrastructure с ValidateScopes/ValidateOnBuild, без запуска hosting/SQL/provider.
+
 ## Проверка
 
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.

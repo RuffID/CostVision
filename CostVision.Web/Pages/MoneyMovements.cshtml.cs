@@ -6,6 +6,7 @@ using CostVision.Application.Models.Requests.MoneyMovements;
 using CostVision.Application.Models.Requests.Receipts;
 using CostVision.Application.Models.Responses.Results;
 using CostVision.Application.UseCases.MoneyMovements;
+using CostVision.Application.UseCases.Receipts.Receipts;
 using CostVision.Domain.Models.Authorization;
 using CostVision.Web.Authorize.Attributes;
 using CostVision.Web.Abstractions.Entity;
@@ -17,87 +18,117 @@ namespace CostVision.Web.Pages
     [CookieAuthorize]
     [LoadUser]
     public class MoneyMovementsModel(
-        IMoneyMovementsPageUseCase moneyMovementsPageUseCase) : PageModel, IHasCurrentUser
+        IGetMoneyMovementAccountsUseCase getMoneyMovementAccountsUseCase,
+        IGetMoneyMovementListUseCase getMoneyMovementListUseCase,
+        ICreateMoneyMovementUseCase createMoneyMovementUseCase,
+        IMoveMoneyMovementToAccountUseCase moveMoneyMovementToAccountUseCase,
+        IDeleteMoneyMovementUseCase deleteMoneyMovementUseCase,
+        IUpdateMoneyMovementCommentUseCase updateMoneyMovementCommentUseCase,
+        IGetBankStatementImportBanksUseCase getBankStatementImportBanksUseCase,
+        IPreviewBankStatementImportUseCase previewBankStatementImportUseCase,
+        IImportMoneyMovementsUseCase importMoneyMovementsUseCase,
+        IGetLinkedMoneyMovementReceiptsUseCase getLinkedMoneyMovementReceiptsUseCase,
+        IGetMoneyMovementReceiptCandidatesUseCase getMoneyMovementReceiptCandidatesUseCase,
+        ILinkMoneyMovementReceiptUseCase linkMoneyMovementReceiptUseCase,
+        IUnlinkMoneyMovementReceiptUseCase unlinkMoneyMovementReceiptUseCase,
+        IGetReceiptWithItemsUseCase getReceiptWithItemsUseCase) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
 
         public async Task<JsonResult> OnGetAccountsAsync(CancellationToken ct)
         {
-            ServiceResult<List<UserAccountViewModel>> result = await moneyMovementsPageUseCase.GetAccountsAsync(CurrentUser.Id, ct);
+            List<UserAccountViewModel> accounts = await getMoneyMovementAccountsUseCase.ExecuteAsync(CurrentUser.Id, ct);
+
+            ServiceResult<List<UserAccountViewModel>> result = ServiceResult<List<UserAccountViewModel>>.Ok(accounts);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetImportBanksAsync(CancellationToken ct)
         {
-            ServiceResult<List<BankStatementImportBankDto>> result = await moneyMovementsPageUseCase.GetImportBanksAsync(ct);
+            List<BankStatementImportBankDto> banks = await getBankStatementImportBanksUseCase.ExecuteAsync(ct);
+
+            ServiceResult<List<BankStatementImportBankDto>> result = ServiceResult<List<BankStatementImportBankDto>>.Ok(banks);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetListAsync([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] Guid? accountId, CancellationToken ct, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] string? receiptFilter = null)
         {
-            ServiceResult<MoneyMovementListDto> result = await moneyMovementsPageUseCase.GetListAsync(CurrentUser.Id, dateFrom, dateTo, accountId, ct, page, pageSize, search, receiptFilter);
+            ServiceResult<MoneyMovementListDto> result = await getMoneyMovementListUseCase.ExecuteAsync(CurrentUser.Id, dateFrom, dateTo, accountId, ct, page, pageSize, search, receiptFilter);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetLinkedReceiptsAsync([FromQuery] Guid moneyMovementId, CancellationToken ct)
         {
-            ServiceResult<List<MoneyMovementReceiptDto>> result = await moneyMovementsPageUseCase.GetLinkedReceiptsAsync(moneyMovementId, CurrentUser.Id, ct);
+            ServiceResult<List<MoneyMovementReceiptDto>> result = await getLinkedMoneyMovementReceiptsUseCase.ExecuteAsync(moneyMovementId, CurrentUser.Id, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetReceiptCandidatesAsync([FromQuery] GetMoneyMovementReceiptCandidatesRequest request, CancellationToken ct)
         {
-            ServiceResult<PagedListDto<MoneyMovementReceiptDto>> result = await moneyMovementsPageUseCase.GetReceiptCandidatesAsync(request, CurrentUser.Id, ct);
+            ServiceResult<PagedListDto<MoneyMovementReceiptDto>> result = await getMoneyMovementReceiptCandidatesUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostCreateAsync([FromBody] CreateMoneyMovementRequest request, CancellationToken ct)
         {
-            ServiceResult<MoneyMovementDto> result = await moneyMovementsPageUseCase.CreateAsync(request, CurrentUser.Id, ct);
+            ServiceResult<MoneyMovementDto> result = await createMoneyMovementUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostMoveToAccountAsync([FromBody] MoveMoneyMovementToAccountRequest request, CancellationToken ct)
         {
-            ServiceResult result = await moneyMovementsPageUseCase.MoveToAccountAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await moveMoneyMovementToAccountUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostDeleteAsync([FromBody] DeleteMoneyMovementRequest request, CancellationToken ct)
         {
-            ServiceResult result = await moneyMovementsPageUseCase.DeleteAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await deleteMoneyMovementUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUpdateCommentAsync([FromBody] UpdateMoneyMovementCommentRequest request, CancellationToken ct)
         {
-            ServiceResult result = await moneyMovementsPageUseCase.UpdateCommentAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await updateMoneyMovementCommentUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostLinkReceiptAsync([FromBody] LinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult result = await moneyMovementsPageUseCase.LinkReceiptAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await linkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUnlinkReceiptAsync([FromBody] UnlinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult result = await moneyMovementsPageUseCase.UnlinkReceiptAsync(request, CurrentUser.Id, ct);
+            ServiceResult result = await unlinkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostOpenReceiptAsync([FromBody] OpenReceiptRequest request, CancellationToken ct)
         {
-            ServiceResult<ReceiptDto> result = await moneyMovementsPageUseCase.OpenReceiptAsync(request, CurrentUser, ct);
+            ServiceResult<ReceiptDto> result = await getReceiptWithItemsUseCase.ExecuteAsync(request.ReceiptId, CurrentUser, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostPreviewImportAsync([FromForm] string bankId, [FromForm] Guid accountId, [FromForm] IFormFile file, CancellationToken ct)
         {
             await using Stream? fileStream = file?.OpenReadStream();
-            ServiceResult<BankStatementImportPreviewDto> result = await moneyMovementsPageUseCase.PreviewImportAsync(
-                new PreviewBankStatementImportPageRequest
+
+            ServiceResult<BankStatementImportPreviewDto> result = await previewBankStatementImportUseCase.ExecuteAsync(
+                new PreviewBankStatementImportRequest
                 {
                     BankId = bankId,
                     AccountId = accountId,
@@ -113,7 +144,8 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnPostImportAsync([FromBody] SaveBankStatementImportRequest request, CancellationToken ct)
         {
-            ServiceResult<BankStatementImportResultDto> result = await moneyMovementsPageUseCase.ImportAsync(request, CurrentUser.Id, ct);
+            ServiceResult<BankStatementImportResultDto> result = await importMoneyMovementsUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
     }

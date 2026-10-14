@@ -43,7 +43,9 @@ Application организован по use case, а не по HTTP-страни
 - dashboard;
 - контракты `IUnitOfWorkScope`, узких сценарных UoW, репозиториев, внешнего receipt provider, QR parser, PDF extractor и password hasher.
 
-Регистрации перечислены в [ApplicationServiceCollectionExtensions](../../CostVision.Application/Extensions/ApplicationServiceCollectionExtensions.cs). Application зависит от EF Core: [AppDbContextBase](../../CostVision.Application/Abstractions/DataBase/AppDbContextBase.cs) наследует `DbContext`, а контракты репозиториев связаны с этим контекстом через `EFCoreLibrary`. SQL Server provider и конкретный `ApplicationContext` находятся в Infrastructure. Это фактическая граница; освобождение Application от EF запланировано отдельно.
+Регистрации перечислены в [ApplicationServiceCollectionExtensions](../../CostVision.Application/Extensions/ApplicationServiceCollectionExtensions.cs). Application зависит от EF Core: [AppDbContextBase](../../CostVision.Application/Abstractions/DataBase/AppDbContextBase.cs) наследует `DbContext`, а контракты репозиториев связаны с этим контекстом через `EFCoreLibrary`. SQL Server provider и конкретный `ApplicationContext` находятся в Infrastructure. В 08 пользователь явно сохранил эту EF/DLL-границу (вариант А), включая predicate/include/tracking и generic projection 07. [Решение и непринятые варианты](../Plans/project-refactoring-2026-10-13/08-boundary-decision.md) отличают её от полного удаления EF. [Поставка DLL](../../libs/README.md) описывает metadata, версии и неизвестный upstream.
+
+MoneyMovementsPageUseCase и его интерфейс удалены: они механически проксировали 14 сценариев. MoneyMovementsModel получает эти конкретные зависимости напрямую; координаторы импорта/создания/сверки и владельцы транзакций остаются в Application. PreviewBankStatementImportRequest именуется по операции и проверяется самим preview-сценарием, HTTP multipart/handlers сохранены.
 
 ## Слой Infrastructure
 

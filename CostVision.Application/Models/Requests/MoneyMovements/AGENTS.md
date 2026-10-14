@@ -8,6 +8,8 @@
 
 Проверять идентификаторы и строки повторно на сервере. ReplaceDuplicate не должен означать разрешение повторного создания новой строки.
 
+PreviewBankStatementImportRequest содержит BankId/AccountId/FileName/FileStream/FileLength и не привязан к HTTP-странице. Web превращает прежние multipart bankId/accountId/file в этот request и владеет потоком; проверка пустого файла остаётся в Application preview. HTTP payload/handlers не переименовываются вместе с внутренним типом.
+
 Оба запроса кандидатов принимают Page (default 1) и PageSize (default 20). Use case ограничивает размер 1–100 и страницу диапазоном count; фильтры, ручная множественность и допуски сохранены.
 
 ## Проверка

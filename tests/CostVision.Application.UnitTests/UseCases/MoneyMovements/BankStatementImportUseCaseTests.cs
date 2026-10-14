@@ -19,6 +19,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task PreviewBankStatementImport_ReturnsRowsAndMarksExistingAndPreviewDuplicates()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         DateTime occurredAt = new(2026, 5, 10);
@@ -58,8 +59,14 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             CreateParserRegistry(parser.Object).Object,
             CreatePdfTextExtractor(["page text"]).Object);
 
-        var result = await useCase.ExecuteAsync("test", accountId, "statement.pdf", new MemoryStream([1, 2, 3]), userId, CancellationToken.None);
+        // Act
+        ServiceResult<BankStatementImportPreviewDto> result = await useCase.ExecuteAsync(new()
+        {
+            BankId = "test", AccountId = accountId, FileName = "statement.pdf",
+            FileStream = new MemoryStream([1, 2, 3]), FileLength = 3
+        }, userId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.True(result.Data!.Rows[0].IsDuplicate);
         Assert.Equal(existing.Id, result.Data.Rows[0].DuplicateMoneyMovementId);
@@ -69,6 +76,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task PreviewBankStatementImport_KeepsLineErrorsWithoutFailingPreview()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         BankStatementImportPreviewDto preview = new()
@@ -85,8 +93,14 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             CreateParserRegistry(parser.Object).Object,
             CreatePdfTextExtractor(["page text"]).Object);
 
-        var result = await useCase.ExecuteAsync("test", accountId, "statement.pdf", new MemoryStream([1]), userId, CancellationToken.None);
+        // Act
+        ServiceResult<BankStatementImportPreviewDto> result = await useCase.ExecuteAsync(new()
+        {
+            BankId = "test", AccountId = accountId, FileName = "statement.pdf",
+            FileStream = new MemoryStream([1]), FileLength = 1
+        }, userId, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.Single(result.Data!.Errors);
     }
@@ -94,6 +108,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task PreviewBankStatementImport_ReturnsError_WhenParserCannotParseFile()
     {
+        // Arrange
         Mock<IBankStatementParser> parser = CreateParser("test", new BankStatementImportPreviewDto());
         parser.Setup(item => item.CanParseFile("statement.txt")).Returns(false);
         PreviewBankStatementImportUseCase useCase = TestUseCaseFactory.CreatePreviewBankStatementImportUseCase(
@@ -102,8 +117,14 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             CreateParserRegistry(parser.Object).Object,
             CreatePdfTextExtractor(["page text"]).Object);
 
-        var result = await useCase.ExecuteAsync("test", Guid.NewGuid(), "statement.txt", new MemoryStream([1]), Guid.NewGuid(), CancellationToken.None);
+        // Act
+        ServiceResult<BankStatementImportPreviewDto> result = await useCase.ExecuteAsync(new()
+        {
+            BankId = "test", AccountId = Guid.NewGuid(), FileName = "statement.txt",
+            FileStream = new MemoryStream([1]), FileLength = 1
+        }, Guid.NewGuid(), CancellationToken.None);
 
+        // Assert
         Assert.False(result.Success);
         Assert.Equal(ServiceErrorType.Validation, result.Error?.Type);
     }
@@ -111,6 +132,7 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
     [Fact]
     public async Task PreviewBankStatementImport_ReturnsError_WhenBankIsUnknownOrPdfTextIsEmpty()
     {
+        // Arrange
         Guid userId = Guid.NewGuid();
         Guid accountId = Guid.NewGuid();
         Mock<IBankStatementParser> parser = CreateParser("test", new BankStatementImportPreviewDto());
@@ -125,9 +147,19 @@ public class BankStatementImportUseCaseTests : MoneyMovementUseCaseTestBase
             CreateParserRegistry(parser.Object).Object,
             CreatePdfTextExtractor([" "]).Object);
 
-        var unknownBankResult = await unknownBankUseCase.ExecuteAsync("unknown", accountId, "statement.pdf", new MemoryStream([1]), userId, CancellationToken.None);
-        var emptyPdfResult = await emptyPdfUseCase.ExecuteAsync("test", accountId, "statement.pdf", new MemoryStream([1]), userId, CancellationToken.None);
+        // Act
+        ServiceResult<BankStatementImportPreviewDto> unknownBankResult = await unknownBankUseCase.ExecuteAsync(new()
+        {
+            BankId = "unknown", AccountId = accountId, FileName = "statement.pdf",
+            FileStream = new MemoryStream([1]), FileLength = 1
+        }, userId, CancellationToken.None);
+        ServiceResult<BankStatementImportPreviewDto> emptyPdfResult = await emptyPdfUseCase.ExecuteAsync(new()
+        {
+            BankId = "test", AccountId = accountId, FileName = "statement.pdf",
+            FileStream = new MemoryStream([1]), FileLength = 1
+        }, userId, CancellationToken.None);
 
+        // Assert
         Assert.Equal(ServiceErrorType.Validation, unknownBankResult.Error?.Type);
         Assert.Equal(ServiceErrorType.Validation, emptyPdfResult.Error?.Type);
     }

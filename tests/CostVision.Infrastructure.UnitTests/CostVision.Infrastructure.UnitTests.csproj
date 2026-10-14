@@ -26,6 +26,9 @@
     <Reference Include="EFCoreLibrary">
       <HintPath>..\..\libs\EFCoreLibrary.dll</HintPath>
     </Reference>
+    <Reference Include="HttpClientLibrary">
+      <HintPath>..\..\libs\HttpClientLibrary.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

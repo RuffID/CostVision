@@ -4,6 +4,8 @@
 
 Сценарии обслуживают страницу операций, фильтры и выбор счёта.
 
+GetMoneyMovementList/GetMoneyMovementAccounts вызываются PageModel напрямую. Механический MoneyMovementsPageUseCase и его интерфейс удалены; не возвращать сборник прокси или общий service locator. Queries не координирует импорт, денежные записи или освобождение HTTP-файла.
+
 ## Контракты и границы
 
 GetMoneyMovementList получает MoneyMovement/Receipt напрямую, GetMoneyMovementAccounts — Account напрямую. Сохранение и UoW этим read-only сценариям не передаются.

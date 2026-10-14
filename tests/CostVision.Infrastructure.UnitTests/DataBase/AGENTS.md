@@ -10,6 +10,8 @@ Stage07aUnitOfWorkTests выполняет actual AddApplication/AddInfrastructu
 
 Это проверка построенной модели, не миграции и не фактической уникальности SQL. Изменение relationship согласовать с интеграционными сценариями.
 
+Stage08BoundaryTests закрепляет принятый вариант А: actual DbContext-base, DLL CRUD, Expression/IQueryable и generic projection остаются в Application. Проверяет IEntity getter/setter, IAppDbContext Database/Save и generic HTTP Post/token; metadata принятых DLL выводит в TRX. Reflection используется только для inspection в тесте, не в production. Ни независимость Domain от всей EF-сборки, ни live SQL/HTTP-совместимость этим не доказываются.
+
 Stage04MoneyPersistenceTests подтверждает отсутствие уникального импортного ключа, составной PK денежной связи и precision/длину полей. Реальный предикат ImportMoneyMovements переводится через ToQueryString в ru-RU/en-US без выполнения SQL. Эти проверки не подтверждают диапазонные блокировки, фактическую схему, колляцию или отсутствие конкурентного дубля.
 
 Stage03ReceiptPersistenceTests проверяет фактические author index/PK, SQL-перевод идентичности через ToQueryString без выполнения и узкое распознавание имён ограничений. Stage03UnitOfWorkTests использует реальный DatabaseFacade и подставные DbConnection/DbTransaction: подтверждает передачу изоляции и обработку отказа, не отсутствие гонок на SQL Server. Открытая SQL-приёмка не закрывается этими тестами.
