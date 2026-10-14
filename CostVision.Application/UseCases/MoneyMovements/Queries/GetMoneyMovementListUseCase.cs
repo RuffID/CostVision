@@ -18,11 +18,12 @@ public class GetMoneyMovementListUseCase(IMoneyMovementRepository moneyMovementR
         DateTime dateTo, Guid? accountId, CancellationToken ct, int page = 1, int pageSize = 20,
         string? search = null, string? receiptFilter = null)
     {
-        if (dateTo < dateFrom)
+        ServiceResult dateRange = RequestDateValidation.ValidateCalendarRange(dateFrom, dateTo);
+        if (!dateRange.Success)
         {
-            return ServiceResult<MoneyMovementListDto>.Fail(ServiceErrorType.Validation,
-                "Дата окончания периода не может быть меньше даты начала.");
+            return dateRange.PropagateFailure<MoneyMovementListDto>();
         }
+
 
         DateTime start = dateFrom.Date;
         DateTime end = dateTo.Date.AddDays(1);

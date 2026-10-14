@@ -1,4 +1,4 @@
-import { buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../../shared/http.js";
+import { isResponseArray,hasResponseFields, buildJsonHeaders, sendJsonRequest, ServiceResultWithData, unwrapServiceResult } from "../../shared/http.js";
 import { DashboardAccountDto, DashboardIncomeExpenseReportDto } from "./types.js";
 
 type DashboardIncomeExpenseReportResponse = ServiceResultWithData<DashboardIncomeExpenseReportDto>;
@@ -6,7 +6,7 @@ type DashboardAccountListResponse = ServiceResultWithData<DashboardAccountDto[]>
 
 export async function loadDashboardAccountsAsync(antiForgeryToken: string | null): Promise<DashboardAccountDto[]> {
     const response = await sendJsonRequest<DashboardAccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(antiForgeryToken));
-    return unwrapServiceResult(response);
+    return unwrapServiceResult(response, isResponseArray);
 }
 
 export async function loadIncomeExpenseReportAsync(dateFrom: string, dateTo: string, period: string, expenseSource: string, accountIds: string[], includeWithoutAccount: boolean, storeNames: string[], antiForgeryToken: string | null): Promise<DashboardIncomeExpenseReportDto> {
@@ -31,5 +31,5 @@ export async function loadIncomeExpenseReportAsync(dateFrom: string, dateTo: str
         buildJsonHeaders(antiForgeryToken)
     );
 
-    return unwrapServiceResult(response);
+    return unwrapServiceResult(response, value => hasResponseFields(value, ["stores", "points"]));
 }

@@ -1,4 +1,4 @@
-import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
+import { isPagedResponse,isResponseArray, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
 import type { ProductList, ProductSortBy, ProductSortDirection, ProductStorePurchase } from "./types.js";
 
@@ -15,12 +15,12 @@ export async function getProducts(search: string, page: number, pageSize: number
     if (accountId) params.set("accountId", accountId);
 
     const result = await sendJsonRequest<ServiceResultWithData<ProductList>>(`/products?handler=List&${params.toString()}`);
-    return unwrapServiceResult(result);
+    return unwrapServiceResult(result, value => isPagedResponse(value, ["totalSum"]));
 }
 
 export async function getProductAccounts(): Promise<AccountFilterOption[]> {
     const result = await sendJsonRequest<ServiceResultWithData<AccountFilterOption[]>>("/products?handler=Accounts");
-    return unwrapServiceResult(result);
+    return unwrapServiceResult(result, isResponseArray);
 }
 
 export async function updateProductAdaptiveName(productId: string, adaptiveName: string): Promise<void> {
@@ -39,5 +39,5 @@ export async function updateProductAdaptiveName(productId: string, adaptiveName:
 export async function getProductStorePurchases(productId: string): Promise<ProductStorePurchase[]> {
     const params = new URLSearchParams({ productId: productId });
     const result = await sendJsonRequest<ServiceResultWithData<ProductStorePurchase[]>>(`/products?handler=StorePurchases&${params.toString()}`);
-    return unwrapServiceResult(result);
+    return unwrapServiceResult(result, isResponseArray);
 }

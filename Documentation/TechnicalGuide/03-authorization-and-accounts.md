@@ -6,6 +6,8 @@
 
 Cookie называется `.CostVision.Cookies`, имеет sliding expiration и срок неактивности 14 дней. Login path — `/login`. Ключи Data Protection сохраняются в `keys-windows` или `keys-linux` под content root, чтобы cookie переживала перезапуск процесса.
 
+CookieHttpContract сохраняет редиректы HTML-навигации, но JSON/AJAX получает 401/403 с success=false/message без HTML логина. JSON определяется Accept, X-Requested-With либо Content-Type. Antiforgery не отключён. Options/фильтры проверяются изолированно; реальное истечение cookie, повторный вход и antiforgery остаются HTTP-/браузерной приёмкой.
+
 [CookieAuthorizeAttribute](../../CostVision.Web/Web/Authorize/Attributes/CookieAuthorizeAttribute.cs) используется на закрытых Razor Pages. Он загружает активного пользователя для запроса; отключение пользователя тем самым отзывает доступ, не дожидаясь естественного истечения cookie. `/user-activity?handler=Ping` обновляет время активности.
 
 ## Общие роли

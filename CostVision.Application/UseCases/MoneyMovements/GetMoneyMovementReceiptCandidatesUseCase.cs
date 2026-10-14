@@ -18,11 +18,27 @@ namespace CostVision.Application.UseCases.MoneyMovements
     public class GetMoneyMovementReceiptCandidatesUseCase(IMoneyMovementRepository moneyMovementRepository, IReceiptRepository receiptRepository) : IGetMoneyMovementReceiptCandidatesUseCase
     {
         private const decimal DEFAULT_TIME_WINDOW_HOURS = 1m;
-        private const decimal MINUTES_PER_HOUR = 60m;
         private const decimal DEFAULT_AMOUNT_TOLERANCE = 1m;
 
         public async Task<ServiceResult<PagedListDto<MoneyMovementReceiptDto>>> ExecuteAsync(GetMoneyMovementReceiptCandidatesRequest request, Guid currentUserId, CancellationToken ct)
         {
+            ServiceResult requestShape = RequestShapeValidation.Validate(request);
+            if (!requestShape.Success)
+            {
+                return requestShape.PropagateFailure<PagedListDto<MoneyMovementReceiptDto>>();
+            }
+
+            ServiceResult dateRange = ServiceResult.Ok();
+            if (!request.UseTimeWindow)
+            {
+                dateRange = RequestDateValidation.ValidateCalendarRange(request.DateFrom, request.DateTo);
+            }
+
+            if (!dateRange.Success)
+            {
+                return dateRange.PropagateFailure<PagedListDto<MoneyMovementReceiptDto>>();
+            }
+
             if (request.MoneyMovementId == Guid.Empty)
             {
                 return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Некорректный идентификатор операции.");
@@ -43,25 +59,24 @@ namespace CostVision.Application.UseCases.MoneyMovements
                 return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.NotFound, "Операция не найдена или доступ к ней отсутствует.");
             }
 
-            DateTime? dateFrom = request.DateFrom?.Date;
-            DateTime? dateToExclusive = request.DateTo?.Date.AddDays(1);
-
+            DateTime? dateFrom = null;
+            DateTime? dateToExclusive = null;
             if (request.UseTimeWindow)
             {
                 decimal timeWindowHours = request.TimeWindowHours.GetValueOrDefault(DEFAULT_TIME_WINDOW_HOURS);
-                if (timeWindowHours < 0)
+                ServiceResult window = RequestDateValidation.TryTimeWindow(movement.OccurredAt, timeWindowHours, out DateTime windowFrom, out DateTime windowTo);
+                if (!window.Success)
                 {
-                    return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Допуск по времени не может быть отрицательным.");
+                    return window.PropagateFailure<PagedListDto<MoneyMovementReceiptDto>>();
                 }
 
-                double timeWindowMinutes = (double)(timeWindowHours * MINUTES_PER_HOUR);
-                dateFrom = movement.OccurredAt.AddMinutes(-timeWindowMinutes);
-                dateToExclusive = movement.OccurredAt.AddMinutes(timeWindowMinutes);
+                dateFrom = windowFrom;
+                dateToExclusive = windowTo;
             }
-
-            if (dateFrom.HasValue && dateToExclusive.HasValue && dateToExclusive.Value < dateFrom.Value)
+            else
             {
-                return ServiceResult<PagedListDto<MoneyMovementReceiptDto>>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
+                dateFrom = request.DateFrom?.Date;
+                dateToExclusive = request.DateTo?.Date.AddDays(1);
             }
 
             decimal amountTolerance = request.AmountTolerance.GetValueOrDefault(DEFAULT_AMOUNT_TOLERANCE);

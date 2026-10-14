@@ -9,11 +9,10 @@
 1. forwarded headers;
 2. [ExceptionHandlingMiddleware](../../CostVision.Web/Web/Middleware/ExceptionHandlingMiddleware.cs);
 3. проверка и обновление базы;
-4. production error handler;
-5. Swagger;
-6. static files и routing;
-7. authentication и authorization;
-8. Razor Pages и controllers.
+4. Swagger (второй production error handler удалён в 09);
+5. static files и routing;
+6. authentication и authorization;
+7. Razor Pages и controllers.
 
 Инициализация БД происходит до начала обработки запросов. Ошибка соединения, backup или migration останавливает запуск.
 

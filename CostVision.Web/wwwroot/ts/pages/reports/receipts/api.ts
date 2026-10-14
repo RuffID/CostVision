@@ -1,5 +1,5 @@
 import type { PagedList } from "../../../shared/paging.js";
-import { buildJsonHeaders, ServiceResult, ServiceResultWithData, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess } from "../../../shared/http.js";
+import { isPagedResponse,isResponseArray,hasResponseFields, buildJsonHeaders, ServiceResult, ServiceResultWithData, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess } from "../../../shared/http.js";
 import { AvailableAccountDto, GetReceiptMoneyMovementCandidatesRequest, LinkReceiptMoneyMovementRequest, ReceiptDto, ReceiptList, ReceiptMoneyMovementDto } from "./types.js";
 
 type ReceiptListResponse = ServiceResultWithData<ReceiptList>;
@@ -14,12 +14,12 @@ export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string |
         : "?handler=ReceiptList";
 
     const response = await sendJsonRequest<ReceiptListResponse>(url, "GET", buildJsonHeaders(forgeryToken), null);
-    return unwrapServiceResult(response);
+    return unwrapServiceResult(response, value => isPagedResponse(value, ["totalSum","incomeSum"]));
 }
 
 export async function loadAvailableAccountsApi(forgeryToken: string | null): Promise<AvailableAccountDto[]> {
     const response = await sendJsonRequest<AvailableAccountsResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken), null);
-    return unwrapServiceResult(response);
+    return unwrapServiceResult(response, isResponseArray);
 }
 
 export async function openReceiptApi(receiptId: string, forgeryToken: string | null): Promise<ReceiptDto> {
@@ -30,7 +30,7 @@ export async function openReceiptApi(receiptId: string, forgeryToken: string | n
         { receiptId: receiptId }
     );
 
-    return unwrapServiceResult(response);
+    return unwrapServiceResult(response, value => hasResponseFields(value, ["items", "accounts"], ["totalSum", "operationType"], ["id", "dateTime"]));
 }
 
 export async function refreshReceiptApi(receiptId: string, forgeryToken: string | null): Promise<ReceiptDto> {
@@ -41,7 +41,7 @@ export async function refreshReceiptApi(receiptId: string, forgeryToken: string 
         { receiptId: receiptId }
     );
 
-    return unwrapServiceResult(response);
+    return unwrapServiceResult(response, value => hasResponseFields(value, ["items", "accounts"], ["totalSum", "operationType"], ["id", "dateTime"]));
 }
 
 export async function deleteReceiptApi(receiptId: string, forgeryToken: string | null): Promise<void> {
@@ -89,7 +89,7 @@ export async function loadLinkedMoneyMovementsApi(receiptId: string, forgeryToke
     params.set("receiptId", receiptId);
 
     const response = await sendJsonRequest<ReceiptMoneyMovementListResponse>(`?handler=LinkedMoneyMovements&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null);
-    return unwrapServiceResult(response);
+    return unwrapServiceResult(response, isResponseArray);
 }
 
 export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMovementCandidatesRequest, forgeryToken: string | null): Promise<PagedList<ReceiptMoneyMovementDto>> {
@@ -118,7 +118,7 @@ export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMov
     }
 
     const response = await sendJsonRequest<ServiceResultWithData<PagedList<ReceiptMoneyMovementDto>>>(`?handler=MoneyMovementCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null);
-    return unwrapServiceResult(response);
+    return unwrapServiceResult(response, value => isPagedResponse(value, []));
 }
 
 export async function linkReceiptMoneyMovementApi(request: LinkReceiptMoneyMovementRequest, forgeryToken: string | null): Promise<void> {

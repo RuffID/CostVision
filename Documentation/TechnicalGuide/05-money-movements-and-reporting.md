@@ -35,7 +35,7 @@ Registry содержит parser’ы Т-Банка, СберБанка и Ал�
 
 [PreviewBankStatementImportUseCase](../../CostVision.Application/UseCases/MoneyMovements/BankStatementImports/PreviewBankStatementImportUseCase.cs) выполняет:
 
-До перечисленных действий сценарий проверяет FileStream/FileLength нейтрального PreviewBankStatementImportRequest. Отсутствующий поток или нулевая длина даёт прежнее Validation «Выберите файл выписки.». HTTP-адаптер владеет и освобождает поток; use case не закрывает его и не знает PageModel. Алгоритм и права предпросмотра сохранены.
+До перечисленных действий сценарий проверяет FileStream/FileLength нейтрального PreviewBankStatementImportRequest. Отсутствующий поток или неположительная длина даёт прежнее Validation «Выберите файл выписки.». HTTP-адаптер владеет и освобождает поток; use case не закрывает его и не знает PageModel. После parser проверяется вычислимость следующего дня каждой даты строки до поиска дублей. Алгоритм и права предпросмотра сохранены.
 
 1. выбор настроенного parser по `bankId`;
 2. проверку допустимого имени/формата файла;

@@ -49,7 +49,11 @@ public class GetStoreReceiptListUseCase(IReceiptRepository receiptRepository, IM
                 .ToDictionary(copy => copy.GetIdentity(), copy => ids.IndexOf(copy.Id));
             items = copies.GroupBy(copy => copy.GetIdentity()).OrderBy(group => positions[group.Key])
                 .Select(group => group.MapReceiptGroupDto(currentUserId)).ToList();
-            await ReceiptReportCandidateCounts.FillAsync(receiptRepository, moneyMovementRepository, items, currentUserId, ct);
+            ServiceResult candidateCounts = await ReceiptReportCandidateCounts.FillAsync(receiptRepository, moneyMovementRepository, items, currentUserId, ct);
+            if (!candidateCounts.Success)
+            {
+                return candidateCounts.PropagateFailure<StoreReceiptListDto>();
+            }
         }
 
         return ServiceResult<StoreReceiptListDto>.Ok(new StoreReceiptListDto

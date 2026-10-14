@@ -25,10 +25,18 @@ namespace CostVision.Application.UseCases.Dashboard
 
         public async Task<ServiceResult<DashboardIncomeExpenseReportDto>> ExecuteAsync(User currentUser, DashboardIncomeExpenseReportRequest request, CancellationToken ct)
         {
-            if (request.DateTo.Date < request.DateFrom.Date)
+            ServiceResult requestShape = RequestShapeValidation.Validate(request);
+            if (!requestShape.Success)
             {
-                return ServiceResult<DashboardIncomeExpenseReportDto>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
+                return requestShape.PropagateFailure<DashboardIncomeExpenseReportDto>();
             }
+
+            ServiceResult dateRange = RequestDateValidation.ValidateCalendarRange(request.DateFrom, request.DateTo);
+            if (!dateRange.Success)
+            {
+                return dateRange.PropagateFailure<DashboardIncomeExpenseReportDto>();
+            }
+
 
             if (!IsSupportedPeriod(request.Period))
             {

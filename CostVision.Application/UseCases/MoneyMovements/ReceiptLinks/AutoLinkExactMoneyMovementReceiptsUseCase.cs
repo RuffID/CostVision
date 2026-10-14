@@ -3,16 +3,20 @@ using CostVision.Application.Models.Responses.Results;
 using CostVision.Domain.Models.MoneyMovements;
 using System.Data;
 
+using CostVision.Application.Extensions;
+
 namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class AutoLinkExactMoneyMovementReceiptsUseCase(IReceiptReconciliationUnitOfWork unitOfWork) : IAutoLinkExactMoneyMovementReceiptsUseCase
     {
         public async Task<ServiceResult<int>> ExecuteAsync(Guid currentUserId, DateTime dateFrom, DateTime dateTo, Guid? accountId, CancellationToken ct)
         {
-            if (dateTo.Date < dateFrom.Date)
+            ServiceResult dateRange = RequestDateValidation.ValidateCalendarRange(dateFrom, dateTo);
+            if (!dateRange.Success)
             {
-                return ServiceResult<int>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
+                return dateRange.PropagateFailure<int>();
             }
+
 
             DateTime periodStart = dateFrom.Date;
             DateTime periodEnd = dateTo.Date.AddDays(1);

@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CostVision.Web.Abstractions.Entity;
 
+using CostVision.Web.Extensions;
+
 namespace CostVision.Web.Pages.Settings
 {
     [CookieAuthorize]
@@ -23,29 +25,59 @@ namespace CostVision.Web.Pages.Settings
 
         public async Task<IActionResult> OnGetAccountsAsync(bool includeInactive = false, CancellationToken ct = default)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<List<UserAccountViewModel>> result = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeInactive, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostCreateAccountAsync([FromBody] CreateAccountRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<UserAccountViewModel> result = await createAccountUseCase.ExecuteAsync(CurrentUser.Id, request, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostUpdateAccountAsync([FromBody] UpdateAccountRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<UserAccountViewModel> result = await updateAccountUseCase.ExecuteAsync(CurrentUser.Id, request, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnGetShareCandidatesAsync([FromQuery] Guid accountId, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             return JsonResultMapper.ToJsonResult(await getAccountShareUsersUseCase.ExecuteAsync(accountId, CurrentUser.Id, ct));
         }
 
         public async Task<IActionResult> OnPostUpdateMembersAsync([FromBody] UpdateAccountMembersRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             return JsonResultMapper.ToJsonResult(await updateAccountMembersUseCase.ExecuteAsync(request.AccountId, CurrentUser.Id, request.Members, ct));
         }
     }

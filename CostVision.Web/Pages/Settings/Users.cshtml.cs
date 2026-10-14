@@ -12,6 +12,8 @@ using CostVision.Web.Abstractions.Entity;
 using Microsoft.AspNetCore.Authorization;
 using CostVision.Web.Authorize;
 
+using CostVision.Web.Extensions;
+
 namespace CostVision.Web.Pages.Settings
 {
     [CookieAuthorize]
@@ -29,36 +31,72 @@ namespace CostVision.Web.Pages.Settings
 
         public async Task<IActionResult> OnGetUserListAsync([FromQuery] bool includeInactive = false, CancellationToken ct = default)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<List<UserListItemDto>> result = await getUserListUseCase.ExecuteAsync(includeInactive, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnGetUserAsync([FromQuery] Guid id, CancellationToken ct = default)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<UserEditDto> result = await getUserUseCase.ExecuteAsync(id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnGetRoleListAsync(CancellationToken ct = default)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<List<RoleDto>> result = await getRoleListUseCase.ExecuteAsync(ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostCreateAsync([FromBody] UserUpsertRequest dto, CancellationToken ct = default)
         {
+            JsonResult? requestError = this.ValidateRequest(dto);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult result = await createUserUseCase.ExecuteAsync(dto, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostUpdateAsync([FromBody] UserUpsertRequest dto, CancellationToken ct = default)
         {
+            JsonResult? requestError = this.ValidateRequest(dto);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult result = await updateUserUseCase.ExecuteAsync(dto, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostToggleActiveAsync([FromQuery] Guid id, CancellationToken ct = default)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<bool> result = await toggleUserActiveUseCase.ExecuteAsync(id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }

@@ -15,6 +15,18 @@ public class GetStoreListUseCase(IStoreRepository storeRepository) : IGetStoreLi
 {
     public async Task<ServiceResult<StoreListDto>> ExecuteAsync(GetStoreListRequest request, Guid currentUserId, CancellationToken ct)
     {
+        ServiceResult requestShape = RequestShapeValidation.Validate(request);
+        if (!requestShape.Success)
+        {
+            return requestShape.PropagateFailure<StoreListDto>();
+        }
+
+        ServiceResult dateRange = RequestDateValidation.ValidateCalendarRange(request.DateFrom, request.DateTo);
+        if (!dateRange.Success)
+        {
+            return dateRange.PropagateFailure<StoreListDto>();
+        }
+
         DateTime? start = request.DateFrom?.Date;
         DateTime? end = request.DateTo?.Date.AddDays(1);
         Expression<Func<Receipt, bool>> receiptPredicate = receipt =>

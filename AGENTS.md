@@ -75,6 +75,7 @@ CostVision - веб-приложение для учёта расходов по
 
 - Бизнес-сценарии размещать в use case слоя `Application`.
 - PageModel не должен содержать бизнес-логику: он принимает request, вызывает use case и возвращает JSON/result.
+- AJAX handlers проверяют binding/ModelState и обязательную форму request до вызова сценария. Cookie сохраняет HTML-редиректы, для JSON/AJAX возвращает 401/403; неожиданные HTTP-ошибки принадлежат ExceptionHandlingMiddleware с проверкой RequestAborted/Response.HasStarted. Общий HTTP-helper проверяет envelope и принимает необязательный AbortSignal; координация актуальности UI-запросов требует отдельного этапа.
 - Проверки доступа пользователя к счетам и чекам держать в use case или специализированных application helper/service, а не в Razor Page.
 - Транзакционные сценарии выполнять через сценарный UoW / `IUnitOfWorkScope.ExecuteInTransaction`. Все обёртки одного DI scope используют один контекст и общий флаг отказа; у составной операции один владелец транзакции.
 

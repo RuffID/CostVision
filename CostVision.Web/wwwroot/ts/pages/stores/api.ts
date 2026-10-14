@@ -1,4 +1,4 @@
-import { buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
+import { isPagedResponse, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
 import { getRequestVerificationToken } from "../../shared/verificationToken.js";
 import { loadAvailableAccountsApi, moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi } from "../reports/receipts/api.js";
 import type { AvailableAccountDto, ReceiptDto } from "../reports/receipts/types.js";
@@ -16,7 +16,7 @@ export async function getStores(search: string, groupByName: boolean, page: numb
     if (accountId) params.set("accountId", accountId);
 
     const result = await sendJsonRequest<ServiceResultWithData<StoreList>>(`/stores?handler=List&${params.toString()}`);
-    return unwrapServiceResult(result);
+    return unwrapServiceResult(result, value => isPagedResponse(value, ["totalSum","incomeSum"]));
 }
 
 export async function updateStoreAdaptiveName(storeId: string, adaptiveName: string): Promise<void> {
@@ -47,7 +47,7 @@ export async function getStoreReceipts(storeId: string | null, groupKey: string 
     }
 
     const result = await sendJsonRequest<ServiceResultWithData<StoreReceiptList>>(`/stores?handler=Receipts&${params.toString()}`);
-    return unwrapServiceResult(result);
+    return unwrapServiceResult(result, value => isPagedResponse(value, ["totalSum","incomeSum"]));
 }
 
 export function openStoreReceipt(receiptId: string): Promise<ReceiptDto> {

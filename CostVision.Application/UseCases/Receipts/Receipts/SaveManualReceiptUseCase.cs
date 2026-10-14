@@ -16,6 +16,12 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
     {
         public async Task<ServiceResult<AddReceiptManualResponse>> ExecuteAsync(ReceiptManualCreateRequest request, Guid currentUserId, CancellationToken ct)
         {
+            ServiceResult shape = RequestShapeValidation.Validate(request);
+            if (!shape.Success)
+            {
+                return shape.PropagateFailure<AddReceiptManualResponse>();
+            }
+
             if (request.AccountId != Guid.Empty)
             {
                 ServiceResult accessResult = await validateReceiptCreationAccessUseCase.ExecuteAsync(request.AccountId, currentUserId, ct);

@@ -58,16 +58,13 @@ internal static class IncomeExpenseReportCalculator
         while (cursor <= end)
         {
             string label;
-            DateTime next;
             if (period == "month")
             {
                 label = cursor.ToString("MMMM yyyy", culture);
-                next = cursor.AddMonths(1);
             }
             else
             {
                 label = cursor.ToString("dd.MM", culture);
-                next = cursor.AddDays(1);
             }
 
             points.Add(new DashboardIncomeExpensePointDto
@@ -75,7 +72,19 @@ internal static class IncomeExpenseReportCalculator
                 PeriodStart = cursor, Label = label,
                 IncomeSum = income.GetValueOrDefault(cursor), ExpenseSum = expense.GetValueOrDefault(cursor)
             });
-            cursor = next;
+            if (cursor == end)
+            {
+                break;
+            }
+
+            if (period == "month")
+            {
+                cursor = cursor.AddMonths(1);
+            }
+            else
+            {
+                cursor = cursor.AddDays(1);
+            }
         }
 
         return points;

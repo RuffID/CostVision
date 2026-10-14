@@ -44,3 +44,5 @@ Receipts и Stores отображают раздельные серверные 
 - `Shared/_ValidationScriptsPartial.cshtml` - общий partial для клиентских скриптов валидации.
 - `_ViewImports.cshtml` - общие импорты Razor для страниц.
 - `_ViewStart.cshtml` - общий выбор layout для страниц.
+
+57 AJAX-handlers основных страниц/настроек вызывают ValidateBinding/ValidateRequest до сценария и чтения request. Invalid ModelState, null DTO/вложенные данные/коллекции/null-элементы дают 400 через JsonResultMapper без бизнес-вызова. Права и бизнес-валидация остаются в Application; Login/Logout сохраняют HTML/form-поток.

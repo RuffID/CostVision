@@ -17,10 +17,18 @@ public class GetReceiptListPageUseCase(IReceiptRepository receiptRepository, IMo
 {
     public async Task<ServiceResult<ReceiptListDto>> ExecuteAsync(User currentUser, GetReceiptListRequest request, CancellationToken ct)
     {
-        if (request.DateTo.Date < request.DateFrom.Date)
+        ServiceResult requestShape = RequestShapeValidation.Validate(request);
+        if (!requestShape.Success)
         {
-            return ServiceResult<ReceiptListDto>.Fail(ServiceErrorType.Validation, "Дата окончания периода не может быть меньше даты начала.");
+            return requestShape.PropagateFailure<ReceiptListDto>();
         }
+
+        ServiceResult dateRange = RequestDateValidation.ValidateCalendarRange(request.DateFrom, request.DateTo);
+        if (!dateRange.Success)
+        {
+            return dateRange.PropagateFailure<ReceiptListDto>();
+        }
+
 
         DateTime start = request.DateFrom.Date;
         DateTime end = request.DateTo.Date.AddDays(1);
@@ -44,7 +52,11 @@ public class GetReceiptListPageUseCase(IReceiptRepository receiptRepository, IMo
                 .ToDictionary(copy => copy.GetIdentity(), copy => ids.IndexOf(copy.Id));
             items = copies.GroupBy(copy => copy.GetIdentity()).OrderBy(group => positions[group.Key])
                 .Select(group => group.MapReceiptGroupDto(currentUser.Id)).ToList();
-            await ReceiptReportCandidateCounts.FillAsync(receiptRepository, moneyMovementRepository, items, currentUser.Id, ct);
+            ServiceResult candidateCounts = await ReceiptReportCandidateCounts.FillAsync(receiptRepository, moneyMovementRepository, items, currentUser.Id, ct);
+            if (!candidateCounts.Success)
+            {
+                return candidateCounts.PropagateFailure<ReceiptListDto>();
+            }
         }
 
         return ServiceResult<ReceiptListDto>.Ok(new ReceiptListDto

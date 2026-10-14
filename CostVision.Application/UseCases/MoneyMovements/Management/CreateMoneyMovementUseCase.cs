@@ -9,12 +9,20 @@ using CostVision.Domain.Models.Receipts;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 
+using CostVision.Application.Extensions;
+
 namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class CreateMoneyMovementUseCase(IReceiptLinkUnitOfWork unitOfWork) : ICreateMoneyMovementUseCase
     {
         public async Task<ServiceResult<MoneyMovementDto>> ExecuteAsync(CreateMoneyMovementRequest request, Guid currentUserId, CancellationToken ct)
         {
+            ServiceResult requestShape = RequestShapeValidation.Validate(request);
+            if (!requestShape.Success)
+            {
+                return requestShape.PropagateFailure<MoneyMovementDto>();
+            }
+
             Guid performedByUserId = request.PerformedByUserId.GetValueOrDefault(currentUserId);
             if (!MoneyMovement.TryCreateManual(
                     request.AccountId,
@@ -32,6 +40,14 @@ namespace CostVision.Application.UseCases.MoneyMovements
             }
 
             MoneyMovement newMovement = movement!;
+            if (newMovement.Type == MoneyMovementType.Expense)
+            {
+                ServiceResult dateRange = RequestDateValidation.ValidateCalendarRange(newMovement.OccurredAt, newMovement.OccurredAt);
+                if (!dateRange.Success)
+                {
+                    return dateRange.PropagateFailure<MoneyMovementDto>();
+                }
+            }
 
             ServiceResult<AccountMember> access = await MoneyMovementAccountAccessValidator.GetEditableAccountMemberAsync(
                 unitOfWork.AccountMember, request.AccountId, currentUserId, ct, requireActive: true);

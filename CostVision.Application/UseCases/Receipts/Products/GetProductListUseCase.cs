@@ -15,6 +15,18 @@ public class GetProductListUseCase(IProductRepository productRepository) : IGetP
 {
     public async Task<ServiceResult<ProductListDto>> ExecuteAsync(GetProductListRequest request, Guid currentUserId, CancellationToken ct)
     {
+        ServiceResult requestShape = RequestShapeValidation.Validate(request);
+        if (!requestShape.Success)
+        {
+            return requestShape.PropagateFailure<ProductListDto>();
+        }
+
+        ServiceResult dateRange = RequestDateValidation.ValidateCalendarRange(request.DateFrom, request.DateTo);
+        if (!dateRange.Success)
+        {
+            return dateRange.PropagateFailure<ProductListDto>();
+        }
+
         int pageSize = Math.Clamp(request.PageSize, 1, 100);
         string? search = request.Search?.Trim();
         DateTime? periodStart = request.DateFrom?.Date;

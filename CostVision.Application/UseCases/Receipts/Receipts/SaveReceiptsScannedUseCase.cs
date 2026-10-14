@@ -19,6 +19,12 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
     {
         public async Task<ServiceResult<AddReceiptScanResponse>> ExecuteAsync(QrScanRequest request, Guid currentUserId, CancellationToken ct)
         {
+            ServiceResult shape = RequestShapeValidation.Validate(request);
+            if (!shape.Success)
+            {
+                return shape.PropagateFailure<AddReceiptScanResponse>();
+            }
+
             if (request.Results.Count == 0)
             {
                 return ServiceResult<AddReceiptScanResponse>.Fail(ServiceErrorType.Validation, "Нет данных для обработки.");

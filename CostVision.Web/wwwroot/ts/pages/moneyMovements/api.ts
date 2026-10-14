@@ -1,5 +1,5 @@
 import type { PagedList } from "../../shared/paging.js";
-import { buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
+import { isResponseArray,isPagedResponse,hasResponseFields, buildFormHeaders, buildJsonHeaders, sendJsonRequest, unwrapServiceResult, unwrapServiceSuccess, type ServiceResult, type ServiceResultWithData } from "../../shared/http.js";
 import type { BankStatementImportBankDto, BankStatementImportPreviewDto, BankStatementImportResultDto, CreateMoneyMovementRequest, DeleteMoneyMovementRequest, GetMoneyMovementReceiptCandidatesRequest, LinkMoneyMovementReceiptRequest, MoneyMovementDto, MoneyMovementList, MoneyMovementReceiptDto, MoveMoneyMovementToAccountRequest, SaveBankStatementImportRequest, UnlinkMoneyMovementReceiptRequest, UpdateMoneyMovementCommentRequest, UserAccountViewModel, ReceiptDto } from "./types.js";
 
 type AccountListResponse = ServiceResultWithData<UserAccountViewModel[]>;
@@ -14,12 +14,12 @@ const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
 export async function loadAccounts(forgeryToken: string | null): Promise<UserAccountViewModel[]> {
     const response = await sendJsonRequest<AccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken));
-    return unwrapServiceResult<UserAccountViewModel[]>(response);
+    return unwrapServiceResult<UserAccountViewModel[]>(response, isResponseArray);
 }
 
 export async function loadImportBanks(forgeryToken: string | null): Promise<BankStatementImportBankDto[]> {
     const response = await sendJsonRequest<ImportBankListResponse>("?handler=ImportBanks", "GET", buildJsonHeaders(forgeryToken));
-    return unwrapServiceResult<BankStatementImportBankDto[]>(response);
+    return unwrapServiceResult<BankStatementImportBankDto[]>(response, isResponseArray);
 }
 
 export async function loadMoneyMovements(forgeryToken: string | null, dateFrom: string, dateTo: string, accountId: string, page = 1, search = "", receiptFilter = ""): Promise<MoneyMovementList> {
@@ -36,12 +36,12 @@ export async function loadMoneyMovements(forgeryToken: string | null, dateFrom: 
     }
 
     const response = await sendJsonRequest<MoneyMovementListResponse>(`?handler=List&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
-    return unwrapServiceResult<MoneyMovementList>(response);
+    return unwrapServiceResult<MoneyMovementList>(response, value => isPagedResponse(value, ["incomeSum","expenseSum"]));
 }
 
 export async function createMoneyMovement(forgeryToken: string | null, request: CreateMoneyMovementRequest): Promise<MoneyMovementDto> {
     const response = await sendJsonRequest<MoneyMovementResponse>("?handler=Create", "POST", buildJsonHeaders(forgeryToken), request);
-    return unwrapServiceResult<MoneyMovementDto>(response);
+    return unwrapServiceResult<MoneyMovementDto>(response, value => hasResponseFields(value, [], ["amount", "type"], ["id", "occurredAt"]));
 }
 
 export async function moveMoneyMovementToAccount(forgeryToken: string | null, request: MoveMoneyMovementToAccountRequest): Promise<void> {
@@ -67,7 +67,7 @@ export async function loadLinkedReceipts(forgeryToken: string | null, moneyMovem
     params.set("moneyMovementId", moneyMovementId);
 
     const response = await sendJsonRequest<MoneyMovementReceiptListResponse>(`?handler=LinkedReceipts&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
-    return unwrapServiceResult<MoneyMovementReceiptDto[]>(response);
+    return unwrapServiceResult<MoneyMovementReceiptDto[]>(response, isResponseArray);
 }
 
 export async function loadReceiptCandidates(forgeryToken: string | null, request: GetMoneyMovementReceiptCandidatesRequest): Promise<PagedList<MoneyMovementReceiptDto>> {
@@ -96,7 +96,7 @@ export async function loadReceiptCandidates(forgeryToken: string | null, request
     }
 
     const response = await sendJsonRequest<ServiceResultWithData<PagedList<MoneyMovementReceiptDto>>>(`?handler=ReceiptCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
-    return unwrapServiceResult<PagedList<MoneyMovementReceiptDto>>(response);
+    return unwrapServiceResult<PagedList<MoneyMovementReceiptDto>>(response, value => isPagedResponse(value, []));
 }
 
 export async function openReceipt(forgeryToken: string | null, receiptId: string): Promise<ReceiptDto> {
@@ -107,7 +107,7 @@ export async function openReceipt(forgeryToken: string | null, receiptId: string
         { receiptId: receiptId }
     );
 
-    return unwrapServiceResult<ReceiptDto>(response);
+    return unwrapServiceResult<ReceiptDto>(response, value => hasResponseFields(value, ["items", "accounts"], ["totalSum", "operationType"], ["id", "dateTime"]));
 }
 
 export async function linkMoneyMovementReceipt(forgeryToken: string | null, request: LinkMoneyMovementReceiptRequest): Promise<void> {
@@ -127,10 +127,10 @@ export async function previewBankStatementImport(forgeryToken: string | null, ba
     formData.append("file", file);
 
     const response = await sendJsonRequest<ImportPreviewResponse>("?handler=PreviewImport", "POST", buildFormHeaders(forgeryToken), formData);
-    return unwrapServiceResult<BankStatementImportPreviewDto>(response);
+    return unwrapServiceResult<BankStatementImportPreviewDto>(response, value => hasResponseFields(value, ["rows", "errors"], [], ["bankId", "accountId"]));
 }
 
 export async function importMoneyMovements(forgeryToken: string | null, request: SaveBankStatementImportRequest): Promise<BankStatementImportResultDto> {
     const response = await sendJsonRequest<ImportResultResponse>("?handler=Import", "POST", buildJsonHeaders(forgeryToken), request);
-    return unwrapServiceResult<BankStatementImportResultDto>(response);
+    return unwrapServiceResult<BankStatementImportResultDto>(response, value => hasResponseFields(value, ["errors"], ["createdCount", "updatedCount", "errorCount"]));
 }

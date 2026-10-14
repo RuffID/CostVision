@@ -15,6 +15,8 @@ using CostVision.Web.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
+using CostVision.Web.Extensions;
+
 namespace CostVision.Web.Pages
 {
     [CookieAuthorize]
@@ -37,72 +39,144 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetListAsync([FromQuery] GetStoreListRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<StoreListDto> result = await getStoreListUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetReceiptsAsync([FromQuery] GetStoreReceiptListRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<StoreReceiptListDto> result = await getStoreReceiptListUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUpdateAdaptiveNameAsync([FromBody] UpdateStoreAdaptiveNameRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult result = await updateStoreAdaptiveNameUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetAccountsAsync(CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<List<UserAccountViewModel>> result = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeArchived: false, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostOpenReceiptAsync([FromBody] OpenReceiptRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<ReceiptDto> result = await getReceiptWithItemsUseCase.ExecuteAsync(request.ReceiptId, CurrentUser, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostRefreshReceiptAsync([FromBody] RefreshReceiptRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<ReceiptDto> result = await refreshReceiptFromApiUseCase.ExecuteAsync(request.ReceiptId, CurrentUser, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostMoveReceiptToAccountAsync([FromBody] MoveReceiptToAccountRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult serviceResult = await moveReceiptToAccountUseCase.ExecuteAsync(request.SourceAccountId, request.TargetAccountId, request.ReceiptId, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(serviceResult);
         }
 
         public async Task<JsonResult> OnPostRemoveReceiptFromAccountAsync([FromBody] RemoveReceiptFromAccountRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult serviceResult = await removeReceiptFromAccountUseCase.ExecuteAsync(request.AccountId, request.ReceiptId, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(serviceResult);
         }
 
         public async Task<JsonResult> OnGetLinkedMoneyMovementsAsync([FromQuery] Guid receiptId, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<List<ReceiptMoneyMovementDto>> result = await getLinkedReceiptMoneyMovementsUseCase.ExecuteAsync(receiptId, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetMoneyMovementCandidatesAsync([FromQuery] GetReceiptMoneyMovementCandidatesRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<PagedListDto<ReceiptMoneyMovementDto>> result = await getReceiptMoneyMovementCandidatesUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostLinkMoneyMovementAsync([FromBody] LinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult result = await linkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUnlinkMoneyMovementAsync([FromBody] UnlinkMoneyMovementReceiptRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult result = await unlinkMoneyMovementReceiptUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }

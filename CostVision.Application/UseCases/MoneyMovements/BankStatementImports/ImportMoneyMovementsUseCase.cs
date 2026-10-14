@@ -6,12 +6,20 @@ using CostVision.Domain.Models.Enums.MoneyMovements;
 using CostVision.Domain.Models.MoneyMovements;
 using System.Data;
 
+using CostVision.Application.Extensions;
+
 namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class ImportMoneyMovementsUseCase(IBankStatementImportUnitOfWork unitOfWork) : IImportMoneyMovementsUseCase
     {
         public async Task<ServiceResult<BankStatementImportResultDto>> ExecuteAsync(SaveBankStatementImportRequest request, Guid currentUserId, CancellationToken ct)
         {
+            ServiceResult shape = RequestShapeValidation.Validate(request);
+            if (!shape.Success)
+            {
+                return shape.PropagateFailure<BankStatementImportResultDto>();
+            }
+
             if (request.AccountId == Guid.Empty)
             {
                 return ServiceResult<BankStatementImportResultDto>.Fail(ServiceErrorType.Validation, "Выберите счёт для импорта.");

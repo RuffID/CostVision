@@ -43,15 +43,7 @@ namespace CostVision.Web.Extensions
             });
 
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options =>
-                {
-                    options.Cookie.Name = ".CostVision.Cookies";
-                    options.LoginPath = "/login";
-                    // Куки будут автоматически продливаться
-                    options.SlidingExpiration = true;
-                    // Если пользователь не будет заходить 14 дней подряд, то куки пропадут
-                    options.ExpireTimeSpan = TimeSpan.FromDays(14);
-                });
+                .AddCookie(CookieHttpContract.Configure);
 
             services.AddRazorPages(options =>
             {

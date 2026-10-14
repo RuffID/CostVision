@@ -10,6 +10,8 @@ using CostVision.Web.Abstractions.Entity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
+using CostVision.Web.Extensions;
+
 namespace CostVision.Web.Pages
 {
     [CookieAuthorize]
@@ -24,24 +26,48 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetListAsync([FromQuery] GetProductListRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<ProductListDto> result = await getProductListUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnPostUpdateAdaptiveNameAsync([FromBody] UpdateProductAdaptiveNameRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult result = await updateProductAdaptiveNameUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetStorePurchasesAsync([FromQuery] GetProductStorePurchasesRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<List<ProductStorePurchaseDto>> result = await getProductStorePurchasesUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetAccountsAsync(CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<List<UserAccountViewModel>> result = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeArchived: false, ct);
             return JsonResultMapper.ToJsonResult(result);
         }

@@ -40,9 +40,6 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 await app.InitializeDatabaseAsync();
 
-if (!app.Environment.IsDevelopment())
-    app.UseExceptionHandler("/Error");
-
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {

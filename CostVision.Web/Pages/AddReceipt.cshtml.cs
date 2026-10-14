@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using CostVision.Web.Abstractions.Entity;
 using CostVision.Web.Authorize.Attributes;
 
+using CostVision.Web.Extensions;
+
 namespace CostVision.Web.Pages
 {
     [CookieAuthorize]
@@ -23,18 +25,36 @@ namespace CostVision.Web.Pages
 
         public async Task<IActionResult> OnGetAccountsAsync(CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<List<UserAccountViewModel>> result = await getUserAccountsForReceiptCreationUseCase.ExecuteAsync(CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostAsync([FromBody] QrScanRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<AddReceiptScanResponse> result = await saveReceiptsScannedUseCase.ExecuteAsync(request, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostManualAsync([FromBody] ReceiptManualCreateRequest input, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(input);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<AddReceiptManualResponse> result = await saveManualReceiptUseCase.ExecuteAsync(input, CurrentUser.Id, ct);
             return JsonResultMapper.ToJsonResult(result);
         }

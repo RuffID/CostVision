@@ -9,6 +9,8 @@ using CostVision.Domain.Models.Enums.MoneyMovements;
 using CostVision.Domain.Models.MoneyMovements;
 using CostVision.Domain.Models.Receipts;
 
+using CostVision.Application.Extensions;
+
 namespace CostVision.Application.UseCases.MoneyMovements
 {
     public class PreviewBankStatementImportUseCase(
@@ -18,7 +20,13 @@ namespace CostVision.Application.UseCases.MoneyMovements
     {
         public async Task<ServiceResult<BankStatementImportPreviewDto>> ExecuteAsync(PreviewBankStatementImportRequest request, Guid currentUserId, CancellationToken ct)
         {
-            if (request.FileStream == null || request.FileLength == 0)
+            ServiceResult shape = RequestShapeValidation.Validate(request);
+            if (!shape.Success)
+            {
+                return shape.PropagateFailure<BankStatementImportPreviewDto>();
+            }
+
+            if (request.FileStream == null || request.FileLength <= 0)
             {
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, "Выберите файл выписки.");
             }
@@ -50,6 +58,15 @@ namespace CostVision.Application.UseCases.MoneyMovements
             if (preview.Rows.Count == 0 && preview.Errors.Count == 0)
             {
                 return ServiceResult<BankStatementImportPreviewDto>.Fail(ServiceErrorType.Validation, BuildEmptyPreviewMessage(pages));
+            }
+
+            foreach (BankStatementImportPreviewRowDto row in preview.Rows)
+            {
+                ServiceResult date = RequestDateValidation.ValidateCalendarRange(null, row.OccurredAt);
+                if (!date.Success)
+                {
+                    return date.PropagateFailure<BankStatementImportPreviewDto>();
+                }
             }
 
             MarkDuplicates(preview, await LoadExistingImportedMovementsAsync(request.AccountId, preview.Rows, ct));

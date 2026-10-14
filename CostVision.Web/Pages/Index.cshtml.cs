@@ -11,6 +11,8 @@ using CostVision.Web.Authorize.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
+using CostVision.Web.Extensions;
+
 namespace CostVision.Web.Pages
 {
     [CookieAuthorize]
@@ -23,12 +25,24 @@ namespace CostVision.Web.Pages
 
         public async Task<JsonResult> OnGetAccountsAsync(CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<List<UserAccountViewModel>> result = await getUserAccountsUseCase.ExecuteAsync(CurrentUser.Id, includeArchived: false, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<JsonResult> OnGetIncomeExpenseReportAsync([FromQuery] DashboardIncomeExpenseReportRequest request, CancellationToken ct)
         {
+            JsonResult? requestError = this.ValidateRequest(request);
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
             ServiceResult<DashboardIncomeExpenseReportDto> result = await getDashboardIncomeExpenseReportUseCase.ExecuteAsync(CurrentUser, request, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
