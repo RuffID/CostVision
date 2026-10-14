@@ -384,12 +384,23 @@ namespace CostVision.Infrastructure.DataBase.Migrations
                     b.Property<int>("RefreshAttemptCount")
                         .HasColumnType("int");
 
+                    b.Property<long>("RefreshRevision")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
                     b.Property<int>("RefreshStatus")
                         .HasColumnType("int");
 
                     b.Property<string>("Region")
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int?>("ShiftNumber")
                         .HasColumnType("int");

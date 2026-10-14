@@ -6,9 +6,9 @@ HTTP, токен, DOM, alerts, форматирование, навигация,
 
 ## Контракты и границы
 
-Не добавлять страницу-специфичные бизнес-правила. HTTP принимает необязательный пятый AbortSignal, сохраняет JSON/multipart/antiforgery и передаёт Accept=application/json. HttpError содержит kind/http status/url; HTML/диагностика не используются как сообщение. Envelope проверяется перед generic cast, unwrap требует data и поддерживает validator обязательных полей/списков/страниц/готовых totals. Это проверка формы, не полный runtime-schema каждого вложенного DTO. Общая координация requests/epochs/disposal не входит в helper. Modal stack отдаёт фокус, клики и Escape верхнему окну.
+Не добавлять страницу-специфичные бизнес-правила. HTTP принимает необязательный пятый AbortSignal, сохраняет JSON/multipart/antiforgery и передаёт Accept=application/json. HttpError содержит kind/http status/url; HTML/диагностика не используются как сообщение. Envelope проверяется перед generic cast, unwrap требует data и поддерживает validator обязательных полей/списков/страниц/готовых totals. Это проверка формы, не полный runtime-schema каждого вложенного DTO. Координация не входит в HTTP-helper: requestCoordinator выдаёт ticket со снимком parameters/signal/isCurrent, invalidate отменяет прежнее чтение и меняет поколение, capture фиксирует контекст команды. Каждый экземпляр принадлежит одной независимой области; caller создаёт снимок значений и проверяет результат/ошибку/loading. Записи не получают abort этого координатора; getWriteErrorMessage обозначает network/aborted/contract/HTTP >=500 как неизвестный исход и требует обновления/сверки перед повтором. Modal stack отдаёт фокус, клики и Escape верхнему окну.
 
-paging.ts отображает серверную страницу, count и флаги перехода через DOM API. Переход блокирует повторный click до ответа, clear скрывает прежние метаданные. Компонент не рассчитывает count/суммы, не ограничивает Items и не заменяет page-specific фильтры.
+paging.ts отображает серверную страницу, count и флаги перехода через DOM API. Переход блокирует повторный click до ответа, clear скрывает прежние метаданные и меняет revision: прежние catch/finally не снимают блокировку новой навигации. Компонент не рассчитывает count/суммы, не ограничивает Items и не заменяет page-specific фильтры.
 
 ## Проверка
 

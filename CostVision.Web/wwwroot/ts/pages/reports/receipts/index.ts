@@ -1,11 +1,12 @@
-﻿import { getRequestVerificationToken } from "../../../shared/verificationToken.js";
+﻿import { createRequestCoordinator, getWriteErrorMessage, isIntentionalAbort } from "../../../shared/requestCoordinator.js";
+import { getRequestVerificationToken } from "../../../shared/verificationToken.js";
 import { clearElement, requireElementById, requireInputById, requireSelectById } from "../../../shared/dom.js";
 import { formatMoneyRub, formatRuNumber } from "../../../shared/formatters.js";
 import { BootstrapModal, createBootstrapModal } from "../../../shared/bootstrap.js";
 import { renderHelpTooltip } from "../../../shared/helpTooltip.js";
 import { deleteReceiptApi, loadAvailableAccountsApi, loadReceiptsApi, moveReceiptToAccountApi, openReceiptApi, refreshReceiptApi, removeReceiptFromAccountApi } from "./api.js";
 import { applyReceiptFilters as applyReceiptFiltersCore } from "./filters.js";
-import { createReceiptsPageState, removeReceiptFromCache } from "./state.js";
+import { createReceiptsPageState } from "./state.js";
 import { updateReceiptsSummary } from "./render.js";
 import { formatDateForQuery, getDateRangeByPeriodPreset } from "./dateRange.js";
 import { MoveReceiptAccountAction, PendingDeleteAction, ReceiptDto, ReceiptList } from "./types.js";
@@ -62,6 +63,14 @@ let receiptOperationFilterSelect: HTMLSelectElement;
 let receiptMoneyMovementsModal: ReceiptMoneyMovementsModalController;
 
 const pageState = createReceiptsPageState();
+const listRequests = createRequestCoordinator();
+const accountRequests = createRequestCoordinator();
+const detailRequests = createRequestCoordinator();
+const receiptWrites = new Set<string>();
+const confirmationContext = createRequestCoordinator();
+window.addEventListener("pagehide", () => { listRequests.invalidate(); accountRequests.invalidate(); detailRequests.invalidate(); confirmationContext.invalidate();
+    if (searchDebounceTimerId !== null) { window.clearTimeout(searchDebounceTimerId); searchDebounceTimerId = null; }
+});
 let searchDebounceTimerId: number | null = null;
 let pendingReceiptAccountAction: MoveReceiptAccountAction | null = null;
 
@@ -109,6 +118,7 @@ async function initListOfChecksPage(): Promise<void> {
 
         // Убирать фокус из модалки при закрытии, чтобы избежать предупреждения aria-hidden
         modalElement.addEventListener('hide.bs.modal', function () {
+            detailRequests.invalidate();
             if (document.activeElement instanceof HTMLElement && modalElement.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
@@ -130,7 +140,7 @@ async function initListOfChecksPage(): Promise<void> {
             }
         });
 
-        moveReceiptAccountModalElement.addEventListener('hidden.bs.modal', function () {
+        moveReceiptAccountModalElement.addEventListener('hide.bs.modal', function () {
             if (preserveMoveReceiptAccountModalStateOnHide) {
                 return;
             }
@@ -175,17 +185,20 @@ async function initListOfChecksPage(): Promise<void> {
             }
         });
 
-        deleteModalElement.addEventListener('hidden.bs.modal', function () {
-            if (shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation && moveReceiptAccountBootstrapModal) {
-                shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation = false;
-                preserveMoveReceiptAccountModalStateOnHide = false;
-                moveReceiptAccountBootstrapModal.show();
-                return;
-            }
-
+        deleteModalElement.addEventListener('hide.bs.modal', function () {
+            const isCurrent = confirmationContext.capture();
+            const matchesList = listRequests.capture();
+            const action = pendingReceiptAccountAction;
+            const restore = shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation;
             pendingDeleteAction = null;
             pendingDeleteReceiptId = null;
             pendingDeleteCardElement = null;
+            deleteModalElement.addEventListener('hidden.bs.modal', function () {
+                if (!isCurrent() || !matchesList() || !restore || pendingReceiptAccountAction !== action) { return; }
+                shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation = false;
+                preserveMoveReceiptAccountModalStateOnHide = false;
+                moveReceiptAccountBootstrapModal.show();
+            }, { once: true });
         });
     }
 
@@ -240,7 +253,7 @@ async function initListOfChecksPage(): Promise<void> {
     dateToInput.addEventListener('change', updatePeriodPresetForManualDateRange);
     setCurrentMonthPeriod();
 
-    await loadAvailableAccountsAsync();
+    if (!await loadAvailableAccountsAsync()) { return; }
     await loadReceiptList(getPageFromQuery());
 }
 
@@ -377,21 +390,32 @@ function buildDateRangeQuery(page: number): string {
 
 // Загрузить список чеков (ожидается массив DTO)
 async function loadReceiptList(page = 1): Promise<void> {
+    const request = listRequests.begin(buildDateRangeQuery(page));
+    detailRequests.invalidate();
+    const matchesQuery = () => request.parameters === buildDateRangeQuery(page);
+    currentReceiptList = null;
+    pageState.receipts = [];
+    updateReceiptsSummary(receiptsCountElement, receiptsSumElement, null, formatCurrency);
+    clearElement(receiptsPaginationElement);
     try {
         listContainer.replaceChildren(createLoadingIndicator());
-        currentReceiptList = await loadReceiptsApi(buildDateRangeQuery(page), forgeryToken);
+        const result = await loadReceiptsApi(request.parameters, forgeryToken, request.signal);
+        if (!request.isCurrent() || !matchesQuery()) { return; }
+        currentReceiptList = result;
         pageState.receipts = currentReceiptList.items;
         renderReceiptList(currentReceiptList.items);
         updateReceiptsSummary(receiptsCountElement, receiptsSumElement, currentReceiptList, formatCurrency);
         renderReceiptPagination(currentReceiptList);
         updatePageQuery(currentReceiptList.page);
     } catch (error) {
-        console.error(error);
-        alert('Ошибка при получении списка чеков.');
+        if (!request.isCurrent() || !matchesQuery() || isIntentionalAbort(error)) { return; }
+        listContainer.replaceChildren();
+        alert(getErrorMessage(error));
     }
 }
 
-async function loadAvailableAccountsAsync(): Promise<void> {
+async function loadAvailableAccountsAsync(): Promise<boolean> {
+    const request = accountRequests.begin(forgeryToken);
     if (!receiptAccountFilterSelect) {
         throw new Error('Не найден фильтр счетов.');
     }
@@ -400,21 +424,28 @@ async function loadAvailableAccountsAsync(): Promise<void> {
     renderAccountFilterLoading(receiptAccountFilterSelect);
 
     try {
-        pageState.availableAccounts = (await loadAvailableAccountsApi(forgeryToken)).map(normalizeAvailableAccountCore);
+        const accounts = await loadAvailableAccountsApi(request.parameters, request.signal);
+        if (!request.isCurrent()) { return false; }
+        pageState.availableAccounts = accounts.map(normalizeAvailableAccountCore);
 
         renderAccountFilterOptions(receiptAccountFilterSelect, pageState.availableAccounts);
         hideAccountFilterError(receiptAccountFilterError);
         receiptAccountFilterSelect.disabled = false;
+        return true;
     } catch (error) {
+        if (!request.isCurrent() || isIntentionalAbort(error)) { return false; }
         renderAccountFilterError({ select: receiptAccountFilterSelect, error: receiptAccountFilterError }, error instanceof Error ? error : new Error("Не удалось загрузить список счетов."));
-        throw error;
+        return false;
     }
 }
 
 // Открыть чек (ожидается один ReceiptDto с Items)
 async function openReceipt(receiptId: string): Promise<void> {
+    const request = detailRequests.begin(receiptId);
+    const matchesList = listRequests.capture();
     try {
-        const data = await openReceiptApi(receiptId, forgeryToken);
+        const data = await openReceiptApi(request.parameters, forgeryToken, request.signal);
+        if (!request.isCurrent() || !matchesList()) { return; }
         renderReceiptDetailsModal(
             data,
             {
@@ -427,8 +458,8 @@ async function openReceipt(receiptId: string): Promise<void> {
             formatCurrency
         );
     } catch (error) {
-        console.error(error);
-        alert('Ошибка при получении деталей чека.');
+        if (!request.isCurrent() || !matchesList() || isIntentionalAbort(error)) { return; }
+        alert(getErrorMessage(error));
     }
 }
 
@@ -452,17 +483,23 @@ function updateReceiptSummary(list: ReceiptDto[]): void {
 
 // Обновить чек (ожидается один ReceiptDto без Items)
 async function refreshReceipt(receiptId: string, cardElement: HTMLElement, buttonElement: HTMLButtonElement): Promise<void> {
+    if (receiptWrites.has(receiptId) || buttonElement.disabled) { return; }
+    receiptWrites.add(receiptId);
+    const matchesList = listRequests.capture();
     const originalText = buttonElement.textContent;
     buttonElement.disabled = true;
     buttonElement.textContent = 'Обновление...';
 
     try {
         const data = await refreshReceiptApi(receiptId, forgeryToken);
+        if (!matchesList()) { return; }
         updateReceiptCardFromDto(cardElement, data, formatCurrency);
+        pageState.receipts = pageState.receipts.map(receipt => receipt.id === data.id ? data : receipt);
     } catch (error) {
-        console.error(error);
-        alert(getErrorMessage(error));
+        if (matchesList()) { alert(getWriteErrorMessage(error)); }
     } finally {
+        receiptWrites.delete(receiptId);
+        if (!matchesList()) { return; }
         buttonElement.disabled = false;
         buttonElement.textContent = originalText;
     }
@@ -470,6 +507,7 @@ async function refreshReceipt(receiptId: string, cardElement: HTMLElement, butto
 
 // Открыть модальное окно подтверждения удаления
 function openDeleteReceiptModal(receiptId: string, cardElement: HTMLElement): void {
+    confirmationContext.invalidate();
     const receipt = findReceiptByIdCore(pageState.receipts, receiptId);
     if (!receipt) {
         alert('Чек не найден в текущем списке.');
@@ -501,42 +539,37 @@ function openDeleteReceiptModal(receiptId: string, cardElement: HTMLElement): vo
 
 // Обработать подтверждение удаления
 async function onConfirmDeleteReceipt(): Promise<void> {
-    if (!pendingDeleteAction) {
-        return;
-    }
-
-    // Блокировать кнопку и показать состояние удаления
+    const action = pendingDeleteAction;
+    if (!action || receiptWrites.has(action.receiptId)) { return; }
+    const matchesList = listRequests.capture();
+    const isCurrent = () => pendingDeleteAction === action && matchesList();
+    receiptWrites.add(action.receiptId);
     const originalText = deleteConfirmButton.textContent;
     deleteConfirmButton.disabled = true;
     deleteConfirmButton.textContent = 'Удаление...';
-
     try {
-        if (pendingDeleteAction.type === DELETE_ACTION_DELETE_RECEIPT) {
-            await deleteReceiptAsync(pendingDeleteAction.receiptId);
-        } else if (pendingDeleteAction.type === DELETE_ACTION_REMOVE_FROM_ACCOUNT) {
-            shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation = false;
-            preserveMoveReceiptAccountModalStateOnHide = false;
-            await removeReceiptFromAccountAsync(pendingDeleteAction.receiptId, pendingDeleteAction.accountId);
-            closeMoveReceiptAccountModal();
-        }
-        else {
+        if (action.type === DELETE_ACTION_DELETE_RECEIPT) {
+            await deleteReceiptApi(action.receiptId, forgeryToken);
+        } else if (action.type === DELETE_ACTION_REMOVE_FROM_ACCOUNT) {
+            await removeReceiptFromAccountApi(action.receiptId, action.accountId, forgeryToken);
+        } else {
             throw new Error('Неизвестный тип удаления чека.');
         }
-
-        renderReceiptList(applyReceiptFilters(pageState.receipts));
-
+        if (!isCurrent()) { return; }
+        shouldRestoreMoveReceiptAccountModalAfterDeleteConfirmation = false;
+        preserveMoveReceiptAccountModalStateOnHide = false;
+        if (action.type === DELETE_ACTION_REMOVE_FROM_ACCOUNT) { closeMoveReceiptAccountModal(); }
+        const page = currentReceiptList?.page ?? 1;
         deleteBootstrapModal.hide();
-
-        pendingDeleteAction = null;
-        pendingDeleteReceiptId = null;
-        pendingDeleteCardElement = null;
+        await loadReceiptList(page);
     } catch (error) {
-        console.error(error);
-        alert('Ошибка при удалении чека.');
+        if (isCurrent()) { alert(getWriteErrorMessage(error)); }
     } finally {
-        // Восстанавливать кнопку
-        deleteConfirmButton.disabled = false;
-        deleteConfirmButton.textContent = originalText;
+        receiptWrites.delete(action.receiptId);
+        if (pendingDeleteAction === action) {
+            deleteConfirmButton.disabled = false;
+            deleteConfirmButton.textContent = originalText;
+        }
     }
 }
 
@@ -574,16 +607,9 @@ function fillDeleteReceiptModal(title: string, message: string, receipt: Receipt
     );
 }
 
-async function deleteReceiptAsync(receiptId: string): Promise<void> {
-    await deleteReceiptApi(receiptId, forgeryToken);
-    pageState.receipts = removeReceiptFromCache(pageState.receipts, receiptId);
-
-    if (pendingDeleteCardElement && pendingDeleteCardElement.parentNode) {
-        pendingDeleteCardElement.parentNode.removeChild(pendingDeleteCardElement);
-    }
-}
 
 function openRemoveReceiptFromAccountConfirmation(): void {
+    confirmationContext.invalidate();
     if (!pendingReceiptAccountAction || !deleteBootstrapModal || !moveReceiptAccountBootstrapModal) {
         return;
     }
@@ -624,6 +650,8 @@ function openRemoveReceiptFromAccountConfirmation(): void {
 }
 
 function onSearchChanged(): void {
+    listRequests.invalidate();
+    detailRequests.invalidate();
     if (searchDebounceTimerId) {
         clearTimeout(searchDebounceTimerId);
     }
@@ -634,6 +662,8 @@ function onSearchChanged(): void {
 }
 
 function updatePeriodPresetForManualDateRange(): void {
+    listRequests.invalidate();
+    detailRequests.invalidate();
     const preset = receiptPeriodPresetSelect.value;
     if (preset === 'other') return;
 
@@ -715,6 +745,7 @@ function getReceiptOperationFilter(): string {
 }
 
 function openMoveReceiptAccountModal(receiptId: string, sourceAccountId: string): void {
+    confirmationContext.invalidate();
     const receipt = sourceAccountId
         ? findReceiptByAccountReceiptIdCore(pageState.receipts, receiptId, sourceAccountId)
         : findReceiptByIdCore(pageState.receipts, receiptId);
@@ -730,6 +761,7 @@ function openMoveReceiptAccountModal(receiptId: string, sourceAccountId: string)
         return;
     }
 
+    confirmMoveReceiptAccountButton.textContent = 'Перенести';
     pendingReceiptAccountAction = {
         receiptId: receiptId,
         sourceAccountId: sourceAccountId
@@ -839,12 +871,18 @@ async function onConfirmMoveReceiptToAccount(): Promise<void> {
         return;
     }
 
+    const action = pendingReceiptAccountAction;
+    if (receiptWrites.has(action.receiptId)) { return; }
+    const matchesList = listRequests.capture();
+    const isCurrent = () => pendingReceiptAccountAction === action && matchesList();
     const selectedOption = getSelectedMoveReceiptTargetOption();
     if (!selectedOption || selectedOption.disabled) {
         updateMoveReceiptActionState();
         return;
     }
 
+    const targetAccountId = selectedOption.value;
+    receiptWrites.add(action.receiptId);
     const originalText = confirmMoveReceiptAccountButton.textContent;
     confirmMoveReceiptAccountButton.disabled = true;
     confirmMoveReceiptAccountButton.textContent = 'Перенос...';
@@ -852,32 +890,30 @@ async function onConfirmMoveReceiptToAccount(): Promise<void> {
     removeReceiptFromAccountButton.disabled = true;
 
     try {
-        await moveReceiptToAccountApi(pendingReceiptAccountAction.receiptId, pendingReceiptAccountAction.sourceAccountId, selectedOption.value, forgeryToken);
+        await moveReceiptToAccountApi(action.receiptId, action.sourceAccountId, targetAccountId, forgeryToken);
 
+        if (!isCurrent()) { return; }
         replaceReceiptAccountLinkCore(
             pageState.receipts,
             pageState.availableAccounts,
-            pendingReceiptAccountAction.receiptId,
-            pendingReceiptAccountAction.sourceAccountId,
-            selectedOption.value
+            action.receiptId,
+            action.sourceAccountId,
+            targetAccountId
         );
 
+        const page = currentReceiptList?.page ?? 1;
         closeMoveReceiptAccountModal();
-        renderReceiptList(applyReceiptFilters(pageState.receipts));
+        await loadReceiptList(page);
     } catch (error) {
-        console.error(error);
-        showMoveReceiptAccountAlert(getErrorMessage(error, 'Не удалось перенести чек в другой счёт.'));
+        if (isCurrent()) { showMoveReceiptAccountAlert(getWriteErrorMessage(error)); }
     } finally {
+        receiptWrites.delete(action.receiptId);
+        if (pendingReceiptAccountAction !== action) { return; }
         confirmMoveReceiptAccountButton.textContent = originalText;
         updateMoveReceiptActionState();
     }
 }
 
-async function removeReceiptFromAccountAsync(receiptId: string, accountId: string): Promise<void> {
-    await removeReceiptFromAccountApi(receiptId, accountId, forgeryToken);
-
-    pageState.receipts = removeReceiptAccountLinkCore(pageState.receipts, receiptId, accountId);
-}
 
 function closeMoveReceiptAccountModal(): void {
     pendingReceiptAccountAction = null;

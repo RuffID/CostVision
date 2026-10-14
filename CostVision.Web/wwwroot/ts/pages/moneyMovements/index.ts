@@ -1,3 +1,4 @@
+import { createRequestCoordinator, getWriteErrorMessage, isIntentionalAbort } from "../../shared/requestCoordinator.js";
 import { createPageNavigation } from "../../shared/paging.js";
 import type { MoneyMovementList } from "./types.js";
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
@@ -18,8 +19,19 @@ let movementPage = 1;
 let candidatePage = 1;
 let movementFilterKey = "";
 let candidateFilterKey = "";
-let movementRequest = 0;
-let candidateRequest = 0;
+const movementRequests = createRequestCoordinator();
+const initialRequests = createRequestCoordinator();
+const pageContext = createRequestCoordinator();
+const linkedRequests = createRequestCoordinator();
+const candidateRequests = createRequestCoordinator();
+const detailRequests = createRequestCoordinator();
+let receiptsRevision = 0;
+let creating = false;
+const commands = new Set<string>();
+window.addEventListener("pagehide", () => {
+    initialRequests.invalidate(); pageContext.invalidate(); movementRequests.invalidate(); linkedRequests.invalidate(); candidateRequests.invalidate(); detailRequests.invalidate(); receiptsRevision++;
+    if (state.searchDebounceTimerId !== null) { window.clearTimeout(state.searchDebounceTimerId); state.searchDebounceTimerId = null; }
+});
 let movementTotals: MoneyMovementList | null = null;
 let movementNavigation: ReturnType<typeof createPageNavigation>;
 let candidateNavigation: ReturnType<typeof createPageNavigation>;
@@ -80,18 +92,32 @@ function bindEvents(): void {
     ui.receiptsUseTimeWindowInput.addEventListener("change", updateReceiptFilterState);
     ui.receiptsUseAmountFilterInput.addEventListener("change", updateReceiptFilterState);
     ui.linkedReceipts.addEventListener("click", handleLinkedReceiptsClick);
+    for (const input of [ui.receiptsDateFromInput, ui.receiptsDateToInput, ui.receiptsAmountToleranceInput,
+        ui.receiptsTimeWindowHoursInput, ui.receiptsUseTimeWindowInput, ui.receiptsUseAmountFilterInput, ui.receiptsExcludeLinkedInput]) {
+        input.addEventListener("change", invalidateCandidates);
+        input.addEventListener("input", invalidateCandidates);
+    }
+    for (const input of [ui.dateFromInput, ui.dateToInput, ui.filterAccountSelect]) {
+        input.addEventListener("change", () => movementRequests.invalidate());
+    }
     ui.receiptCandidates.addEventListener("click", handleReceiptCandidatesClick);
 
-    ui.moveAccountModal.addEventListener("hidden.bs.modal", resetMoveModal);
-    ui.deleteModal.addEventListener("hidden.bs.modal", resetDeleteModal);
-    ui.receiptsModal.addEventListener("hidden.bs.modal", resetReceiptsModal);
+    ui.moveAccountModal.addEventListener("hide.bs.modal", resetMoveModal);
+    ui.deleteModal.addEventListener("hide.bs.modal", () => { state.pendingAccountAction = null; resetDeleteModal(); });
+    ui.receiptsModal.addEventListener("hide.bs.modal", resetReceiptsModal);
+    ui.receiptDetailsModal.addEventListener("hide.bs.modal", () => detailRequests.invalidate());
 }
 
 async function loadInitialData(): Promise<void> {
+    const request = initialRequests.begin(forgeryToken);
     try {
         hideAlertMessage(ui.alert);
-        state.accounts = await loadAccounts(forgeryToken);
-        state.importBanks = await loadImportBanks(forgeryToken);
+        const accounts = await loadAccounts(request.parameters, request.signal);
+        if (!request.isCurrent()) { return; }
+        const banks = await loadImportBanks(request.parameters, request.signal);
+        if (!request.isCurrent()) { return; }
+        state.accounts = accounts;
+        state.importBanks = banks;
         renderAccountOptions(ui.accountSelect, state.accounts, false);
         renderAccountOptions(ui.filterAccountSelect, state.accounts, true);
         renderAccountOptions(ui.importAccountSelect, state.accounts, false);
@@ -106,12 +132,15 @@ async function loadInitialData(): Promise<void> {
         await reloadMovements();
     }
     catch (error) {
-        showAlertMessage(ui.alert, getErrorMessage(error));
+        if (request.isCurrent() && !isIntentionalAbort(error)) { showAlertMessage(ui.alert, getErrorMessage(error)); }
     }
 }
 
 function resetReceiptsModal(): void {
-    candidateRequest++;
+    receiptsRevision++;
+    linkedRequests.invalidate();
+    candidateRequests.invalidate();
+    detailRequests.invalidate();
     candidateNavigation.clear();
     state.selectedReceiptsMoneyMovementId = null;
     state.linkedReceipts = [];
@@ -124,22 +153,32 @@ function resetReceiptsModal(): void {
 
 async function handleCreateSubmit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
+    if (creating) { return; }
+    creating = true;
+    const matchesList = movementRequests.capture();
+    const matchesPage = pageContext.capture();
+    let draft: string;
 
     try {
         hideAlertMessage(ui.alert);
         ui.createButton.disabled = true;
         const request = readCreateRequest();
+        draft = JSON.stringify([ui.accountSelect.value, ui.amountInput.value, ui.occurredAtInput.value, ui.typeSelect.value, ui.commentInput.value]);
         await createMoneyMovement(forgeryToken, request);
-        ui.amountInput.value = "";
-        ui.commentInput.value = "";
-        updateMovementTypeByAmount();
-        await reloadMovements();
+        if (!matchesPage()) { return; }
+        if (draft === JSON.stringify([ui.accountSelect.value, ui.amountInput.value, ui.occurredAtInput.value, ui.typeSelect.value, ui.commentInput.value])) {
+            ui.amountInput.value = "";
+            ui.commentInput.value = "";
+            updateMovementTypeByAmount();
+        }
+        if (matchesList()) { await reloadMovements(); }
     }
     catch (error) {
-        showAlertMessage(ui.alert, getErrorMessage(error));
+        if (matchesList()) { showAlertMessage(ui.alert, getWriteErrorMessage(error)); }
     }
     finally {
-        ui.createButton.disabled = false;
+        creating = false;
+        if (matchesPage()) { ui.createButton.disabled = false; }
     }
 }
 
@@ -165,22 +204,31 @@ async function reloadMovements(): Promise<void> {
         movementPage = 1;
         movementFilterKey = key;
     }
-    const requestId = ++movementRequest;
+    const request = movementRequests.begin({ dateFrom: state.dateFrom, dateTo: state.dateTo, accountId,
+        page: movementPage, search: state.searchQuery, receiptFilter: ui.receiptFilterSelect.value });
+    const p = request.parameters;
+    const matchesFilters = () => key === JSON.stringify([ui.dateFromInput.value, ui.dateToInput.value,
+        ui.filterAccountSelect.value === MONEY_MOVEMENT_ACCOUNT_FILTER_WITHOUT_ACCOUNT ? "00000000-0000-0000-0000-000000000000" : ui.filterAccountSelect.value,
+        state.searchQuery, ui.receiptFilterSelect.value]);
     movementTotals = null;
     state.movements = [];
     movementNavigation.clear();
     renderMovements();
-    const response = await loadMoneyMovements(forgeryToken, state.dateFrom, state.dateTo, accountId,
-        movementPage, state.searchQuery, ui.receiptFilterSelect.value);
-    if (requestId !== movementRequest) {
-        return;
+    try {
+        const response = await loadMoneyMovements(forgeryToken, p.dateFrom, p.dateTo, p.accountId,
+            p.page, p.search, p.receiptFilter, request.signal);
+        if (!request.isCurrent() || !matchesFilters()) {
+            return;
+        }
+        movementTotals = response;
+        movementPage = response.page;
+        state.movements = response.items;
+        movementNavigation.render(response);
+        state.editingCommentMovementId = null;
+        renderMovements();
+    } catch (error) {
+        if (request.isCurrent() && matchesFilters() && !isIntentionalAbort(error)) { showAlertMessage(ui.alert, getErrorMessage(error)); }
     }
-    movementTotals = response;
-    movementPage = response.page;
-    state.movements = response.items;
-    movementNavigation.render(response);
-    state.editingCommentMovementId = null;
-    renderMovements();
 }
 
 function renderMovements(): void {
@@ -244,6 +292,7 @@ async function handleOpenReceiptsClick(button: HTMLButtonElement): Promise<void>
         return;
     }
 
+    resetReceiptsModal();
     candidatePage = 1;
     candidateNavigation.clear();
     state.selectedReceiptsMoneyMovementId = moneyMovementId;
@@ -287,14 +336,24 @@ async function handleLinkedReceiptsClick(event: MouseEvent): Promise<void> {
         return;
     }
 
+    const moneyMovementId = state.selectedReceiptsMoneyMovementId;
+    const revision = receiptsRevision;
+    const matchesList = movementRequests.capture();
+    const isCurrent = () => revision === receiptsRevision && state.selectedReceiptsMoneyMovementId === moneyMovementId;
+    const key = moneyMovementId + ":" + receiptId;
+    if (commands.has(key) || button.disabled) { return; }
+    commands.add(key);
+    try {
     await runReceiptButtonAction(button, async () => {
         await unlinkMoneyMovementReceipt(forgeryToken, {
-            moneyMovementId: state.selectedReceiptsMoneyMovementId!,
+            moneyMovementId: moneyMovementId,
             receiptId: receiptId
         });
+        if (!isCurrent()) { return; }
         await reloadReceiptDetails();
-        await reloadMovements();
-    });
+        if (isCurrent() && matchesList()) { await reloadMovements(); }
+    }, isCurrent);
+    } finally { commands.delete(key); }
 }
 
 async function handleReceiptCandidatesClick(event: MouseEvent): Promise<void> {
@@ -319,14 +378,24 @@ async function handleReceiptCandidatesClick(event: MouseEvent): Promise<void> {
         return;
     }
 
+    const moneyMovementId = state.selectedReceiptsMoneyMovementId;
+    const revision = receiptsRevision;
+    const matchesList = movementRequests.capture();
+    const isCurrent = () => revision === receiptsRevision && state.selectedReceiptsMoneyMovementId === moneyMovementId;
+    const key = moneyMovementId + ":" + receiptId;
+    if (commands.has(key) || button.disabled) { return; }
+    commands.add(key);
+    try {
     await runReceiptButtonAction(button, async () => {
         await linkMoneyMovementReceipt(forgeryToken, {
-            moneyMovementId: state.selectedReceiptsMoneyMovementId!,
+            moneyMovementId: moneyMovementId,
             receiptId: receiptId
         });
+        if (!isCurrent()) { return; }
         await reloadReceiptDetails();
-        await reloadMovements();
-    });
+        if (isCurrent() && matchesList()) { await reloadMovements(); }
+    }, isCurrent);
+    } finally { commands.delete(key); }
 }
 
 async function handleOpenReceiptDetailsClick(button: HTMLButtonElement): Promise<void> {
@@ -335,8 +404,12 @@ async function handleOpenReceiptDetailsClick(button: HTMLButtonElement): Promise
         return;
     }
 
+    const ticket = detailRequests.begin(receiptId);
+    const revision = receiptsRevision;
+    const isCurrent = () => ticket.isCurrent() && revision === receiptsRevision;
     await runReceiptButtonAction(button, async () => {
-        const receipt = await openReceipt(forgeryToken, receiptId);
+        const receipt = await openReceipt(forgeryToken, ticket.parameters, ticket.signal);
+        if (!isCurrent()) { return; }
         renderReceiptDetailsModal(
             receipt,
             {
@@ -348,10 +421,11 @@ async function handleOpenReceiptDetailsClick(button: HTMLButtonElement): Promise
             formatRuNumber,
             formatMoneyRub
         );
-    });
+    }, isCurrent, false);
 }
 
-async function runReceiptButtonAction(button: HTMLButtonElement, action: () => Promise<void>): Promise<void> {
+async function runReceiptButtonAction(button: HTMLButtonElement, action: () => Promise<void>, isCurrent: () => boolean, write = true): Promise<void> {
+    if (button.disabled) { return; }
     const originalText = button.textContent;
     button.disabled = true;
     button.textContent = "...";
@@ -361,9 +435,10 @@ async function runReceiptButtonAction(button: HTMLButtonElement, action: () => P
         await action();
     }
     catch (error) {
-        showReceiptsAlert(getErrorMessage(error));
+        if (isCurrent() && (write || !isIntentionalAbort(error))) { showReceiptsAlert(write ? getWriteErrorMessage(error) : getErrorMessage(error)); }
     }
     finally {
+        if (!isCurrent()) { return; }
         button.disabled = false;
         button.textContent = originalText;
     }
@@ -386,12 +461,24 @@ async function reloadLinkedReceipts(): Promise<void> {
     }
 
     const selectedId = state.selectedReceiptsMoneyMovementId;
-    const receipts = await loadLinkedReceipts(forgeryToken, selectedId);
-    if (selectedId !== state.selectedReceiptsMoneyMovementId) {
-        return;
+    const ticket = linkedRequests.begin({ selectedId, revision: receiptsRevision });
+    try {
+        const receipts = await loadLinkedReceipts(forgeryToken, ticket.parameters.selectedId, ticket.signal);
+        if (!ticket.isCurrent() || ticket.parameters.revision !== receiptsRevision || selectedId !== state.selectedReceiptsMoneyMovementId) {
+            return;
+        }
+        state.linkedReceipts = receipts;
+        renderLinkedReceipts(ui.linkedReceipts, state.linkedReceipts);
+    } catch (error) {
+        if (ticket.isCurrent() && ticket.parameters.revision === receiptsRevision && !isIntentionalAbort(error)) { showReceiptsAlert(getErrorMessage(error)); }
     }
-    state.linkedReceipts = receipts;
-    renderLinkedReceipts(ui.linkedReceipts, state.linkedReceipts);
+}
+
+function invalidateCandidates(): void {
+    candidateRequests.invalidate();
+    candidateNavigation.clear();
+    state.receiptCandidates = [];
+    renderReceiptCandidates(ui.receiptCandidates, []);
 }
 
 async function reloadReceiptCandidates(): Promise<void> {
@@ -406,16 +493,23 @@ async function reloadReceiptCandidates(): Promise<void> {
         candidateFilterKey = key;
     }
     const selectedId = state.selectedReceiptsMoneyMovementId;
-    const requestId = ++candidateRequest;
+    const ticket = candidateRequests.begin({ ...request, page: candidatePage, pageSize: 20 });
+    const revision = receiptsRevision;
     candidateNavigation.clear();
-    const response = await loadReceiptCandidates(forgeryToken, { ...request, page: candidatePage, pageSize: 20 });
-    if (selectedId !== state.selectedReceiptsMoneyMovementId || requestId !== candidateRequest) {
-        return;
+    try {
+        const response = await loadReceiptCandidates(forgeryToken, ticket.parameters, ticket.signal);
+        if (selectedId !== state.selectedReceiptsMoneyMovementId || !ticket.isCurrent() || revision !== receiptsRevision
+            || key !== JSON.stringify(readReceiptCandidatesRequest(selectedId))) {
+            return;
+        }
+        candidatePage = response.page;
+        state.receiptCandidates = response.items;
+        candidateNavigation.render(response);
+        renderReceiptCandidates(ui.receiptCandidates, state.receiptCandidates);
+    } catch (error) {
+        if (ticket.isCurrent() && revision === receiptsRevision
+            && key === JSON.stringify(readReceiptCandidatesRequest(selectedId)) && !isIntentionalAbort(error)) { showReceiptsAlert(getErrorMessage(error)); }
     }
-    candidatePage = response.page;
-    state.receiptCandidates = response.items;
-    candidateNavigation.render(response);
-    renderReceiptCandidates(ui.receiptCandidates, state.receiptCandidates);
 }
 
 function readReceiptCandidatesRequest(moneyMovementId: string): GetMoneyMovementReceiptCandidatesRequest {
@@ -476,6 +570,7 @@ function cancelCommentEdit(): void {
 }
 
 async function handleSaveCommentClick(button: HTMLButtonElement): Promise<void> {
+    if (button.disabled) { return; }
     const moneyMovementId = button.getAttribute("data-money-movement-id");
     if (!moneyMovementId) {
         return;
@@ -493,6 +588,13 @@ async function handleSaveCommentClick(button: HTMLButtonElement): Promise<void> 
         return;
     }
 
+    if (commands.has(moneyMovementId)) { return; }
+    commands.add(moneyMovementId);
+    const matchesList = movementRequests.capture();
+    const originalValue = input.value;
+    const matchesEditor = () => matchesList() && state.editingCommentMovementId === moneyMovementId
+        && ui.list.querySelector(`[data-action="edit-comment-input"][data-money-movement-id="${moneyMovementId}"]`) === input;
+    const isCurrent = () => matchesEditor() && input.value === originalValue;
     const comment = input.value.trim() || null;
     const originalText = button.textContent;
     button.disabled = true;
@@ -506,11 +608,17 @@ async function handleSaveCommentClick(button: HTMLButtonElement): Promise<void> 
             comment: comment
         });
 
+        if (!isCurrent()) { return; }
         movement.comment = comment;
         state.editingCommentMovementId = null;
         renderMovements();
     }
+    catch (error) {
+        if (matchesEditor()) { showAlertMessage(ui.alert, getWriteErrorMessage(error)); }
+    }
     finally {
+        commands.delete(moneyMovementId);
+        if (!matchesEditor()) { return; }
         button.disabled = false;
         button.textContent = originalText;
     }
@@ -549,6 +657,7 @@ function openMoveAccountModal(moneyMovementId: string, sourceAccountId: string):
         sourceAccountId: sourceAccountId
     };
 
+    ui.confirmMoveAccountButton.textContent = "Перенести";
     ui.moveSourceAccount.textContent = movement.accountName || "Счёт";
     ui.moveSourceAccount.style.border = "2px solid " + movement.accountColorHex;
     hideMoveAccountAlert();
@@ -623,37 +732,31 @@ function getUnavailableMoveReason(): string {
 }
 
 async function handleConfirmMoveAccountClick(): Promise<void> {
-    if (!state.pendingAccountAction) {
-        return;
-    }
-
+    const action = state.pendingAccountAction;
+    if (!action || commands.has(action.moneyMovementId)) { return; }
     const selectedOption = getSelectedMoveTargetOption();
-    if (!selectedOption || selectedOption.disabled) {
-        updateMoveActionState();
-        return;
-    }
-
+    if (!selectedOption || selectedOption.disabled) { updateMoveActionState(); return; }
+    const targetAccountId = selectedOption.value;
+    const matchesList = movementRequests.capture();
+    const isCurrent = () => state.pendingAccountAction === action && matchesList();
     const originalText = ui.confirmMoveAccountButton.textContent;
     ui.confirmMoveAccountButton.disabled = true;
-    ui.confirmMoveAccountButton.textContent = "Перенос...";
-
+    ui.confirmMoveAccountButton.textContent = "...";
+    commands.add(action.moneyMovementId);
     try {
-        await moveMoneyMovementToAccount(forgeryToken, {
-            moneyMovementId: state.pendingAccountAction.moneyMovementId,
-            sourceAccountId: state.pendingAccountAction.sourceAccountId,
-            targetAccountId: selectedOption.value
-        });
-
+        await moveMoneyMovementToAccount(forgeryToken, { moneyMovementId: action.moneyMovementId, sourceAccountId: action.sourceAccountId, targetAccountId });
+        if (!isCurrent()) { return; }
         state.pendingAccountAction = null;
         moveAccountModal.hide();
         await reloadMovements();
-    }
-    catch (error) {
-        showMoveAccountAlert(getErrorMessage(error));
-    }
-    finally {
-        ui.confirmMoveAccountButton.textContent = originalText;
-        updateMoveActionState();
+    } catch (error) {
+        if (isCurrent()) { showMoveAccountAlert(getWriteErrorMessage(error)); }
+    } finally {
+        commands.delete(action.moneyMovementId);
+        if (state.pendingAccountAction === action) {
+            ui.confirmMoveAccountButton.textContent = originalText;
+            updateMoveActionState();
+        }
     }
 }
 
@@ -666,34 +769,34 @@ function handleRemoveFromAccountClick(): void {
     ui.deleteInfo.textContent = movement ? getMovementInfoText(movement) : "";
     state.preserveMoveModalPendingOnHide = true;
     moveAccountModal.hide();
+    ui.confirmDeleteButton.textContent = "Удалить";
+    ui.confirmDeleteButton.disabled = false;
     deleteModal.show();
 }
 
 async function handleConfirmDeleteClick(): Promise<void> {
-    if (!state.pendingAccountAction) {
-        return;
-    }
-
+    const action = state.pendingAccountAction;
+    if (!action || commands.has(action.moneyMovementId)) { return; }
+    const matchesList = movementRequests.capture();
+    const isCurrent = () => state.pendingAccountAction === action && matchesList();
     const originalText = ui.confirmDeleteButton.textContent;
     ui.confirmDeleteButton.disabled = true;
-    ui.confirmDeleteButton.textContent = "Удаление...";
-
+    ui.confirmDeleteButton.textContent = "...";
+    commands.add(action.moneyMovementId);
     try {
-        await deleteMoneyMovement(forgeryToken, {
-            moneyMovementId: state.pendingAccountAction.moneyMovementId,
-            accountId: state.pendingAccountAction.sourceAccountId
-        });
-
-        deleteModal.hide();
+        await deleteMoneyMovement(forgeryToken, { moneyMovementId: action.moneyMovementId, accountId: action.sourceAccountId });
+        if (!isCurrent()) { return; }
         state.pendingAccountAction = null;
+        deleteModal.hide();
         await reloadMovements();
-    }
-    catch (error) {
-        showAlertMessage(ui.alert, getErrorMessage(error));
-    }
-    finally {
-        ui.confirmDeleteButton.disabled = false;
-        ui.confirmDeleteButton.textContent = originalText;
+    } catch (error) {
+        if (isCurrent()) { showAlertMessage(ui.alert, getWriteErrorMessage(error)); }
+    } finally {
+        commands.delete(action.moneyMovementId);
+        if (state.pendingAccountAction === action) {
+            ui.confirmDeleteButton.textContent = originalText;
+            ui.confirmDeleteButton.disabled = false;
+        }
     }
 }
 
@@ -838,6 +941,7 @@ function initDefaultDates(): void {
 }
 
 function handlePeriodPresetChange(): void {
+    movementRequests.invalidate();
     applySelectedPeriodPreset(new Date());
 }
 
@@ -848,6 +952,7 @@ function applySelectedPeriodPreset(now: Date): void {
 }
 
 function handleSearchInput(): void {
+    movementRequests.invalidate();
     state.searchQuery = ui.searchInput.value.trim();
 
     if (state.searchDebounceTimerId) {

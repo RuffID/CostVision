@@ -4,12 +4,12 @@ import { DashboardAccountDto, DashboardIncomeExpenseReportDto } from "./types.js
 type DashboardIncomeExpenseReportResponse = ServiceResultWithData<DashboardIncomeExpenseReportDto>;
 type DashboardAccountListResponse = ServiceResultWithData<DashboardAccountDto[]>;
 
-export async function loadDashboardAccountsAsync(antiForgeryToken: string | null): Promise<DashboardAccountDto[]> {
-    const response = await sendJsonRequest<DashboardAccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(antiForgeryToken));
+export async function loadDashboardAccountsAsync(antiForgeryToken: string | null, signal?: AbortSignal): Promise<DashboardAccountDto[]> {
+    const response = await sendJsonRequest<DashboardAccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(antiForgeryToken), null, signal);
     return unwrapServiceResult(response, isResponseArray);
 }
 
-export async function loadIncomeExpenseReportAsync(dateFrom: string, dateTo: string, period: string, expenseSource: string, accountIds: string[], includeWithoutAccount: boolean, storeNames: string[], antiForgeryToken: string | null): Promise<DashboardIncomeExpenseReportDto> {
+export async function loadIncomeExpenseReportAsync(dateFrom: string, dateTo: string, period: string, expenseSource: string, accountIds: string[], includeWithoutAccount: boolean, storeNames: string[], antiForgeryToken: string | null, signal?: AbortSignal): Promise<DashboardIncomeExpenseReportDto> {
     const parameters = new URLSearchParams();
     parameters.set("dateFrom", dateFrom);
     parameters.set("dateTo", dateTo);
@@ -28,7 +28,9 @@ export async function loadIncomeExpenseReportAsync(dateFrom: string, dateTo: str
     const response = await sendJsonRequest<DashboardIncomeExpenseReportResponse>(
         `?handler=IncomeExpenseReport&${parameters.toString()}`,
         "GET",
-        buildJsonHeaders(antiForgeryToken)
+        buildJsonHeaders(antiForgeryToken),
+        null,
+        signal
     );
 
     return unwrapServiceResult(response, value => hasResponseFields(value, ["stores", "points"]));

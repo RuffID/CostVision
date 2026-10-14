@@ -1,3 +1,4 @@
+import { createRequestCoordinator, getWriteErrorMessage, isIntentionalAbort } from "../../shared/requestCoordinator.js";
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { createBootstrapModal, type BootstrapModal } from "../../shared/bootstrap.js";
 import { requireElementById, requireInputById } from "../../shared/dom.js";
@@ -30,7 +31,12 @@ let adaptiveNameInput: HTMLInputElement;
 let clearAdaptiveNameButton: HTMLButtonElement;
 let saveAdaptiveNameButton: HTMLButtonElement;
 let editedProductId: string | null = null;
-let latestLoadRequestId = 0;
+const listRequests = createRequestCoordinator();
+const accountRequests = createRequestCoordinator();
+const namingContext = createRequestCoordinator();
+const namingWrites = new Set<string>();
+const purchaseRequests = createRequestCoordinator();
+window.addEventListener("pagehide", () => { listRequests.invalidate(); accountRequests.invalidate(); namingContext.invalidate(); purchaseRequests.invalidate(); });
 let accountFilterSelect: HTMLSelectElement;
 let productsCountElement: HTMLElement;
 let productsSumElement: HTMLElement;
@@ -94,18 +100,24 @@ async function initProductsPage(): Promise<void> {
 
     adaptiveNameModalElement = requireElementById<HTMLElement>("productAdaptiveNameModal");
     adaptiveNameModal = createBootstrapModal(adaptiveNameModalElement);
+    requireElementById<HTMLElement>("productAdaptiveNameModal").addEventListener("hide.bs.modal", () => {
+        namingContext.invalidate();
+        editedProductId = null;
+    });
     originalNameInput = requireInputById("productOriginalName");
     adaptiveNameInput = requireInputById("productAdaptiveName");
     clearAdaptiveNameButton = requireElementById<HTMLButtonElement>("productClearAdaptiveName");
     saveAdaptiveNameButton = requireElementById<HTMLButtonElement>("productSaveAdaptiveName");
     storePurchasesModalElement = requireElementById<HTMLElement>("productStorePurchasesModal");
     storePurchasesModal = createBootstrapModal(storePurchasesModalElement);
+    storePurchasesModalElement.addEventListener("hide.bs.modal", () => purchaseRequests.invalidate());
     storePurchasesBody = requireElementById<HTMLTableSectionElement>("productStorePurchasesBody");
     storePurchasesPageSizeSelect = requireElementById<HTMLSelectElement>("productStorePurchasesPageSize");
     storePurchasesPagination = requireElementById<HTMLElement>("productStorePurchasesPagination");
 
     requireElementById<HTMLButtonElement>("productsApplyFilter").addEventListener("click", () => reloadFromFirstPage());
     searchInput.addEventListener("keydown", handleSearchKeyDown);
+    searchInput.addEventListener("input", () => { listRequests.invalidate(); tableLoadingIndicator.hide(); });
     showOriginalNamesInput.addEventListener("change", handleShowOriginalNamesChange);
     accountFilterSelect.addEventListener("change", () => reloadFromFirstPage());
     ui.nameSortButton.addEventListener("click", () => handleSortClick("name"));
@@ -128,7 +140,7 @@ async function initProductsPage(): Promise<void> {
     });
 
     restorePreferences();
-    await loadAccounts();
+    if (!await loadAccounts()) { return; }
     syncPageSizeInputs(productsState.pageSize);
     void loadPage(getPageFromQuery());
 }
@@ -184,15 +196,17 @@ async function loadPage(page: number): Promise<void> {
         return;
     }
 
-    const requestId = ++latestLoadRequestId;
+    const request = listRequests.begin({ search: productsState.search, page, pageSize: productsState.pageSize,
+        sortBy: productsState.sortBy, sortDirection: productsState.sortDirection, accountId: accountFilterSelect.value });
+    const p = request.parameters;
     updatePageQuery(page);
     tableLoadingIndicator.show();
 
     try {
         hideAlertMessage(alertElement);
 
-        const result = await getProducts(productsState.search, page, productsState.pageSize, productsState.sortBy, productsState.sortDirection, accountFilterSelect.value);
-        if (requestId !== latestLoadRequestId) {
+        const result = await getProducts(p.search, p.page, p.pageSize, p.sortBy, p.sortDirection, p.accountId, request.signal);
+        if (!request.isCurrent()) {
             return;
         }
 
@@ -215,7 +229,7 @@ async function loadPage(page: number): Promise<void> {
         tableLoadingIndicator.hide();
     }
     catch (error) {
-        if (requestId !== latestLoadRequestId) {
+        if (!request.isCurrent() || isIntentionalAbort(error)) {
             return;
         }
 
@@ -314,6 +328,7 @@ function handleTableClick(event: MouseEvent): void {
 }
 
 async function openStorePurchasesModal(product: ProductListItem): Promise<void> {
+    const request = purchaseRequests.begin(product.id);
     requireElementById<HTMLElement>("productStorePurchasesModalTitle").textContent = `Магазины, в которых был куплен товар - ${product.adaptiveName ?? product.name}`;
     storePurchases = [];
     storePurchasesPage = 1;
@@ -322,10 +337,13 @@ async function openStorePurchasesModal(product: ProductListItem): Promise<void> 
 
     try {
         hideAlertMessage(alertElement);
-        storePurchases = await getProductStorePurchases(product.id);
+        const purchases = await getProductStorePurchases(request.parameters, request.signal);
+        if (!request.isCurrent()) { return; }
+        storePurchases = purchases;
         renderStorePurchases();
     }
     catch (error) {
+        if (!request.isCurrent() || isIntentionalAbort(error)) { return; }
         storePurchasesModal.hide();
         showAlertMessage(alertElement, getErrorMessage(error));
     }
@@ -351,20 +369,30 @@ function renderStorePurchases(): void {
     }
 }
 
-async function loadAccounts(): Promise<void> {
-    const accounts = await getProductAccounts();
-    accountFilterSelect.replaceChildren();
-    const allAccountsOption = document.createElement("option");
-    allAccountsOption.value = "";
-    allAccountsOption.textContent = "Все счета";
-    accountFilterSelect.append(allAccountsOption);
-    for (const account of accounts) {
-        const option = document.createElement("option");
-        option.value = account.id;
-        option.textContent = account.name;
-        accountFilterSelect.append(option);
+async function loadAccounts(): Promise<boolean> {
+    const request = accountRequests.begin(null);
+    try {
+        const accounts = await getProductAccounts(request.signal);
+        if (!request.isCurrent()) { return false; }
+        accountFilterSelect.replaceChildren();
+        const allAccountsOption = document.createElement("option");
+        allAccountsOption.value = "";
+        allAccountsOption.textContent = "Все счета";
+        accountFilterSelect.append(allAccountsOption);
+        for (const account of accounts) {
+            const option = document.createElement("option");
+            option.value = account.id;
+            option.textContent = account.name;
+            accountFilterSelect.append(option);
+        }
+        accountFilterSelect.disabled = false;
+        return true;
+    } catch (error) {
+        if (request.isCurrent() && !isIntentionalAbort(error)) {
+            showAlertMessage(alertElement, error instanceof Error ? error.message : "Не удалось загрузить счета.");
+        }
+        return false;
     }
-    accountFilterSelect.disabled = false;
 }
 
 function formatMoney(value: number): string {
@@ -372,7 +400,9 @@ function formatMoney(value: number): string {
 }
 
 function openAdaptiveNameModal(product: ProductListItem): void {
+    namingContext.invalidate();
     editedProductId = product.id;
+    saveAdaptiveNameButton.disabled = false;
     requireElementById<HTMLElement>("productAdaptiveNameModalTitle").textContent = `Укажите общее наименование для товара - ${product.name}`;
     originalNameInput.value = product.name;
     adaptiveNameInput.value = product.adaptiveName ?? "";
@@ -381,22 +411,26 @@ function openAdaptiveNameModal(product: ProductListItem): void {
 }
 
 async function saveAdaptiveName(): Promise<void> {
-    if (!editedProductId) {
-        throw new Error("Не выбран товар для изменения наименования.");
-    }
-
+    const id = editedProductId;
+    if (!id) { throw new Error("Не выбран объект для изменения наименования."); }
+    if (namingWrites.has(id)) { return; }
+    const adaptiveName = adaptiveNameInput.value;
+    const isCurrent = namingContext.capture();
+    namingWrites.add(id);
+    saveAdaptiveNameButton.disabled = true;
     try {
-        saveAdaptiveNameButton.disabled = true;
         hideAlertMessage(alertElement);
-        await updateProductAdaptiveName(editedProductId, adaptiveNameInput.value);
-        adaptiveNameModal.hide();
+        await updateProductAdaptiveName(id, adaptiveName);
+        if (!isCurrent()) { return; }
         await loadPage(productsState.page);
+        if (isCurrent()) { adaptiveNameModal.hide(); }
     }
     catch (error) {
-        showAlertMessage(alertElement, getErrorMessage(error));
+        if (isCurrent()) { showAlertMessage(alertElement, getWriteErrorMessage(error)); }
     }
     finally {
-        saveAdaptiveNameButton.disabled = false;
+        namingWrites.delete(id);
+        if (isCurrent()) { saveAdaptiveNameButton.disabled = false; }
     }
 }
 

@@ -91,7 +91,7 @@ test("actual candidate modal resets pages for changed filters and ignores a prev
     Object.assign(globalThis, {
         document: { getElementById: element, createElement: () => new ElementStub(), addEventListener() {} },
         HTMLElement: ElementStub, HTMLInputElement: ElementStub,
-        window: { bootstrap: { Modal: class { show() {} hide() {} } } }
+        window: { addEventListener() {}, bootstrap: { Modal: class { show() {} hide() {} } } }
     });
     globalThis.fetch = async url => {
         const query = new URL(String(url), "https://local.invalid").searchParams;

@@ -4,7 +4,7 @@ import { loadAvailableAccountsApi, moveReceiptToAccountApi, openReceiptApi, refr
 import type { AvailableAccountDto, ReceiptDto } from "../reports/receipts/types.js";
 import type { StoreList, StoreReceiptList, StoreSortBy, StoreSortDirection } from "./types.js";
 
-export async function getStores(search: string, groupByName: boolean, page: number, pageSize: number, sortBy: StoreSortBy, sortDirection: StoreSortDirection, accountId: string): Promise<StoreList> {
+export async function getStores(search: string, groupByName: boolean, page: number, pageSize: number, sortBy: StoreSortBy, sortDirection: StoreSortDirection, accountId: string, signal?: AbortSignal): Promise<StoreList> {
     const params = new URLSearchParams({
         search: search,
         groupByName: String(groupByName),
@@ -15,7 +15,7 @@ export async function getStores(search: string, groupByName: boolean, page: numb
     });
     if (accountId) params.set("accountId", accountId);
 
-    const result = await sendJsonRequest<ServiceResultWithData<StoreList>>(`/stores?handler=List&${params.toString()}`);
+    const result = await sendJsonRequest<ServiceResultWithData<StoreList>>(`/stores?handler=List&${params.toString()}`, "GET", {}, null, signal);
     return unwrapServiceResult(result, value => isPagedResponse(value, ["totalSum","incomeSum"]));
 }
 
@@ -32,7 +32,7 @@ export async function updateStoreAdaptiveName(storeId: string, adaptiveName: str
     unwrapServiceSuccess(result);
 }
 
-export async function getStoreReceipts(storeId: string | null, groupKey: string | null, page: number, pageSize: number): Promise<StoreReceiptList> {
+export async function getStoreReceipts(storeId: string | null, groupKey: string | null, page: number, pageSize: number, signal?: AbortSignal): Promise<StoreReceiptList> {
     const params = new URLSearchParams({
         page: String(page),
         pageSize: String(pageSize)
@@ -46,20 +46,20 @@ export async function getStoreReceipts(storeId: string | null, groupKey: string 
         params.set("groupKey", groupKey);
     }
 
-    const result = await sendJsonRequest<ServiceResultWithData<StoreReceiptList>>(`/stores?handler=Receipts&${params.toString()}`);
+    const result = await sendJsonRequest<ServiceResultWithData<StoreReceiptList>>(`/stores?handler=Receipts&${params.toString()}`, "GET", {}, null, signal);
     return unwrapServiceResult(result, value => isPagedResponse(value, ["totalSum","incomeSum"]));
 }
 
-export function openStoreReceipt(receiptId: string): Promise<ReceiptDto> {
-    return openReceiptApi(receiptId, getRequestVerificationToken());
+export function openStoreReceipt(receiptId: string, signal?: AbortSignal): Promise<ReceiptDto> {
+    return openReceiptApi(receiptId, getRequestVerificationToken(), signal);
 }
 
 export function refreshStoreReceipt(receiptId: string): Promise<ReceiptDto> {
     return refreshReceiptApi(receiptId, getRequestVerificationToken());
 }
 
-export function loadStoreAvailableAccounts(): Promise<AvailableAccountDto[]> {
-    return loadAvailableAccountsApi(getRequestVerificationToken());
+export function loadStoreAvailableAccounts(signal?: AbortSignal): Promise<AvailableAccountDto[]> {
+    return loadAvailableAccountsApi(getRequestVerificationToken(), signal);
 }
 
 export function moveStoreReceiptToAccount(receiptId: string, sourceAccountId: string, targetAccountId: string): Promise<void> {

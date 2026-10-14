@@ -1,3 +1,4 @@
+import { createRequestCoordinator, getWriteErrorMessage, isIntentionalAbort } from "../../shared/requestCoordinator.js";
 import { hideAlertMessage, showAlertMessage } from "../../shared/alerts.js";
 import { createBootstrapModal, type BootstrapModal } from "../../shared/bootstrap.js";
 import { clearElement, requireElementById, requireInputById } from "../../shared/dom.js";
@@ -62,7 +63,17 @@ let availableAccounts: AvailableAccountDto[] = [];
 let pendingReceiptAccountAction: MoveReceiptAccountAction | null = null;
 let preserveMoveReceiptAccountModalStateOnHide = false;
 let shouldRestoreMoveReceiptAccountModalAfterRemoveConfirmation = false;
-let latestLoadRequestId = 0;
+const listRequests = createRequestCoordinator();
+const accountRequests = createRequestCoordinator();
+const namingContext = createRequestCoordinator();
+const namingWrites = new Set<string>();
+const storeReceiptRequests = createRequestCoordinator();
+const storeContext = createRequestCoordinator();
+const detailRequests = createRequestCoordinator();
+const accountActionContext = createRequestCoordinator();
+const receiptWrites = new Set<string>();
+const confirmationContext = createRequestCoordinator();
+window.addEventListener("pagehide", () => { listRequests.invalidate(); accountRequests.invalidate(); namingContext.invalidate(); storeReceiptRequests.invalidate(); storeContext.invalidate(); detailRequests.invalidate(); accountActionContext.invalidate(); confirmationContext.invalidate(); });
 let accountFilterSelect: HTMLSelectElement;
 let storesCountElement: HTMLElement;
 let storesSumElement: HTMLElement;
@@ -106,6 +117,7 @@ async function initStoresPage(): Promise<void> {
     storeReceiptsPageSizeSelect = requireElementById<HTMLSelectElement>("storeReceiptsPageSize");
     storeReceiptsPageSizeSelect.addEventListener("change", () => void loadSelectedStoreReceiptsPage(1));
     receiptDetailsModal = createBootstrapModal(requireElementById<HTMLElement>("receiptDetailsModal"));
+    requireElementById<HTMLElement>("receiptDetailsModal").addEventListener("hide.bs.modal", () => detailRequests.invalidate());
     receiptDetailsListElement = requireElementById<HTMLElement>("receipt-details-list");
     receiptDetailsHeaderElement = requireElementById<HTMLElement>("receipt-details-header");
     receiptDetailsTotalElement = requireElementById<HTMLElement>("receipt-details-total");
@@ -144,6 +156,10 @@ async function initStoresPage(): Promise<void> {
     });
 
     adaptiveNameModal = createBootstrapModal(requireElementById<HTMLElement>("storeAdaptiveNameModal"));
+    requireElementById<HTMLElement>("storeAdaptiveNameModal").addEventListener("hide.bs.modal", () => {
+        namingContext.invalidate();
+        editedStoreId = null;
+    });
     originalNameInput = requireInputById("storeOriginalName");
     adaptiveNameInput = requireInputById("storeAdaptiveName");
     clearAdaptiveNameButton = requireElementById<HTMLButtonElement>("storeClearAdaptiveName");
@@ -151,6 +167,7 @@ async function initStoresPage(): Promise<void> {
 
     requireElementById<HTMLButtonElement>("storesApplyFilter").addEventListener("click", () => reloadFromFirstPage());
     searchInput.addEventListener("keydown", handleSearchKeyDown);
+    searchInput.addEventListener("input", () => { listRequests.invalidate(); tableLoadingIndicator.hide(); });
     showOriginalNamesInput.addEventListener("change", handleShowOriginalNamesChange);
     groupByNameInput.addEventListener("change", () => reloadFromFirstPage());
     accountFilterSelect.addEventListener("change", () => reloadFromFirstPage());
@@ -174,23 +191,27 @@ async function initStoresPage(): Promise<void> {
     storeReceiptsListElement.addEventListener("click", event => {
         void handleStoreReceiptClick(event);
     });
-    storeReceiptsModalElement.addEventListener("hidden.bs.modal", clearSelectedStoreReceipts);
-    moveReceiptAccountModalElement.addEventListener("hidden.bs.modal", () => {
+    storeReceiptsModalElement.addEventListener("hide.bs.modal", clearSelectedStoreReceipts);
+    moveReceiptAccountModalElement.addEventListener("hide.bs.modal", () => {
         if (preserveMoveReceiptAccountModalStateOnHide) {
             return;
         }
 
         clearMoveReceiptAccountState();
     });
-    requireElementById<HTMLElement>("removeReceiptAccountModal").addEventListener("hidden.bs.modal", () => {
-        if (shouldRestoreMoveReceiptAccountModalAfterRemoveConfirmation) {
+    const removeModalElement = requireElementById<HTMLElement>("removeReceiptAccountModal");
+    removeModalElement.addEventListener("hide.bs.modal", () => {
+        const isCurrent = confirmationContext.capture();
+        const matchesStore = storeContext.capture();
+        const action = pendingReceiptAccountAction;
+        const restore = shouldRestoreMoveReceiptAccountModalAfterRemoveConfirmation;
+        if (!restore) { pendingReceiptAccountAction = null; }
+        removeModalElement.addEventListener("hidden.bs.modal", () => {
+            if (!isCurrent() || !matchesStore() || !restore || pendingReceiptAccountAction !== action) { return; }
             shouldRestoreMoveReceiptAccountModalAfterRemoveConfirmation = false;
             preserveMoveReceiptAccountModalStateOnHide = false;
             moveReceiptAccountModal.show();
-            return;
-        }
-
-        pendingReceiptAccountAction = null;
+        }, { once: true });
     });
     confirmMoveReceiptAccountButton.addEventListener("click", () => {
         void onConfirmMoveReceiptToAccount();
@@ -208,7 +229,7 @@ async function initStoresPage(): Promise<void> {
 
     restorePreferences();
     syncPageSizeInputs(storesState.pageSize);
-    await loadAvailableAccounts();
+    if (!await loadAvailableAccounts()) { return; }
     await loadPage(getPageFromQuery());
 }
 
@@ -245,15 +266,17 @@ async function loadPage(page: number): Promise<void> {
         return;
     }
 
-    const requestId = ++latestLoadRequestId;
+    const request = listRequests.begin({ search: storesState.search, page, pageSize: storesState.pageSize,
+        sortBy: storesState.sortBy, sortDirection: storesState.sortDirection, accountId: accountFilterSelect.value, groupByName: storesState.groupByName });
+    const p = request.parameters;
     updatePageQuery(page);
     tableLoadingIndicator.show();
 
     try {
         hideAlertMessage(alertElement);
 
-        const result = await getStores(storesState.search, storesState.groupByName, page, storesState.pageSize, storesState.sortBy, storesState.sortDirection, accountFilterSelect.value);
-        if (requestId !== latestLoadRequestId) {
+        const result = await getStores(p.search, p.groupByName, p.page, p.pageSize, p.sortBy, p.sortDirection, p.accountId, request.signal);
+        if (!request.isCurrent()) {
             return;
         }
 
@@ -275,7 +298,7 @@ async function loadPage(page: number): Promise<void> {
         tableLoadingIndicator.hide();
     }
     catch (error) {
-        if (requestId !== latestLoadRequestId) {
+        if (!request.isCurrent() || isIntentionalAbort(error)) {
             return;
         }
 
@@ -376,7 +399,9 @@ function handleShowOriginalNamesChange(): void {
 }
 
 function openAdaptiveNameModal(store: StoreListItem): void {
+    namingContext.invalidate();
     editedStoreId = store.id;
+    saveAdaptiveNameButton.disabled = false;
     requireElementById<HTMLElement>("storeAdaptiveNameModalTitle").textContent = `Укажите общее наименование для магазина - ${store.name}`;
     originalNameInput.value = store.name;
     adaptiveNameInput.value = store.adaptiveName ?? "";
@@ -385,22 +410,26 @@ function openAdaptiveNameModal(store: StoreListItem): void {
 }
 
 async function saveAdaptiveName(): Promise<void> {
-    if (!editedStoreId) {
-        throw new Error("Не выбран магазин для изменения наименования.");
-    }
-
+    const id = editedStoreId;
+    if (!id) { throw new Error("Не выбран объект для изменения наименования."); }
+    if (namingWrites.has(id)) { return; }
+    const adaptiveName = adaptiveNameInput.value;
+    const isCurrent = namingContext.capture();
+    namingWrites.add(id);
+    saveAdaptiveNameButton.disabled = true;
     try {
-        saveAdaptiveNameButton.disabled = true;
         hideAlertMessage(alertElement);
-        await updateStoreAdaptiveName(editedStoreId, adaptiveNameInput.value);
-        adaptiveNameModal.hide();
+        await updateStoreAdaptiveName(id, adaptiveName);
+        if (!isCurrent()) { return; }
         await loadPage(storesState.page);
+        if (isCurrent()) { adaptiveNameModal.hide(); }
     }
     catch (error) {
-        showAlertMessage(alertElement, getErrorMessage(error));
+        if (isCurrent()) { showAlertMessage(alertElement, getWriteErrorMessage(error)); }
     }
     finally {
-        saveAdaptiveNameButton.disabled = false;
+        namingWrites.delete(id);
+        if (isCurrent()) { saveAdaptiveNameButton.disabled = false; }
     }
 }
 
@@ -429,6 +458,10 @@ async function openStoreReceiptsModal(button: HTMLButtonElement): Promise<void> 
     const groupKey = button.dataset.storeGroupKey ?? null;
     const store = groupKey ? getStoreByGroupKey(groupKey) : getStoreById(button.dataset.storeId ?? "");
 
+    storeContext.invalidate();
+    storeReceiptRequests.invalidate();
+    detailRequests.invalidate();
+    selectedStoreReceipts = [];
     selectedStoreReceiptsStoreId = storeId;
     selectedStoreReceiptsGroupKey = groupKey;
     selectedStoreReceiptsPage = 1;
@@ -447,9 +480,13 @@ async function loadSelectedStoreReceiptsPage(page: number): Promise<void> {
         throw new Error("Не выбран магазин для просмотра чеков.");
     }
 
+    const request = storeReceiptRequests.begin({ storeId: selectedStoreReceiptsStoreId,
+        groupKey: selectedStoreReceiptsGroupKey, page, pageSize: Number(storeReceiptsPageSizeSelect.value) });
+    const p = request.parameters;
     try {
         hideStoreReceiptsAlert();
-        const result = await getStoreReceipts(selectedStoreReceiptsStoreId, selectedStoreReceiptsGroupKey, page, Number(storeReceiptsPageSizeSelect.value));
+        const result = await getStoreReceipts(p.storeId, p.groupKey, p.page, p.pageSize, request.signal);
+        if (!request.isCurrent()) { return; }
         selectedStoreReceipts = result.items;
         selectedStoreReceiptsPage = result.page;
         requireElementById<HTMLElement>("storeReceiptsSummary").textContent = formatReportTotals(result.totalSum, result.incomeSum, formatCurrency);
@@ -457,6 +494,7 @@ async function loadSelectedStoreReceiptsPage(page: number): Promise<void> {
         renderStoreReceiptsPagination(result.page, result.totalPages, result.totalCount, result.pageSize, result.hasPreviousPage, result.hasNextPage);
     }
     catch (error) {
+        if (!request.isCurrent() || isIntentionalAbort(error)) { return; }
         showStoreReceiptsAlert(getErrorMessage(error));
     }
 }
@@ -597,25 +635,40 @@ async function handleStoreReceiptClick(event: MouseEvent): Promise<void> {
     }
 }
 
-async function loadAvailableAccounts(): Promise<void> {
-    availableAccounts = (await loadStoreAvailableAccounts()).map(normalizeAvailableAccount);
-    accountFilterSelect.replaceChildren();
-    const allAccountsOption = document.createElement("option");
-    allAccountsOption.value = "";
-    allAccountsOption.textContent = "Все счета";
-    accountFilterSelect.append(allAccountsOption);
-    for (const account of availableAccounts) {
-        const option = document.createElement("option");
-        option.value = account.id;
-        option.textContent = account.name;
-        accountFilterSelect.append(option);
+async function loadAvailableAccounts(): Promise<boolean> {
+    const request = accountRequests.begin(null);
+    try {
+        const accounts = await loadStoreAvailableAccounts(request.signal);
+        if (!request.isCurrent()) { return false; }
+        availableAccounts = accounts.map(normalizeAvailableAccount);
+        accountFilterSelect.replaceChildren();
+        const allAccountsOption = document.createElement("option");
+        allAccountsOption.value = "";
+        allAccountsOption.textContent = "Все счета";
+        accountFilterSelect.append(allAccountsOption);
+        for (const account of availableAccounts) {
+            const option = document.createElement("option");
+            option.value = account.id;
+            option.textContent = account.name;
+            accountFilterSelect.append(option);
+        }
+        accountFilterSelect.disabled = false;
+        return true;
+    } catch (error) {
+        if (request.isCurrent() && !isIntentionalAbort(error)) {
+            showAlertMessage(alertElement, error instanceof Error ? error.message : "Не удалось загрузить счета.");
+        }
+        return false;
     }
-    accountFilterSelect.disabled = false;
 }
 
 async function openMoveReceiptAccountModal(receiptId: string, sourceAccountId: string): Promise<void> {
+    confirmationContext.invalidate();
+    const request = accountActionContext.begin({ receiptId, sourceAccountId });
+    const matchesStore = storeContext.capture();
     if (availableAccounts.length === 0) {
-        await loadAvailableAccounts();
+        if (!await loadAvailableAccounts()) { return; }
+        if (!request.isCurrent() || !matchesStore()) { return; }
     }
 
     const receipt = sourceAccountId
@@ -637,6 +690,7 @@ async function openMoveReceiptAccountModal(receiptId: string, sourceAccountId: s
         return;
     }
 
+    confirmMoveReceiptAccountButton.textContent = "Перенести";
     pendingReceiptAccountAction = {
         receiptId: receiptId,
         sourceAccountId: sourceAccountId
@@ -729,33 +783,44 @@ async function onConfirmMoveReceiptToAccount(): Promise<void> {
         return;
     }
 
+    const action = pendingReceiptAccountAction;
+    if (receiptWrites.has(action.receiptId)) { return; }
+    const matchesStore = storeContext.capture();
+    const matchesPage = storeReceiptRequests.capture();
+    const isCurrent = () => pendingReceiptAccountAction === action && matchesStore() && matchesPage();
     const selectedOption = getSelectedMoveReceiptTargetOption();
     if (!selectedOption || selectedOption.disabled) {
         updateMoveReceiptActionState();
         return;
     }
 
+    const targetAccountId = selectedOption.value;
+    receiptWrites.add(action.receiptId);
     const originalText = confirmMoveReceiptAccountButton.textContent;
     confirmMoveReceiptAccountButton.disabled = true;
     confirmMoveReceiptAccountButton.textContent = "Перенос...";
     removeReceiptFromAccountButton.disabled = true;
 
     try {
-        await moveStoreReceiptToAccount(pendingReceiptAccountAction.receiptId, pendingReceiptAccountAction.sourceAccountId, selectedOption.value);
-        replaceReceiptAccountLink(selectedStoreReceipts, availableAccounts, pendingReceiptAccountAction.receiptId, pendingReceiptAccountAction.sourceAccountId, selectedOption.value);
+        await moveStoreReceiptToAccount(action.receiptId, action.sourceAccountId, targetAccountId);
+        if (!isCurrent()) { return; }
+        replaceReceiptAccountLink(selectedStoreReceipts, availableAccounts, action.receiptId, action.sourceAccountId, targetAccountId);
         closeMoveReceiptAccountModal();
         await loadSelectedStoreReceiptsPage(selectedStoreReceiptsPage);
     }
     catch (error) {
-        showMoveReceiptAccountAlert(getErrorMessage(error));
+        if (isCurrent()) { showMoveReceiptAccountAlert(getWriteErrorMessage(error)); }
     }
     finally {
+        receiptWrites.delete(action.receiptId);
+        if (pendingReceiptAccountAction !== action) { return; }
         confirmMoveReceiptAccountButton.textContent = originalText;
         updateMoveReceiptActionState();
     }
 }
 
 function openRemoveReceiptFromAccountConfirmation(): void {
+    confirmationContext.invalidate();
     if (!pendingReceiptAccountAction) {
         return;
     }
@@ -796,6 +861,12 @@ async function onConfirmRemoveReceiptFromAccount(): Promise<void> {
         return;
     }
 
+    const action = pendingReceiptAccountAction;
+    if (receiptWrites.has(action.receiptId)) { return; }
+    const matchesStore = storeContext.capture();
+    const matchesPage = storeReceiptRequests.capture();
+    const isCurrent = () => pendingReceiptAccountAction === action && matchesStore() && matchesPage();
+    receiptWrites.add(action.receiptId);
     const originalText = confirmRemoveReceiptAccountButton.textContent;
     confirmRemoveReceiptAccountButton.disabled = true;
     confirmRemoveReceiptAccountButton.textContent = "Удаление...";
@@ -803,16 +874,19 @@ async function onConfirmRemoveReceiptFromAccount(): Promise<void> {
     try {
         shouldRestoreMoveReceiptAccountModalAfterRemoveConfirmation = false;
         preserveMoveReceiptAccountModalStateOnHide = false;
-        await removeStoreReceiptFromAccount(pendingReceiptAccountAction.receiptId, pendingReceiptAccountAction.sourceAccountId);
-        selectedStoreReceipts = removeReceiptAccountLink(selectedStoreReceipts, pendingReceiptAccountAction.receiptId, pendingReceiptAccountAction.sourceAccountId);
+        await removeStoreReceiptFromAccount(action.receiptId, action.sourceAccountId);
+        if (!isCurrent()) { return; }
+        selectedStoreReceipts = removeReceiptAccountLink(selectedStoreReceipts, action.receiptId, action.sourceAccountId);
         closeMoveReceiptAccountModal();
         removeReceiptAccountModal.hide();
         await loadSelectedStoreReceiptsPage(selectedStoreReceiptsPage);
     }
     catch (error) {
-        showStoreReceiptsAlert(getErrorMessage(error));
+        if (isCurrent()) { showStoreReceiptsAlert(getWriteErrorMessage(error)); }
     }
     finally {
+        receiptWrites.delete(action.receiptId);
+        if (pendingReceiptAccountAction !== action) { return; }
         confirmRemoveReceiptAccountButton.disabled = false;
         confirmRemoveReceiptAccountButton.textContent = originalText;
     }
@@ -852,6 +926,7 @@ function closeMoveReceiptAccountModal(): void {
 }
 
 function clearMoveReceiptAccountState(): void {
+    accountActionContext.invalidate();
     pendingReceiptAccountAction = null;
     hideMoveReceiptAccountAlert();
     moveReceiptTargetAccountSelect.replaceChildren();
@@ -874,8 +949,11 @@ function getReceiptCardId(element: HTMLElement): string | null {
 }
 
 async function openReceipt(receiptId: string): Promise<void> {
+    const request = detailRequests.begin(receiptId);
+    const matchesStore = storeContext.capture();
     try {
-        const receipt = await openStoreReceipt(receiptId);
+        const receipt = await openStoreReceipt(request.parameters, request.signal);
+        if (!request.isCurrent() || !matchesStore()) { return; }
         renderReceiptDetailsModal(
             receipt,
             {
@@ -889,24 +967,33 @@ async function openReceipt(receiptId: string): Promise<void> {
         );
     }
     catch (error) {
+        if (!request.isCurrent() || !matchesStore() || isIntentionalAbort(error)) { return; }
         showStoreReceiptsAlert(getErrorMessage(error));
     }
 }
 
 async function refreshReceipt(receiptId: string, card: HTMLElement, button: HTMLButtonElement): Promise<void> {
+    if (button.disabled || receiptWrites.has(receiptId)) { return; }
+    receiptWrites.add(receiptId);
+    const matchesStore = storeContext.capture();
+    const matchesPage = storeReceiptRequests.capture();
+    const isCurrent = () => matchesStore() && matchesPage();
     const originalText = button.textContent;
     button.disabled = true;
     button.textContent = "Обновление...";
 
     try {
         const receipt = await refreshStoreReceipt(receiptId);
+        if (!isCurrent()) { return; }
         updateCardFromDto(card, receipt, formatCurrency);
         replaceSelectedReceipt(receipt);
     }
     catch (error) {
-        showStoreReceiptsAlert(getErrorMessage(error));
+        if (isCurrent()) { showStoreReceiptsAlert(getWriteErrorMessage(error)); }
     }
     finally {
+        receiptWrites.delete(receiptId);
+        if (!isCurrent()) { return; }
         button.disabled = false;
         button.textContent = originalText;
     }
@@ -917,6 +1004,9 @@ function replaceSelectedReceipt(receipt: ReceiptDto): void {
 }
 
 function clearSelectedStoreReceipts(): void {
+    storeContext.invalidate();
+    storeReceiptRequests.invalidate();
+    detailRequests.invalidate();
     selectedStoreReceiptsStoreId = null;
     selectedStoreReceiptsGroupKey = null;
     selectedStoreReceiptsPage = 1;

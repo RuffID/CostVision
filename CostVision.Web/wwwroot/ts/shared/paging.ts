@@ -29,6 +29,7 @@ export function createPageNavigation(after: HTMLElement, load: (page: number) =>
     after.after(container);
     let current: PagedList<unknown> | null = null;
     let busy = false;
+    let revision = 0;
     container.hidden = true;
 
     async function navigate(delta: number): Promise<void> {
@@ -36,13 +37,15 @@ export function createPageNavigation(after: HTMLElement, load: (page: number) =>
             return;
         }
 
+        const activeRevision = revision;
         busy = true;
         previous.disabled = next.disabled = true;
         try {
             await load(current.page + delta);
         } catch (error) {
-            onError(error);
+            if (activeRevision === revision) { onError(error); }
         } finally {
+            if (activeRevision !== revision) { return; }
             busy = false;
             if (current) {
                 previous.disabled = !current.hasPreviousPage;
@@ -62,6 +65,8 @@ export function createPageNavigation(after: HTMLElement, load: (page: number) =>
             next.disabled = busy || !page.hasNextPage;
         },
         clear(): void {
+            revision++;
+            busy = false;
             current = null;
             container.hidden = true;
             previous.disabled = next.disabled = true;

@@ -1,3 +1,4 @@
+import { createRequestCoordinator, getWriteErrorMessage, isIntentionalAbort } from "../../../../shared/requestCoordinator.js";
 import { createPageNavigation } from "../../../../shared/paging.js";
 import { createBootstrapModal } from "../../../../shared/bootstrap.js";
 import { clearElement, requireElementById, requireInputById } from "../../../../shared/dom.js";
@@ -40,7 +41,10 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
     let selectedReceiptId: string | null = null;
     let page = 1;
     let filterKey = "";
-    let requestNumber = 0;
+    const linkedRequests = createRequestCoordinator();
+    const candidateRequests = createRequestCoordinator();
+    const commands = new Set<string>();
+    window.addEventListener("pagehide", () => { linkedRequests.invalidate(); candidateRequests.invalidate(); modalRevision++; });
     let modalRevision = 0;
     const navigation = createPageNavigation(elements.candidates, async nextPage => {
         page = nextPage;
@@ -67,10 +71,11 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
 
     elements.linkedMovements.addEventListener('click', onLinkedMovementsClick);
     elements.candidates.addEventListener('click', onCandidatesClick);
-    elements.modalElement.addEventListener('hidden.bs.modal', function () {
+    elements.modalElement.addEventListener('hide.bs.modal', function () {
         selectedReceiptId = null;
         modalRevision++;
-        requestNumber++;
+        linkedRequests.invalidate();
+        candidateRequests.invalidate();
         navigation.clear();
         hideAlert(elements);
     });
@@ -84,6 +89,10 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
 
         page = 1;
         modalRevision++;
+        linkedRequests.invalidate();
+        candidateRequests.invalidate();
+        clearElement(elements.linkedMovements);
+        clearElement(elements.candidates);
         navigation.clear();
         selectedReceiptId = receiptId;
         elements.info.textContent = buildInfoText(receipt, options.formatCurrency);
@@ -106,12 +115,14 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
     }
 
     async function reloadLinkedMovements(receiptId: string): Promise<void> {
-        const revision = modalRevision;
-        const movements = await loadLinkedMoneyMovementsApi(receiptId, options.getForgeryToken());
-        if (selectedReceiptId !== receiptId || revision !== modalRevision) {
-            return;
+        const request = linkedRequests.begin(receiptId);
+        try {
+            const movements = await loadLinkedMoneyMovementsApi(request.parameters, options.getForgeryToken(), request.signal);
+            if (!request.isCurrent() || selectedReceiptId !== receiptId) { return; }
+            renderMovementList(elements.linkedMovements, movements, 'unlink-money-movement', 'Отвязать', 'Привязанных операций нет.', options.formatCurrency);
+        } catch (error) {
+            if (request.isCurrent() && !isIntentionalAbort(error)) { showAlert(elements, getErrorMessage(error)); }
         }
-        renderMovementList(elements.linkedMovements, movements, 'unlink-money-movement', 'Отвязать', 'Привязанных операций нет.', options.formatCurrency);
     }
 
     async function reloadCandidates(receiptId: string): Promise<void> {
@@ -121,16 +132,28 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
             page = 1;
             filterKey = key;
         }
-        const sequence = ++requestNumber;
+        const ticket = candidateRequests.begin({ ...request, page, pageSize: 20 });
         navigation.clear();
-        const response = await loadMoneyMovementCandidatesApi({ ...request, page: page, pageSize: 20 }, options.getForgeryToken());
-        if (sequence !== requestNumber || selectedReceiptId !== receiptId) {
-            return;
+        try {
+            const response = await loadMoneyMovementCandidatesApi(ticket.parameters, options.getForgeryToken(), ticket.signal);
+            if (!ticket.isCurrent() || selectedReceiptId !== receiptId || JSON.stringify(readCandidatesRequest(elements, receiptId)) !== key) {
+                return;
+            }
+            page = response.page;
+            navigation.render(response);
+            const movements = response.items;
+            renderMovementList(elements.candidates, movements, 'link-money-movement', 'Привязать', 'Подходящие операции не найдены.', options.formatCurrency);
+        } catch (error) {
+            if (ticket.isCurrent() && JSON.stringify(readCandidatesRequest(elements, receiptId)) === key && !isIntentionalAbort(error)) {
+                showAlert(elements, getErrorMessage(error));
+            }
         }
-        page = response.page;
-        navigation.render(response);
-        const movements = response.items;
-        renderMovementList(elements.candidates, movements, 'link-money-movement', 'Привязать', 'Подходящие операции не найдены.', options.formatCurrency);
+    }
+
+    for (const input of [elements.dateFrom, elements.dateTo, elements.amountTolerance, elements.timeWindowHours,
+        elements.useTimeWindow, elements.useAmountFilter, elements.excludeLinked]) {
+        input.addEventListener('change', () => { candidateRequests.invalidate(); navigation.clear(); clearElement(elements.candidates); });
+        input.addEventListener('input', () => { candidateRequests.invalidate(); navigation.clear(); clearElement(elements.candidates); });
     }
 
     async function onLinkedMovementsClick(event: MouseEvent): Promise<void> {
@@ -144,14 +167,20 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
             return;
         }
 
-        await runButtonAction(elements, button, async () => {
-            await unlinkReceiptMoneyMovementApi({
-                receiptId: selectedReceiptId!,
-                moneyMovementId: moneyMovementId
-            }, options.getForgeryToken());
-            await options.reloadReceiptList();
-            await reloadDetails();
-        });
+        const receiptId = selectedReceiptId;
+        const revision = modalRevision;
+        const isCurrent = () => selectedReceiptId === receiptId && modalRevision === revision;
+        const key = receiptId + ":" + moneyMovementId;
+        if (commands.has(key) || button.disabled) { return; }
+        commands.add(key);
+        try {
+            await runButtonAction(elements, button, async () => {
+                await unlinkReceiptMoneyMovementApi({ receiptId, moneyMovementId }, options.getForgeryToken());
+                if (!isCurrent()) { return; }
+                await options.reloadReceiptList();
+                if (isCurrent()) { await reloadDetails(); }
+            }, isCurrent);
+        } finally { commands.delete(key); }
     }
 
     async function onCandidatesClick(event: MouseEvent): Promise<void> {
@@ -165,14 +194,20 @@ export function initReceiptMoneyMovementsModal(options: ReceiptMoneyMovementsMod
             return;
         }
 
-        await runButtonAction(elements, button, async () => {
-            await linkReceiptMoneyMovementApi({
-                receiptId: selectedReceiptId!,
-                moneyMovementId: moneyMovementId
-            }, options.getForgeryToken());
-            await options.reloadReceiptList();
-            await reloadDetails();
-        });
+        const receiptId = selectedReceiptId;
+        const revision = modalRevision;
+        const isCurrent = () => selectedReceiptId === receiptId && modalRevision === revision;
+        const key = receiptId + ":" + moneyMovementId;
+        if (commands.has(key) || button.disabled) { return; }
+        commands.add(key);
+        try {
+            await runButtonAction(elements, button, async () => {
+                await linkReceiptMoneyMovementApi({ receiptId, moneyMovementId }, options.getForgeryToken());
+                if (!isCurrent()) { return; }
+                await options.reloadReceiptList();
+                if (isCurrent()) { await reloadDetails(); }
+            }, isCurrent);
+        } finally { commands.delete(key); }
     }
 
     return { open };
@@ -260,7 +295,7 @@ function updateFilterState(elements: ReceiptMoneyMovementsModalElements): void {
     elements.amountTolerance.disabled = !elements.useAmountFilter.checked;
 }
 
-async function runButtonAction(elements: ReceiptMoneyMovementsModalElements, button: HTMLButtonElement, action: () => Promise<void>): Promise<void> {
+async function runButtonAction(elements: ReceiptMoneyMovementsModalElements, button: HTMLButtonElement, action: () => Promise<void>, isCurrent: () => boolean): Promise<void> {
     const originalText = button.textContent;
     button.disabled = true;
     button.textContent = '...';
@@ -269,8 +304,9 @@ async function runButtonAction(elements: ReceiptMoneyMovementsModalElements, but
         hideAlert(elements);
         await action();
     } catch (error) {
-        showAlert(elements, getErrorMessage(error));
+        if (isCurrent()) { showAlert(elements, getWriteErrorMessage(error)); }
     } finally {
+        if (!isCurrent()) { return; }
         button.disabled = false;
         button.textContent = originalText;
     }

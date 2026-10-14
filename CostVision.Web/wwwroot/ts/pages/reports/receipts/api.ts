@@ -8,26 +8,27 @@ type AvailableAccountsResponse = ServiceResultWithData<AvailableAccountDto[]>;
 type ReceiptMoneyMovementListResponse = ServiceResultWithData<ReceiptMoneyMovementDto[]>;
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
-export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string | null): Promise<ReceiptList> {
+export async function loadReceiptsApi(rangeQuery: string, forgeryToken: string | null, signal?: AbortSignal): Promise<ReceiptList> {
     const url = rangeQuery
         ? "?handler=ReceiptList&" + rangeQuery
         : "?handler=ReceiptList";
 
-    const response = await sendJsonRequest<ReceiptListResponse>(url, "GET", buildJsonHeaders(forgeryToken), null);
+    const response = await sendJsonRequest<ReceiptListResponse>(url, "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult(response, value => isPagedResponse(value, ["totalSum","incomeSum"]));
 }
 
-export async function loadAvailableAccountsApi(forgeryToken: string | null): Promise<AvailableAccountDto[]> {
-    const response = await sendJsonRequest<AvailableAccountsResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken), null);
+export async function loadAvailableAccountsApi(forgeryToken: string | null, signal?: AbortSignal): Promise<AvailableAccountDto[]> {
+    const response = await sendJsonRequest<AvailableAccountsResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult(response, isResponseArray);
 }
 
-export async function openReceiptApi(receiptId: string, forgeryToken: string | null): Promise<ReceiptDto> {
+export async function openReceiptApi(receiptId: string, forgeryToken: string | null, signal?: AbortSignal): Promise<ReceiptDto> {
     const response = await sendJsonRequest<ReceiptResponse>(
         "?handler=OpenReceipt",
         "POST",
         buildJsonHeaders(forgeryToken),
-        { receiptId: receiptId }
+        { receiptId: receiptId },
+        signal
     );
 
     return unwrapServiceResult(response, value => hasResponseFields(value, ["items", "accounts"], ["totalSum", "operationType"], ["id", "dateTime"]));
@@ -84,15 +85,15 @@ export async function removeReceiptFromAccountApi(receiptId: string, accountId: 
     unwrapServiceSuccess(response);
 }
 
-export async function loadLinkedMoneyMovementsApi(receiptId: string, forgeryToken: string | null): Promise<ReceiptMoneyMovementDto[]> {
+export async function loadLinkedMoneyMovementsApi(receiptId: string, forgeryToken: string | null, signal?: AbortSignal): Promise<ReceiptMoneyMovementDto[]> {
     const params = new URLSearchParams();
     params.set("receiptId", receiptId);
 
-    const response = await sendJsonRequest<ReceiptMoneyMovementListResponse>(`?handler=LinkedMoneyMovements&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null);
+    const response = await sendJsonRequest<ReceiptMoneyMovementListResponse>(`?handler=LinkedMoneyMovements&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult(response, isResponseArray);
 }
 
-export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMovementCandidatesRequest, forgeryToken: string | null): Promise<PagedList<ReceiptMoneyMovementDto>> {
+export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMovementCandidatesRequest, forgeryToken: string | null, signal?: AbortSignal): Promise<PagedList<ReceiptMoneyMovementDto>> {
     const params = new URLSearchParams();
     params.set("receiptId", request.receiptId);
     params.set("page", String(request.page ?? 1));
@@ -117,7 +118,7 @@ export async function loadMoneyMovementCandidatesApi(request: GetReceiptMoneyMov
         params.set("timeWindowHours", String(request.timeWindowHours));
     }
 
-    const response = await sendJsonRequest<ServiceResultWithData<PagedList<ReceiptMoneyMovementDto>>>(`?handler=MoneyMovementCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null);
+    const response = await sendJsonRequest<ServiceResultWithData<PagedList<ReceiptMoneyMovementDto>>>(`?handler=MoneyMovementCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult(response, value => isPagedResponse(value, []));
 }
 

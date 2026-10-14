@@ -4,7 +4,7 @@
 
 Application.UnitTests проверяет модели/сценарии; Infrastructure.UnitTests — чистые компоненты и metadata; Web.UnitTests — адаптеры; Infrastructure.IntegrationTests — SQL и составные границы.
 
-Frontend содержит изолированные node-тесты контроллера импорта с подставным DOM/fetch. Они требуют предварительной сборки TypeScript, не запускают браузер и не заменяют его приёмку.
+Frontend содержит изолированные node-тесты HTTP/API, серверных итогов, навигации, импортного контроллера и actual точек входа dashboard/products/stores/reports/receipts/moneyMovements с подставным DOM/fetch. Они требуют предварительной сборки TypeScript, не запускают браузер и не заменяют его приёмку.
 
 ## Контракты и границы
 

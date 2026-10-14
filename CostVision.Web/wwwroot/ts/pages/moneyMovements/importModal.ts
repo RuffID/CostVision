@@ -1,3 +1,4 @@
+import { createRequestCoordinator, getWriteErrorMessage, isIntentionalAbort, isUnknownWriteOutcome } from "../../shared/requestCoordinator.js";
 import type { BootstrapModal } from "../../shared/bootstrap.js";
 import { initFileDropzone } from "../../shared/dropzone.js";
 import { importMoneyMovements, previewBankStatementImport } from "./api.js";
@@ -21,9 +22,15 @@ export interface MoneyMovementImportModalOptions {
 export function initMoneyMovementImportModalController(options: MoneyMovementImportModalOptions): MoneyMovementImportModalController {
     const { ui, state, getForgeryToken, reloadMovements } = options;
     let saving = false;
+    let pageActive = true;
     let previewing = false;
+    let previewOwner: symbol | null = null;
     let lastResult: BankStatementImportResultDto | null = null;
-    let previewAccountId: string | null = null;
+    const previewRequests = createRequestCoordinator();
+    const modalContext = createRequestCoordinator();
+    let previewIdentity: { file: File; bankId: string; accountId: string } | null = null;
+    let unknownOutcome = false;
+    window.addEventListener("pagehide", () => { pageActive = false; previewOwner = null; previewRequests.invalidate(); modalContext.invalidate(); });
     let recognitionErrors: BankStatementImportLineErrorDto[] = [];
 
     // Окно остаётся открытым, чтобы итог был виден и исправлялись только непринятые строки.
@@ -41,6 +48,8 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
     });
 
     ui.importPreviewButton.addEventListener("click", handleImportPreviewClick);
+    ui.importBankSelect.addEventListener("change", invalidatePreview);
+    ui.importAccountSelect.addEventListener("change", invalidatePreview);
     ui.importSaveButton.addEventListener("click", handleImportSaveClick);
     ui.importToggleDuplicateReplacementsInput.addEventListener("change", handleToggleDuplicateReplacementsChange);
     ui.importSkipDuplicatesInput.addEventListener("change", handleSkipDuplicatesChange);
@@ -73,10 +82,19 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
         state.importRows = [];
         state.importErrors = [];
         lastResult = null;
-        previewAccountId = null;
+        previewIdentity = null;
+        previewRequests.invalidate();
+        modalContext.invalidate();
         recognitionErrors = [];
         renderState();
         hideImportAlert();
+    }
+
+    function invalidatePreview(): void {
+        previewRequests.invalidate();
+        previewIdentity = null;
+        updateImportSaveState();
+        showImportAlert("Реквизиты изменены. Выполните новый предпросмотр.");
     }
 
     async function handleImportPreviewClick(): Promise<void> {
@@ -84,6 +102,10 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
             return;
         }
 
+        const owner = Symbol();
+        previewOwner = owner;
+        const ticket = previewRequests.begin({ file: state.selectedImportFile,
+            bankId: ui.importBankSelect.value, accountId: ui.importAccountSelect.value });
         try {
             hideImportAlert();
 
@@ -103,9 +125,14 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
             updateImportBusyState();
             ui.importPreviewButton.textContent = "Распознавание...";
 
-            const accountId = ui.importAccountSelect.value;
-            const preview = await previewBankStatementImport(getForgeryToken(), ui.importBankSelect.value, accountId, state.selectedImportFile);
-            previewAccountId = preview.accountId;
+            const identity = ticket.parameters;
+            const preview = await previewBankStatementImport(getForgeryToken(), identity.bankId, identity.accountId, identity.file!, ticket.signal);
+            if (!ticket.isCurrent() || !matchesIdentity(identity)) { return; }
+            if (preview.accountId !== identity.accountId || preview.bankId !== identity.bankId) {
+                throw new Error("Предпросмотр не соответствует выбранному банку и счёту.");
+            }
+            previewIdentity = { file: identity.file!, bankId: identity.bankId, accountId: identity.accountId };
+            unknownOutcome = false;
             lastResult = null;
             state.importRows = preview.rows.map(row => ({
                 ...row,
@@ -116,13 +143,22 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
             renderState();
         }
         catch (error) {
-            showImportAlert(getErrorMessage(error));
+            if (ticket.isCurrent() && matchesIdentity(ticket.parameters) && !isIntentionalAbort(error)) {
+                showImportAlert(getErrorMessage(error));
+            }
         }
         finally {
+            if (previewOwner !== owner) { return; }
+            previewOwner = null;
             previewing = false;
             updateImportBusyState();
             ui.importPreviewButton.textContent = "Предпросмотр";
         }
+    }
+
+    function matchesIdentity(identity: { file: File | null; bankId: string; accountId: string }): boolean {
+        return identity.file === state.selectedImportFile && identity.bankId === ui.importBankSelect.value
+            && identity.accountId === ui.importAccountSelect.value;
     }
 
     async function handleImportSaveClick(): Promise<void> {
@@ -130,6 +166,8 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
             return;
         }
 
+        const isCurrent = modalContext.capture();
+        let writeConfirmed = false;
         try {
             hideImportAlert();
 
@@ -145,6 +183,8 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
             ui.importSaveButton.textContent = "Импорт...";
 
             const result = await importMoneyMovements(getForgeryToken(), request);
+            writeConfirmed = true;
+            if (!isCurrent()) { return; }
             // Номера ошибок относятся к отправленному пакету, а не к исходному PDF.
             const rejected = new Set(result.errors.map(error => error.lineNumber - 1));
             const acceptedIds = new Set(submittedRows.filter((_, index) => !rejected.has(index)).map(row => row.clientRowId));
@@ -169,11 +209,19 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
             await reloadMovements();
         }
         catch (error) {
-            showImportAlert(getErrorMessage(error));
+            if (!isCurrent()) { return; }
+            if (!writeConfirmed && isUnknownWriteOutcome(error)) {
+                unknownOutcome = true;
+                showImportAlert("Результат импорта неизвестен. Обновите список операций и сверьте выписку; затем выполните новый предпросмотр перед повтором.");
+            } else {
+                showImportAlert(writeConfirmed ? getErrorMessage(error) : getWriteErrorMessage(error));
+            }
             updateImportSaveState();
         }
         finally {
+            // До конца POST ни новый preview, ни save не стартуют, даже после принудительного сброса окна.
             saving = false;
+            if (!pageActive) { return; }
             updateImportBusyState();
             updateImportSaveState();
             ui.importSaveButton.textContent = "Импортировать";
@@ -283,8 +331,11 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
             throw new Error("Выберите счёт для импорта.");
         }
 
-        if (previewAccountId !== null && previewAccountId !== ui.importAccountSelect.value) {
-            throw new Error("Счёт изменён после предпросмотра. Выполните предпросмотр для выбранного счёта.");
+        if (unknownOutcome) {
+            throw new Error("Сначала сверьте операции и выполните новый предпросмотр.");
+        }
+        if (!previewIdentity || !matchesIdentity(previewIdentity)) {
+            throw new Error("Файл, банк или счёт изменён после предпросмотра. Выполните новый предпросмотр.");
         }
 
         const importRows = getRowsForImport();
@@ -345,7 +396,8 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
         const rowsForImport = getRowsForImport();
         const hasRows = rowsForImport.length > 0;
         const hasUnresolvedDuplicates = !ui.importSkipDuplicatesInput.checked && rowsForImport.some(row => row.isDuplicate && row.replaceDuplicate !== true);
-        ui.importSaveButton.disabled = saving || previewing || !hasRows || hasUnresolvedDuplicates;
+        ui.importSaveButton.disabled = saving || previewing || unknownOutcome || !hasRows || hasUnresolvedDuplicates
+            || !previewIdentity || !matchesIdentity(previewIdentity);
     }
 
     function updateImportBusyState(): void {
@@ -380,6 +432,10 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
     }
 
     function resetImportModal(): void {
+        previewOwner = null;
+        previewing = false;
+        previewRequests.invalidate();
+        modalContext.invalidate();
         state.selectedImportFile = null;
         ui.importFileInput.value = "";
         ui.importSkipDuplicatesInput.checked = false;
@@ -390,7 +446,8 @@ export function initMoneyMovementImportModalController(options: MoneyMovementImp
         state.importErrors = [];
         state.hideDuplicateImportRows = false;
         lastResult = null;
-        previewAccountId = null;
+        previewIdentity = null;
+        unknownOutcome = false;
         recognitionErrors = [];
         hideImportAlert();
         renderState();

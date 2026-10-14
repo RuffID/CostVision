@@ -1,6 +1,6 @@
 # Техническое руководство CostVision
 
-Руководство описывает устройство проекта по исходникам с актуализацией 09 на 14.10.2026. [Бизнес-раздел](../Business/README.md) объясняет правила продукта, а [план рефакторинга](../Plans/project-refactoring-2026-10-13/README.md) фиксирует обнаруженные дефекты и будущие изменения. Описание кода не является подтверждением запуска, прохождения тестов или проверки рабочей базы.
+Руководство описывает устройство проекта по исходникам с актуализацией 09–10 на 14.10.2026. [Бизнес-раздел](../Business/README.md) объясняет правила продукта, а [план рефакторинга](../Plans/project-refactoring-2026-10-13/README.md) фиксирует обнаруженные дефекты и будущие изменения. Описание кода не является подтверждением запуска, прохождения тестов или проверки рабочей базы.
 
 ## Навигация
 
@@ -28,7 +28,7 @@
 - [ApplicationContext](../../CostVision.Infrastructure/DataBase/ApplicationContext.cs) — модель хранения.
 - [IUnitOfWorkScope](../../CostVision.Application/Abstractions/DataBase/Repositories/IUnitOfWorkScope.cs) — общий scope сохранения/транзакции без репозиториев; [карта 07A](../Plans/project-refactoring-2026-10-13/07a-consumer-map.md) — узкие UoW и владельцы сценариев.
 - [JsonResultMapper](../../CostVision.Web/Web/Mappers/JsonResultMapper.cs) — преобразование результата в HTTP.
-- [HTTP-контракт09](../Plans/project-refactoring-2026-10-13/09-web-and-http-contracts.md) — binding/форма запроса, календарные границы, JSON401/403, отмена и неожиданные ошибки; [промпт10](../Plans/project-refactoring-2026-10-13/next-stage-10-prompt.md) — передача для отдельного начала координации frontend-запросов.
+- [HTTP-контракт09](../Plans/project-refactoring-2026-10-13/09-web-and-http-contracts.md) — binding/форма запроса, календарные границы, JSON401/403, отмена и неожиданные ошибки; [координация10](../Plans/project-refactoring-2026-10-13/10-frontend-request-coordination.md) — поколения/отмена чтений и контекст команд; [промпт11](../Plans/project-refactoring-2026-10-13/prompts/next-stage-11-prompt.md) — передача для отдельного начала декомпозиции.
 - [Принятая EF/DLL-граница08](../Plans/project-refactoring-2026-10-13/08-boundary-decision.md) и [поставка библиотек](../../libs/README.md) — решение А, actual версии/хеши/контракты и неизвестные сведения.
 
 ## Термины

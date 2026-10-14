@@ -1,3 +1,4 @@
+import { createRequestCoordinator, isIntentionalAbort } from "../../shared/requestCoordinator.js";
 import { requireElementById, requireInputById, requireSelectById, setElementVisible } from "../../shared/dom.js";
 import { formatMoneyRub } from "../../shared/formatters.js";
 import { renderHelpTooltip } from "../../shared/helpTooltip.js";
@@ -12,6 +13,10 @@ interface DashboardDateRange {
 
 const STORE_NAME_MAX_LENGTH = 70;
 const ACCOUNT_FILTER_WITHOUT_ACCOUNT = "__without_account__";
+
+const reportRequests = createRequestCoordinator();
+const accountRequests = createRequestCoordinator();
+window.addEventListener("pagehide", () => { reportRequests.invalidate(); accountRequests.invalidate(); });
 
 let antiForgeryToken: string | null = null;
 let periodPresetSelect: HTMLSelectElement;
@@ -47,7 +52,7 @@ async function initDashboardPage(): Promise<void> {
     setDefaultFilters();
     bindEvents();
     renderExpenseSourceHelp();
-    await loadAndRenderAccountsAsync();
+    if (!await loadAndRenderAccountsAsync()) { return; }
     await loadAndRenderReportAsync();
 }
 
@@ -125,20 +130,19 @@ async function onFilterChanged(): Promise<void> {
 }
 
 async function loadAndRenderReportAsync(): Promise<void> {
+    const request = reportRequests.begin({ dateFrom: dateFromInput.value, dateTo: dateToInput.value,
+        period: periodSelect.value, source: expenseSourceSelect.value, accounts: getSelectedRealAccountIds(),
+        withoutAccount: selectedAccountIds.has(ACCOUNT_FILTER_WITHOUT_ACCOUNT), stores: Array.from(selectedStores) });
+    const parameters = request.parameters;
     hideError();
 
     try {
         const report = await loadIncomeExpenseReportAsync(
-            dateFromInput.value,
-            dateToInput.value,
-            periodSelect.value,
-            expenseSourceSelect.value,
-            getSelectedRealAccountIds(),
-            selectedAccountIds.has(ACCOUNT_FILTER_WITHOUT_ACCOUNT),
-            Array.from(selectedStores),
-            antiForgeryToken
+            parameters.dateFrom, parameters.dateTo, parameters.period, parameters.source,
+            parameters.accounts, parameters.withoutAccount, parameters.stores, antiForgeryToken, request.signal
         );
 
+        if (!request.isCurrent()) { return; }
         reportStores = report.stores || [];
         removeUnavailableSelectedStores();
         renderStoreFilter();
@@ -148,19 +152,25 @@ async function loadAndRenderReportAsync(): Promise<void> {
         renderChart(report);
     }
     catch (error) {
+        if (!request.isCurrent() || isIntentionalAbort(error)) { return; }
         showError(error instanceof Error ? error.message : "Не удалось загрузить отчёт.");
     }
 }
 
-async function loadAndRenderAccountsAsync(): Promise<void> {
+async function loadAndRenderAccountsAsync(): Promise<boolean> {
+    const request = accountRequests.begin(antiForgeryToken);
     try {
-        dashboardAccounts = await loadDashboardAccountsAsync(antiForgeryToken);
+        const accounts = await loadDashboardAccountsAsync(request.parameters, request.signal);
+        if (!request.isCurrent()) { return false; }
+        dashboardAccounts = accounts;
         renderAccountFilter();
         updateAccountFilterButtonText();
+        return true;
     }
     catch (error) {
+        if (!request.isCurrent() || isIntentionalAbort(error)) { return false; }
         showError(error instanceof Error ? error.message : "Не удалось загрузить счета.");
-        throw error;
+        return false;
     }
 }
 

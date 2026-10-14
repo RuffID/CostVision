@@ -12,17 +12,17 @@ type ReceiptResponse = ServiceResultWithData<ReceiptDto>;
 type ImportResultResponse = ServiceResultWithData<BankStatementImportResultDto>;
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
-export async function loadAccounts(forgeryToken: string | null): Promise<UserAccountViewModel[]> {
-    const response = await sendJsonRequest<AccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken));
+export async function loadAccounts(forgeryToken: string | null, signal?: AbortSignal): Promise<UserAccountViewModel[]> {
+    const response = await sendJsonRequest<AccountListResponse>("?handler=Accounts", "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult<UserAccountViewModel[]>(response, isResponseArray);
 }
 
-export async function loadImportBanks(forgeryToken: string | null): Promise<BankStatementImportBankDto[]> {
-    const response = await sendJsonRequest<ImportBankListResponse>("?handler=ImportBanks", "GET", buildJsonHeaders(forgeryToken));
+export async function loadImportBanks(forgeryToken: string | null, signal?: AbortSignal): Promise<BankStatementImportBankDto[]> {
+    const response = await sendJsonRequest<ImportBankListResponse>("?handler=ImportBanks", "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult<BankStatementImportBankDto[]>(response, isResponseArray);
 }
 
-export async function loadMoneyMovements(forgeryToken: string | null, dateFrom: string, dateTo: string, accountId: string, page = 1, search = "", receiptFilter = ""): Promise<MoneyMovementList> {
+export async function loadMoneyMovements(forgeryToken: string | null, dateFrom: string, dateTo: string, accountId: string, page = 1, search = "", receiptFilter = "", signal?: AbortSignal): Promise<MoneyMovementList> {
     const params = new URLSearchParams();
     params.set("dateFrom", dateFrom);
     params.set("dateTo", dateTo);
@@ -35,7 +35,7 @@ export async function loadMoneyMovements(forgeryToken: string | null, dateFrom: 
         params.set("accountId", accountId);
     }
 
-    const response = await sendJsonRequest<MoneyMovementListResponse>(`?handler=List&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
+    const response = await sendJsonRequest<MoneyMovementListResponse>(`?handler=List&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult<MoneyMovementList>(response, value => isPagedResponse(value, ["incomeSum","expenseSum"]));
 }
 
@@ -62,15 +62,15 @@ export async function updateMoneyMovementComment(forgeryToken: string | null, re
     unwrapServiceSuccess(response);
 }
 
-export async function loadLinkedReceipts(forgeryToken: string | null, moneyMovementId: string): Promise<MoneyMovementReceiptDto[]> {
+export async function loadLinkedReceipts(forgeryToken: string | null, moneyMovementId: string, signal?: AbortSignal): Promise<MoneyMovementReceiptDto[]> {
     const params = new URLSearchParams();
     params.set("moneyMovementId", moneyMovementId);
 
-    const response = await sendJsonRequest<MoneyMovementReceiptListResponse>(`?handler=LinkedReceipts&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
+    const response = await sendJsonRequest<MoneyMovementReceiptListResponse>(`?handler=LinkedReceipts&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult<MoneyMovementReceiptDto[]>(response, isResponseArray);
 }
 
-export async function loadReceiptCandidates(forgeryToken: string | null, request: GetMoneyMovementReceiptCandidatesRequest): Promise<PagedList<MoneyMovementReceiptDto>> {
+export async function loadReceiptCandidates(forgeryToken: string | null, request: GetMoneyMovementReceiptCandidatesRequest, signal?: AbortSignal): Promise<PagedList<MoneyMovementReceiptDto>> {
     const params = new URLSearchParams();
     params.set("moneyMovementId", request.moneyMovementId);
     params.set("page", String(request.page ?? 1));
@@ -95,16 +95,17 @@ export async function loadReceiptCandidates(forgeryToken: string | null, request
         params.set("timeWindowHours", String(request.timeWindowHours));
     }
 
-    const response = await sendJsonRequest<ServiceResultWithData<PagedList<MoneyMovementReceiptDto>>>(`?handler=ReceiptCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken));
+    const response = await sendJsonRequest<ServiceResultWithData<PagedList<MoneyMovementReceiptDto>>>(`?handler=ReceiptCandidates&${params.toString()}`, "GET", buildJsonHeaders(forgeryToken), null, signal);
     return unwrapServiceResult<PagedList<MoneyMovementReceiptDto>>(response, value => isPagedResponse(value, []));
 }
 
-export async function openReceipt(forgeryToken: string | null, receiptId: string): Promise<ReceiptDto> {
+export async function openReceipt(forgeryToken: string | null, receiptId: string, signal?: AbortSignal): Promise<ReceiptDto> {
     const response = await sendJsonRequest<ReceiptResponse>(
         "?handler=OpenReceipt",
         "POST",
         buildJsonHeaders(forgeryToken),
-        { receiptId: receiptId }
+        { receiptId: receiptId },
+        signal
     );
 
     return unwrapServiceResult<ReceiptDto>(response, value => hasResponseFields(value, ["items", "accounts"], ["totalSum", "operationType"], ["id", "dateTime"]));
@@ -120,13 +121,13 @@ export async function unlinkMoneyMovementReceipt(forgeryToken: string | null, re
     unwrapServiceSuccess(response);
 }
 
-export async function previewBankStatementImport(forgeryToken: string | null, bankId: string, accountId: string, file: File): Promise<BankStatementImportPreviewDto> {
+export async function previewBankStatementImport(forgeryToken: string | null, bankId: string, accountId: string, file: File, signal?: AbortSignal): Promise<BankStatementImportPreviewDto> {
     const formData = new FormData();
     formData.append("bankId", bankId);
     formData.append("accountId", accountId);
     formData.append("file", file);
 
-    const response = await sendJsonRequest<ImportPreviewResponse>("?handler=PreviewImport", "POST", buildFormHeaders(forgeryToken), formData);
+    const response = await sendJsonRequest<ImportPreviewResponse>("?handler=PreviewImport", "POST", buildFormHeaders(forgeryToken), formData, signal);
     return unwrapServiceResult<BankStatementImportPreviewDto>(response, value => hasResponseFields(value, ["rows", "errors"], [], ["bankId", "accountId"]));
 }
 

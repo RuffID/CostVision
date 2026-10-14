@@ -13,7 +13,7 @@
 
 ## Области, для которых существуют тесты
 
-Список отражает наличие тестового кода, а не свежий результат выполнения или полноту защиты от регрессий. При подготовке документации сборка и тесты не запускались.
+Список отражает наличие тестового кода, а не свежий результат выполнения или полноту защиты от регрессий. Фактические результаты и открытая приёмка приведены раздельно в журналах этапов.
 
 - создание, редактирование, вход и активность пользователя;
 - password validation и hashing;
@@ -40,6 +40,7 @@
 9. EF unique constraints, delete behavior и rollback многошаговых сценариев на реальном SQL Server.
 10. Backup до migration и fail-fast startup при ошибке БД.
 11. Единый JSON/HTTP contract и antiforgery для изменяющих handlers.
+12. Поколения независимых чтений, A-после-B/stale error/loading/finally, signal, close/reopen/hidden, captured command IDs и preview identity/unknown write outcome.
 
 ## Как выбирать уровень проверки
 
@@ -52,6 +53,8 @@
 - Изменение TypeScript — `npm run build:ts`; при существенном UI-потоке также ручная проверка модалок и AJAX без reload.
 
 Собирать и тестировать следует затронутые `.csproj`, а не solution целиком. Для compile-check проекта рекомендуется отдельный `BaseOutputPath`/`BaseIntermediateOutputPath` под `artifacts/compile-check` и `--no-restore`, если зависимости уже восстановлены.
+
+Изолированные frontend-проверки после build:ts запускаются через `node --experimental-strip-types --test tests/Frontend/*.test.mts`. requestCoordination.test.mts вызывает actual DOMContentLoaded/controller/API с управляемыми Promise и abort-ignoring fetch; moneyMovementImport.test.mts использует actual preview перед save. [Журнал10](../Plans/project-refactoring-2026-10-13/10-frontend-request-coordination.md) фиксирует новые76 passed/0 failed/0 skipped/0 cancelled и успешный TypeScript compile-check отдельно от старых .NET-результатов09; никаких hosting/browser/SQL/live-запусков10 не было.
 
 ## Изменения модели данных
 
@@ -84,7 +87,7 @@ Entity configuration меняется вместе с Domain-моделью и i
 - При запуске нескольких web-экземпляров нужен общий Data Protection key ring, а фоновые задания требуют отдельной координации.
 - Startup автоматически применяет migrations и поэтому требует у runtime SQL-user прав на backup и изменение схемы.
 - Категории расходов покрыты Domain/EF-моделью, но не имеют пользовательского use case и страницы.
-- Отдельных тестов расчёта dashboard пока нет. Изолированный frontend-набор для importModal находится в tests/Frontend; остальные браузерные потоки им не закрыты.
+- Изолированные frontend HTTP/API/DOM/coordinator/import-тесты находятся в tests/Frontend. Их успех не закрывает actual HTTP/auth/browser/Bootstrap-потоки; финансовый расчёт и SQL-загрузка имеют отдельные контуры05/07.
 - TestWebApplication собирает отдельный тестовый HTTP-конвейер: его успех сам по себе не подтверждает production-композицию Program.cs.
 - Существующие тесты не закрывают все дефекты аудита: новые регрессионные сценарии перечислены в соответствующих этапах плана.
 

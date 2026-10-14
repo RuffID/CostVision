@@ -18,4 +18,4 @@ pages обслуживает отдельные интерфейсы, shared с�
 
 Общая карта и порядок сопровождения: [техническое руководство](../../../Documentation/TechnicalGuide/12-source-map-and-maintenance.md). Открытые изменения: [план рефакторинга](../../../Documentation/Plans/project-refactoring-2026-10-13/README.md).
 
-HTTP-helper принимает AbortSignal и выдаёт HttpError; API-потребители проверяют обязательную форму данных на границе. Координация requests/epochs/disposal остаётся этапами 10–11.
+HTTP-helper принимает AbortSignal и выдаёт HttpError; API-потребители проверяют обязательную форму данных на границе. shared/requestCoordinator координирует независимые области dashboard/products/stores/reports/receipts/moneyMovements: поколение и снимок параметров проверяются для ответа/ошибки/loading, AbortSignal дополняет эту проверку. Pagehide и смена/закрытие окна инвалидируют чтения. POST-команды используют захваченные ID/вход и проверяют контекст UI; неизвестный исход требует перечитывания и сверки, без автоматического повторного POST. Декомпозиция 11, QR/storage 12 и изменение modal stack 13 не реализованы.
