@@ -8,6 +8,10 @@
 
 Фискальный unique index включает автора и допускает пользовательские копии. Сверять денежную точность, normalized-индексы и Restrict/Cascade; миграцию создаёт пользователь.
 
+Receipt.RowVersion настроен IsRowVersion: SQL Server генерирует версию при insert/update и использует её для проверки конкурентной записи. Модель требует пользовательской миграции AddReceiptRowVersion; generated migrations/snapshot агент не меняет. Прежние unique-индексы Product.NormalizedName и Store.NormalizedName/NormalizedAddress сохраняются. Metadata не подтверждает применённый столбец, старые дубли или реальную SQL-конкурентность.
+
+Та же миграция добавляет Receipt.RefreshRevision: обязательный bigint с default 0. Domain увеличивает ревизию при замене графа, обеспечивая UPDATE с проверкой RowVersion даже при неизменных остальных скалярных полях.
+
 ## Проверка
 
 Чистые преобразователи и модель проверяются в Infrastructure.UnitTests; SQL, backup и hosted-компоненты — отдельными интеграционными проверками с требуемым разрешением.

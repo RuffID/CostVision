@@ -25,7 +25,7 @@
 
 Проверка дубля и запись в трёх сценариях находятся внутри явной Serializable-транзакции UoW. Известные SQL Server 2601/2627 для author identity index/PK_ReceiptAccounts и deadlock 1205 преобразуются в Conflict; другие ошибки продолжают распространяться. После отказа доменные связи восстанавливаются, а scope хранения нельзя переиспользовать: SQL rollback не очищает change tracker.
 
-Изолированная реализация этапа 03 проверена; отсутствие гонки требует отдельной SQL-приёмки. Схема не менялась, уникальность документа в общем счёте отдельным индексом не обеспечена. Serializable выбран как минимальная защита проверки и записи этих сценариев. Refresh и банковский импорт не исправлялись; изменение идентичности при refresh остаётся открытой границей этапа 06.
+Изолированная реализация этапа 03 проверена; отсутствие гонки требует отдельной SQL-приёмки. Схема 03 не менялась, уникальность документа в общем счёте отдельным индексом не обеспечена. Serializable выбран как минимальная защита проверки и записи этих сценариев. Импорт имеет отдельный протокол 04; refresh реализован в 06, не закрывая приёмку 03.
 
 ## Refresh из внешнего источника
 
@@ -33,20 +33,24 @@
 
 [ReceiptRefreshWorkflow](../../CostVision.Application/UseCases/Receipts/Receipts/Refresh/ReceiptRefreshWorkflow.cs):
 
-1. получает и валидирует внешний чек;
-2. разрешает магазин по `(NormalizedName, NormalizedAddress)`;
-3. разрешает товары по `NormalizedName`, используя cache на время одного refresh;
-4. создаёт новый список `ReceiptItem`;
-5. заменяет подробные данные и позиции существующего чека;
-6. завершает refresh и сохраняет изменения.
+1. получает внешний чек до транзакции, точно сравнивает ReceiptIdentity;
+2. проверяет магазин, все товары/позиции и подробности на новом detached-графе, не вызывая репозитории каталогов;
+3. в явной Serializable-транзакции повторно читает tracked-чек с Items/Product, Accounts/Account/Members, Store и автором;
+4. сверяет RowVersion снимка, identity, текущий доступ пользователя ручного refresh либо доступность фоновой попытки;
+5. разрешает магазин по `(NormalizedName, NormalizedAddress)` и товары по `NormalizedName`, с локальным cache pending-товаров; чтения товаров упорядочены, позиции сохраняют порядок ответа;
+6. заменяет подробности/позиции и завершает refresh; явно сохраняет граф и каталоги одним SaveChanges, затем commit.
 
-Ошибки преобразования внешнего ответа возвращаются как `ExternalService`. При этом равенство фискальных реквизитов ответа и исходного чека не проверяется: provider присваивает прежний ID, а обновление может заменить реквизиты. Исправление этого риска включено в план.
+Provider и Domain независимо отклоняют другой документ до мутации. Поля identity 03 неизменны; допусков суммы/времени нет. Ошибка подготовки фонового ответа сохраняет только retry-state, без Store/Product/Items. Ручной отказ подготовки не сохраняется. Неизвестный отказ применения/хранения распространяется; транзакция откатывается, scope нельзя сохранять повторно. Rowversion-конфликт, 1205 и известные unique-ошибки дают Conflict, без скрытого retry.
+
+Receipt.RowVersion настроен IsRowVersion; пользователь должен создать миграцию AddReceiptRowVersion, включающую также обязательный bigint RefreshRevision с default 0. RefreshRevision увеличивается при каждой успешной замене графа: даже при совпадении остальных реквизитов и времени EF должен выполнить UPDATE чека с проверкой RowVersion. Существующие normalized unique-индексы каталогов сохранены. RowVersion отклоняет устаревшую запись, но не резервирует запрос provider: параллельные HTTP-вызовы возможны. SQL-приёмка двух refresh и общих справочников открыта.
 
 ## Повторные попытки
 
 [ReceiptRefreshPolicy](../../CostVision.Application/UseCases/Receipts/Receipts/Refresh/ReceiptRefreshPolicy.cs) задаёт максимум семь фоновых попыток. Следующий запуск вычисляется как ближайшая полночь в локальном часовом поясе процесса и хранится в UTC.
 
-[ReceiptRefreshBackgroundService](../../CostVision.Infrastructure/Services/BackgroundServices/ReceiptRefreshBackgroundService.cs) ждёт расписание, создаёт DI scope и запускает [RefreshPendingReceiptsUseCase](../../CostVision.Application/UseCases/Receipts/Receipts/RefreshPendingReceiptsUseCase.cs). Ошибка одного чека записывается в его retry-state; неожиданная ошибка цикла логируется, но hosted service продолжает работу на следующем запуске.
+[ReceiptRefreshBackgroundService](../../CostVision.Infrastructure/Services/BackgroundServices/ReceiptRefreshBackgroundService.cs) ждёт расписание, создаёт async DI scope и запускает [RefreshPendingReceiptsUseCase](../../CostVision.Application/UseCases/Receipts/Receipts/RefreshPendingReceiptsUseCase.cs). Use case выбирает no-tracking пакеты по 32 без навигационных графов, с порядком/курсором CreatedAtUtc/Id и верхней границей CreatedAtUtc времени начала прохода. Scope выборки освобождается до обработки; каждый документ получает новый scope, включая новый контекст/UoW. Пауза между документами в одну секунду сохранена и использует TimeProvider. Это локальное ограничение refresh, не общая пагинация 07 или разделение UoW 07A.
+
+HttpRequestException, TimeoutException и OperationCanceledException при активном входном token превращаются в ExternalService и сохраняют одну фоновую попытку. Отмена входного token останавливает обработку без регистрации попытки. Неизвестная ошибка логируется; после освобождения отказавшего scope фон записывает только retry-state в новом scope через RegisterScheduledFailureAsync, без повторного provider/каталога. Версия и расписание проверяются заново; исходное исключение не объявляется дублем или успехом. Отказ записи retry-state логируется отдельно, без третьего сохранения. Курсор продвигается и после ошибки, следующий документ продолжает проход. Семь зарегистрированных попыток и ручное восстановление Failed сохранены.
 
 ## Просмотр и изменение
 
@@ -54,7 +58,7 @@
 
 Подбор и счётчики кандидатов требуют текущего доступа к счёту операции, даже если пользователь её автор. Внутренний HasAccountLinks не сериализуется: он сохраняет различие между чеком без счёта и чеком, все привязки которого скрыты, чтобы не расширить прежнее правило подбора. Для проверки видимости агрегатов use case загружают Account/Members связанных операций. Изолированная часть этапа 01 проверена; материализация и фильтрация на SQL Server ещё не проверены.
 
-ReceiptMoneyMovementAggregates считает каждый видимый MoneyMovement.Id один раз по доступным копиям identity. ReceiptDocumentReportProjection дополнительно читает MoneyMovementLinks/MoneyMovement/Account/Members для деталей и результата ручного refresh; нулевые значения обозначают загруженный пустой набор, отсутствие ожидаемой копии вызывает ошибку. Перед workflow refresh отдельно проверяется текущий доступ. Получение внешнего документа, изменение identity, retry и lifecycle этим не исправлены; защита этапа 06 всё ещё нужна. Snapshot последовательных чтений и отзыв membership между ними не гарантируются.
+ReceiptMoneyMovementAggregates считает каждый видимый MoneyMovement.Id один раз по доступным копиям identity. ReceiptDocumentReportProjection дополнительно читает MoneyMovementLinks/MoneyMovement/Account/Members для деталей и результата ручного refresh; нулевые значения обозначают загруженный пустой набор, отсутствие ожидаемой копии вызывает ошибку. Перед workflow refresh отдельно проверяется текущий доступ по no-tracking снимку; перед записью workflow проверяет его повторно. Агрегаты 05 сохранены, но snapshot последовательных отчётных чтений и отзыв membership между ними не гарантируются.
 
 ReceiptDto передаёт OperationType и положительный номинал. ReceiptListDto/StoreReceiptListDto/StoreListDto.TotalSum теперь расход, IncomeSum — доход; StoreListItemDto.TotalSpent расход, IncomeSum доход. Сводки считают полный отфильтрованный набор до пагинации. Магазин, группа и общая сводка distinct по ReceiptIdentity; фильтр счёта требует доступ к выбранной связи. UI использует готовые серверные суммы и явно сохраняет неизвестный итог до загрузки.
 

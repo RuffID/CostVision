@@ -31,7 +31,7 @@ public class Stage05ReportQueryTests
         Mock<IReceiptAccessVerificationService> access = new(MockBehavior.Strict);
         access.Setup(service => service.UserHasAccessToReceipt(data.User, data.Receipt)).Returns(true);
         Mock<IReceiptRefreshWorkflow> workflow = new(MockBehavior.Strict);
-        workflow.Setup(item => item.RefreshAsync(data.Receipt, It.IsAny<CancellationToken>()))
+        workflow.Setup(item => item.RefreshAsync(data.Receipt, It.IsAny<CancellationToken>(), It.IsAny<Guid>()))
             .ReturnsAsync(ServiceResult<Receipt>.Ok(data.Receipt));
 
         // Act

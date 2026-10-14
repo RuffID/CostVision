@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Data;
 using CostVision.Application.Abstractions.DataBase.Repositories;
 using CostVision.Application.Abstractions.DataBase.Repositories.Receipts;
 using CostVision.Application.Abstractions.Service.Receipts;
@@ -16,10 +17,11 @@ public class ReceiptRefreshWorkflowTests
     [Fact]
     public async Task RefreshAsync_AppliesExternalReceiptRecreatesItemsAndCreatesMissingProduct()
     {
+        // Arrange
         Store.TryCreate("Old", "OLD", "Old address", "OLDADDRESS", out Store? oldStore, out string? oldStoreError);
         Assert.NotNull(oldStore);
         Assert.Null(oldStoreError);
-        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), store: oldStore);
+        Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid(), totalSum: 20, store: oldStore);
         Product oldProduct = TestReceiptFactory.CreateProduct("Old");
         Assert.True(ReceiptItem.TryCreate(1, 1, 1, 0, PaymentType.FullPayment, ProductType.Product, QuantityMeasureType.Piece, oldProduct, null, out ReceiptItem? oldItem, out string? oldItemError), oldItemError);
         Assert.True(receipt.TryAddItem(oldItem!, out oldItemError), oldItemError);
@@ -56,11 +58,13 @@ public class ReceiptRefreshWorkflowTests
             .ReturnsAsync((Store?)null);
         storeRepository.Setup(repository => repository.Create(It.IsAny<Store>()))
             .Callback<Store>(store => createdStore = store);
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(productRepository, storeRepository);
+        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receipt, productRepository, storeRepository);
         ReceiptRefreshWorkflow workflow = new(unitOfWork.Object, externalReceiptProvider.Object, TimeProvider.System);
 
-        var result = await workflow.RefreshAsync(receipt, CancellationToken.None);
+        // Act
+        ServiceResult<Receipt> result = await workflow.RefreshAsync(receipt, CancellationToken.None, receipt.CreatedByUserId);
 
+        // Assert
         Assert.True(result.Success);
         Assert.Equal("New", receipt.Store?.Name);
         Assert.NotNull(createdStore);
@@ -78,15 +82,18 @@ public class ReceiptRefreshWorkflowTests
     [Fact]
     public async Task RefreshAsync_ReturnsProviderError_WhenExternalProviderFails()
     {
+        // Arrange
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
         Mock<IExternalReceiptProvider> externalReceiptProvider = new(MockBehavior.Strict);
         externalReceiptProvider.Setup(provider => provider.GetReceiptAsync(receipt, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, "Provider error"));
         Mock<IProductRepository> productRepository = new(MockBehavior.Strict);
-        ReceiptRefreshWorkflow workflow = new(CreateUnitOfWork(productRepository, null).Object, externalReceiptProvider.Object, TimeProvider.System);
+        ReceiptRefreshWorkflow workflow = new(CreateUnitOfWork(receipt, productRepository, null).Object, externalReceiptProvider.Object, TimeProvider.System);
 
-        var result = await workflow.RefreshAsync(receipt, CancellationToken.None);
+        // Act
+        ServiceResult<Receipt> result = await workflow.RefreshAsync(receipt, CancellationToken.None, receipt.CreatedByUserId);
 
+        // Assert
         Assert.False(result.Success);
         Assert.Equal(ServiceErrorType.ExternalService, result.Error?.Type);
     }
@@ -94,15 +101,17 @@ public class ReceiptRefreshWorkflowTests
     [Fact]
     public async Task RefreshScheduledAsync_MarksReceiptFailedAfterSeventhAttempt()
     {
+        // Arrange
         DateTime firstAttemptAtUtc = new(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc);
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
         Mock<IExternalReceiptProvider> externalReceiptProvider = new(MockBehavior.Strict);
         externalReceiptProvider
             .Setup(provider => provider.GetReceiptAsync(receipt, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, "Provider error"));
-        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(new Mock<IProductRepository>(MockBehavior.Strict), null);
+        Mock<IUnitOfWork> unitOfWork = CreateUnitOfWork(receipt, new Mock<IProductRepository>(MockBehavior.Strict), null);
         ReceiptRefreshWorkflow workflow = new(unitOfWork.Object, externalReceiptProvider.Object, TimeProvider.System);
 
+        // Act
         for (int attemptIndex = 0; attemptIndex < ReceiptRefreshPolicy.MAX_ATTEMPTS; attemptIndex++)
         {
             DateTime attemptedAtUtc = firstAttemptAtUtc.AddDays(attemptIndex);
@@ -115,20 +124,40 @@ public class ReceiptRefreshWorkflowTests
             Assert.False(result.Success);
         }
 
+        ServiceResult<Receipt> eighth = await workflow.RefreshScheduledAsync(receipt,
+            firstAttemptAtUtc.AddDays(7), firstAttemptAtUtc.AddDays(8), CancellationToken.None);
+
+        // Assert
+        Assert.False(eighth.Success);
+        Assert.Equal(ServiceErrorType.Conflict, eighth.Error.Type);
         Assert.Equal(ReceiptRefreshPolicy.MAX_ATTEMPTS, receipt.RefreshAttemptCount);
         Assert.Equal(ReceiptRefreshStatus.Failed, receipt.RefreshStatus);
         Assert.Null(receipt.NextRefreshAttemptAtUtc);
         Assert.Equal("Provider error", receipt.LastRefreshError);
         Assert.False(receipt.CanAttemptRefresh(firstAttemptAtUtc.AddDays(7), ReceiptRefreshPolicy.MAX_ATTEMPTS));
         unitOfWork.Verify(item => item.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(ReceiptRefreshPolicy.MAX_ATTEMPTS));
+        externalReceiptProvider.Verify(item => item.GetReceiptAsync(receipt, It.IsAny<CancellationToken>()), Times.Exactly(ReceiptRefreshPolicy.MAX_ATTEMPTS));
     }
 
-    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IProductRepository> productRepository, Mock<IStoreRepository>? storeRepository)
+    private static Mock<IUnitOfWork> CreateUnitOfWork(Receipt receipt, Mock<IProductRepository> productRepository, Mock<IStoreRepository>? storeRepository)
     {
+        Mock<IReceiptRepository> receipts = new(MockBehavior.Strict);
+        receipts.Setup(repository => repository.GetItemByPredicateAsync(It.IsAny<Expression<Func<Receipt, bool>>>(),
+                false, It.IsAny<Func<IQueryable<Receipt>, IQueryable<Receipt>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Expression<Func<Receipt, bool>> predicate, bool noTracking,
+                Func<IQueryable<Receipt>, IQueryable<Receipt>> include, CancellationToken ct) =>
+                new[] { receipt }.FirstOrDefault(predicate.Compile()));
         Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
+        unitOfWork.Setup(work => work.Receipt).Returns(receipts.Object);
+        unitOfWork.Setup(work => work.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(),
+                IsolationLevel.Serializable, It.IsAny<CancellationToken>()))
+            .Returns((Func<CancellationToken, Task> action, IsolationLevel isolation, CancellationToken ct) => action(ct));
         unitOfWork.Setup(unitOfWork => unitOfWork.Product).Returns(productRepository.Object);
         if (storeRepository != null)
+        {
             unitOfWork.Setup(unitOfWork => unitOfWork.Store).Returns(storeRepository.Object);
+        }
+
         unitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         return unitOfWork;
     }

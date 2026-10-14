@@ -8,7 +8,7 @@ UnitOfWork агрегирует репозитории общего контек
 
 Не помещать сюда бизнес-выборки. Сверять отмену и исключения; атомарность SQL и защита от конкуренции требуют реальной реляционной проверки.
 
-Перегрузка транзакции с IsolationLevel передаёт изоляцию в DatabaseFacade реального IAppDbContext<ApplicationContext> и не сохраняет автоматически. Прежняя перегрузка остаётся с автоматическим SaveChanges. SQL Server 2601/2627 преобразуются в ReceiptWriteConflictException только для известного author identity index или PK_ReceiptAccounts; имя в значении ключа не считается именем ограничения. SQL Server 1205 внутри явной транзакции возвращается как отдельный конкурентный отказ, без скрытого повтора.
+Перегрузка транзакции с IsolationLevel передаёт изоляцию в DatabaseFacade реального IAppDbContext<ApplicationContext> и не сохраняет автоматически. Прежняя перегрузка остаётся с автоматическим SaveChanges. SQL Server 2601/2627 преобразуются в ReceiptWriteConflictException для известного author identity index/PK_ReceiptAccounts и отдельно для IX_Products_NormalizedName/IX_Stores_NormalizedName_NormalizedAddress. AdaptiveName и неизвестные ограничения не входят в классификацию. Имя в значении ключа не считается именем ограничения. SQL Server 1205 внутри явной транзакции возвращается как отдельный конкурентный отказ, без скрытого повтора. DbUpdateConcurrencyException распространяется до workflow для Conflict; явная транзакция блокирует дальнейшее сохранение после любого отказа.
 
 После ошибки явной транзакции scope нельзя использовать для следующего сохранения: rollback не сбрасывает change tracker. Повтор SaveChanges или явной транзакции даёт fail-fast. Подставное DbConnection проверяет вызов API и rollback, но не диапазонные блокировки SQL Server.
 

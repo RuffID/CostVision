@@ -71,6 +71,13 @@ namespace CostVision.Infrastructure.DataBase.ModelsConfigure.Receipts
             builder.Property(x => x.LastRefreshError)
                 .HasMaxLength(Receipt.MAX_REFRESH_ERROR_LENGTH);
 
+            builder.Property(x => x.RowVersion)
+                .IsRowVersion();
+
+            builder.Property(x => x.RefreshRevision)
+                .HasDefaultValue(0L)
+                .IsRequired();
+
             builder.HasOne(x => x.CreatedByUser)
                 .WithMany(x => x.CreatedReceipts)
                 .HasForeignKey(x => x.CreatedByUserId)

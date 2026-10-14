@@ -19,15 +19,17 @@ namespace CostVision.Infrastructure.Services.BackgroundServices
                     await scheduler.WaitForNextRunAsync(stoppingToken);
 
                     if (stoppingToken.IsCancellationRequested)
+                    {
                         break;
+                    }
 
-                    using IServiceScope scope = serviceProvider.CreateScope();
+                    await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
                     IRefreshPendingReceiptsUseCase refreshPendingReceiptsUseCase = scope.ServiceProvider.GetRequiredService<IRefreshPendingReceiptsUseCase>();
 
                     logger.LogInformation("[Class:{ClassName}] The update of receipts from the API has been launched.", nameof(ReceiptRefreshBackgroundService));
                     await refreshPendingReceiptsUseCase.ExecuteAsync(stoppingToken);
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
                     break;
                 }

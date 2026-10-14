@@ -22,7 +22,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
 
             Receipt? receipt = await unitOfWork.Receipt.GetItemByPredicateAsync(
                 receipt => receipt.Id == receiptId,
-                asNoTracking: false,
+                asNoTracking: true,
                 include: query => query
                     .Include(receipt => receipt.Store)
                     .Include(receipt => receipt.CreatedByUser)
@@ -45,7 +45,7 @@ namespace CostVision.Application.UseCases.Receipts.Receipts
                 return ServiceResult<ReceiptDto>.Fail(ServiceErrorType.Forbidden, "Нет доступа к этому чеку.");
             }
 
-            ServiceResult<Receipt> refreshResult = await receiptRefreshWorkflow.RefreshAsync(receipt, ct);
+            ServiceResult<Receipt> refreshResult = await receiptRefreshWorkflow.RefreshAsync(receipt, ct, currentUser.Id);
             if (!refreshResult.Success)
             {
                 return refreshResult.PropagateFailure<ReceiptDto>();

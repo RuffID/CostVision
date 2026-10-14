@@ -16,6 +16,8 @@ Stage03ReceiptPersistenceTests проверяет фактические author 
 
 ## Проверка
 
+Stage06RefreshPersistenceTests проверяет RowVersion/RefreshRevision metadata и SQL-перевод actual пакетного predicate/order/take/Guid cursor без соединения. Actual AddApplication/AddInfrastructure и поставленные DLL разрешаются в независимых scopes с разными ApplicationContext/UoW; hosting не запускается. Отдельный тест actual DLL выполняет пакетный запрос на подставном DbConnection и проверяет ORDER BY/TOP(32) без открытия реального соединения. Известные normalized-индексы распознаются отдельно от unknown/AdaptiveName; Stage03UnitOfWorkTests проверяет их перевод/rollback синтетическими SqlException. Это не применённая миграция или проверка конкуренции на двух соединениях.
+
 Stage05ReportQueryTests передаёт actual predicate/include dashboard, getter кандидатов, отчётного счётчика и document projection деталей/refresh в SQL Server ToQueryString. Соединение не открывается, SQL не исполняется. Проверки перевода и наличия графа не доказывают фактическую материализацию, precision/collation, snapshot агрегатов или отзыв доступа.
 
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.

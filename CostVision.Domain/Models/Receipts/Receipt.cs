@@ -142,6 +142,16 @@ namespace CostVision.Domain.Models.Receipts
         public string? LastRefreshError { get; private set; }
 
         /// <summary>
+        /// Версия записи SQL Server для отклонения устаревшего результата обновления.
+        /// </summary>
+        public byte[] RowVersion { get; private set; } = [];
+
+        /// <summary>
+        /// Ревизия замены графа, обеспечивающая UPDATE даже при совпадении остальных реквизитов.
+        /// </summary>
+        public long RefreshRevision { get; private set; }
+
+        /// <summary>
         /// Создаёт чек с допустимыми обязательными реквизитами.
         /// </summary>
         public static bool TryCreate(
@@ -571,6 +581,12 @@ namespace CostVision.Domain.Models.Receipts
                 return false;
             }
 
+            if (GetIdentity() != source.GetIdentity())
+            {
+                error = "Внешний источник вернул другой фискальный документ.";
+                return false;
+            }
+
             if (updatedAtUtc == default)
             {
                 error = "Дата обновления чека не заполнена.";
@@ -585,7 +601,9 @@ namespace CostVision.Domain.Models.Receipts
                     out string fiscalDocumentNumber,
                     out string fiscalSign,
                     out error))
+            {
                 return false;
+            }
 
             if (source.DateTime == default || !Enum.IsDefined(source.OperationType) || source.TotalSum <= 0)
             {
@@ -615,13 +633,23 @@ namespace CostVision.Domain.Models.Receipts
                     normalizedNumberKkt,
                     normalizedRegion,
                     out error))
+            {
                 return false;
+            }
 
             List<ReceiptItem> refreshedItems = items?.ToList() ?? new List<ReceiptItem>();
             foreach (ReceiptItem item in refreshedItems)
             {
                 if (!item.CanAttachTo(this, out error))
+                {
                     return false;
+                }
+            }
+
+            if (RefreshRevision == long.MaxValue)
+            {
+                error = "Исчерпана ревизия обновления чека.";
+                return false;
             }
 
             FiscalDriveNumber = fiscalDriveNumber;
@@ -647,12 +675,15 @@ namespace CostVision.Domain.Models.Receipts
             NumberKkt = normalizedNumberKkt;
             Region = normalizedRegion;
             UpdatedAtUtc = updatedAtUtc;
+            RefreshRevision++;
 
             _items.Clear();
             foreach (ReceiptItem item in refreshedItems)
             {
                 if (!item.TryAttachTo(this, out error))
+                {
                     return false;
+                }
 
                 _items.Add(item);
             }

@@ -78,6 +78,8 @@ public class Stage03UnitOfWorkTests
     [InlineData(547, ReceiptWriteErrors.AUTHOR_IDENTITY_INDEX, false)]
     [InlineData(-2, ReceiptWriteErrors.AUTHOR_IDENTITY_INDEX, false)]
     [InlineData(1205, "deadlock", true)]
+    [InlineData(2601, "IX_Products_NormalizedName", true)]
+    [InlineData(2627, "IX_Stores_NormalizedName_NormalizedAddress", true)]
     public async Task SqlFailure_MapsOnlyKnownReceiptConflicts_AndDoesNotRollbackDeadlockTwice(int number, string constraint, bool expectedConflict)
     {
         // Arrange

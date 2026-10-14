@@ -19,6 +19,7 @@ public class ExternalReceiptProviderTests
     [Fact]
     public async Task GetReceiptAsync_ReturnsMappedReceiptForSuccessfulApiResponse()
     {
+        // Arrange
         Receipt sourceReceipt = CreateSourceReceipt();
         Mock<IReceiptRequest> receiptRequest = new(MockBehavior.Strict);
         receiptRequest
@@ -26,8 +27,10 @@ public class ExternalReceiptProviderTests
             .ReturnsAsync(CreateSuccessfulResponse());
         ExternalReceiptProvider provider = CreateProvider(receiptRequest.Object);
 
+        // Act
         var result = await provider.GetReceiptAsync(sourceReceipt, CancellationToken.None);
 
+        // Assert
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
         Assert.Equal("shop", result.Data.Store?.Name);
@@ -107,6 +110,7 @@ public class ExternalReceiptProviderTests
     [Fact]
     public async Task GetReceiptAsync_BuildsManualRequestFromReceiptData()
     {
+        // Arrange
         Receipt sourceReceipt = CreateSourceReceipt();
         ProverkachekaManualRequest? capturedRequest = null;
         Mock<IReceiptRequest> receiptRequest = new(MockBehavior.Strict);
@@ -116,16 +120,73 @@ public class ExternalReceiptProviderTests
             .ReturnsAsync(CreateSuccessfulResponse());
         ExternalReceiptProvider provider = CreateProvider(receiptRequest.Object);
 
+        // Act
         await provider.GetReceiptAsync(sourceReceipt, CancellationToken.None);
 
+        // Assert
         Assert.NotNull(capturedRequest);
         Assert.Equal("token", capturedRequest.ApiToken);
-        Assert.Equal("fd", capturedRequest.Fd);
+        Assert.Equal("123", capturedRequest.Fd);
         Assert.Equal("fn", capturedRequest.Fn);
-        Assert.Equal("fp", capturedRequest.Fp);
+        Assert.Equal("456", capturedRequest.Fp);
         Assert.Equal("20260529T1015", capturedRequest.Time);
         Assert.Equal("123.45", capturedRequest.Summ);
         Assert.Equal((int)ReceiptOperationType.Expense, capturedRequest.OperationType);
+    }
+
+    [Theory]
+    [InlineData("fn")]
+    [InlineData("fd")]
+    [InlineData("fp")]
+    [InlineData("time")]
+    [InlineData("sum")]
+    [InlineData("operation")]
+    public async Task GetReceiptAsync_RejectsDifferentIdentityWithoutMutatingOriginal(string field)
+    {
+        // Arrange
+        Receipt receipt = CreateSourceReceipt();
+        ReceiptIdentity identity = receipt.GetIdentity();
+        ProverkachekaResponse response = CreateSuccessfulResponse();
+        ProverkachekaJson json = response.Data!.Json!;
+        if (field == "fn")
+        {
+            json.FiscalDriveNumber += "1";
+        }
+        else if (field == "fd")
+        {
+            json.FiscalDocumentNumber++;
+        }
+        else if (field == "fp")
+        {
+            json.FiscalSign++;
+        }
+        else if (field == "time")
+        {
+            json.DateTime = json.DateTime.AddSeconds(1);
+        }
+        else if (field == "sum")
+        {
+            json.TotalSum++;
+        }
+        else
+        {
+            json.OperationType = ReceiptOperationType.RefundIncome;
+        }
+
+        Mock<IReceiptRequest> request = new(MockBehavior.Strict);
+        request.Setup(item => item.GetReceiptByReceiptAsync("https://api.test", It.IsAny<ProverkachekaManualRequest>(),
+            It.IsAny<CancellationToken>())).ReturnsAsync(response);
+
+        // Act
+        ServiceResult<Receipt> result = await CreateProvider(request.Object).GetReceiptAsync(receipt, CancellationToken.None);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ServiceErrorType.ExternalService, result.Error.Type);
+        Assert.Equal(identity, receipt.GetIdentity());
+        Assert.Null(receipt.Store);
+        Assert.Empty(receipt.Items);
+        Assert.Null(receipt.UpdatedAtUtc);
     }
 
     private static ExternalReceiptProvider CreateProvider(IReceiptRequest receiptRequest)
@@ -143,8 +204,8 @@ public class ExternalReceiptProviderTests
     {
         bool isCreated = Receipt.TryCreate(
             "fn",
-            "fd",
-            "fp",
+            "123",
+            "456",
             new DateTime(2026, 5, 29, 10, 15, 0),
             ReceiptOperationType.Expense,
             123.45m,

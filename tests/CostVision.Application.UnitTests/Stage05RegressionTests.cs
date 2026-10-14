@@ -99,7 +99,7 @@ public class Stage05RegressionTests
         Mock<IReceiptAccessVerificationService> access = new(MockBehavior.Strict);
         access.Setup(service => service.UserHasAccessToReceipt(data.User, first)).Returns(true);
         Mock<IReceiptRefreshWorkflow> refresh = new(MockBehavior.Strict);
-        refresh.Setup(workflow => workflow.RefreshAsync(first, It.IsAny<CancellationToken>()))
+        refresh.Setup(workflow => workflow.RefreshAsync(first, It.IsAny<CancellationToken>(), It.IsAny<Guid>()))
             .ReturnsAsync(ServiceResult<Receipt>.Ok(first));
 
         // Act
@@ -573,7 +573,7 @@ public class Stage05RegressionTests
         Mock<IReceiptAccessVerificationService> access = new(MockBehavior.Strict);
         access.Setup(service => service.UserHasAccessToReceipt(data.User, receipt)).Returns(true);
         Mock<IReceiptRefreshWorkflow> refresh = new(MockBehavior.Strict);
-        refresh.Setup(workflow => workflow.RefreshAsync(receipt, It.IsAny<CancellationToken>()))
+        refresh.Setup(workflow => workflow.RefreshAsync(receipt, It.IsAny<CancellationToken>(), It.IsAny<Guid>()))
             .Returns(() =>
             {
                 data.Receipts.Clear();

@@ -92,15 +92,17 @@ public class ReceiptTests
     [Fact]
     public void TryRefreshFrom_DoesNotChangeStateWhenItemBelongsToAnotherReceipt()
     {
+        // Arrange
         Receipt receipt = CreateReceipt();
         Product originalProduct = TestReceiptFactory.CreateProduct("Old");
         Assert.True(ReceiptItem.TryCreate(10, 1, 10, 0, PaymentType.FullPayment, ProductType.Product, QuantityMeasureType.Piece, originalProduct, null, out ReceiptItem? originalItem, out string? error), error);
         Assert.True(receipt.TryAddItem(originalItem!, out error), error);
-        Receipt source = CreateReceipt("new-fn", "new-fd", "new-fp", 20);
+        Receipt source = CreateReceipt();
         Product sourceProduct = TestReceiptFactory.CreateProduct("Source");
         Assert.True(ReceiptItem.TryCreate(20, 1, 20, 0, PaymentType.FullPayment, ProductType.Product, QuantityMeasureType.Piece, sourceProduct, null, out ReceiptItem? sourceItem, out error), error);
         Assert.True(source.TryAddItem(sourceItem!, out error), error);
 
+        // Act
         bool success = receipt.TryRefreshFrom(
             source,
             null,
@@ -108,6 +110,7 @@ public class ReceiptTests
             DateTime.UtcNow,
             out error);
 
+        // Assert
         Assert.False(success);
         Assert.Equal("fn", receipt.FiscalDriveNumber);
         Assert.Same(originalItem, Assert.Single(receipt.Items));

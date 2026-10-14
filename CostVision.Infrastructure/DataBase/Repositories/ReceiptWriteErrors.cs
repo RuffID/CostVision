@@ -39,4 +39,16 @@ internal static class ReceiptWriteErrors
 
         return false;
     }
+
+    internal static bool IsCatalogUniqueViolation(int number, string message)
+    {
+        if (number != 2601 && number != 2627)
+        {
+            return false;
+        }
+
+        return Regex.IsMatch(message,
+            @"(?:unique index|UNIQUE KEY constraint|уникальным индексом|ограничения UNIQUE KEY) '(?:IX_Products_NormalizedName|IX_Stores_NormalizedName_NormalizedAddress)'",
+            RegexOptions.CultureInvariant);
+    }
 }

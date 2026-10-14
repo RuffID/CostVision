@@ -55,6 +55,12 @@ namespace CostVision.Infrastructure.DataBase.Repositories
                 _writeFailed = true;
                 throw new ReceiptWriteConflictException("Такой чек или его связь уже сохранены. Обновите данные и повторите запрос.", exception);
             }
+            catch (DbUpdateException exception) when (exception.InnerException is SqlException sql &&
+                ReceiptWriteErrors.IsCatalogUniqueViolation(sql.Number, sql.Message))
+            {
+                _writeFailed = true;
+                throw new ReceiptWriteConflictException("Товар или магазин уже создан другим запросом. Повторите запрос в новом scope.", exception);
+            }
         }
 
         public async Task ExecuteInTransaction(Func<CancellationToken, Task> action, CancellationToken ct = default)

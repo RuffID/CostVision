@@ -7,6 +7,7 @@ using CostVision.Application.UseCases.Receipts.Receipts.Refresh;
 using CostVision.Domain.Models.Enums.Receipts;
 using CostVision.Domain.Models.Receipts;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 
@@ -17,6 +18,7 @@ public class RefreshPendingReceiptsUseCaseTests
     [Fact]
     public async Task ExecuteAsync_RefreshesOnlyPendingDueReceiptsWithoutItems()
     {
+        // Arrange
         DateTime attemptedAtUtc = new(2026, 8, 8, 0, 0, 0, DateTimeKind.Utc);
         Receipt dueReceipt = TestReceiptFactory.Create(Guid.NewGuid());
         Receipt completedReceipt = TestReceiptFactory.Create(Guid.NewGuid());
@@ -32,13 +34,14 @@ public class RefreshPendingReceiptsUseCaseTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<Receipt>.Ok(dueReceipt));
         RefreshPendingReceiptsUseCase useCase = new(
-            CreateUnitOfWork(receiptRepository).Object,
-            refreshWorkflow.Object,
+            CreateScopeFactory(receiptRepository, refreshWorkflow),
             new Mock<ILogger<RefreshPendingReceiptsUseCase>>().Object,
             CreateTimeProvider(attemptedAtUtc).Object);
 
+        // Act
         await useCase.ExecuteAsync(CancellationToken.None);
 
+        // Assert
         refreshWorkflow.Verify(workflow => workflow.RefreshScheduledAsync(
             dueReceipt,
             attemptedAtUtc,
@@ -54,6 +57,7 @@ public class RefreshPendingReceiptsUseCaseTests
     [Fact]
     public async Task ExecuteAsync_LogsFailedScheduledAttempt()
     {
+        // Arrange
         DateTime attemptedAtUtc = new(2026, 8, 8, 0, 0, 0, DateTimeKind.Utc);
         Receipt receipt = TestReceiptFactory.Create(Guid.NewGuid());
         Mock<IReceiptRepository> receiptRepository = CreateReceiptRepository([receipt]);
@@ -73,13 +77,14 @@ public class RefreshPendingReceiptsUseCaseTests
             .ReturnsAsync(ServiceResult<Receipt>.Fail(ServiceErrorType.ExternalService, "External API error"));
         Mock<ILogger<RefreshPendingReceiptsUseCase>> logger = new();
         RefreshPendingReceiptsUseCase useCase = new(
-            CreateUnitOfWork(receiptRepository).Object,
-            refreshWorkflow.Object,
+            CreateScopeFactory(receiptRepository, refreshWorkflow),
             logger.Object,
             CreateTimeProvider(attemptedAtUtc).Object);
 
+        // Act
         await useCase.ExecuteAsync(CancellationToken.None);
 
+        // Assert
         Assert.Equal(1, receipt.RefreshAttemptCount);
         logger.Verify(
             log => log.Log(
@@ -108,7 +113,8 @@ public class RefreshPendingReceiptsUseCaseTests
                 int? take,
                 bool asNoTracking,
                 Func<IQueryable<Receipt>, IQueryable<Receipt>>? include,
-                CancellationToken ct) => receipts.Where(predicate.Compile()).ToList());
+                CancellationToken ct) => include!(receipts.AsQueryable().Where(predicate))
+                    .Skip(skip).Take(take!.Value).ToList());
 
         return receiptRepository;
     }
@@ -118,6 +124,23 @@ public class RefreshPendingReceiptsUseCaseTests
         Mock<IUnitOfWork> unitOfWork = new(MockBehavior.Strict);
         unitOfWork.Setup(item => item.Receipt).Returns(receiptRepository.Object);
         return unitOfWork;
+    }
+
+    private static IServiceScopeFactory CreateScopeFactory(Mock<IReceiptRepository> receipts, Mock<IReceiptRefreshWorkflow> workflow)
+    {
+        Mock<IServiceProvider> provider = new(MockBehavior.Strict);
+        provider.Setup(item => item.GetService(typeof(IUnitOfWork))).Returns(CreateUnitOfWork(receipts).Object);
+        provider.Setup(item => item.GetService(typeof(IReceiptRefreshWorkflow))).Returns(workflow.Object);
+        Mock<IServiceScopeFactory> factory = new(MockBehavior.Strict);
+        factory.Setup(item => item.CreateScope()).Returns(() =>
+        {
+            Mock<IServiceScope> scope = new(MockBehavior.Strict);
+            scope.SetupGet(item => item.ServiceProvider).Returns(provider.Object);
+            scope.Setup(item => item.Dispose());
+            return scope.Object;
+        });
+
+        return factory.Object;
     }
 
     private static Mock<TimeProvider> CreateTimeProvider(DateTime utcNow)
