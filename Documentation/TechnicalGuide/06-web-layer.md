@@ -35,6 +35,8 @@ CookieHttpContract подключён в AddCookie. Accept=application/json, X-R
 
 В 08 MoneyMovementsModel переведён с механического page-фасада на 14 конкретных сценариев. Имена handlers, FromQuery/FromBody/FromForm, параметры страниц/фильтров, multipart bankId/accountId/file и status/envelopes не менялись. Проверка отсутствующего/пустого файла находится в Application preview; Web создаёт PreviewBankStatementImportRequest и освобождает stream после результата или исключения. Никаких Save/transaction/repository-проверок в PageModel нет. Прямые handler-тесты и actual DI без хоста выполнены отдельно; HTTP/auth/antiforgery-приёмка открыта.
 
+В 12 AddReceipt получает минимальный авторизованный `BrowserUser` GET: ValidateBinding, Cache-Control no-store, CurrentUser.Id через стандартный ServiceResult<Guid>/JsonResultMapper, без Application-вызова. Razor задаёт data-current-user-id и видимый receipt-page-message. Frontend сравнивает identity до восстановления персонального storage, на resume и перед записью, для файлов также после decoding; при обнаруженном mismatch/401/403 очищает видимый чувствительный контекст. Identity GET и POST не атомарны; сервер остаётся владельцем actual auth/access каждой записи. Прямые AddReceiptModelTests (5 passed) проверяют identity/no-store/binding/forwarding, не cookie/routing/antiforgery. Точные команды и открытая процедура — в [этапе 12](../Plans/project-refactoring-2026-10-13/12-qr-scanning-and-browser-storage.md).
+
 ## Ответы и ошибки
 
 [JsonResultMapper](../../CostVision.Web/Web/Mappers/JsonResultMapper.cs) формирует:

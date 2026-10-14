@@ -1,105 +1,92 @@
-import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { clearElement, requireElementById, requireInputById, requireSelectById } from "../../shared/dom.js";
-import { initFileDropzone } from "../../shared/dropzone.js";
-import { loadReceiptAccountsAsync } from "./accountsApi.js";
-import { setCameraButtonState } from "./cameraUi.js";
-import { getFilesFromFileList } from "./fileScanner.js";
-import { isImageFile } from "./imageProcessing.js";
-import { submitManualReceiptAsync } from "./manualReceipt.js";
-import { getStatusClassName } from "./receiptStatusRender.js";
-import { submitQrScanAsync } from "./qrScanner.js";
-import { DecodedQrFileResult, ImageCropArea, ImageDebugInfo, ImageSize, ManualReceiptOutcome, ManualReceiptPayload, QrScanPayload, QrScanResult } from "./types.js";
-import { receiptPageState } from "./state.js";
+import type { DecodedQrFileResult, ImageCropArea, ImageSize } from "./types.js";
 
+export function throwIfScanCancelled(signal: AbortSignal): void {
+    if (signal.aborted) {
+        throw new DOMException("Обработка отменена.", "AbortError");
+    }
+}
 
-export async function qrScanGetPhotoDateFromFile(file: File): Promise<string | null> {
-    return new Promise<string | null>(function (resolve) {
-        if (!window.EXIF || !file) {
-            resolve(null);
-            return;
-        }
+export async function qrScanGetPhotoDateFromFile(file: File, signal: AbortSignal): Promise<string | null> {
+    if (!window.EXIF) {
+        return null;
+    }
 
+    const buffer = await readFileBuffer(file, signal);
+    throwIfScanCancelled(signal);
+    const tags = EXIF.readFromBinaryFile(buffer);
+    if (!tags) {
+        return null;
+    }
+    const raw = tags.DateTimeOriginal || tags.DateTimeDigitized || tags.DateTime;
+    if (typeof raw !== "string") {
+        return null;
+    }
+    const match = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?$/.exec(raw);
+    if (!match) {
+        return null;
+    }
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]),
+        Number(match[4]), Number(match[5]), Number(match[6] || "0"));
+    if (!Number.isFinite(date.getTime())) {
+        return null;
+    }
+    return date.toISOString();
+}
+
+function readFileBuffer(file: File, signal: AbortSignal): Promise<ArrayBuffer> {
+    throwIfScanCancelled(signal);
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        const cleanup = () => {
+            signal.removeEventListener("abort", cancel);
+            reader.onload = null;
+            reader.onerror = null;
+            reader.onabort = null;
+        };
+        const cancel = () => {
+            cleanup();
+            reader.abort();
+            reject(new DOMException("Обработка отменена.", "AbortError"));
+        };
+        reader.onload = () => {
+            const result = reader.result;
+            cleanup();
+            if (!(result instanceof ArrayBuffer)) {
+                reject(new Error("Не удалось прочитать EXIF изображения."));
+                return;
+            }
+            resolve(result);
+        };
+        reader.onerror = () => {
+            const error = reader.error;
+            cleanup();
+            reject(error || new Error("Не удалось прочитать изображение."));
+        };
+        reader.onabort = cancel;
+        signal.addEventListener("abort", cancel, { once: true });
         try {
-            EXIF.getData(file, function () {
-                try {
-                    // this — внутренний объект exif-js, связанный с file
-                    const raw =
-                        EXIF.getTag(this, "DateTimeOriginal") ||
-                        EXIF.getTag(this, "DateTimeDigitized") ||
-                        EXIF.getTag(this, "DateTime");
-
-                    if (!raw || typeof raw !== "string") {
-                        resolve(null);
-                        return;
-                    }
-
-                    // ожидаемый формат: "2024:11:27 18:03:15"
-                    const parts = raw.split(" ");
-                    if (parts.length !== 2) {
-                        resolve(null);
-                        return;
-                    }
-
-                    const datePart = parts[0].split(":");
-                    const timePart = parts[1].split(":");
-                    if (datePart.length !== 3 || timePart.length < 2) {
-                        resolve(null);
-                        return;
-                    }
-
-                    const year = parseInt(datePart[0], 10);
-                    const month = parseInt(datePart[1], 10);
-                    const day = parseInt(datePart[2], 10);
-                    const hour = parseInt(timePart[0], 10);
-                    const minute = parseInt(timePart[1], 10);
-                    const second = timePart.length > 2 ? parseInt(timePart[2], 10) : 0;
-
-                    if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
-                        resolve(null);
-                        return;
-                    }
-
-                    const jsDate = new Date(year, month - 1, day, hour, minute, second);
-
-                    resolve(jsDate.toISOString());
-                } catch (err) {
-                    console.warn("EXIF parse error", err);
-                    resolve(null);
-                }
-            });
-        } catch (err) {
-            console.warn("EXIF reader error", err);
-            resolve(null);
+            reader.readAsArrayBuffer(file);
+        } catch (error) {
+            cleanup();
+            reject(error);
         }
     });
 }
 
-export function getImageSizeFromFile(file: File): Promise<ImageSize> {
-    return new Promise<ImageSize>((resolve, reject) => {
-        const img = new Image();
-        const url = URL.createObjectURL(file);
-
-        img.onload = function () {
-            const width = img.naturalWidth;
-            const height = img.naturalHeight;
-            URL.revokeObjectURL(url);
-            resolve({ width, height });
-        };
-
-        img.onerror = function (e) {
-            URL.revokeObjectURL(url);
-            reject(e);
-        };
-
-        img.src = url;
-    });
+export async function getImageSizeFromFile(file: File, signal: AbortSignal): Promise<ImageSize> {
+    const image = await qrScanLoadImageFromFile(file, signal);
+    return { width: image.naturalWidth, height: image.naturalHeight };
 }
 
-export async function qrScanDecodeFile(file: File): Promise<DecodedQrFileResult> {
+export async function qrScanDecodeFile(file: File, scanner: Pick<Html5QrcodeInstance, "scanFileV2">, signal: AbortSignal): Promise<DecodedQrFileResult> {
+    throwIfScanCancelled(signal);
     try {
-        return await receiptPageState.qrScanFileScanner.scanFileV2(file, false);
+        const result = await scanner.scanFileV2(file, false);
+        throwIfScanCancelled(signal);
+        return result;
     } catch (primaryError) {
-        const fallbackResult = await qrScanDecodeFileWithJsQr(file);
+        throwIfScanCancelled(signal);
+        const fallbackResult = await qrScanDecodeFileWithJsQr(file, signal);
         if (fallbackResult) {
             return fallbackResult;
         }
@@ -108,13 +95,14 @@ export async function qrScanDecodeFile(file: File): Promise<DecodedQrFileResult>
     }
 }
 
-export async function qrScanDecodeFileWithJsQr(file: File): Promise<DecodedQrFileResult | null> {
+export async function qrScanDecodeFileWithJsQr(file: File, signal: AbortSignal): Promise<DecodedQrFileResult | null> {
     if (typeof jsQR !== "function") {
         return null;
     }
 
-    const variants = await qrScanBuildJsQrVariants(file);
+    const variants = await qrScanBuildJsQrVariants(file, signal);
     for (let i = 0; i < variants.length; i++) {
+        throwIfScanCancelled(signal);
         const canvas = variants[i];
         const context = canvas.getContext("2d", { willReadFrequently: true });
         if (!context) {
@@ -136,8 +124,8 @@ export async function qrScanDecodeFileWithJsQr(file: File): Promise<DecodedQrFil
     return null;
 }
 
-export async function qrScanBuildJsQrVariants(file: File): Promise<HTMLCanvasElement[]> {
-    const image = await qrScanLoadImageFromFile(file);
+export async function qrScanBuildJsQrVariants(file: File, signal: AbortSignal): Promise<HTMLCanvasElement[]> {
+    const image = await qrScanLoadImageFromFile(file, signal);
     const sourceCanvas = qrScanCreateCanvasFromImage(image);
     const sourceCrop = qrScanDetectQrCropArea(sourceCanvas);
     const croppedCanvas = qrScanCropCanvas(sourceCanvas, sourceCrop);
@@ -156,22 +144,37 @@ export async function qrScanBuildJsQrVariants(file: File): Promise<HTMLCanvasEle
     });
 }
 
-export function qrScanLoadImageFromFile(file: File): Promise<HTMLImageElement> {
-    return new Promise<HTMLImageElement>((resolve, reject) => {
+export function qrScanLoadImageFromFile(file: File, signal: AbortSignal): Promise<HTMLImageElement> {
+    throwIfScanCancelled(signal);
+    return new Promise((resolve, reject) => {
         const image = new Image();
         const objectUrl = URL.createObjectURL(file);
-
-        image.onload = function () {
+        const cleanup = () => {
+            signal.removeEventListener("abort", cancel);
+            image.onload = null;
+            image.onerror = null;
             URL.revokeObjectURL(objectUrl);
+        };
+        const cancel = () => {
+            cleanup();
+            image.src = "";
+            reject(new DOMException("Обработка отменена.", "AbortError"));
+        };
+        image.onload = () => {
+            cleanup();
             resolve(image);
         };
-
-        image.onerror = function (event) {
-            URL.revokeObjectURL(objectUrl);
-            reject(event);
+        image.onerror = () => {
+            cleanup();
+            reject(new Error("Не удалось прочитать изображение."));
         };
-
-        image.src = objectUrl;
+        signal.addEventListener("abort", cancel, { once: true });
+        try {
+            image.src = objectUrl;
+        } catch (error) {
+            cleanup();
+            reject(error);
+        }
     });
 }
 

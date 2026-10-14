@@ -2,11 +2,15 @@
 
 ## Ответственность
 
-Модули управляют камерой, файлами, декодированием, аккаунтами, локальным черновиком, ручной формой и отправкой.
+index/initialization создают одну независимую page session; controller владеет событиями, занятостью, поколениями чтений, захваченным пакетом/счётом и lifecycle. fileScanWorkflow/fileDecoding декодируют локальные файлы, cameraController сериализует vendor start/stop/switch/pause/dispose, submission/API выполняют транспорт, rendering/cameraUi отображают входные данные, draftPersistence владеет персональными ключами.
 
 ## Контракты и границы
 
-Освобождать media tracks, object URL и обработчики. Проверять дубли, повторную отправку, границы пользователей в storage и восстановление после ошибки.
+Нет общего изменяемого пакета и циклических page imports. Files/paste/drop/camera/manual/retry используют общий busy lock без очереди пакетов; каждый запуск захватывает вход и проверяет ticket после await. Pagehide/visibility hidden инвалидируют decoding/чтения и ставят stop камеры в очередь. Поздние camera callbacks/errors не принадлежат новому устройству. POST не отменяется и не повторяется автоматически; неизвестный исход блокирует запись до сверки серверного списка и нового открытия страницы. Известный отказ QR позволяет явно повторить исходный пакет с исходным счётом; успех соседних строк и ошибки дублей сохраняются.
+
+CurrentUser.Id приходит из Razor и авторизованного no-store BrowserUser handler: проверка до восстановления, при возвращении и перед отправкой, для файлов также после decoding. GET/POST не атомарны; права проверяет сервер. При обнаруженной смене пользователя/401/403 очищается видимый чувствительный контекст. Storage использует qrScan.user.<GUID>.manualReceiptDraft/selectedAccountId без TTL/удаления при logout; legacy общие ключи не читать, не мигрировать и не удалять. Успех ручного ввода очищает только неизменённый черновик. Camera ID — прежняя нечувствительная device preference.
+
+По решению пользователя новых лимитов количества/байтов/пикселей/времени нет. Сохранены html5-qrcode/jsQR canvas-стратегии и EXIF/lastModified fallback. fileScanner изолирует vendor в same-origin iframe, отслеживает оба object URL в отдельном realm и удаляет frame при отмене/dispose; URL API основной страницы и vendor-код не менять. EXIF читается actual readFromBinaryFile через отменяемый FileReader. Собственные Image URL/listeners и dropzone subscriptions имеют cleanup. Реальный iframe/CSP/canvas/vendor lifecycle требует браузерной приёмки.
 
 ## Проверка
 
@@ -18,4 +22,4 @@
 
 Общая карта и порядок сопровождения: [техническое руководство](../../../../../Documentation/TechnicalGuide/12-source-map-and-maintenance.md). Открытые изменения: [план рефакторинга](../../../../../Documentation/Plans/project-refactoring-2026-10-13/README.md).
 
-API разворачивает только проверенный ServiceResult и проверяет обязательную форму данных через shared HTTP-validator: списки, поля результата и серверные страницы/итоги соответствующего сценария. Отказ не заменяется пустым успехом или нулевыми totals; финансовые расчёты остаются серверными. HttpError сохраняется до границы пользовательского действия; общий lifecycle запросов здесь не вводится.
+API разворачивает проверенный ServiceResult; QR проверяет обязательные safe-integer counters, все строки/parsed и согласованность счётчиков с actual сервером. Ошибки строк могут содержать rejected operationType/null sum, успешные — обязательные данные. Отказ не заменяется нулевым успехом. receiptScanning.test.mts вызывает actual entry/controller/API/storage/camera/file adapter с подставным DOM/fetch/vendor; это не реальная камера, Bootstrap или HTTP-приёмка. Точные результаты и процедура находятся в плане 12.

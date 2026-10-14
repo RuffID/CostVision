@@ -12,6 +12,8 @@ List денежных операций проверяет ServiceResult<MoneyMov
 
 MoneyMovementsModelTests передаёт strict mocks конкретных сценариев без page-фасада, проверяет все handlers, прежние envelopes/status, пользователя/token/страницы/полные totals, нейтральный preview-request и disposal file stream при результате/исключении. Отдельный тест разрешает страницу через actual AddApplication/AddInfrastructure с ValidateScopes/ValidateOnBuild, без запуска hosting/SQL/provider.
 
+AddReceiptModelTests проверяет BrowserUser: CurrentUser.Id и Cache-Control no-store в стандартном envelope, invalid binding 400 до бизнес-вызова. Прямой handler не подтверждает actual cookie смену пользователя или маршрутизацию.
+
 ## Проверка
 
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.

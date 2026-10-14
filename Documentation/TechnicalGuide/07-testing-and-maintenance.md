@@ -56,6 +56,8 @@
 
 Изолированные frontend-проверки после build:ts запускаются через `node --experimental-strip-types --test tests/Frontend/*.test.mts`. requestCoordination.test.mts вызывает actual DOMContentLoaded/controller/API с управляемыми Promise и abort-ignoring fetch; moneyMovementImport.test.mts использует actual preview перед save. [Журнал10](../Plans/project-refactoring-2026-10-13/10-frontend-request-coordination.md) фиксирует новые76 passed/0 failed/0 skipped/0 cancelled и успешный TypeScript compile-check отдельно от старых .NET-результатов09; никаких hosting/browser/SQL/live-запусков10 не было.
 
+12: receiptScanning.test.mts вызывает actual AddReceipt entry/controller/API/storage/camera/file adapter с fake DOM/fetch/vendor/URLs/FileReader. Проверены captures/busy/overlay, known/unknown outcome без retry, identity/legacy/retention/draft, camera revision/start-stop/stale callback/error, lifecycle/bfcache и decoder cleanup/fallback. Финальный весь frontend **124 passed / 0 failed / 0 skipped / 0 cancelled**, strict TS build exit 0. Необходимая identity handler правка проверена только AddReceiptModelTests **5/0/0** и Web build **0 errors / 2 existing NU1510 warnings**. Evidence/commands/open browser/camera/CSP/storage/auth procedure — [журнал 12](../Plans/project-refactoring-2026-10-13/12-qr-scanning-and-browser-storage.md). Неизменённые .NET-наборы, IntegrationTests, browser/камера/hosting/SQL/provider в 12 не запускались.
+
 ## Изменения модели данных
 
 Entity configuration меняется вместе с Domain-моделью и integration tests. EF migration создаёт пользователь вручную; migration и model snapshot не редактируются вручную. После добавления migration необходимо проверить путь upgrade на SQL Server и работу backup-before-migrate.

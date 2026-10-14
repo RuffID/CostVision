@@ -1,66 +1,16 @@
-import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { clearElement, requireElementById, requireInputById, requireSelectById } from "../../shared/dom.js";
-import { initFileDropzone } from "../../shared/dropzone.js";
-import { loadReceiptAccountsAsync } from "./accountsApi.js";
-import { setCameraButtonState } from "./cameraUi.js";
-import { getFilesFromFileList } from "./fileScanner.js";
-import { isImageFile } from "./imageProcessing.js";
-import { submitManualReceiptAsync } from "./manualReceipt.js";
+import { clearElement } from "../../shared/dom.js";
 import { getStatusClassName } from "./receiptStatusRender.js";
-import { submitQrScanAsync } from "./qrScanner.js";
-import { DecodedQrFileResult, ImageDebugInfo, ImageSize, ManualReceiptOutcome, ManualReceiptPayload, QrScanPayload, QrScanResult } from "./types.js";
-import { receiptPageState } from "./state.js";
-import * as initialization from "./initialization.js";
-import * as fileScanWorkflow from "./fileScanWorkflow.js";
-import * as cameraController from "./cameraController.js";
-import type { QrSubmitSource } from "./state.js";
-import type { QrParsed, ReceiptStatusType } from "./types.js";
-import { getOrCreateBootstrapModal } from "../../shared/bootstrap.js";
+import type { QrParsed, QrScanResult, ReceiptStatusType } from "./types.js";
 
-export function qrScanEnsureStatusContainer(): HTMLElement | null {
-    if (document.body.classList.contains("qr-mobile-scan-mode")) {
-        return null;
-    }
-
-    let container = document.querySelector<HTMLElement>(".qr-status");
-    if (container) {
-        return container;
-    }
-
-    container = document.createElement("div");
-    container.className = "qr-status d-flex flex-column align-items-start gap-2 mt-3 mb-4";
-
-    // Вставить над выбором счёта
-    if (receiptPageState.accountSelect) {
-        // Берём не сам select, а его "строку" / form-group, если есть
-        let anchor = receiptPageState.accountSelect.closest(".form-group, .mb-3, .mb-4, .row") || receiptPageState.accountSelect;
-
-        if (anchor && anchor.parentNode) {
-            anchor.parentNode.insertBefore(container, anchor);
-            return container;
-        }
-    }
-
-    return container;
-}
-
-export function qrScanRenderStatus(scannedCount: number, addedToDbCount: number, errorCount: number, errorMessage: string, results: QrScanResult[]): void {
-    const container = qrScanEnsureStatusContainer();
-    if (!container) {
-        return;
-    }
+export function qrScanRenderStatus(container: HTMLElement, scannedCount: number, addedToDbCount: number, errorCount: number, errorMessage: string, results: QrScanResult[]): void {
 
     clearElement(container);
 
-    const normalizedResults = Array.isArray(results) ? results : [];
-    const invalidQrCount = normalizedResults.filter(function (result) {
-        return !!result &&
-            typeof result.decodedText === "string" &&
-            result.decodedText.trim().length > 0 &&
-            typeof result.errorMessage === "string" &&
-            result.errorMessage.trim().length > 0;
-    }).length;
-    const duplicateCount = Math.max(0, scannedCount - addedToDbCount - invalidQrCount);
+    const normalizedResults = results;
+    const scanned = document.createElement("div");
+    scanned.className = "small text-body-secondary";
+    scanned.textContent = "Распознано кодов: " + scannedCount;
+    container.appendChild(scanned);
 
     if (addedToDbCount > 0) {
         const addedItem = document.createElement("div");
@@ -81,17 +31,6 @@ export function qrScanRenderStatus(scannedCount: number, addedToDbCount: number,
         container.appendChild(addedItem);
     }
 
-    if (duplicateCount > 0) {
-        const duplicateItem = document.createElement("div");
-        duplicateItem.className = "qr-status__item alert alert-warning py-2 px-3 mb-0 d-inline-block w-auto";
-
-        const duplicateText = document.createElement("div");
-        duplicateText.className = "qr-status__text mb-0";
-        duplicateText.textContent = "Уже добавлено: " + duplicateCount;
-
-        duplicateItem.appendChild(duplicateText);
-        container.appendChild(duplicateItem);
-    }
 
     if (errorCount > 0) {
         const errorItem = document.createElement("div");
@@ -130,11 +69,7 @@ export function qrScanRenderStatus(scannedCount: number, addedToDbCount: number,
     }
 }
 
-export function qrScanRenderManualStatus(message: string, statusType: ReceiptStatusType): void {
-    const container = qrScanEnsureStatusContainer();
-    if (!container) {
-        return;
-    }
+export function qrScanRenderManualStatus(container: HTMLElement, message: string, statusType: ReceiptStatusType): void {
 
     clearElement(container);
 
@@ -158,9 +93,9 @@ export function qrScanGetStatusClassName(statusType: ReceiptStatusType): string 
     return getStatusClassName(statusType);
 }
 
-export function qrScanRenderResults(results: QrScanResult[]): void {
-    if (document.body.classList.contains("qr-mobile-scan-mode")) {
-        const existingSection = document.getElementById("decoded-results-section");
+export function qrScanRenderResults(resultsHost: HTMLElement, results: QrScanResult[], mobile: boolean): void {
+    if (mobile) {
+        const existingSection = resultsHost.querySelector<HTMLElement>("#decoded-results-section");
         if (existingSection) {
             const wrapper = existingSection.closest(".qr-section");
             if (wrapper) {
@@ -175,7 +110,7 @@ export function qrScanRenderResults(results: QrScanResult[]): void {
         return;
     }
 
-    let sectionBody = document.getElementById("decoded-results-section");
+    let sectionBody = resultsHost.querySelector<HTMLElement>("#decoded-results-section");
     let ul;
 
     if (!sectionBody) {
@@ -218,11 +153,6 @@ export function qrScanRenderResults(results: QrScanResult[]): void {
         wrapper.appendChild(headerBtn);
         wrapper.appendChild(sectionBody);
 
-        const resultsHost = document.getElementById("decoded-results-host");
-        if (!resultsHost) {
-            throw new Error("Не найден контейнер результатов обработки.");
-        }
-
         resultsHost.appendChild(wrapper);
     } else {
         ul = sectionBody.querySelector("ul");
@@ -238,7 +168,7 @@ export function qrScanRenderResults(results: QrScanResult[]): void {
         throw new Error("Не найден заголовок результатов обработки.");
     }
 
-    initialization.qrScanSetCollapseState(resultsHeader, sectionBody, false);
+    qrScanSetCollapseState(resultsHeader, sectionBody, false);
 
     clearElement(ul);
 
@@ -357,7 +287,7 @@ export function qrScanFormatReceiptDateForStatus(value: string | null): string {
 }
 
 export function qrScanFormatReceiptSumForStatus(value: number | null): string {
-    if (typeof value !== "number" || Number.isNaN(value)) {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
         return "сумма не указана";
     }
 
@@ -369,9 +299,8 @@ export function qrScanFormatReceiptSumForStatus(value: number | null): string {
 
 // ===================== Работа с результатами (Results) =====================
 
-export function qrScanShowCameraReceiptFeedback(results: QrScanResult[], addedToDbCount: number, errorCount: number, errorMessage: string, source: QrSubmitSource): void {
+export function renderCameraReceiptFeedback(modal: HTMLElement, results: QrScanResult[], addedToDbCount: number, errorCount: number, errorMessage: string, source: "camera" | "files"): void {
     const receiptResult = Array.isArray(results) && results.length > 0 ? results[0] : null;
-    const modal = qrScanEnsureCameraModal();
     const title = modal.querySelector<HTMLElement>(".qr-camera-modal__title");
     const subtitle = modal.querySelector<HTMLElement>(".qr-camera-modal__subtitle");
     const details = modal.querySelector<HTMLElement>(".qr-camera-modal__details");
@@ -383,7 +312,20 @@ export function qrScanShowCameraReceiptFeedback(results: QrScanResult[], addedTo
     clearElement(details);
     title.classList.remove("text-success", "text-warning", "text-danger");
 
-    if (!receiptResult) {
+    if (results.length > 1) {
+        title.textContent = "Результаты обработки файлов";
+        title.classList.add(errorCount > 0 ? "text-danger" : "text-success");
+        subtitle.textContent = "Добавлено: " + addedToDbCount + ", ошибок: " + errorCount;
+        for (const result of results) {
+            const row = document.createElement("div");
+            row.className = "border rounded-3 p-2";
+            const name = document.createElement("strong");
+            name.textContent = result.fileName;
+            row.appendChild(name);
+            qrScanAppendProcessingResultDetails(row, result);
+            details.appendChild(row);
+        }
+    } else if (!receiptResult) {
         title.textContent = "Сканирование завершено";
         title.classList.add("text-warning");
         subtitle.textContent = source === "files"
@@ -412,14 +354,9 @@ export function qrScanShowCameraReceiptFeedback(results: QrScanResult[], addedTo
         qrScanAppendCameraModalDetail(details, "Ошибка", errorMessage);
     }
 
-    qrScanShowCameraModal();
 }
 
-export function qrScanEnsureCameraModal(): HTMLElement {
-    if (receiptPageState.qrScanCameraModal) {
-        return receiptPageState.qrScanCameraModal;
-    }
-
+export function createCameraFeedback(): HTMLElement {
     const modal = document.createElement("div");
     modal.className = "qr-camera-modal modal fade";
     modal.tabIndex = -1;
@@ -474,37 +411,7 @@ export function qrScanEnsureCameraModal(): HTMLElement {
     dialog.appendChild(content);
     modal.appendChild(dialog);
 
-    modal.addEventListener("hidden.bs.modal", function () {
-        cameraController.qrScanResumeCameraAfterFeedback();
-    });
-
-    document.body.appendChild(modal);
-    receiptPageState.qrScanCameraModal = modal;
-    receiptPageState.qrScanCameraModalInstance = getOrCreateBootstrapModal(modal);
     return modal;
-}
-
-export function qrScanShowCameraModal(): void {
-    qrScanEnsureCameraModal();
-
-    if (!receiptPageState.qrScanCameraModalInstance) {
-        throw new Error("Не удалось инициализировать модальное окно результата сканирования.");
-    }
-
-    if (receiptPageState.qrScanOverlay) {
-        fileScanWorkflow.qrScanHideOverlay();
-    }
-
-    receiptPageState.qrScanCameraModalInstance.show();
-}
-
-export function qrScanHideCameraReceiptFeedback(): void {
-    if (!receiptPageState.qrScanCameraModal || !receiptPageState.qrScanCameraModalInstance) {
-        cameraController.qrScanResumeCameraAfterFeedback();
-        return;
-    }
-
-    receiptPageState.qrScanCameraModalInstance.hide();
 }
 
 export function qrScanAppendParsedReceiptDetails(container: HTMLElement, parsed: QrParsed | null | undefined): void {
@@ -539,7 +446,7 @@ export function qrScanAppendCameraModalDetail(container: HTMLElement, label: str
 }
 
 export function qrScanFormatReceiptSum(value: number | null): string {
-    if (typeof value !== "number" || Number.isNaN(value)) {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
         return "Не указана";
     }
 
@@ -576,4 +483,49 @@ export function qrScanFormatOperationType(value: number | null): string {
         default:
             return "Не указан";
     }
+}
+
+
+export function qrScanSetCollapseState(button: HTMLButtonElement, body: HTMLElement, isCollapsed: boolean): void {
+    if (!button || !body) {
+        return;
+    }
+
+    button.classList.toggle("qr-section__header--collapsed", isCollapsed);
+    button.setAttribute("aria-expanded", (!isCollapsed).toString());
+    body.classList.toggle("qr-section__body--collapsed", isCollapsed);
+    body.classList.toggle("d-none", isCollapsed);
+
+    const arrow = button.querySelector(".qr-section__arrow");
+    if (arrow) {
+        arrow.textContent = isCollapsed ? "▸" : "▾";
+    }
+}
+
+
+export function createScanOverlay(): HTMLElement {
+    const overlay = document.createElement("div");
+    overlay.className = "qr-overlay position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center flex-column gap-3";
+    overlay.style.backgroundColor = "rgba(15, 23, 42, 0.55)";
+    overlay.style.zIndex = "1080";
+
+    const spinner = document.createElement("div");
+    spinner.className = "spinner-border text-light";
+    spinner.setAttribute("role", "status");
+    spinner.setAttribute("aria-hidden", "true");
+
+    const text = document.createElement("div");
+    text.className = "qr-overlay__text text-white fw-semibold";
+    text.textContent = "Обработка данных...";
+
+    overlay.append(spinner, text);
+
+    return overlay;
+}
+
+
+export function renderScanOverlay(overlay: HTMLElement, busy: boolean): void {
+    overlay.classList.toggle("d-none", !busy);
+    overlay.classList.toggle("d-flex", busy);
+    document.body.classList.toggle("overflow-hidden", busy);
 }

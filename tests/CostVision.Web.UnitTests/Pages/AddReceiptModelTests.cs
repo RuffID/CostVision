@@ -7,6 +7,8 @@ using CostVision.Domain.Models.Authorization;
 using CostVision.Web.Pages;
 using CostVision.Web.UnitTests.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Moq;
 using Xunit;
 
@@ -14,6 +16,49 @@ namespace CostVision.Web.UnitTests.Pages;
 
 public class AddReceiptModelTests
 {
+    [Fact]
+    public void OnGetBrowserUser_ReturnsAuthenticatedUserWithoutReadingAccounts()
+    {
+        // Arrange
+        User currentUser = TestUsers.Create();
+        Dependencies dependencies = new();
+        AddReceiptModel model = dependencies.CreateModel(currentUser);
+        model.PageContext = new PageContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+
+        // Act
+        IActionResult result = model.OnGetBrowserUser();
+
+        // Assert
+        JsonResult json = Assert.IsType<JsonResult>(result);
+        Assert.Equal(currentUser.Id, JsonResultAssert.Data<Guid>(json));
+        Assert.Equal("no-store", model.Response.Headers.CacheControl);
+        dependencies.GetUserAccountsForReceiptCreationUseCase.VerifyNoOtherCalls();
+        dependencies.SaveManualReceiptUseCase.VerifyNoOtherCalls();
+        dependencies.SaveReceiptsScannedUseCase.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public void OnGetBrowserUser_RejectsInvalidBindingBeforeIdentityResponse()
+    {
+        // Arrange
+        Dependencies dependencies = new();
+        AddReceiptModel model = dependencies.CreateModel(TestUsers.Create());
+        model.ModelState.AddModelError("query", "Invalid binding");
+
+        // Act
+        IActionResult result = model.OnGetBrowserUser();
+
+        // Assert
+        JsonResult json = Assert.IsType<JsonResult>(result);
+        Assert.Equal(400, json.StatusCode);
+        dependencies.GetUserAccountsForReceiptCreationUseCase.VerifyNoOtherCalls();
+        dependencies.SaveManualReceiptUseCase.VerifyNoOtherCalls();
+        dependencies.SaveReceiptsScannedUseCase.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public async Task OnPostManualAsync_CallsSaveManualReceiptUseCase()
     {

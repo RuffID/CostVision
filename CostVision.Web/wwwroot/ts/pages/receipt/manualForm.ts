@@ -1,114 +1,70 @@
-import { getRequestVerificationToken } from "../../shared/verificationToken.js";
-import { clearElement, requireElementById, requireInputById, requireSelectById } from "../../shared/dom.js";
-import { initFileDropzone } from "../../shared/dropzone.js";
-import { loadReceiptAccountsAsync } from "./accountsApi.js";
-import { setCameraButtonState } from "./cameraUi.js";
-import { getFilesFromFileList } from "./fileScanner.js";
-import { isImageFile } from "./imageProcessing.js";
-import { submitManualReceiptAsync } from "./manualReceipt.js";
-import { getStatusClassName } from "./receiptStatusRender.js";
-import { submitQrScanAsync } from "./qrScanner.js";
-import { DecodedQrFileResult, ImageDebugInfo, ImageSize, ManualReceiptOutcome, ManualReceiptPayload, QrScanPayload, QrScanResult } from "./types.js";
-import { receiptPageState } from "./state.js";
-import * as initialization from "./initialization.js";
-import * as rendering from "./rendering.js";
-import * as fileScanWorkflow from "./fileScanWorkflow.js";
-import * as draftPersistence from "./draftPersistence.js";
+import { requireElementById, requireInputById, requireSelectById } from "../../shared/dom.js";
+import type { ManualDraft, ManualReceiptPayload } from "./types.js";
 
-export function initManualCheckValidation(): void {
-    const root = requireElementById<HTMLElement>("manual-request-root");
-    const btn = requireElementById<HTMLButtonElement>("manual-check-btn");
-    const resultMessage = requireElementById<HTMLElement>("manual-result-message");
+export function createManualForm() {
+    const root = requireElementById("manual-request-root");
+    const button = requireElementById("manual-check-btn", HTMLButtonElement);
+    const message = requireElementById("manual-result-message");
+    const fn = requireInputById("manual-fn");
+    const fd = requireInputById("manual-fd");
+    const fp = requireInputById("manual-fp");
+    const sum = requireInputById("manual-sum");
+    const date = requireInputById("manual-date");
+    const type = requireSelectById("manual-type");
+    const fields = [fn, fd, fp, sum, date, type];
 
-    const fnInput = requireInputById("manual-fn");
-    const fdInput = requireInputById("manual-fd");
-    const fpInput = requireInputById("manual-fp");
-    const sumInput = requireInputById("manual-sum");
-    const dateInput = requireInputById("manual-date");
-    const typeSelect = requireSelectById("manual-type");
-
-    draftPersistence.qrScanRestoreManualDraft(fnInput, fdInput, fpInput, sumInput, dateInput, typeSelect);
-    draftPersistence.qrScanSetDefaultManualDate(dateInput);
-    draftPersistence.qrScanBindManualDraftPersistence(fnInput, fdInput, fpInput, sumInput, dateInput, typeSelect);
-
-    btn.addEventListener("click", async function () {
-        const isValid = validateManualFields(
-            root,
-            fnInput,
-            fdInput,
-            fpInput,
-            sumInput,
-            dateInput,
-            typeSelect,
-            resultMessage
-        );
-
-        if (!isValid) {
-            return;
-        }
-
-        const fnDigits = (fnInput?.value || "").replace(/\D/g, "");
-        const fdDigits = (fdInput?.value || "").replace(/\D/g, "");
-        const fpDigits = (fpInput?.value || "").replace(/\D/g, "");
-        const sumRaw = (sumInput?.value || "").trim();
-        const dateValue = (dateInput?.value || "").trim();
-        const typeValue = (typeSelect?.value || "").trim();
-
-        // сбрасывает локальное сообщение
-        if (resultMessage) {
-            resultMessage.textContent = "";
-            resultMessage.classList.remove("text-danger", "text-success");
-        }
-
-        receiptPageState.qrScanLastSubmitSource = "manual";
-
-        fileScanWorkflow.qrScanShowOverlay();
-        try {
-            const payload: ManualReceiptPayload = {
+    function capture(): ManualDraft {
+        return { fn: fn.value, fd: fd.value, fp: fp.value, sum: sum.value, date: date.value, type: type.value };
+    }
+    function restore(draft: ManualDraft): void {
+        fn.value = draft.fn;
+        fd.value = draft.fd;
+        fp.value = draft.fp;
+        sum.value = draft.sum;
+        date.value = draft.date;
+        type.value = draft.type;
+    }
+    return {
+        button, date, capture, restore,
+        validate: () => validateManualFields(root, fn, fd, fp, sum, date, type, message),
+        payload(accountId: string): ManualReceiptPayload {
+            return {
+                accountId,
                 receipt: {
-                    fiscalDriveNumber: fnDigits,
-                    fiscalDocumentNumber: fdDigits,
-                    fiscalSign: fpDigits,
-                    sum: parseFloat(sumRaw.replace(",", ".")),
-                    dateTime: dateValue,
-                    operationType: parseInt(typeValue, 10)
-                },
-                accountId: initialization.getSelectedAccountId()
+                    fiscalDriveNumber: fn.value.replace(/\D/g, ""),
+                    fiscalDocumentNumber: fd.value.replace(/\D/g, ""),
+                    fiscalSign: fp.value.replace(/\D/g, ""),
+                    sum: parseFloat(sum.value.trim().replace(",", ".")),
+                    dateTime: date.value.trim(),
+                    operationType: parseInt(type.value, 10)
+                }
             };
-
-            const responseData = await submitManualReceiptAsync(payload, receiptPageState.antiForgeryToken);
-            if (responseData.outcome === ManualReceiptOutcome.Created || responseData.outcome === ManualReceiptOutcome.AddedToAccount) {
-                draftPersistence.qrScanClearManualDraft(fnInput, fdInput, fpInput, sumInput, dateInput, typeSelect);
-                const successMessage = responseData.outcome === ManualReceiptOutcome.AddedToAccount
-                    ? responseData.message
-                    : "Чек добавлен в систему";
-                rendering.qrScanRenderManualStatus(successMessage, "success");
-                if (resultMessage) {
-                    resultMessage.textContent = successMessage;
-                    resultMessage.classList.remove("text-danger");
-                    resultMessage.classList.add("text-success");
-                }
-            } else {
-                rendering.qrScanRenderManualStatus(responseData.message, "warning");
-                if (resultMessage) {
-                    resultMessage.textContent = responseData.message;
-                    resultMessage.classList.remove("text-success");
-                    resultMessage.classList.add("text-danger");
-                }
+        },
+        showMessage(text: string, success: boolean): void {
+            message.textContent = text;
+            message.classList.toggle("text-danger", !success);
+            message.classList.toggle("text-success", success);
+        },
+        clearIfUnchanged(draft: ManualDraft): boolean {
+            if (JSON.stringify(capture()) !== JSON.stringify(draft)) {
+                return false;
             }
-        } catch (e) {
-            console.error("QR scan: ошибка ручного запроса", e);
-            const errorMessage = e instanceof Error ? e.message : "Указаны некорректные данные чека";
-            rendering.qrScanRenderManualStatus(errorMessage, "error");
-            if (resultMessage) {
-                resultMessage.textContent = errorMessage;
-                resultMessage.classList.remove("text-success");
-                resultMessage.classList.add("text-danger");
+            restore({ fn: "", fd: "", fp: "", sum: "", date: "", type: "1" });
+            return true;
+        },
+        bindDraft(onChange: () => void): () => void {
+            for (const field of fields) {
+                field.addEventListener("input", onChange);
+                field.addEventListener("change", onChange);
             }
-        } finally {
-            fileScanWorkflow.qrScanHideOverlay();
+            return () => {
+                for (const field of fields) {
+                    field.removeEventListener("input", onChange);
+                    field.removeEventListener("change", onChange);
+                }
+            };
         }
-    });
+    };
 }
 
 export function validateManualFields(root: HTMLElement, fnInput: HTMLInputElement, fdInput: HTMLInputElement, fpInput: HTMLInputElement, sumInput: HTMLInputElement, dateInput: HTMLInputElement, typeSelect: HTMLSelectElement, resultMessage: HTMLElement): boolean {

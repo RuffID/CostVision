@@ -23,6 +23,18 @@ namespace CostVision.Web.Pages
     {
         public User CurrentUser { get; set; } = null!;
 
+        public IActionResult OnGetBrowserUser()
+        {
+            JsonResult? requestError = this.ValidateBinding();
+            if (requestError != null)
+            {
+                return requestError;
+            }
+
+            Response.Headers.CacheControl = "no-store";
+            return JsonResultMapper.ToJsonResult(ServiceResult<Guid>.Ok(CurrentUser.Id));
+        }
+
         public async Task<IActionResult> OnGetAccountsAsync(CancellationToken ct)
         {
             JsonResult? requestError = this.ValidateBinding();

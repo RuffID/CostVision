@@ -17,6 +17,7 @@
 | `CostVision.Web/Web` | Авторизация, Options, middleware и HTTP-маппинг |
 | `CostVision.Web/wwwroot/ts` | Собственный клиентский код |
 | `CostVision.Web/wwwroot/ts/pages/dashboard`, `stores`, `reports/receipts`, `moneyMovements` | Entry/controller, независимые page sessions, bindings/render и контроллеры команд/окон этапа 11 |
+| `CostVision.Web/wwwroot/ts/pages/receipt` | AddReceipt controller/session, file decoding/vendor frame, camera queue, submission/API, DOM и персональный storage этапа 12 |
 | `CostVision.Web/wwwroot/ts/shared/receipts` | Общие DTO, транспорт и receipt workflow с явно переданным page context; локальный AGENTS.md |
 | `CostVision.Web/wwwroot/ts/shared/dateRange.ts`, `preferences.ts`, `paging.ts` | Общий календарь, cookies/query page и прежние варианты навигации |
 | `CostVision.Web/wwwroot/lib` | Готовые сторонние библиотеки, включая Chart.js и библиотеки QR/EXIF |

@@ -66,7 +66,7 @@ Hide, открытие другого/того же объекта, смена �
 
 Команды захватывают ID/входные значения до await; повторный POST одного объекта/пары блокируется. Успех/error применяется только совпадающему текущему контексту. Переоткрытая форма сама устанавливает доступность кнопок; снятие busy для всё ещё того же действия не переносит старые данные в новое окно. Create не очищает изменённый пользователем draft; comment не заменяет изменённый текст и освобождает кнопку только того же DOM-редактора. Повторно открытый редактор того же ID не получает прежний result/finally. После актуального переноса/удаления/привязки перечитывается серверный список, без клиентского пересчёта общих totals.
 
-Записи не передают отмену чтения: abort не доказывает rollback. Network/aborted/contract и HTTP >=500 обозначаются как неизвестный исход с требованием обновить список и сверить фактические данные перед повтором. Автоматического повторного POST нет; финансовая/recovery политика сервера не менялась. Этап 10 реализован изолированно, HTTP/браузерная приёмка открыта. Декомпозиция 11, QR/storage 12 и изменения стека/доступности 13 не выполнены.
+Записи не передают отмену чтения: abort не доказывает rollback. Network/aborted/contract и HTTP >=500 обозначаются как неизвестный исход с требованием обновить список и сверить фактические данные перед повтором. Автоматического повторного POST нет; финансовая/recovery политика сервера не менялась. Этап 10 реализован изолированно, HTTP/браузерная приёмка открыта. Декомпозиция 11 и QR/storage 12 реализованы изолированно; изменения стека/доступности 13 не выполнены. Их browser/HTTP-приёмка остаётся открытой.
 
 ## Окно импорта операций
 
@@ -78,9 +78,17 @@ Preview и Save в одном importModal не пересекаются; окн�
 
 ## Добавление чека
 
-Модуль `receipt` объединяет разные источники QR: видеопоток, загруженные файлы и ручной ввод реквизитов. Контроллер камеры отвечает за получение и остановку media tracks; файловый поток — за декодирование и промежуточный прогресс. Черновик сохраняется локально в браузере.
+`receipt/index`/`initialization` создают одну session/controller. Controller владеет captures account/files/token/manual draft, busy, coordinators, overlay/feedback и lifecycle. `fileScanWorkflow`/`fileDecoding` только декодируют, `cameraController` сериализует start/stop/switch/pause/resume/dispose, `submission`/API выполняют транспорт, `rendering`/`cameraUi` отображают данные, `draftPersistence` хранит персональный черновик. Глобального изменяемого пакета и циклических page imports нет.
 
-Изменения этого потока требуют проверки освобождения камеры, object URL, обработки повторов, очистки черновика и границ между пользователями. Наличие TypeScript-сборки не подтверждает работу камеры или сканирования в браузере.
+Один busy lock покрывает files/paste/drop/camera/manual/retry без очереди пакетов. Ответ/error/finally принадлежат поколению; запоздалые callback/error камеры не обновляют новый запуск. Known QR failure позволяет явно повторить captured packet/account. Malformed counters/rows отклоняются до render; успех соседей и rejected parsed rows сохраняются. Network/contract/HTTP >=500 блокируют запись до сверки списка и нового открытия страницы, POST не получает abort и не повторяется автоматически. Ручной успех очищает только неизменённый draft.
+
+CurrentUser.Id приходит из Razor и авторизованного no-store BrowserUser handler. Проверка выполняется до restore, на resume/перед действием и после file decoding. Mismatch/401/403 очищает видимый контекст. GET/POST gap остаётся; сервер проверяет авторизацию/права каждой записи. Ключи `qrScan.user.<lowercase GUID>.manualReceiptDraft`/`.selectedAccountId` без TTL/logout deletion; legacy `qrScan.manualReceiptDraft`/`qrScan.selectedAccountId` не читаются, не мигрируют и не удаляются. Ошибка storage видна. Camera ID остаётся прежней нечувствительной preference.
+
+Новых лимитов файлов/байтов/пикселей/времени по решению пользователя нет. Сохранены html5-qrcode/jsQR crop/scale/threshold/inversion и EXIF/lastModified fallback. EXIF actual readFromBinaryFile получает отменяемый FileReader. Собственные Image/object URL/listeners освобождаются при success/error/cancel. Actual scanFileV2 создаёт два URL, не освобождаемых public clear(); fileScanner загружает тот же vendor в отдельном same-origin iframe и учитывает URL API его realm. File переносится в realm для vendor instanceof; dispose/cancel освобождает URL и frame без изменения vendor/private API или URL основной страницы. Actual frame/CSP/canvas остаются открытой приёмкой.
+
+Hidden/pagehide инвалидируют decoding/чтения и ставят stop камеры в очередь. Pending POST продолжает выполняться; уход во время записи требует сверки на resume/bfcache. Возвращение проверяет identity/accounts, не запускает камеру автоматически. Nonpersisted pagehide снимает subscriptions/dropzone/manual bindings и освобождает overlay/status/retry/frame/camera/feedback; Bootstrap hidden transition сохраняется перед dispose/remove. Синхронная canvas/jsQR работа отменяется между вызовами, не посередине текущего вызова. Реальные tracks/vendor память/Bootstrap transition/storage не подтверждаются fake DOM.
+
+Финальная изолированная проверка 12: strict TypeScript build exit 0, весь frontend **124 passed / 0 failed / 0 skipped / 0 cancelled**, AddReceiptModelTests **5/0/0**, Web compile-check **0 errors / 2 existing NU1510 warnings**. Evidence и конкретная оставшаяся browser/camera/storage/CSP/user-switch процедура — [журнал 12](../Plans/project-refactoring-2026-10-13/12-qr-scanning-and-browser-storage.md). Браузер/камера/hosting/SQL/provider не запускались; неизменённые .NET-наборы не запускались.
 
 ## Модальные окна
 

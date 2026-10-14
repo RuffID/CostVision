@@ -5,18 +5,24 @@ export interface FileDropzoneOptions {
     onFilesSelected: (files: File[]) => void;
 }
 
-export function initFileDropzone(options: FileDropzoneOptions): void {
+export function initFileDropzone(options: FileDropzoneOptions): () => void {
     applyDropzoneActiveState(options.dropzone, false);
+    const subscriptions: (() => void)[] = [];
+    function bind<TEvent extends Event>(target: EventTarget, name: string, handler: (event: TEvent) => void): void {
+        const listener = handler as EventListener;
+        target.addEventListener(name, listener);
+        subscriptions.push(() => target.removeEventListener(name, listener));
+    }
 
     if (!options.dropzone.hasAttribute("tabindex")) {
         options.dropzone.setAttribute("tabindex", "0");
     }
 
-    options.dropzone.addEventListener("click", () => {
+    bind(options.dropzone, "click", () => {
         options.fileInput.click();
     });
 
-    options.dropzone.addEventListener("keydown", event => {
+    bind<KeyboardEvent>(options.dropzone, "keydown", event => {
         if (event.key !== "Enter" && event.key !== " ") {
             return;
         }
@@ -25,13 +31,13 @@ export function initFileDropzone(options: FileDropzoneOptions): void {
         options.fileInput.click();
     });
 
-    options.dropzone.addEventListener("dragenter", event => handleDragEnterOrOver(event, options.dropzone));
-    options.dropzone.addEventListener("dragover", event => handleDragEnterOrOver(event, options.dropzone));
-    options.dropzone.addEventListener("dragleave", event => handleDragLeaveOrEnd(event, options.dropzone));
-    options.dropzone.addEventListener("dragend", event => handleDragLeaveOrEnd(event, options.dropzone));
-    options.dropzone.addEventListener("drop", event => handleDrop(event, options));
+    bind<DragEvent>(options.dropzone, "dragenter", event => handleDragEnterOrOver(event, options.dropzone));
+    bind<DragEvent>(options.dropzone, "dragover", event => handleDragEnterOrOver(event, options.dropzone));
+    bind<DragEvent>(options.dropzone, "dragleave", event => handleDragLeaveOrEnd(event, options.dropzone));
+    bind<DragEvent>(options.dropzone, "dragend", event => handleDragLeaveOrEnd(event, options.dropzone));
+    bind<DragEvent>(options.dropzone, "drop", event => handleDrop(event, options));
 
-    options.fileInput.addEventListener("change", () => {
+    bind(options.fileInput, "change", () => {
         const files = options.fileInput.files ? Array.from(options.fileInput.files) : [];
         if (files.length === 0) {
             return;
@@ -39,6 +45,12 @@ export function initFileDropzone(options: FileDropzoneOptions): void {
 
         options.onFilesSelected(options.multiple ? files : files.slice(0, 1));
     });
+    return () => {
+        for (const unsubscribe of subscriptions) {
+            unsubscribe();
+        }
+        applyDropzoneActiveState(options.dropzone, false);
+    };
 }
 
 function handleDragEnterOrOver(event: DragEvent, dropzone: HTMLElement): void {

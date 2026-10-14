@@ -6,6 +6,8 @@ Application.UnitTests проверяет модели/сценарии; Infrastr
 
 Frontend содержит изолированные node-тесты HTTP/API, серверных итогов, навигации, импортного контроллера и actual точек входа dashboard/products/stores/reports/receipts/moneyMovements с подставным DOM/fetch. Они требуют предварительной сборки TypeScript, не запускают браузер и не заменяют его приёмку.
 
+receiptScanning.test.mts добавляет actual AddReceipt entry/controller/API/storage/camera/resource boundary с подставным DOM/fetch/vendor; AddReceiptModelTests проверяет BrowserUser identity/no-store/binding без бизнес-вызова. Это изолированная проверка 12, не camera/HTTP/SQL acceptance.
+
 ## Контракты и границы
 
 Выбирать минимальный подходящий контур. Не запускать всё дерево автоматически: наличие БД, Docker, hosting, сети или процессов требует отдельной просьбы пользователя.

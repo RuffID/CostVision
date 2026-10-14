@@ -10,6 +10,8 @@
 
 MoneyMovementsModelTests отдельно разрешает страницу через actual layer DI extensions без хоста: connection остаётся закрытым, tracker пустым. Это проверка production registrations для конкретных constructor-зависимостей, а не приёмка production HTTP/auth-конвейера.
 
+Точечный контур AddReceiptModelTests включает персональную BrowserUser identity/no-store/binding границу и существующую передачу QR/manual payload. Не считать этот набор проверкой всего Web-проекта или production auth.
+
 ## Проверка
 
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.

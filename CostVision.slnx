@@ -50,6 +50,7 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-10-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-11-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-12-prompt.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-13-prompt.md" />
   </Folder>
   <Folder Name="/Documentation/TechnicalGuide/">
     <File Path="Documentation/TechnicalGuide/README.md" />
@@ -90,6 +91,7 @@
     <File Path="tests/Frontend/reportTotals.test.mts" />
     <File Path="tests/Frontend/requestCoordination.test.mts" />
     <File Path="tests/Frontend/frontendDecomposition.test.mts" />
+    <File Path="tests/Frontend/receiptScanning.test.mts" />
     <Project Path="tests/CostVision.Application.UnitTests/CostVision.Application.UnitTests.csproj" />
     <Project Path="tests/CostVision.Infrastructure.IntegrationTests/CostVision.Infrastructure.IntegrationTests.csproj" />
     <Project Path="tests/CostVision.Infrastructure.UnitTests/CostVision.Infrastructure.UnitTests.csproj" />

@@ -12,6 +12,8 @@ Program.cs загружает конфигурацию, настраивает �
 
 PageModel операций вызывает конкретные Application-сценарии без общего page-фасада; освобождение HTTP file stream принадлежит Web, проверки preview и финансовые права — Application. Регистрация конкретных сценариев/общего scope сохраняется в layer extensions. Независимость Application от EF не предполагается: пользователь сохранил её явную EF/DLL-границу в 08.
 
+Добавление чека 12 разделяет controller/session, decoding, camera, submission, DOM и персональный storage. Авторизованный AddReceipt BrowserUser handler выдаёт no-store CurrentUser.Id; сравнение identity дополняет серверную авторизацию. Его прямой unit test не доказывает cookie/routing/antiforgery. Реальная camera/iframe/CSP/Bootstrap/storage приёмка открыта.
+
 ## Проверка
 
 Подходящие изолированные проверки находятся в tests/CostVision.Web.UnitTests. HTTP-хост, браузер и production pipeline проверяются отдельным разрешённым контуром.

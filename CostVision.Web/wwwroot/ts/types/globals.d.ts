@@ -1,6 +1,7 @@
 interface BootstrapModalInstance {
     show(): void;
     hide(): void;
+    dispose(): void;
 }
 
 interface BootstrapModalConstructor {
@@ -32,7 +33,7 @@ interface Html5QrcodeDecodedResult {
 }
 
 interface Html5QrcodeInstance {
-    clear(): Promise<void>;
+    clear(): void;
     pause(shouldPauseVideo?: boolean): void;
     resume(): void;
     getState(): number;
@@ -63,6 +64,7 @@ declare const Html5QrcodeScannerState: {
 interface ExifReader {
     getData(image: File, callback: (this: unknown) => void): void;
     getTag(image: unknown, tag: string): string | undefined;
+    readFromBinaryFile(buffer: ArrayBuffer): Record<string, unknown> | false;
 }
 
 declare const EXIF: ExifReader;

@@ -20,6 +20,8 @@
 
 MoneyMovementsModel получает 14 конкретных Application-сценариев вместо page-фасада. Все прежние handlers/binding/payload и JsonResultMapper сохранены. GetAccounts/GetImportBanks оборачивают список в прежний ServiceResult envelope. Multipart-preview создаёт PreviewBankStatementImportRequest и освобождает открытый поток через await using, в том числе при отказе/исключении; Application проверяет пустой файл. PageModel не читает repositories и не владеет Save/transaction.
 
+AddReceipt передаёт CurrentUser.Id через data-current-user-id и предоставляет авторизованный BrowserUser GET с ValidateBinding, no-store и JsonResultMapper<ServiceResult<Guid>>, без Application-вызова. Это проверка текущей cookie identity для персонального frontend storage, не новый финансовый сценарий. GET/POST не атомарны; auth/access каждого POST остаются серверными. Видимый receipt-page-message отображает отказ init/identity/сохранения.
+
 ## Визуальные договорённости
 
 Receipts и Stores отображают раздельные серверные расход/доход полного выбранного набора. До загрузки итог неизвестен, не ноль; окно чеков магазина сбрасывает прежний итог при открытии другого магазина. Таблица магазина содержит отдельную колонку дохода; динамический colspan учитывает пять колонок текущей таблицы.

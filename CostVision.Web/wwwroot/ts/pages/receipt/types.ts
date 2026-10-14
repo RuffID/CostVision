@@ -3,6 +3,23 @@ export interface ReceiptAccountDto {
     name: string;
 }
 
+export interface ManualDraft {
+    fn: string;
+    fd: string;
+    fp: string;
+    sum: string;
+    date: string;
+    type: string;
+}
+
+export interface ReceiptStorage {
+    readAccount(): string | null;
+    writeAccount(value: string): void;
+    readDraft(): ManualDraft | null;
+    writeDraft(value: ManualDraft): void;
+    clearDraft(): void;
+}
+
 export interface ImageDebugInfo {
     fileName: string;
     contentType: string;

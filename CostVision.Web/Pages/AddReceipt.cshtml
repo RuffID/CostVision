@@ -4,8 +4,9 @@
     ViewData["Title"] = "Добавить чек";
 }
 
-<div class="container py-3">
+<div id="receipt-page" class="container py-3" data-current-user-id="@Model.CurrentUser.Id">
     <h2 class="mb-4">Добавить чек</h2>
+    <div id="receipt-page-message" class="alert alert-danger d-none" role="alert"></div>
 
     <!-- Выбор счёта -->
     <div class="mb-4 w-100" style="max-width: 400px;">
