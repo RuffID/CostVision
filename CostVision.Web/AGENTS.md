@@ -16,6 +16,8 @@ PageModel операций вызывает конкретные Application-с�
 
 ## Проверка
 
+Toolchain сборки закреплён global.json/.node-version и packageManager. Установка npm dependencies выполняется явно: npm ci --ignore-scripts --no-audit --no-fund. .NET target не восстанавливает их по сети: отсутствие tsc даёт явную ошибку. BuildFrontend выполняется перед PrepareForBuild, IncludeFrontendAssets добавляет dist до AssignTargetPaths, включая чистую сборку без исходного dist. SkipFrontendBuild=true пропускает запуск npm, но не исключает уже собранные assets из поставки. OpenAPI generation on build отключён явно; compile-check не запускает host для генерации документа.
+
 Подходящие изолированные проверки находятся в tests/CostVision.Web.UnitTests. HTTP-хост, браузер и production pipeline проверяются отдельным разрешённым контуром.
 
 ## Сопровождение

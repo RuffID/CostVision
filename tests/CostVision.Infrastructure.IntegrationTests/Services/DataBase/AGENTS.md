@@ -2,7 +2,7 @@
 
 ## Ответственность
 
-Прежние component tests собственного BackupService/DataBaseCheckUpService удалены вместе с этими production-путями в 08A. Наблюдаемый контракт coordinator/receipt/target/lifecycle проверяется изолированно в Infrastructure.UnitTests/DataBase/Stage08a*. Реальная SQL/backup/restore/startup-приёмка остаётся открытой; в этой папке сейчас нет исполняемых .cs тестов.
+Прежние component tests собственного BackupService/DataBaseCheckUpService удалены вместе с этими production-путями в 08A. Наблюдаемый контракт coordinator/receipt/target/lifecycle проверяется изолированно в Infrastructure.UnitTests/DataBase/ContextRepositoryAndMaintenanceLibraryTests, DatabaseMaintenanceCoordinatorTests и DatabaseMaintenanceStartupTests. Реальная SQL/backup/restore/startup-приёмка остаётся открытой; в этой папке сейчас нет исполняемых .cs тестов.
 
 ## Контракты и границы
 

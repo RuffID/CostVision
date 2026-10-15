@@ -23,6 +23,8 @@
 | `CostVision.Web/wwwroot/lib` | Готовые сторонние библиотеки, включая Chart.js и библиотеки QR/EXIF |
 | `CostVision.Web/wwwroot/dist` | Сгенерированный JavaScript из TypeScript; не редактируется вручную |
 | `tests` | Четыре .NET-проекта и изолированные node frontend-тесты с разными границами проверки |
+| `global.json`, `.node-version`, `NuGet.Config`, `CostVision.Web/.npmrc` | Закреплённый toolchain, явные package sources и запрет npm lifecycle scripts |
+| `.github/workflows` | Ручной CI: frontend/unit/compile-only Integration; CD удалён по решению пользователя |
 
 При поиске дефекта следует пройти весь поток: страница → запрос → use case → доменная мутация → сохранение → DTO → клиент. Повторное использование mapper без фильтра доступа может вернуть лишние данные даже при правильной защите страницы.
 

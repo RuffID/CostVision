@@ -2,6 +2,12 @@
 
 ## Тестовые проекты
 
+Актуальная проверка15.10.2026: полные isolated Application503/Infrastructure198/Web101/frontend137 — **939 passed,0 failed,0 skipped,0 cancelled/aborted**, strict TS exit0. Build конкретных Domain/Application/Infrastructure/Web и compile-only Integration —0errors; последние три имеют по2 прежних NU1510 из restore cache, warnings не подавлены. Точные команды/TRX/ограничения — [журнал15](../Plans/project-refactoring-2026-10-13/15-build-tests-and-final-acceptance.md). SQL/HTTP/browser/production и чистая поставка остаются открытыми по [матрице](../Plans/project-refactoring-2026-10-13/15-acceptance-matrix.md).
+
+SDK10.0.401 закреплён в [global.json](../../global.json); после пользовательского обновления xunit.v3 до4.0.2 выбран Microsoft.Testing.Platform. Текущая команда — dotnet test --project <csproj>, отчёт — --report-xunit-trx (после отдельного Build: --no-build/--no-restore). Прежние команды VSTest в журналах — исторические. Node22.18.0 — [.node-version](../../.node-version), npm10.9.3 — packageManager и явная version check. [NuGet.Config](../../NuGet.Config) очищает inherited sources и задаёт nuget.org. Restore/install выполняются отдельно и требуют разрешения; .NET compile-check использует конкретный csproj/Build/no-restore/BaseOutputPath=artifacts/compile-check, для Web/Integration — SkipFrontendBuild=true. TypeScript MSBuild и host-based OpenAPI generation заблокированы; .NET build не устанавливает npm dependencies.
+
+[CI](../../.github/workflows/main.yml) остаётся ручным workflow_dispatch: frontend выполняет явный npm ci без lifecycle scripts, strict build и node tests; matrix трёх UnitTests делает explicit project restore/build/test; Integration — отдельный compile-only job. Restore в CI явно использует NuGet.Config; build/test — no-restore, test — no-build. Внешние проверки не включены в автоматический запуск. CI не выполнялся в15. **CD удалён по решению пользователя**, deployment отсутствует.
+
 | Проект | Назначение | Характерные зоны |
 |---|---|---|
 | `CostVision.Application.UnitTests` | Domain-инварианты, DTO mapping и use case на mock UoW | пользователи, счета, чеки, refresh, операции, import, reconciliation |
@@ -84,7 +90,7 @@ Entity configuration меняется вместе с Domain-моделью и i
 
 - В solution нет отдельного Domain test project: чистые модели сейчас проверяются из `Application.UnitTests`.
 - Нет архитектурного теста, автоматически запрещающего нежелательные project dependencies.
-- Swagger metadata пока использует общее название `My API`.
+- Swagger metadata использует название `CostVision API`; JSON/UI по умолчанию включены, отключение задаёт оператор. Это не readiness endpoint.
 - Фоновый refresh и его расписание находятся в одном web-процессе; распределённого scheduler/lock нет.
 - При запуске нескольких web-экземпляров нужен общий Data Protection key ring, а фоновые задания требуют отдельной координации.
 - Startup 08A использует единственный библиотечный coordinator до RunAsync хоста, требует явных server directory/SingleInitializer и прав на backup/изменение схемы. Реальные SQL/restore/сигналы shutdown проверяются отдельно; распределённой блокировки и автоматического restore API нет.

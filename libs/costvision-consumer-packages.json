@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-15",
+  "scope": "CostVision Infrastructure consumer packages after user security updates; historical library build manifest remains unchanged",
+  "targetFramework": "net10.0",
+  "packages": [
+    {
+      "identity": "Microsoft.Bcl.Cryptography/9.0.18",
+      "nugetSha512": "42XcqOGj0jTNW6FphUEuhNLCdVQsYbYCf2pPlkWdz1uDyxxirpcxyjg7pWIBgPCjzk6rv/irgLya/2tDJKIpYg=="
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient/7.1.1",
+      "nugetSha512": "Moz4+bba/OdEM9I4jXWggduJ4sqoNcgVAQyXG/dNnGGvnS/YDr2fTjP83fg5YX3drgRki6fRAhR94P8dAZgZtQ=="
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient.Extensions.Abstractions/7.1.1",
+      "nugetSha512": "qP/zUOCJwfKqWNC9o+TWqltfNbLnZi1APNpJZgj0yeEJhoI+h+eoQLX+331yZHNOlDxdafZLP5arW/yrS1jAAw=="
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient.Internal.Logging/7.1.1",
+      "nugetSha512": "bVqbATLnHQngue7U9K7GRnzvfdDa7IyiBU2vijfU2vBMBSZrAnQp/wXqNSfaVonckSaMXUk07wfujTqy9IVMdw=="
+    },
+    {
+      "identity": "Microsoft.Data.SqlClient.SNI.runtime/7.1.0",
+      "nugetSha512": "rWunOb6Dby0lcI82PohARcRbF+4x4wNKxnKRSHXhuwZMu8/cCS68DCfhceq4bv1gUEfoL5dWXHYnfxVvLQUN+Q=="
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore/10.0.13",
+      "nugetSha512": "u/z4nTQUJ5nJEXAQekgQEQZkh0delp4gL+ESHn7Z6k037c8HC5mSNu1/YdBgxGm7DtLjhOxktNl+aQMzw6wN7A=="
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.Abstractions/10.0.13",
+      "nugetSha512": "ARw+tZ3eiTosnK5nJPUGEzeUQcjyqCqs3qKA3lPtIRH5yJo3qIgxm7AvkZVIT9iWkS2083UsWe3Rj1MysW3p5A=="
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.Analyzers/10.0.13",
+      "nugetSha512": "zBx6VeEz/hkhlm0BJ2V+9xebUuDDIszcKvurJceQHuZPEXuXubrL6Lneo9VZiliRyJbQlB2oNKLkJXd3gHteQA=="
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.Relational/10.0.13",
+      "nugetSha512": "QU/sbTtDR5wVAJRVecC1GwM7mwH8bvKOZNm+lulzMr5rhjdb8DDEFIqqdhF08JIo51DPv5uQdZ1nXoZsD5pTag=="
+    },
+    {
+      "identity": "Microsoft.EntityFrameworkCore.SqlServer/10.0.13",
+      "nugetSha512": "DY67j782oRdwA1vv7aAG161vgkdi4CqJCj0r391KmPkaKpnqWI6BvB7ghUefBauXZtYI1gJNixtt1dcIfNctfw=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Abstractions/8.16.0",
+      "nugetSha512": "gSxKLWRZzBpIsEoeUPkxfywNCCvRvl7hkq146XHPk5vOQc9izSf1I+uL1vh4y2U19QPxd9Z8K/8AdWyxYz2lSg=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.JsonWebTokens/8.16.0",
+      "nugetSha512": "prBU72cIP4V8E9fhN+o/YdskTsLeIcnKPbhZf0X6mD7fdxoZqnS/NdEkSr+9Zp+2q7OZBOMfNBKGbTbhXODO4w=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Logging/8.16.0",
+      "nugetSha512": "MTzXmETkNQPACR7/XCXM1OGM6oU9RkyibqeJRtO9Ndew2LnGjMf9Atqj2VSf4XC27X0FQycUAlzxxEgQMWn2xQ=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Protocols/8.16.0",
+      "nugetSha512": "UFrU7d46UTsPQTa2HIEIpB9H1uJe1BW9FLw5uhEJ2ZuKdur8bcUA/bO5caq5dlBt5gNJeRIB3QQXYNs5fCQCZA=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Protocols.OpenIdConnect/8.16.0",
+      "nugetSha512": "h4yVXyJsEBBX5lg2G5ftMsi5JzcNEGAzrNphA6DQ6eOd8P0s+cDCOyPwVTYLePZvJL5unbPvYIvzrbTXzFjXnQ=="
+    },
+    {
+      "identity": "Microsoft.IdentityModel.Tokens/8.16.0",
+      "nugetSha512": "rtViGJcGsN7WcfUNErwNeQgjuU5cJNl6FDQsfi9TncwO+Epzn0FTfBsg3YuFW1Q0Ch/KPxaVdjLw3/+5Z5ceFQ=="
+    },
+    {
+      "identity": "Microsoft.SqlServer.Server/1.0.0",
+      "nugetSha512": "N4KeF3cpcm1PUHym1RmakkzfkEv3GRMyofVv40uXsQhCQeglr2OHNcUk2WOG51AKpGO8ynGpo9M/kFXSzghwug=="
+    },
+    {
+      "identity": "System.Configuration.ConfigurationManager/9.0.18",
+      "nugetSha512": "/1q0MHB2xKyTFRC5tk+oL3Ahi+QK0UPI6Qk6Xc5z5BW6otR2T9wwWmEW/LZX98cq7UOmu+7sZ5HNwuq61zrNtg=="
+    },
+    {
+      "identity": "System.IdentityModel.Tokens.Jwt/8.16.0",
+      "nugetSha512": "rrs2u7DRMXQG2yh0oVyF/vLwosfRv20Ld2iEpYcKwQWXHjfV+gFXNQsQ9p008kR9Ou4pxBs68Q6/9zC8Gi1wjg=="
+    },
+    {
+      "identity": "System.Security.Cryptography.Pkcs/10.0.13",
+      "nugetSha512": "a+EovgC1fBnwdlQ6cn3j4JFBfKqiFaFvoAhjisOoSvazLAcIznaBzPQP0oYnvccmeXfqUH1KebVZOxSeH6rMaw=="
+    },
+    {
+      "identity": "System.Security.Cryptography.ProtectedData/9.0.18",
+      "nugetSha512": "1/iz9Eex1TBMYdAk+m3igaMvL+nk+rY1EqL6u93an/j1ghxmB24vGOKXkVFy3NSPA39s1H/+SNoK257tHoXoLA=="
+    }
+  ]
+}

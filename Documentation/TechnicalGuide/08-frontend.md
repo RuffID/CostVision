@@ -6,7 +6,7 @@
 
 [tsconfig.json](../../CostVision.Web/tsconfig.json) задаёт ES2020, ES-модули, DOM, strict и noEmitOnError. Результат компиляции и карты исходников попадают в `wwwroot/dist`. Generated-файлы не являются местом ручной разработки.
 
-[package.json](../../CostVision.Web/package.json) содержит `build:ts` и `watch:ts`. MSBuild Web-проекта перед Build запускает `npm ci`, если compiler отсутствует, затем `npm run build:ts`. Свойство `SkipFrontendBuild=true` пропускает этот шаг. Оно допустимо только когда требуемые ассеты уже подготовлены. Автоматическая сборка документации эти команды не запускает.
+[package.json](../../CostVision.Web/package.json) содержит `build:ts` и `watch:ts`, ES module mode и npm10.9.3. Node22.18.0 закреплён в [.node-version](../../.node-version). MSBuild перед PrepareForBuild проверяет наличие tsc и выполняет `npm run build:ts`; отсутствие dependencies завершает сборку ошибкой с явной командой установки, не запускает npm ci. [.npmrc](../../CostVision.Web/.npmrc) запрещает lifecycle scripts/audit/fund. `SkipFrontendBuild=true` пропускает компиляцию для .NET compile-check; готовые dist включаются в publish и при этом флаге. При обычной сборке dist добавляется перед AssignTargetPaths, включая изначально отсутствовавшие файлы. Чистая сборка/publish без прежнего dist ещё требует отдельной проверки по [матрице15](../Plans/project-refactoring-2026-10-13/15-acceptance-matrix.md). Generated JS обновлять только компилятором.
 
 ## Ответственность модулей
 

@@ -10,11 +10,13 @@
 
 Сохранять изоляцию от рабочей БД, внешней сети и процессов. Свойства реального SQL и внешнего API этими тестами не подтверждаются.
 
-Stage08BoundaryTests инспектирует actual EFCoreLibrary/HttpClientLibrary contracts; тестовый проект прямо ссылается на обе принятые DLL из libs. Это не дополнительная production-зависимость или замена persistence/HTTP. Версии/хеши и неизвестный upstream описаны в libs/README.md.
+ExternalLibraryContractTests инспектирует actual EFCoreLibrary/HttpClientLibrary contracts; тестовый проект прямо ссылается на обе принятые DLL из libs. Это не дополнительная production-зависимость или замена persistence/HTTP. Версии/хеши и неизвестный upstream описаны в libs/README.md.
 
 ## Проверка
 
-Stage14ConfigurationTests проверяет actual layer DI/ValidateOnStart, HTTP(S)/finite timeout/PDF limits и immutable maintenance snapshot без открытого connection. Stage14PdfTests использует настоящий PdfPig и memory streams: точные byte/page boundaries, non-seekable limit+1, malformed PDF, cancellation/unknown I/O и caller ownership. Это не приёмка произвольного PDF/decompression, SQL/HTTP/OS/production.
+LibraryDeliveryManifestTests сверяет исходные и реально загруженные DLL, соседние XML и исторический manifest 08A, включая неизменённый HTTP hash. Текущие Infrastructure consumer identities/SHA-512 сверяются отдельно с libs/costvision-consumer-packages.json, а не с графом сборки DLL: согласованное обновление зависимостей приложения не переписывает историю поставки. Все зафиксированные consumer packages обязательны; runtime requirements сохраняют явные framework exceptions. При следующем согласованном обновлении обновлять consumer baseline, не заменять точное сравнение правилом «любая более новая версия». Требует исходный checkout и его project.assets.json; не выполняет библиотечные I/O, restore, publish или host. Runtime/native closure и Linux/ARM64 deployment проверяются отдельно; совпадение файлов не доказывает их работоспособность в production.
+
+InfrastructureOptionsValidationTests проверяет actual layer DI/ValidateOnStart, HTTP(S)/finite timeout/PDF limits и immutable maintenance snapshot без открытого connection. BankStatementPdfTextExtractorTests использует настоящий PdfPig и memory streams: точные byte/page boundaries, non-seekable limit+1, malformed PDF, cancellation/unknown I/O и caller ownership. Это не приёмка произвольного PDF/decompression, SQL/HTTP/OS/production.
 
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.
 

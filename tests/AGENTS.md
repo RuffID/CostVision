@@ -16,6 +16,10 @@ modalStack.test.mts вызывает actual shared Bootstrap/tooltip helpers н�
 
 ## Проверка
 
+global.json выбирает Microsoft.Testing.Platform, совместимый с текущим xunit.v3 4.0.2 на .NET10. Запускать конкретный csproj через dotnet test --project; после отдельного Build использовать --no-build/--no-restore. Для отчёта текущий xUnit предоставляет --report-xunit-trx, а не VSTest --logger trx или неподключённый --report-trx. Нулевое число выполненных тестов не считать успехом.
+
+Ручной CI разделяет frontend, три unit-набора и compile-only IntegrationTests. Общий запуск solution или IntegrationTests запрещён для изолированной проверки. HTTP TestWebApplication — альтернативный тестовый pipeline; production Program/config/startup/auth им не принимаются. Внешние SQL/Docker/HTTP/OS/provider/browser контуры перечислены отдельно в матрице приёмки этапа 15 и требуют конкретного разрешения.
+
 ITestStorage и TestUseCaseFactory — общий только тестовый набор mocks и его разворачивание в actual узкие constructor-зависимости, linked в Application/Infrastructure.UnitTests. Production DI не регистрирует этот набор. Тестовые сценарные adapters через TestScope делегируют технические операции общему ITestStorage без собственного флага отказа; он не заменяет проверки производственного UnitOfWorkScope.
 
 Не считать список тестов отчётом о выполнении. Результаты и непройденные контуры фиксировать раздельно.

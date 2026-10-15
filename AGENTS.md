@@ -67,6 +67,8 @@ CostVision - веб-приложение для учёта расходов по
 
 ## Проверка сборки и тесты
 
+После 15 toolchain задают global.json (SDK 10.0.401), .node-version (22.18.0) и packageManager npm@10.9.3. NuGet.Config задаёт единственный явный source. .NET build не вызывает npm ci; npm dependencies устанавливаются отдельно без lifecycle scripts. Ручной CI разделяет frontend/unit/Integration compile-only. CD workflow удалён по просьбе пользователя; возвращение deployment automation требует отдельного решения. Успех isolated CI не закрывает SQL/HTTP/browser/production-приёмку и SingleInitializer.
+
 - Агент может по своему усмотрению без отдельного разрешения выполнять compile-check затронутых SDK-style .NET-проектов через `dotnet build` и запускать относящиеся к изменениям изолированные тесты через `dotnet test`.
 - Агент может по своему усмотрению без отдельного разрешения выполнять `npm run build:ts` из каталога `CostVision.Web` для compile-check TypeScript и обновления генерируемых frontend-файлов.
 - Собирать и тестировать конкретные `.csproj`, не solution целиком. Для compile-check использовать `Build`, отдельный каталог `artifacts/compile-check` и по возможности `--no-restore`.

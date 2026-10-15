@@ -8,9 +8,9 @@
 
 После 07A фикстуры передают actual use case минимальные constructor-зависимости через TestUseCaseFactory. ITestStorage остаётся только набором test mocks; технические Save/transaction callbacks общие, production-контракта со всеми repositories нет.
 
-Имя остаётся общим. Сценарии мутации получают явный пользовательский ID; успешные прежние тесты задают доступную покупку. Реальную фильтрацию покупки, отказ по чужому ID, отзыв участия и Admin проверяет Stage02RegressionTests в корне тестового проекта.
+Имя остаётся общим. Сценарии мутации получают явный пользовательский ID; успешные прежние тесты задают доступную покупку. Реальную фильтрацию покупки, отказ по чужому ID, отзыв участия и Admin проверяет CatalogAccountAndUserValidationTests в корне тестового проекта.
 
-Читающие тесты используют ProjectedReadTestFactory для actual агрегатов и страниц; history GetItems setup не доказывает выполнение нового projection-контракта. Единицы и итог полного фильтра проверяются также Stage05/Stage07RegressionTests.
+Читающие тесты используют ProjectedReadTestFactory для actual агрегатов и страниц; history GetItems setup не доказывает выполнение нового projection-контракта. Единицы и итог полного фильтра проверяются также FinancialReportTotalsTests и ReadQueryPaginationAndTotalsTests.
 
 ## Проверка
 

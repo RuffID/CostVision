@@ -8,9 +8,9 @@
 
 После 07A фикстуры передают actual use case минимальные constructor-зависимости через TestUseCaseFactory. ITestStorage остаётся только набором test mocks; технические Save/transaction callbacks общие, production-контракта со всеми repositories нет.
 
-Матрица Owner/Editor/Viewer, отсутствие membership и архив должны иметь явные сценарии; проверять результат и отсутствие частичной мутации. Валидатор создания загружает Account через include. Stage02RegressionTests проверяет чтение по реальным предикатам, архивный отказ и явные ошибки отсутствующей/некорректной owner membership.
+Матрица Owner/Editor/Viewer, отсутствие membership и архив должны иметь явные сценарии; проверять результат и отсутствие частичной мутации. Валидатор создания загружает Account через include. CatalogAccountAndUserValidationTests проверяет чтение по реальным предикатам, архивный отказ и явные ошибки отсутствующей/некорректной owner membership.
 
-Фабрика UoW для переноса принимает Serializable-перегрузку без неявного SaveChanges. Реальные выражения идентичности, разные авторы, отказ без Create/Delete и восстановление источника при конфликте проверяются Stage03RegressionTests.
+Фабрика UoW для переноса принимает Serializable-перегрузку без неявного SaveChanges. Реальные выражения идентичности, разные авторы, отказ без Create/Delete и восстановление источника при конфликте проверяются ReceiptIdentityAndDeduplicationTests.
 
 ## Проверка
 

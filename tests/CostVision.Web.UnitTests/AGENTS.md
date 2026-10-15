@@ -14,7 +14,7 @@ MoneyMovementsModelTests отдельно разрешает страницу ч
 
 ## Проверка
 
-Stage14 в Web/Extensions проверяет actual configuration providers, content-root/key-ring/Kestrel/Swagger options и InitializeDatabaseServicesAsync с fake maintenance без WebApplication/host. Прямая ссылка тестового проекта на Maintenance DLL нужна для fake library boundary, не создаёт новый production runner. Отказ options запрещает maintenance, безопасный журнал и readiness после async cleanup проверяются отдельно.
+WebConfigurationProviderTests и StartupOptionsValidationTests в Web/Extensions проверяет actual configuration providers, content-root/key-ring/Kestrel/Swagger options и InitializeDatabaseServicesAsync с fake maintenance без WebApplication/host. Прямая ссылка тестового проекта на Maintenance DLL нужна для fake library boundary, не создаёт новый production runner. Отказ options запрещает maintenance, безопасный журнал и readiness после async cleanup проверяются отдельно.
 
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.
 
@@ -24,4 +24,4 @@ Stage14 в Web/Extensions проверяет actual configuration providers, con
 
 Общая карта и порядок сопровождения: [техническое руководство](../../Documentation/TechnicalGuide/12-source-map-and-maintenance.md). Открытые изменения: [план рефакторинга](../../Documentation/Plans/project-refactoring-2026-10-13/README.md).
 
-Stage09TransportTests проверяет actual 57 handlers с invalid ModelState и DTO-handlers с null через strict dependencies, отдельно вложенные DTO/коллекции. Reflection только в тестовом перечне. Stage09HttpTests вызывает cookie options/middleware с подставным HttpContext, включая сохранение BadHttpRequest 400/413 и очистку прежних headers; hosting/auth/antiforgery этим не подтверждаются.
+PageHandlerRequestValidationTests проверяет actual 57 handlers с invalid ModelState и DTO-handlers с null через strict dependencies, отдельно вложенные DTO/коллекции. Reflection только в тестовом перечне. AuthenticationAndHttpErrorResponseTests вызывает cookie options/middleware с подставным HttpContext, включая сохранение BadHttpRequest 400/413 и очистку прежних headers; hosting/auth/antiforgery этим не подтверждаются.

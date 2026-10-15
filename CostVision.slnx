@@ -38,6 +38,7 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/13-modal-stack-and-accessibility.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/14-startup-and-configuration.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/15-build-tests-and-final-acceptance.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/15-acceptance-matrix.md" />
   </Folder>
   <Folder Name="/Documentation/Plans/project-refactoring-2026-10-13/prompts/">
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-04-prompt.md" />
@@ -53,6 +54,7 @@
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-13-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-14-prompt.md" />
     <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-15-prompt.md" />
+    <File Path="Documentation/Plans/project-refactoring-2026-10-13/prompts/next-stage-15-acceptance-prompt.md" />
   </Folder>
   <Folder Name="/Documentation/TechnicalGuide/">
     <File Path="Documentation/TechnicalGuide/README.md" />
@@ -72,6 +74,11 @@
   <Folder Name="/SolutionItems/">
     <File Path="AGENTS.md" />
     <File Path="README.md" />
+    <File Path="global.json" />
+    <File Path=".node-version" />
+    <File Path="NuGet.Config" />
+    <File Path=".github/workflows/main.yml" />
+    <File Path=".github/workflows/AGENTS.md" />
   </Folder>
   <Folder Name="/libs/">
     <File Path="libs/README.md" />
@@ -82,6 +89,7 @@
     <File Path="libs/EFCoreLibrary.Maintenance.SqlServer.dll" />
     <File Path="libs/EFCoreLibrary.Maintenance.SqlServer.xml" />
     <File Path="libs/efcorelibrary-delivery-08a.json" />
+    <File Path="libs/costvision-consumer-packages.json" />
     <File Path="libs/HttpClientLibrary.dll" />
   </Folder>
   <Folder Name="/tests/">

@@ -1,4 +1,6 @@
 {
+  "type": "module",
+  "packageManager": "npm@10.9.3",
   "scripts": {
     "build:ts": "tsc -p tsconfig.json",
     "watch:ts": "tsc -p tsconfig.json --watch --preserveWatchOutput"

@@ -4,22 +4,60 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  frontend:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+          cache-dependency-path: 'CostVision.Web/package-lock.json'
+      - name: Verify toolchain
+        run: |
+          test "$(node --version)" = "v22.18.0"
+          test "$(npm --version)" = "10.9.3"
+      - name: Install frontend dependencies explicitly
+        working-directory: CostVision.Web
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Compile strict TypeScript
+        working-directory: CostVision.Web
+        run: npm run build:ts
+      - name: Run isolated frontend tests
+        run: node --experimental-strip-types --test tests/Frontend/*.test.mts
 
-      - name: Setup .NET
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [CostVision.Application.UnitTests, CostVision.Infrastructure.UnitTests, CostVision.Web.UnitTests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pinned .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: 'global.json'
+      - name: Restore explicit project
+        run: dotnet restore tests/${{ matrix.project }}/${{ matrix.project }}.csproj --configfile NuGet.Config -p:SkipFrontendBuild=true
+      - name: Build explicit project without frontend hooks
+        run: dotnet build tests/${{ matrix.project }}/${{ matrix.project }}.csproj --no-restore -c Release -p:SkipFrontendBuild=true -p:BaseOutputPath=${{ github.workspace }}/artifacts/compile-check/
+      - name: Run isolated unit tests
+        run: dotnet test --project tests/${{ matrix.project }}/${{ matrix.project }}.csproj --no-build --no-restore -c Release -p:SkipFrontendBuild=true -p:BaseOutputPath=${{ github.workspace }}/artifacts/compile-check/ --report-xunit-trx --results-directory artifacts/test-results/${{ matrix.project }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.project }}-results
+          path: artifacts/test-results/${{ matrix.project }}
 
-      - name: Restore
-        run: dotnet restore CostVision.slnx
-
-      - name: Build
-        run: dotnet build CostVision.slnx --no-restore --configuration Release
-
-      - name: Test
-        run: dotnet test CostVision.slnx --no-build --configuration Release
+  integration-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: 'global.json'
+      - name: Restore integration compile dependencies
+        run: dotnet restore tests/CostVision.Infrastructure.IntegrationTests/CostVision.Infrastructure.IntegrationTests.csproj --configfile NuGet.Config -p:SkipFrontendBuild=true
+      - name: Compile integration project without running SQL, HTTP hosts or processes
+        run: dotnet build tests/CostVision.Infrastructure.IntegrationTests/CostVision.Infrastructure.IntegrationTests.csproj --no-restore -c Release -p:SkipFrontendBuild=true -p:BaseOutputPath=${{ github.workspace }}/artifacts/compile-check/

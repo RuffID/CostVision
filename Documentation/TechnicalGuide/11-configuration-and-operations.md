@@ -65,8 +65,8 @@ Serilog читает настройки из конфигурации, а Simple
 
 ## Контейнер
 
-[Dockerfile](../../CostVision.Web/Dockerfile) использует SDK 10 для сборки и aspnet 10 для итогового образа. На этапе сборки устанавливаются Node/npm, восстанавливаются пакеты, компилируется TypeScript и публикуется Web с SkipFrontendBuild.
+[Dockerfile](../../CostVision.Web/Dockerfile) закрепляет SDK10.0.401, aspnet10.0.12 и отдельный Node22.18.0-bookworm-slim build-platform stage с проверкой npm10.9.3. До явного restore копируются libs/global.json/NuGet.Config; npm ci явно отключает lifecycle scripts/audit/fund. TypeScript компилируется до publish; publish использует no-restore/SkipFrontendBuild и копируется целиком. Node в final stage не копируется. Это статически проверенный порядок; Docker/publish/Linux/ARM64 не запускались, tags не immutable digests.
 
 Итоговый образ открывает порт 8080, запускает `dotnet CostVision.Web.dll` от appuser с uid 1001 и подготавливает каталоги Config, Logs и keys-linux. SQL Server в этот образ не входит.
 
-Config и key ring требуют корректных mounts и прав. Объявленный EXPOSE не подтверждает фактическую маршрутизацию трафика. Сборка образа, запуск контейнера, восстановление backup и deployment в этой задаче не выполнялись.
+CD workflow полностью удалён15.10.2026 по решению пользователя; автоматического deployment нет. Для будущего отдельно разрешённого deployment сохранить mounts `costVision_Config:/app/Config`, `costVision_Logs:/app/Logs`, `costvision_Keys:/app/keys-linux`, uid1001/права и discriminator. Сначала требуется отдельная приёмка SingleInitializer, actual restore, совместимости schema/data/artifact и readiness. Замена контейнера не откатывает схему. EXPOSE не подтверждает маршрутизацию. Сборка/запуск образа, восстановление backup и deployment не выполнялись; порядок проверки — [матрица15](../Plans/project-refactoring-2026-10-13/15-acceptance-matrix.md).

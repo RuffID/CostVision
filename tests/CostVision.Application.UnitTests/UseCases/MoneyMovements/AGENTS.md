@@ -8,7 +8,7 @@
 
 После 07A фикстуры передают actual use case минимальные constructor-зависимости через TestUseCaseFactory. ITestStorage остаётся только набором test mocks; технические Save/transaction callbacks общие, production-контракта со всеми repositories нет.
 
-Особенно проверять исключение пользователя из счёта, доступ обеих сторон и повтор новой строки. Mock UoW не доказывает транзакции и concurrent unique constraints. Фабрика membership допускает Include Account для проверки архива при создании/сохранении импорта. Stage02RegressionTests проверяет отказ до транзакции, в том числе ReplaceDuplicate, и сохранение чтения/изменения исторического комментария.
+Особенно проверять исключение пользователя из счёта, доступ обеих сторон и повтор новой строки. Mock UoW не доказывает транзакции и concurrent unique constraints. Фабрика membership допускает Include Account для проверки архива при создании/сохранении импорта. CatalogAccountAndUserValidationTests проверяет отказ до транзакции, в том числе ReplaceDuplicate, и сохранение чтения/изменения исторического комментария.
 
 Фабрика UoW поддерживает явный Serializable для изменяющих сценариев этапа 04; action не получает автоматического SaveChanges. Проверки прежней произвольной замены импортной операции заменены контрактом полного ключа и изменения только комментария. Ожидания отдельной записи связей/операций и транзакционной перегрузки должны оставаться явными.
 
@@ -16,11 +16,13 @@ FinancialDataIsolationTests выполняет реальные переданн
 
 Getter кандидатов и список операций проверяются через envelopes страниц; linked-list контракты остаются списками. Projection doubles должны исполнять actual predicates и query-композицию; фиктивный total по текущей странице недопустим.
 
-Preview-тесты используют PreviewBankStatementImportRequest с явными FileStream/FileLength. Stage08PreviewBoundaryTests проверяет ранний отказ отсутствующего/пустого файла, настоящие AccountId/UserId predicates над доменным membership, Owner/Editor/Viewer/отсутствие доступа, передачу token/stream, ошибки строк и отсутствие закрытия caller-owned stream. Extraction подставной; SQL/настоящий PDF/HTTP не подтверждаются.
+Preview-тесты используют PreviewBankStatementImportRequest с явными FileStream/FileLength. BankStatementPreviewAccessAndStreamTests проверяет ранний отказ отсутствующего/пустого файла, настоящие AccountId/UserId predicates над доменным membership, Owner/Editor/Viewer/отсутствие доступа, передачу token/stream, ошибки строк и отсутствие закрытия caller-owned stream. Extraction подставной; SQL/настоящий PDF/HTTP не подтверждаются.
 
 ## Проверка
 
-Stage14PreviewTests закрепляет преобразование только BankStatementPdfException в Validation до parser/duplicate queries и сохранение unknown/cancellation exceptions с caller-owned stream. Прежние preview/access/import регрессии сохраняются; настоящий PdfPig проверяется отдельно в Infrastructure.UnitTests.
+AutoLinkExactMoneyMovementReceiptsUseCaseTests исполняет actual predicates над полными Account/Members графами вместо готовых ответов независимо от фильтра. Отдельно проверяет отзыв Editor membership при сохранённом авторстве и фильтр выбранного счёта; нулевой результат не вызывает Save. Include и SQL-материализация этим не подтверждаются. Матрица Owner/Editor/Viewer и неоднозначности остаётся также в MoneyMovementImportAndReconciliationTests.
+
+BankStatementPreviewPdfErrorTests закрепляет преобразование только BankStatementPdfException в Validation до parser/duplicate queries и сохранение unknown/cancellation exceptions с caller-owned stream. Прежние preview/access/import регрессии сохраняются; настоящий PdfPig проверяется отдельно в Infrastructure.UnitTests.
 
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.
 
