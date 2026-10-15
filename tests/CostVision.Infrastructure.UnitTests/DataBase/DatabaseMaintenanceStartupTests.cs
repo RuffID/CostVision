@@ -119,7 +119,7 @@ public class DatabaseMaintenanceStartupTests
         Assert.Single(maintenance.Invocations);
         var entry = Assert.Single(logger.Invocations, item => item.Method.Name == "Log");
         Assert.Null(entry.Arguments[3]);
-        string text = entry.Arguments[2].ToString()!;
+        string text = Assert.IsType<string>(entry.Arguments[2]?.ToString());
         Assert.Contains(code.ToString(), text);
         Assert.DoesNotContain("secret", text);
         Assert.DoesNotContain("/private", text);
@@ -225,9 +225,10 @@ public class DatabaseMaintenanceStartupTests
         Assert.False(success);
         Assert.False(startup.IsReady);
         var entry = Assert.Single(logger.Invocations, item => item.Method.Name == "Log");
-        Assert.Contains(MaintenanceError.CleanupUnconfirmed.ToString(), entry.Arguments[2].ToString());
+        string text = Assert.IsType<string>(entry.Arguments[2]?.ToString());
+        Assert.Contains(MaintenanceError.CleanupUnconfirmed.ToString(), text);
         Assert.Null(entry.Arguments[3]);
-        Assert.DoesNotContain("secret", entry.Arguments[2].ToString());
+        Assert.DoesNotContain("secret", text);
     }
 
     [Theory]
@@ -252,10 +253,11 @@ public class DatabaseMaintenanceStartupTests
         Assert.False(success);
         Assert.False(startup.IsReady);
         var entry = Assert.Single(logger.Invocations, item => item.Method.Name == "Log");
-        Assert.Contains(MaintenanceError.CleanupUnconfirmed.ToString(), entry.Arguments[2].ToString());
-        Assert.Contains(primary.ToString(), entry.Arguments[2].ToString());
+        string text = Assert.IsType<string>(entry.Arguments[2]?.ToString());
+        Assert.Contains(MaintenanceError.CleanupUnconfirmed.ToString(), text);
+        Assert.Contains(primary.ToString(), text);
         Assert.Null(entry.Arguments[3]);
-        Assert.DoesNotContain("secret", entry.Arguments[2].ToString());
+        Assert.DoesNotContain("secret", text);
         await Assert.ThrowsAsync<InvalidOperationException>(() => startup.RunAsync(TestContext.Current.CancellationToken));
     }
 

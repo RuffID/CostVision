@@ -41,7 +41,8 @@ public class StartupOptionsValidationTests
         Assert.False(services.GetRequiredService<DatabaseMaintenanceStartup>().IsReady);
         maintenance.VerifyNoOtherCalls();
         var entry = Assert.Single(logger.Invocations, item => item.Method.Name == "Log");
-        Assert.Equal("Application startup failed: Configuration.", entry.Arguments[2].ToString());
+        string text = Assert.IsType<string>(entry.Arguments[2]?.ToString());
+        Assert.Equal("Application startup failed: Configuration.", text);
         Assert.Null(entry.Arguments[3]);
     }
 

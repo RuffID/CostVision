@@ -90,10 +90,21 @@ public class RefreshPendingReceiptsUseCaseTests
             log => log.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((value, _) => value.ToString()!.Contains(receipt.Id.ToString())),
+                It.Is<It.IsAnyType>((value, _) => LogContainsReceiptId(value, receipt.Id)),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    private static bool LogContainsReceiptId(object? value, Guid receiptId)
+    {
+        string? message = value?.ToString();
+        if (message == null)
+        {
+            return false;
+        }
+
+        return message.Contains(receiptId.ToString(), StringComparison.Ordinal);
     }
 
     private static Mock<IReceiptRepository> CreateReceiptRepository(List<Receipt> receipts)

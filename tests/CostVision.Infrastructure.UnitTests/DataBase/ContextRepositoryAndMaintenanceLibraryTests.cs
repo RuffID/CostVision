@@ -347,7 +347,8 @@ public class ContextRepositoryAndMaintenanceLibraryTests
         Assert.False(formatterCalled);
         var entry = Assert.Single(target.Invocations, item => item.Method.Name == "Log");
         Assert.Null(entry.Arguments[3]);
-        Assert.Equal("EF database event: 20102", entry.Arguments[2].ToString());
+        string text = Assert.IsType<string>(entry.Arguments[2]?.ToString());
+        Assert.Equal("EF database event: 20102", text);
         Assert.Null(scope);
     }
 
