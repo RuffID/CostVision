@@ -8,7 +8,4 @@ public class DatabaseMaintenanceSettings
     public DatabaseStartupOperation Operation { get; set; } = DatabaseStartupOperation.UpdateExisting;
     public int TimeoutSeconds { get; set; } = 60;
     public string ServerBackupDirectory { get; set; } = string.Empty;
-
-    /// <summary>Программное подтверждение режима SingleInitializer; из конфигурации не изменяется.</summary>
-    public bool SingleInitializerConfirmed { get; } = true;
 }

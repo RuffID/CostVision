@@ -17,7 +17,7 @@ public class LibraryDeliveryManifestTests
     {
         // Arrange
         string root = FindRepositoryRoot();
-        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "libs", "efcorelibrary-delivery-08a.json")));
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "libs", "efcorelibrary-delivery.json")));
         Assembly[] assemblies =
         [
             typeof(IEntity<Guid>).Assembly,
@@ -33,8 +33,6 @@ public class LibraryDeliveryManifestTests
             item => item.Key, item => CalculateHash(item.Value.Location), StringComparer.Ordinal);
 
         // Assert
-        Assert.Equal("5BE84E7BE6E7111AAB7EBCCF7AC1609D012A6309634FCC7C8470973B04E19B58",
-            manifest.RootElement.GetProperty("source").GetProperty("sourceSetSha256").GetString());
         Assert.Equal(6, manifest.RootElement.GetProperty("outputs").GetArrayLength());
         foreach (JsonElement output in manifest.RootElement.GetProperty("outputs").EnumerateArray())
         {
@@ -66,7 +64,7 @@ public class LibraryDeliveryManifestTests
     {
         // Arrange
         string root = FindRepositoryRoot();
-        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "libs", "efcorelibrary-delivery-08a.json")));
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "libs", "efcorelibrary-delivery.json")));
         using JsonDocument consumerPackages = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "libs", "costvision-consumer-packages.json")));
         using JsonDocument assets = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "CostVision.Infrastructure", "obj", "project.assets.json")));
         JsonElement libraries = assets.RootElement.GetProperty("libraries");

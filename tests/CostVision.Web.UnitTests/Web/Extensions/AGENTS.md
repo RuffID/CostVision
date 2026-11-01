@@ -12,7 +12,7 @@ StartupCancellationTests проверяет связь caller token и моде�
 
 WebConfigurationProviderTests проверяет настоящий config.json в отдельном тестовом каталоге, environment/command-line precedence и runtime options без создания key ring. StartupOptionsValidationTests вызывает actual service-only startup boundary: все options валидируются до fake maintenance, logs содержат только code, readiness ждёт async cleanup. Эти тесты не создают/не запускают WebApplication, listener, SQL или процессы.
 
-SingleInitializerConfirmed не задаётся тестовой конфигурацией: true закреплено в production-коде. Отказ maintenance-настроек проверяется пустым ServerBackupDirectory.
+Параметра SingleInitializerConfirmed в production-настройках нет. Отказ maintenance-настроек проверяется пустым ServerBackupDirectory.
 
 Проверять пустые и неверные адреса без ослабления fail-fast. Это не проверка реальной сетевой топологии.
 

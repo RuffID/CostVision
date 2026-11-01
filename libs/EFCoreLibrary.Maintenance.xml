@@ -398,8 +398,8 @@
         <member name="T:EFCoreLibrary.Maintenance.Extensions.MaintenanceRegistration">
             <summary>Регистрация общей scoped orchestration без запуска обслуживания.</summary>
         </member>
-        <member name="M:EFCoreLibrary.Maintenance.Extensions.MaintenanceRegistration.AddRelationalMaintenance``1(Microsoft.Extensions.DependencyInjection.IServiceCollection,EFCoreLibrary.Maintenance.Models.MaintenanceExecutionMode)">
-            <summary>Добавляет общий gate и orchestration; режим должен быть выбран явно.</summary>
+        <member name="M:EFCoreLibrary.Maintenance.Extensions.MaintenanceRegistration.AddRelationalMaintenance``1(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>Добавляет общий gate и orchestration; единственного исполнителя обеспечивает приложение.</summary>
         </member>
         <member name="T:EFCoreLibrary.Maintenance.Models.BackupArtifact">
             <summary>Артефакт подтверждённого создания backup, не доказательство восстановления.</summary>
@@ -442,12 +442,6 @@
         </member>
         <member name="P:EFCoreLibrary.Maintenance.Models.LocalBackupArtifact.IsConfirmed">
             <inheritdoc/>
-        </member>
-        <member name="T:EFCoreLibrary.Maintenance.Models.MaintenanceExecutionMode">
-            <summary>Режим, предусловия которого обеспечивает приложение.</summary>
-        </member>
-        <member name="F:EFCoreLibrary.Maintenance.Models.MaintenanceExecutionMode.SingleInitializer">
-            <summary>Приложение гарантирует одного initializer и отсутствие других writes/DDL.</summary>
         </member>
         <member name="T:EFCoreLibrary.Maintenance.Models.MaintenanceOutcome">
             <summary>Подтверждённый результат операции.</summary>

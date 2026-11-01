@@ -108,11 +108,11 @@ public class ContextRepositoryAndMaintenanceLibraryTests
     }
 
     [Theory]
-    [InlineData("ConnectRetryCount=1")]
-    [InlineData("ConnectRetryCount=0;MultiSubnetFailover=true")]
-    [InlineData("ConnectRetryCount=0;Failover Partner=other")]
-    [InlineData("ConnectRetryCount=0;ApplicationIntent=ReadOnly")]
-    public void ActualSqlServerModule_RejectsUnsupportedReconnectOrRoutingBeforeIo(string connectionOptions)
+    [InlineData("MultiSubnetFailover=true")]
+    [InlineData("Failover Partner=other")]
+    [InlineData("ApplicationIntent=ReadOnly")]
+    [InlineData("AttachDBFilename=C:\\unused.mdf")]
+    public void ActualSqlServerModule_RejectsUnsupportedRoutingBeforeIo(string connectionOptions)
     {
         // Arrange
         using ApplicationContext context = new(new DbContextOptionsBuilder<ApplicationContext>()
@@ -122,7 +122,7 @@ public class ContextRepositoryAndMaintenanceLibraryTests
 
         // Act
         MaintenanceException error = Assert.Throws<MaintenanceException>(() => new SqlServerMaintenanceProvider<CostVisionContextKey>(
-            migrations.Object, commands.Object, new SqlServerMaintenanceOptions("/test/server-only/backups")));
+            migrations.Object, commands.Object, new SqlServerMaintenanceOptions("/test/server-only/backups", "CostVision")));
 
         // Assert
         Assert.Equal(MaintenanceError.UnsupportedCapability, error.Code);
@@ -150,11 +150,16 @@ public class ContextRepositoryAndMaintenanceLibraryTests
                 Assert.Equal(ConnectionState.Closed, connection.State);
                 Assert.NotNull(dispatch);
                 dispatch();
-                if (sql.StartsWith("BACKUP", StringComparison.Ordinal))
+                if (sql.Contains("BACKUP DATABASE", StringComparison.Ordinal))
                 {
                     events.Add("backup");
                     Assert.Contains("COPY_ONLY, CHECKSUM", sql);
                     Assert.Contains("NOFORMAT, NOINIT", sql);
+                    Assert.Contains("sp_getapplock", sql);
+                    Assert.Contains("sys.dm_os_file_exists", sql);
+                    Assert.Contains("THROW 51000", sql);
+                    Assert.Contains("sp_releaseapplock", sql);
+                    Assert.Equal(operation.ToString("N"), parameters["@name"]);
                     backupPath = Assert.IsType<string>(parameters["@path"]);
                 }
                 else
@@ -190,7 +195,7 @@ public class ContextRepositoryAndMaintenanceLibraryTests
                 return Task.FromResult<IReadOnlyList<IReadOnlyDictionary<string, object?>>>([header]);
             });
         SqlServerMaintenanceProvider<CostVisionContextKey> provider = new(migrations.Object, commands.Object,
-            new SqlServerMaintenanceOptions("/test/server-only/backups"));
+            new SqlServerMaintenanceOptions("/test/server-only/backups", "CostVision"));
         using MaintenanceBudget budget = new(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Act
@@ -199,7 +204,8 @@ public class ContextRepositoryAndMaintenanceLibraryTests
 
         // Assert
         Assert.Equal(new[] { "backup", "header", "verify" }, events);
-        Assert.Equal("/test/server-only/backups/" + operation.ToString("N") + ".bak", backupPath);
+        Assert.NotNull(backupPath);
+        Assert.Matches(@"^/test/server-only/backups/backup_CostVision_\d{2}\.\d{2}\.\d{4}_\d{9}\.bak$", backupPath);
         if (failVerify)
         {
             Assert.Equal(MaintenanceError.CleanupUnconfirmed, Assert.IsType<MaintenanceException>(error).Code);
@@ -232,7 +238,7 @@ public class ContextRepositoryAndMaintenanceLibraryTests
                 It.IsAny<IReadOnlyDictionary<string, object?>>(), It.IsAny<MaintenanceBudget>(), It.IsAny<Action?>()))
             .ThrowsAsync(UnitOfWorkTransactionFailureTests.CreateSqlException(number, "provider secret"));
         SqlServerMaintenanceProvider<CostVisionContextKey> provider = new(migrations.Object, commands.Object,
-            new SqlServerMaintenanceOptions("/test/server-only/backups"));
+            new SqlServerMaintenanceOptions("/test/server-only/backups", "CostVision"));
         using MaintenanceBudget budget = new(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Act
@@ -294,7 +300,7 @@ public class ContextRepositoryAndMaintenanceLibraryTests
                 return Task.FromResult<IReadOnlyList<IReadOnlyDictionary<string, object?>>>([]);
             });
         SqlServerMaintenanceProvider<CostVisionContextKey> provider = new(migrations.Object, commands.Object,
-            new SqlServerMaintenanceOptions("/test/server-only/backups"));
+            new SqlServerMaintenanceOptions("/test/server-only/backups", "CostVision"));
         using MaintenanceBudget budget = new(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Act
@@ -356,7 +362,7 @@ public class ContextRepositoryAndMaintenanceLibraryTests
     {
         return new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ConnectionStrings:MSSql"] = "Server=unused;Database=unused;ConnectRetryCount=0",
+            ["ConnectionStrings:MSSql"] = "Server=unused;Database=unused",
             ["ApiEndpoints:ProverkachekaApiUrl"] = "https://unused.invalid",
             ["ProverkachekaApiToken"] = "unused",
             ["DatabaseMaintenance:ServerBackupDirectory"] = "/test/server-only/backups"

@@ -1,5 +1,23 @@
 # Принятая поставка библиотек
 
+## Текущая поставка EFCoreLibrary
+
+01.11.2026 три DLL и два XML maintenance взяты из существующего `D:\Media\User\source\repos\work\EFCoreLibrary\maintenance\EFCoreLibrary.Maintenance.SqlServer\bin\Debug\net10.0`. Исходники соседнего репозитория не изменялись и не пересобирались. Production/test HintPath остаются относительными к `libs`; HttpClientLibrary не изменена.
+
+| Файл | AssemblyVersion / FileVersion | SHA-256 |
+|---|---|---|
+| EFCoreLibrary.dll | 0.0.9.0 | 812494B2E90FE24F925C38E9DD1DF02C4751C8B698F822205A428D22C8586EC9 |
+| EFCoreLibrary.Maintenance.dll | 1.0.0.0 | 51460BB12CC0A65D8B0F4066FE3646FBDA6BFB045B667A2F7AF1F463034EC2B7 |
+| EFCoreLibrary.Maintenance.SqlServer.dll | 1.0.1.0 | C0DE1F41DDC6EB6F95AA0346888DF9BE1780D0B3D4334B49D82D9F848B4F0E10 |
+
+[Текущий manifest](efcorelibrary-delivery.json) фиксирует DLL/XML hashes и зависимости из соседнего deps.json. Это копирование готовых сборок, без заявления о Git revision или воспроизводимом исходном наборе. Base XML в свежем output отсутствует; прежний assembly-only `EFCoreLibrary.xml` сохранён, полной API-документацией он не является. Исторический manifest 08A и описание его сборки ниже сохранены отдельно и не проверяют новые бинарные файлы.
+
+Связанные EF Core/Relational/SqlServer/Design/Tools и Pkcs выровнены до `10.0.14`, SqlClient остаётся `7.1.1`. Изолированные `LibraryDeliveryManifestTests` сверяют поставленные и загруженные DLL/XML, текущий consumer graph и неизменённый HTTP hash. Реальная SQL/backup/restore/hosting/production-приёмка остаётся открытой.
+
+Регистрация `AddEfCoreSqlServerMaintenance<CostVisionContextKey>` теперь принимает только `new SqlServerMaintenanceOptions(serverBackupDirectory, "CostVision")`. Тип и аргумент MaintenanceExecutionMode удалены; локальный SingleInitializerConfirmed также удалён. Единственного исполнителя на время обслуживания по-прежнему обеспечивает оператор. Приложение передаёт строку подключения без изменения ConnectRetryCount: ключ необязателен, явное значение сохраняется, default драйвера для обычного MSSQL равен 1. EF retries не включаются. Новые копии называются `backup_CostVision_dd.MM.yyyy_HHmmssfff.bak` по UTC; права master/applock/sys.dm_os_file_exists и реальное создание копии требуют эксплуатационной проверки.
+
+## Историческая поставка 08A
+
 Поставка 08A подготовлена 14.10.2026 из указанных пользователем исходников `D:\Media\User\source\repos\work\EFCoreLibrary`. Production/test HintPath остаются относительными к `libs`; исходники соседнего репозитория и HttpClientLibrary не изменены.
 
 | Файл | AssemblyVersion | FileVersion | ProductVersion | SHA-256 |
@@ -23,9 +41,9 @@ XML base содержит только assembly element: исходники не
 
 ## Используемая поверхность EFCoreLibrary
 
-После согласованного пользователем обновления зависимостей15.10.2026 текущие версии пакетов приложения фиксируются отдельно в [consumer manifest](costvision-consumer-packages.json): в том числе EF/provider10.0.13, SqlClient7.1.1, Bcl.Cryptography9.0.18 и Pkcs10.0.13. Его21 package identity/NuGet content hash сверены с Infrastructure project.assets.json и metadata локального NuGet cache. Исторический manifest08A описывает сборку неизменённых DLL и не задаёт точные версии текущего consumer graph. Stage15DeliveryTests сохраняет точное сравнение identities/SHA-512 и обязательное наличие всех21 packages, а runtime requirements разрешает через принятый consumer graph либо явный shared framework. Отсутствие уязвимостей live audit и совместимость SQL/production этим тестом не подтверждаются.
+Текущие версии пакетов приложения фиксируются отдельно в [consumer manifest](costvision-consumer-packages.json): в том числе EF/provider10.0.14, SqlClient7.1.1, Bcl.Cryptography9.0.18 и Pkcs10.0.14. Его21 package identity/NuGet content hash сверяются с Infrastructure project.assets.json. Исторический manifest08A не задаёт точные версии текущего consumer graph. LibraryDeliveryManifestTests сохраняет точное сравнение identities/SHA-512 и обязательное наличие всех21 packages, а runtime requirements текущей DLL-поставки разрешает через принятый consumer graph либо явный shared framework. Отсутствие уязвимостей live audit и совместимость SQL/production этим тестом не подтверждаются.
 
-- IEntity<Guid> имеет единственное свойство Guid Id с getter и setter. Domain по-прежнему ссылается на всю DLL. Actual metadata base содержит Microsoft.EntityFrameworkCore `10.0.12.0`, DI.Abstractions/System.Runtime `10.0.0.0`; package version и AssemblyVersion различаются. Полная независимость Domain от EF не утверждается.
+- IEntity<Guid> имеет единственное свойство Guid Id с getter и setter. Domain по-прежнему ссылается на всю DLL. Новая поставка использует EF Core `10.0.14`; package version и AssemblyVersion зависимостей могут различаться. Полная независимость Domain от EF не утверждается.
 - Application repository-интерфейсы наследуют ICreateItemRepository<TEntity>, IDeleteItemRepository<TEntity>, IGetItemByIdRepository<TEntity,TId>, IGetItemByPredicateRepository<TEntity> без context key. AppDbContextBase остаётся в Application, как и EF/predicate/include/tracking/projection по решению А.
 - List API возвращает Task<List<TEntity>>, не произвольный TResult. Defaults: predicate=null, skip=0, take=null, asNoTracking=false, include=null, ct=default. Include — Func<IQueryable<TEntity>, IQueryable<TEntity>>.
 - Infrastructure внедряет IContext*Repository<TEntity,CostVisionContextKey> (для ID также TId); IContextQueryRepository наследует IQueryRepository<TEntity>. Query(true), predicate, composition и ToListAsync(ct) исполняют общий projection. Product/Store count также используют библиотечный Query(true), без DbContext.Set.

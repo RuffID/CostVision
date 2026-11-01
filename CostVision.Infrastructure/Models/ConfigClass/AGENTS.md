@@ -2,7 +2,7 @@
 
 ## Ответственность
 
-Options хранят имя секции, адрес сервиса чеков и токен. DatabaseMaintenanceSettings задаёт Operation, конечный TimeoutSeconds (1–3600) и обязательный ServerBackupDirectory на SQL Server без пути по умолчанию в коде. Каталог задаётся конфигурацией. SingleInitializerConfirmed доступен только для чтения и закреплён в коде как true; конфигурация его не меняет. DatabaseStartupOperation различает UpdateExisting и InitializeNew без fallback.
+Options хранят имя секции, адрес сервиса чеков и токен. DatabaseMaintenanceSettings задаёт Operation, конечный TimeoutSeconds (1–3600) и обязательный ServerBackupDirectory на SQL Server без пути по умолчанию в коде. Каталог задаётся конфигурацией. Параметра SingleInitializerConfirmed нет; единственного исполнителя обслуживания обеспечивает оператор. DatabaseStartupOperation различает UpdateExisting и InitializeNew без fallback.
 
 ## Контракты и границы
 

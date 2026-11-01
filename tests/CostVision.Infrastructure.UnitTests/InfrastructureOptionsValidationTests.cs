@@ -85,7 +85,7 @@ public class InfrastructureOptionsValidationTests
     [InlineData(null)]
     [InlineData("false")]
     [InlineData("invalid")]
-    public void ActualOptions_UseCodeConfirmationAndConfiguredBackupDirectory(string? configuredConfirmation)
+    public void ActualOptions_IgnoreRemovedConfirmationAndUseConfiguredBackupDirectory(string? configuredConfirmation)
     {
         // Arrange
         Dictionary<string, string?> values = ValidConfiguration();
@@ -103,7 +103,6 @@ public class InfrastructureOptionsValidationTests
         DatabaseMaintenanceSettings settings = services.GetRequiredService<IOptions<DatabaseMaintenanceSettings>>().Value;
 
         // Assert
-        Assert.True(settings.SingleInitializerConfirmed);
         Assert.Equal("/configured/server/backups", settings.ServerBackupDirectory);
         using IServiceScope scope = services.CreateScope();
         ApplicationContext context = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
@@ -112,10 +111,11 @@ public class InfrastructureOptionsValidationTests
     }
 
     [Theory]
-    [InlineData("")]
-    [InlineData(";ConnectRetryCount=3")]
-    [InlineData(";Connect Retry Count=5")]
-    public void ActualRegistration_DisablesReconnectAndPreservesOtherConnectionSettings(string retryOption)
+    [InlineData("", 1)]
+    [InlineData(";ConnectRetryCount=0", 0)]
+    [InlineData(";ConnectRetryCount=3", 3)]
+    [InlineData(";Connect Retry Count=5", 5)]
+    public void ActualRegistration_PreservesConfiguredOrDefaultReconnectAndOtherConnectionSettings(string retryOption, int expectedRetryCount)
     {
         // Arrange
         Dictionary<string, string?> values = ValidConfiguration();
@@ -130,7 +130,7 @@ public class InfrastructureOptionsValidationTests
         IDatabaseMaintenanceProvider<CostVisionContextKey> maintenance = scope.ServiceProvider.GetRequiredService<IDatabaseMaintenanceProvider<CostVisionContextKey>>();
 
         // Assert
-        Assert.Equal(0, actual.ConnectRetryCount);
+        Assert.Equal(expectedRetryCount, actual.ConnectRetryCount);
         Assert.Equal("unused", actual.DataSource);
         Assert.Equal("unused", actual.InitialCatalog);
         Assert.Equal("test-user", actual.UserID);
@@ -184,7 +184,7 @@ public class InfrastructureOptionsValidationTests
     {
         return new Dictionary<string, string?>
         {
-            ["ConnectionStrings:MSSql"] = "Server=unused;Database=unused;ConnectRetryCount=0",
+            ["ConnectionStrings:MSSql"] = "Server=unused;Database=unused",
             ["ApiEndpoints:ProverkachekaApiUrl"] = "https://unused.test/receipt",
             ["ProverkachekaApiToken"] = "test-token",
             ["DatabaseMaintenance:ServerBackupDirectory"] = "/test/server-only/backups"

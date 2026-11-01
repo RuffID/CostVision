@@ -32,9 +32,9 @@ Hosted service создаёт async scope на запуск, вызывает Re
 
 ## Локальные библиотеки
 
-В `libs` находятся base EFCoreLibrary `0.0.5`, Maintenance и Maintenance.SqlServer `1.0.0` (фактические default версии upstream проектов), три XML и [manifest 08A](../../libs/efcorelibrary-delivery-08a.json). Все HintPath относительные; production не зависит от соседнего репозитория. HttpClientLibrary не обновлена и сохраняет прежний SHA-256.
+В `libs` находятся base EFCoreLibrary `0.0.9`, Maintenance `1.0.0`, Maintenance.SqlServer `1.0.1`, три XML и [текущий manifest](../../libs/efcorelibrary-delivery.json). DLL и XML maintenance скопированы из существующего Debug/net10.0 output соседнего репозитория 01.11.2026; base XML сохранён как assembly-only. Все HintPath относительные; production не зависит от соседнего репозитория. HttpClientLibrary не обновлена и сохраняет прежний SHA-256.
 
-В [описании поставки](../../libs/README.md) зафиксированы источник, digest 71 build inputs, SDK/команды, версии/хеши DLL/XML и runtime dependency closure. Историческая поставка 08A собрана с EF Core `10.0.12` и SqlClient `7.0.2`; текущие пакеты приложения EF Core/provider/Relational/Design/Tools имеют версию `10.0.13`, SqlClient — `7.1.1`. Actual base metadata ссылается на EF `10.0.12.0`; IEntity не содержит DbContext, но Domain остаётся зависимым от всей DLL. Base XML не содержит public member entries и не объявляется полной документацией. Изолированные проверки actual DLL/DI/transactions/fake commands не являются SQL/Linux/runtime deployment-приёмкой.
+В [описании поставки](../../libs/README.md) зафиксированы источник, версии/хеши DLL/XML и зависимости; воспроизводимая сборка и digest исходников 08A относятся только к историческому manifest. Текущие пакеты приложения EF Core/provider/Relational/Design/Tools и Pkcs имеют версию `10.0.14`, SqlClient — `7.1.1`, как требуется обновлённой поставке. IEntity не содержит DbContext, но Domain остаётся зависимым от всей DLL. Base XML не содержит public member entries и не объявляется полной документацией. Регистрация maintenance больше не принимает аргумент режима; SQL Server options требуют каталог и ProjectName="CostVision". Изолированные проверки actual DLL/DI/transactions/fake commands не являются SQL/Linux/runtime deployment-приёмкой.
 
 ## Мониторинг UptimeHarbor
 

@@ -33,7 +33,7 @@ public class DatabaseMaintenanceStartup(
         {
             DatabaseMaintenanceSettings options = settings.Value;
             bool validTimeout = options.TimeoutSeconds is > 0 and <= 3600;
-            if (!validTimeout || !options.SingleInitializerConfirmed || string.IsNullOrWhiteSpace(options.ServerBackupDirectory))
+            if (!validTimeout || string.IsNullOrWhiteSpace(options.ServerBackupDirectory))
             {
                 throw new MaintenanceException(MaintenanceError.Configuration);
             }

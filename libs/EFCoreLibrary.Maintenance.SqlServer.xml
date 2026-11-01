@@ -7,20 +7,23 @@
         <member name="T:EFCoreLibrary.Maintenance.SqlServer.Extensions.SqlServerMaintenanceRegistration">
             <summary>Регистрация optional SQL Server maintenance.</summary>
         </member>
-        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Extensions.SqlServerMaintenanceRegistration.AddEfCoreSqlServerMaintenance``1(Microsoft.Extensions.DependencyInjection.IServiceCollection,EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions,EFCoreLibrary.Maintenance.Models.MaintenanceExecutionMode)">
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Extensions.SqlServerMaintenanceRegistration.AddEfCoreSqlServerMaintenance``1(Microsoft.Extensions.DependencyInjection.IServiceCollection,EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions)">
             <summary>Регистрирует scoped provider без запуска SQL.</summary>
         </member>
         <member name="T:EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions">
-            <summary>Каталог backup на сервере SQL Server; приложение обеспечивает доступ service account.</summary>
+            <summary>Серверный каталог backup и явное имя проекта для имени файла; доступ обеспечивает приложение.</summary>
         </member>
-        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions.#ctor(System.String)">
-            <summary>Каталог backup на сервере SQL Server; приложение обеспечивает доступ service account.</summary>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions.#ctor(System.String,System.String)">
+            <summary>Серверный каталог backup и явное имя проекта для имени файла; доступ обеспечивает приложение.</summary>
         </member>
         <member name="T:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1">
             <inheritdoc/>
         </member>
         <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.#ctor(EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations{`0},EFCoreLibrary.Maintenance.Abstractions.IDatabaseCommands,EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions)">
             <summary>Создаёт технический provider для контекста приложения.</summary>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.#ctor(EFCoreLibrary.Maintenance.Abstractions.IRelationalMigrationOperations{`0},EFCoreLibrary.Maintenance.Abstractions.IDatabaseCommands,EFCoreLibrary.Maintenance.SqlServer.Options.SqlServerMaintenanceOptions,System.TimeProvider)">
+            <summary>Создаёт provider с явным источником времени UTC.</summary>
         </member>
         <member name="P:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.Capabilities">
             <inheritdoc/>
@@ -33,6 +36,9 @@
         </member>
         <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.BackupAsync(System.Guid,System.String,EFCoreLibrary.Maintenance.Coordination.MaintenanceBudget)">
             <inheritdoc/>
+        </member>
+        <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.BackupSql(System.String)">
+            <summary>Сериализует создание по серверному пути и отказывает до BACKUP, если путь уже занят или не подтверждён.</summary>
         </member>
         <member name="M:EFCoreLibrary.Maintenance.SqlServer.Providers.SqlServerMaintenanceProvider`1.ConfirmHeader(System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object}},System.String,System.String,System.String)">
             <summary>Проверяет конкретный backup set; неизвестный/чужой/неполный носитель отклоняется.</summary>

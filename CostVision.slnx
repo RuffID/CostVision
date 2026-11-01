@@ -89,6 +89,7 @@
     <File Path="libs/EFCoreLibrary.Maintenance.SqlServer.dll" />
     <File Path="libs/EFCoreLibrary.Maintenance.SqlServer.xml" />
     <File Path="libs/efcorelibrary-delivery-08a.json" />
+    <File Path="libs/efcorelibrary-delivery.json" />
     <File Path="libs/costvision-consumer-packages.json" />
     <File Path="libs/HttpClientLibrary.dll" />
     <File Path="libs/UptimeHarbor.HealthEndpoint.dll" />

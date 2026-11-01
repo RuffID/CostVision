@@ -68,7 +68,7 @@ public class ExternalLibraryContractTests(ITestOutputHelper output)
         Assert.Contains(save.GetParameters(), parameter => parameter.ParameterType == typeof(CancellationToken));
         Assert.Contains(posts, method => method.IsGenericMethodDefinition && method.GetGenericArguments().Length == 2 &&
             method.GetParameters().Any(parameter => parameter.ParameterType == typeof(CancellationToken)));
-        Assert.Equal(new Version(0, 0, 5, 0), persistence.GetName().Version);
+        Assert.Equal(new Version(0, 0, 9, 0), persistence.GetName().Version);
         Assert.Equal(new Version(1, 0, 0, 0), transport.GetName().Version);
         Assert.Contains(persistence.GetReferencedAssemblies(), name => name.Name == "Microsoft.EntityFrameworkCore");
         foreach (Assembly assembly in new[] { persistence, transport })
