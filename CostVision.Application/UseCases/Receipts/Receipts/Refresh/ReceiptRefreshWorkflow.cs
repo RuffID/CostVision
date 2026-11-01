@@ -91,7 +91,8 @@ namespace CostVision.Application.UseCases.Receipts.Receipts.Refresh
                             .Include(item => item.CreatedByUser)
                             .Include(item => item.Items).ThenInclude(item => item.Product)
                             .Include(item => item.Accounts).ThenInclude(link => link.Account)
-                                .ThenInclude(account => account!.Members),
+                                .ThenInclude(account => account!.Members)
+                            .AsSplitQuery(),
                         ct: transactionCt);
                     if (receipt == null)
                     {
