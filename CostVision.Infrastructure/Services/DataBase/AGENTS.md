@@ -8,7 +8,7 @@ DatabaseMaintenanceStartup выбирает явный UpdateExisting либо I
 
 Не открывать SQL-соединения, не вызывать DbContext.Migrate и не создавать локальный backup-каталог. Backup receipt, target и migrations проверяет библиотека. Startup допускает host только после operation/cleanup/async disposal; отказ оставляет readiness=false и не допускает retry в том же процессе. Обычные логи содержат только закрытые коды, без путей, SQL, formatter/state и exception chains.
 
-SingleInitializerConfirmed означает внешнюю предпосылку остановки других процессов/writes/DDL, а не распределённую блокировку. Неподтверждённый endpoint, серверный путь/права и active multi-instance deployment — эксплуатационные блокеры. Проверки только actual DLL с fake provider/migration/command boundaries в Infrastructure.UnitTests; SQL/restore/HTTP/hosting проверяются отдельно.
+SingleInitializerConfirmed закреплён в коде как true: приложение принимает режим единственного инициатора, но распределённую блокировку это не создаёт. Остановка других процессов/writes/DDL остаётся внешней предпосылкой обслуживания. Неподтверждённый endpoint, серверный путь/права и active multi-instance deployment — эксплуатационные блокеры. Проверки только actual DLL с fake provider/migration/command boundaries в Infrastructure.UnitTests; SQL/restore/HTTP/hosting проверяются отдельно.
 
 ## Проверка
 

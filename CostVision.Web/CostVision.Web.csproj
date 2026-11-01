@@ -38,6 +38,10 @@
     <Reference Include="EFCoreLibrary">
       <HintPath>..\libs\EFCoreLibrary.dll</HintPath>
     </Reference>
+    <Reference Include="UptimeHarbor.HealthEndpoint">
+      <HintPath>..\libs\UptimeHarbor.HealthEndpoint.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

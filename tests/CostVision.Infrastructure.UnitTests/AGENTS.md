@@ -18,6 +18,10 @@ LibraryDeliveryManifestTests сверяет исходные и реально �
 
 InfrastructureOptionsValidationTests проверяет actual layer DI/ValidateOnStart, HTTP(S)/finite timeout/PDF limits и immutable maintenance snapshot без открытого connection. BankStatementPdfTextExtractorTests использует настоящий PdfPig и memory streams: точные byte/page boundaries, non-seekable limit+1, malformed PDF, cancellation/unknown I/O и caller ownership. Это не приёмка произвольного PDF/decompression, SQL/HTTP/OS/production.
 
+Для maintenance проверяются каталог из конфигурации, отказ при его отсутствии и программное SingleInitializerConfirmed=true при отсутствующем, false и некорректном одноимённом ключе конфигурации. Проверка не создаёт каталог и не обращается к SQL Server.
+
+InfrastructureOptionsValidationTests проверяет actual AddInfrastructure при отсутствующем и ненулевом ConnectRetryCount, включая альтернативное имя ключа: итог всегда 0, остальные параметры и исходная конфигурация сохранены, библиотечный provider разрешается без подключения к БД.
+
 Проверять тестовые утверждения и границы их изоляции; запуск выбирать по правилам родительского AGENTS.md. Не ослаблять ожидания и не сообщать о прохождении без выполнения.
 
 ## Сопровождение

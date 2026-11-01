@@ -77,5 +77,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
+app.MapUptimeHarborHealth();
 
 await app.RunAsync();

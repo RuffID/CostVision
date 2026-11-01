@@ -4,6 +4,10 @@
 
 Program.cs загружает конфигурацию, настраивает журналирование и DI, запускает проверку БД и строит HTTP-конвейер.
 
+appsettings.json задаёт Serilog override Warning для полной категории CostVision.Infrastructure.Services.DataBase.SafeDatabaseLoggerFactory: штатные EF events не выводятся, предупреждения и ошибки сохраняются. Исходная Microsoft.EntityFrameworkCore категория не заменяет этот фильтр безопасного адаптера.
+
+После регистрации маршрутов страниц и контроллеров MapUptimeHarborHealth подключает анонимный GET /health. DLL берётся только из ../libs; endpoint сообщает имя приложения из IHostEnvironment.ApplicationName по default библиотеки и время запуска процесса, не проверяет БД и не заменяет startup readiness.
+
 До RunAsync хоста await-обслуживание 08A и async cleanup должны завершиться успешно. При отказе ExitCode=1, возврат без HTTP/hosted refresh и DisposeAsync WebApplication; Environment.Exit не использовать. Production readiness управляет DatabaseMaintenanceStartup; эксплуатационные предпосылки не заменять локальным gate.
 
 ## Контракты и границы

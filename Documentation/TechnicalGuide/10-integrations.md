@@ -34,7 +34,15 @@ Hosted service создаёт async scope на запуск, вызывает Re
 
 В `libs` находятся base EFCoreLibrary `0.0.5`, Maintenance и Maintenance.SqlServer `1.0.0` (фактические default версии upstream проектов), три XML и [manifest 08A](../../libs/efcorelibrary-delivery-08a.json). Все HintPath относительные; production не зависит от соседнего репозитория. HttpClientLibrary не обновлена и сохраняет прежний SHA-256.
 
-В [описании поставки](../../libs/README.md) зафиксированы источник, digest 71 build inputs, SDK/команды, версии/хеши DLL/XML и runtime dependency closure. EF Core/runtime/provider/Relational/Design/Tools согласованы на `10.0.12`, SqlClient `7.0.2`. Actual base metadata ссылается на EF `10.0.12.0`; IEntity не содержит DbContext, но Domain остаётся зависимым от всей DLL. Base XML не содержит public member entries и не объявляется полной документацией. Изолированные проверки actual DLL/DI/transactions/fake commands не являются SQL/Linux/runtime deployment-приёмкой.
+В [описании поставки](../../libs/README.md) зафиксированы источник, digest 71 build inputs, SDK/команды, версии/хеши DLL/XML и runtime dependency closure. Историческая поставка 08A собрана с EF Core `10.0.12` и SqlClient `7.0.2`; текущие пакеты приложения EF Core/provider/Relational/Design/Tools имеют версию `10.0.13`, SqlClient — `7.1.1`. Actual base metadata ссылается на EF `10.0.12.0`; IEntity не содержит DbContext, но Domain остаётся зависимым от всей DLL. Base XML не содержит public member entries и не объявляется полной документацией. Изолированные проверки actual DLL/DI/transactions/fake commands не являются SQL/Linux/runtime deployment-приёмкой.
+
+## Мониторинг UptimeHarbor
+
+Web подключает UptimeHarbor.HealthEndpoint прямой ссылкой на [DLL в libs](../../libs/UptimeHarbor.HealthEndpoint.dll), без ProjectReference и NuGet. ConfigureServices в ServiceCollectionExtensions напрямую вызывает AddUptimeHarborHealth без настройки options; Program.cs вызывает MapUptimeHarborHealth после MapControllers. Платформа — .NET / ASP.NET Core 10.
+
+Анонимный GET `/health` использует существующие адрес и порт приложения. Ответ — `200`, `application/json`, ровно поля `name` (default библиотеки из `IHostEnvironment.ApplicationName`, при обычном запуске — `CostVision.Web`) и `startedAtUtc` (время запуска текущего процесса с UTC-смещением `+00:00`, одинаковое между запросами). Библиотека задаёт `Cache-Control: no-store` и отключает стандартный output cache. Имя и путь определяются defaults библиотеки; отдельного конфигурационного раздела нет. Общая проверка startup options выполняется до обслуживания БД.
+
+В UptimeHarbor следует указать полный конечный URL приложения с `/health`. Проверки БД и внешних зависимостей отсутствуют; endpoint не заменяет readiness. Доступность через целевой proxy/TLS, отсутствие внешнего кеширования и смена времени после реального перезапуска требуют отдельной эксплуатационной проверки. Приложение для подключения библиотеки не запускалось.
 
 ## Граница проверки
 

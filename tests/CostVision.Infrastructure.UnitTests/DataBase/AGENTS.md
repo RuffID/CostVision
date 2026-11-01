@@ -16,6 +16,8 @@ ContextRepositoryAndMaintenanceLibraryTests разрешает actual DLL CRUD/q
 
 DatabaseMaintenanceCoordinatorTests исполняет actual coordinator на fake provider/migration/pin: no-pending, backup-before-migrate, invalid receipt/target, explicit init, timeout/cancellation, await cleanup и poisoned gate. DatabaseMaintenanceStartupTests проверяет operation/timeout/token, конфигурационные блокеры, readiness после DisposeAsync, отмену, отказ и запрет retry/unsafe logs. Эти тесты заменяют assertions удалённого собственного SQL backup/checkup, а не SQL/restore/production-приёмку.
 
+Подтверждение SingleInitializer зафиксировано в коде: startup-тесты не моделируют его изменение через settings/config. Невалидные каталог, timeout и operation по-прежнему блокируют вызов maintenance.
+
 MoneyMovementImportPersistenceTests подтверждает отсутствие уникального импортного ключа, составной PK денежной связи и precision/длину полей. Реальный предикат ImportMoneyMovements переводится через ToQueryString в ru-RU/en-US без выполнения SQL. Эти проверки не подтверждают диапазонные блокировки, фактическую схему, колляцию или отсутствие конкурентного дубля.
 
 ReceiptIdentityPersistenceTests проверяет фактические author index/PK, SQL-перевод идентичности через ToQueryString без выполнения и узкое распознавание имён ограничений. UnitOfWorkTransactionFailureTests использует реальный DatabaseFacade и подставные DbConnection/DbTransaction: подтверждает передачу изоляции и обработку отказа, не отсутствие гонок на SQL Server. Открытая SQL-приёмка не закрывается этими тестами.

@@ -14,6 +14,7 @@ namespace CostVision.Web.Extensions
         {
             services.AddForwardedHeadersConfiguration(builder.Configuration);
             services.AddWebRuntimeConfiguration(builder.Configuration, builder.Environment.ContentRootPath);
+            services.AddUptimeHarborHealth();
             services.AddApplication();
             services.AddInfrastructure(builder.Configuration);
             services.AddTransient<ExceptionHandlingMiddleware>();

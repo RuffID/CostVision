@@ -23,7 +23,7 @@ public class StartupOptionsValidationTests
     [InlineData("Uploads:MaxRequestBodyBytes", "0")]
     [InlineData("DataProtection:ApplicationName", " ")]
     [InlineData("ForwardedHeaders:KnownProxies:0", "invalid-test-only-secret")]
-    [InlineData("DatabaseMaintenance:SingleInitializerConfirmed", "false")]
+    [InlineData("DatabaseMaintenance:ServerBackupDirectory", " ")]
     public async Task ActualStartupBoundary_ValidatesAllOptionsBeforeMaintenance_LogsOnlyCode(string key, string value)
     {
         // Arrange
@@ -90,7 +90,6 @@ public class StartupOptionsValidationTests
             ["ApiEndpoints:ProverkachekaApiUrl"] = "https://unused.test/receipt",
             ["ProverkachekaApiToken"] = "test-only-secret",
             ["DatabaseMaintenance:ServerBackupDirectory"] = "/test/server-only/backups",
-            ["DatabaseMaintenance:SingleInitializerConfirmed"] = "true",
             ["DatabaseMaintenance:TimeoutSeconds"] = "17",
             ["ForwardedHeaders:KnownProxies:0"] = "127.0.0.1"
         };

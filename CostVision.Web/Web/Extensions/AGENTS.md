@@ -4,6 +4,8 @@
 
 Extensions настраивают слои, cookie, Razor, proxy, Data Protection, startup-БД и получение пользователя; enricher обогащает журнал.
 
+ConfigureServices напрямую вызывает AddUptimeHarborHealth один раз без настройки options: библиотека использует имя IHostEnvironment.ApplicationName и стандартный /health. Маршрут отдельно подключается в Program.cs. Библиотечные options участвуют в общей валидации до maintenance.
+
 ## Контракты и границы
 
 DI, HTTP и startup имеют разные побочные эффекты. InitializeDatabaseAsync делегирует DatabaseMaintenanceStartup и связывает CancellationToken с временными Ctrl+C/SIGTERM подписками StartupCancellation до старта ConsoleLifetime; подписки освобождаются после awaited operation/cleanup. bool=false запрещает RunAsync хоста. Task.Run/внешний WaitAsync/Environment.Exit и собственный migration runner запрещены. Изменения startup проверять изолированными lifecycle тестами и моделированием сигнала, без запуска WebApplication/БД/OS signals.

@@ -28,6 +28,10 @@
     <Reference Include="EFCoreLibrary.Maintenance">
       <HintPath>..\..\libs\EFCoreLibrary.Maintenance.dll</HintPath>
     </Reference>
+    <Reference Include="UptimeHarbor.HealthEndpoint">
+      <HintPath>..\..\libs\UptimeHarbor.HealthEndpoint.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 
 </Project>

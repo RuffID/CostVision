@@ -5,6 +5,7 @@ using CostVision.Infrastructure.Models.ConfigClass;
 using EFCoreLibrary.Maintenance.Abstractions;
 using EFCoreLibrary.Maintenance.SqlServer.Providers;
 using HttpClientLibrary.Abstractions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,10 +29,10 @@ public class InfrastructureOptionsValidationTests
     [InlineData("ExternalRequests:TimeoutSeconds", "0.000000001")]
     [InlineData("BankStatementPdf:MaxBytes", "0")]
     [InlineData("BankStatementPdf:MaxPages", "-1")]
-    [InlineData("DatabaseMaintenance:SingleInitializerConfirmed", "false")]
     [InlineData("DatabaseMaintenance:ServerBackupDirectory", " ")]
+    [InlineData("DatabaseMaintenance:ServerBackupDirectory", null)]
     [InlineData("DatabaseMaintenance:TimeoutSeconds", "0")]
-    public void ActualStartupValidator_RejectsInvalidOptionsBeforeAnyIo(string key, string value)
+    public void ActualStartupValidator_RejectsInvalidOptionsBeforeAnyIo(string key, string? value)
     {
         // Arrange
         Dictionary<string, string?> values = ValidConfiguration();
@@ -82,6 +83,68 @@ public class InfrastructureOptionsValidationTests
 
     [Theory]
     [InlineData(null)]
+    [InlineData("false")]
+    [InlineData("invalid")]
+    public void ActualOptions_UseCodeConfirmationAndConfiguredBackupDirectory(string? configuredConfirmation)
+    {
+        // Arrange
+        Dictionary<string, string?> values = ValidConfiguration();
+        values["DatabaseMaintenance:ServerBackupDirectory"] = "/configured/server/backups";
+        values.Remove("DatabaseMaintenance:SingleInitializerConfirmed");
+        if (configuredConfirmation != null)
+        {
+            values["DatabaseMaintenance:SingleInitializerConfirmed"] = configuredConfirmation;
+        }
+
+        using ServiceProvider services = CreateServices(values);
+
+        // Act
+        services.GetRequiredService<IStartupValidator>().Validate();
+        DatabaseMaintenanceSettings settings = services.GetRequiredService<IOptions<DatabaseMaintenanceSettings>>().Value;
+
+        // Assert
+        Assert.True(settings.SingleInitializerConfirmed);
+        Assert.Equal("/configured/server/backups", settings.ServerBackupDirectory);
+        using IServiceScope scope = services.CreateScope();
+        ApplicationContext context = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+        Assert.Equal(System.Data.ConnectionState.Closed, context.Database.GetDbConnection().State);
+        Assert.Empty(context.ChangeTracker.Entries());
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(";ConnectRetryCount=3")]
+    [InlineData(";Connect Retry Count=5")]
+    public void ActualRegistration_DisablesReconnectAndPreservesOtherConnectionSettings(string retryOption)
+    {
+        // Arrange
+        Dictionary<string, string?> values = ValidConfiguration();
+        string configuredConnection = "Server=unused;Database=unused;User ID=test-user;Password=\"test;password=1\";TrustServerCertificate=True;Connect Timeout=17" + retryOption;
+        values["ConnectionStrings:MSSql"] = configuredConnection;
+        using ServiceProvider services = CreateServices(values);
+        using IServiceScope scope = services.CreateScope();
+
+        // Act
+        ApplicationContext context = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+        SqlConnectionStringBuilder actual = new(context.Database.GetDbConnection().ConnectionString);
+        IDatabaseMaintenanceProvider<CostVisionContextKey> maintenance = scope.ServiceProvider.GetRequiredService<IDatabaseMaintenanceProvider<CostVisionContextKey>>();
+
+        // Assert
+        Assert.Equal(0, actual.ConnectRetryCount);
+        Assert.Equal("unused", actual.DataSource);
+        Assert.Equal("unused", actual.InitialCatalog);
+        Assert.Equal("test-user", actual.UserID);
+        Assert.Equal("test;password=1", actual.Password);
+        Assert.True(actual.TrustServerCertificate);
+        Assert.Equal(17, actual.ConnectTimeout);
+        Assert.Equal(configuredConnection, values["ConnectionStrings:MSSql"]);
+        Assert.IsType<SqlServerMaintenanceProvider<CostVisionContextKey>>(maintenance);
+        Assert.Equal(System.Data.ConnectionState.Closed, context.Database.GetDbConnection().State);
+        Assert.Empty(context.ChangeTracker.Entries());
+    }
+
+    [Theory]
+    [InlineData(null)]
     [InlineData("")]
     [InlineData(" ")]
     public void MissingConnection_IsRejectedDuringRegistrationWithoutExposingValues(string? connection)
@@ -124,8 +187,7 @@ public class InfrastructureOptionsValidationTests
             ["ConnectionStrings:MSSql"] = "Server=unused;Database=unused;ConnectRetryCount=0",
             ["ApiEndpoints:ProverkachekaApiUrl"] = "https://unused.test/receipt",
             ["ProverkachekaApiToken"] = "test-token",
-            ["DatabaseMaintenance:ServerBackupDirectory"] = "/test/server-only/backups",
-            ["DatabaseMaintenance:SingleInitializerConfirmed"] = "true"
+            ["DatabaseMaintenance:ServerBackupDirectory"] = "/test/server-only/backups"
         };
     }
 }

@@ -32,6 +32,14 @@ XML base содержит только assembly element: исходники не
 - AddEfCoreContext<ApplicationContext,CostVisionContextKey>() и AddEfCoreBaseRepositories<CostVisionContextKey>() связывают все repositories, IUnitOfWorkContext и maintenance с одним scoped ApplicationContext. Дублирующие старые adapters удалены. UnitOfWorkScope использует IUnitOfWorkContext.SaveChangesAsync/Database, сохраняет общий флаг отказа, 14 adapters, auto-save/explicit-save перегрузки и отсутствие retry.
 - IDatabaseMaintenance<CostVisionContextKey> — единственный inspection/backup/create/migration coordinator; подключён только SQL Server optional provider. Регистрация не выполняет I/O. UpdateExistingAsync сохраняет backup-before-migrate, InitializeNewAsync выбирается явно; no-pending → Unchanged без backup. SingleInitializer, поддержанные endpoint/права/backup directory и readiness описаны в [эксплуатации](../Documentation/TechnicalGuide/11-configuration-and-operations.md).
 
+## UptimeHarbor.HealthEndpoint
+
+01.11.2026 в CostVision подключена локальная DLL из `D:\Media\User\source\repos\UptimeHarbor.HealthEndpoint\UptimeHarbor.HealthEndpoint\artifacts\compile-check\Debug\net10.0\UptimeHarbor.HealthEndpoint.dll`. Исходники библиотеки и её планы не изменялись; новая сборка библиотеки не выполнялась. AssemblyVersion/FileVersion — `1.0.0.0`, ProductVersion — `1.0.0+a336bcb3efdc7d3100a3a79c8ee41b53ddbe624b`; informational suffix не является подтверждением Git commit.
+
+SHA-256 DLL: `D63697FF75ADEEF9AD188E110A260D168649FF5D08E912AD182D07A69231EAD9`. Web и Web.UnitTests используют относительный HintPath и Private=true; соседний репозиторий не нужен для сборки CostVision. Библиотека требует только shared framework Microsoft.AspNetCore.App 10 и не имеет собственных сторонних package dependencies. PDB, reference assembly и framework DLL в libs не копируются.
+
+Compile-check Web и Web.UnitTests завершены без ошибок и предупреждений; SHA-256 DLL в Web output совпадает с libs. HealthEndpointTests: успешно 2, упало 0, пропущено 0; проверены default регистрация библиотеки, имя из IHostEnvironment.ApplicationName, anonymous metadata, JSON и неизменность времени между вызовами в памяти. Эти проверки не заменяют внешнюю приёмку библиотеки и целевого HTTP/proxy/TLS-конвейера; publish, Linux и реальный перезапуск не проверены. Контракт `/health` описан в [интеграциях](../Documentation/TechnicalGuide/10-integrations.md).
+
 ## Используемая поверхность HttpClientLibrary
 
 Infrastructure регистрирует typed IHttpApiClient/HttpApiClient через AddHttpClient с timeout из валидируемых ExternalRequestOptions, default180 секунд сохранён в14. ReceiptRequest вызывает PostAsync<TRequest,TResponse>(url, requestDto, ct:ct), в том числе PostAsync<HttpContent,ProverkachekaResponse> для multipart. Прочие возможности, автоматические retry, классификация ошибок и живой внешний контракт не предполагаются по имени библиотеки. Provider/refresh/retry проекта в 08 не меняются.

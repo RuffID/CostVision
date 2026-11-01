@@ -91,6 +91,7 @@
     <File Path="libs/efcorelibrary-delivery-08a.json" />
     <File Path="libs/costvision-consumer-packages.json" />
     <File Path="libs/HttpClientLibrary.dll" />
+    <File Path="libs/UptimeHarbor.HealthEndpoint.dll" />
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/ITestStorage.cs" />

@@ -9,6 +9,6 @@ public class DatabaseMaintenanceSettings
     public int TimeoutSeconds { get; set; } = 60;
     public string ServerBackupDirectory { get; set; } = string.Empty;
 
-    /// <summary>Подтверждение оператором остановки других экземпляров, writes и DDL на всё обслуживание.</summary>
-    public bool SingleInitializerConfirmed { get; set; }
+    /// <summary>Программное подтверждение режима SingleInitializer; из конфигурации не изменяется.</summary>
+    public bool SingleInitializerConfirmed { get; } = true;
 }

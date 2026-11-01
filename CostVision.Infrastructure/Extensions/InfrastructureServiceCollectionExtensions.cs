@@ -24,6 +24,7 @@ using CostVision.Infrastructure.Services.Receipts;
 using EFCoreLibrary.Extensions;
 using HttpClientLibrary.Abstractions;
 using HttpClientLibrary.Clients;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,7 +37,15 @@ namespace CostVision.Infrastructure.Extensions
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             DatabaseMaintenanceSettings maintenanceSettings = new();
-            configuration.GetSection(DatabaseMaintenanceSettings.SECTION_NAME).Bind(maintenanceSettings);
+            IConfigurationSection maintenanceSection = configuration.GetSection(DatabaseMaintenanceSettings.SECTION_NAME);
+            // Из конфигурации читаются только изменяемые параметры; подтверждение SingleInitializer задано в коде.
+            maintenanceSettings.Operation = maintenanceSection.GetValue(
+                nameof(DatabaseMaintenanceSettings.Operation), maintenanceSettings.Operation);
+            maintenanceSettings.TimeoutSeconds = maintenanceSection.GetValue(
+                nameof(DatabaseMaintenanceSettings.TimeoutSeconds), maintenanceSettings.TimeoutSeconds);
+            maintenanceSettings.ServerBackupDirectory = maintenanceSection.GetValue(
+                nameof(DatabaseMaintenanceSettings.ServerBackupDirectory), maintenanceSettings.ServerBackupDirectory);
+
             services.AddInfrastructureConfig(configuration, maintenanceSettings);
             services.AddSingleton(TimeProvider.System);
 
@@ -46,6 +55,12 @@ namespace CostVision.Infrastructure.Extensions
             {
                 throw new InvalidOperationException("Не задана обязательная строка подключения ConnectionStrings:MSSql.");
             }
+
+            SqlConnectionStringBuilder connectionSettings = new(connectionString)
+            {
+                ConnectRetryCount = 0
+            };
+            connectionString = connectionSettings.ConnectionString;
 
             services.AddSingleton<SafeDatabaseLoggerFactory>();
             services.AddDbContext<ApplicationContext>((provider, options) => options
@@ -114,11 +129,10 @@ namespace CostVision.Infrastructure.Extensions
                     settings.Operation = maintenanceSettings.Operation;
                     settings.TimeoutSeconds = maintenanceSettings.TimeoutSeconds;
                     settings.ServerBackupDirectory = maintenanceSettings.ServerBackupDirectory;
-                    settings.SingleInitializerConfirmed = maintenanceSettings.SingleInitializerConfirmed;
                 })
                 .Validate(settings => settings.TimeoutSeconds is > 0 and <= 3600, "DatabaseMaintenance: invalid timeout.")
                 .Validate(settings => Enum.IsDefined(settings.Operation), "DatabaseMaintenance: invalid operation.")
-                .Validate(settings => settings.SingleInitializerConfirmed, "DatabaseMaintenance: SingleInitializer must be confirmed by the operator.")
+                .Validate(settings => settings.SingleInitializerConfirmed, "DatabaseMaintenance: SingleInitializer must be confirmed in code.")
                 .Validate(settings => !string.IsNullOrWhiteSpace(settings.ServerBackupDirectory), "DatabaseMaintenance: server backup directory is required.")
                 .ValidateOnStart();
 

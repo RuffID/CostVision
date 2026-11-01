@@ -52,7 +52,6 @@ public class DatabaseMaintenanceStartupTests
     }
 
     [Theory]
-    [InlineData("unconfirmed")]
     [InlineData("directory")]
     [InlineData("zero-timeout")]
     [InlineData("infinite-timeout")]
@@ -61,11 +60,7 @@ public class DatabaseMaintenanceStartupTests
     {
         // Arrange
         DatabaseMaintenanceSettings settings = ValidSettings();
-        if (invalid == "unconfirmed")
-        {
-            settings.SingleInitializerConfirmed = false;
-        }
-        else if (invalid == "directory")
+        if (invalid == "directory")
         {
             settings.ServerBackupDirectory = "";
         }
@@ -265,7 +260,6 @@ public class DatabaseMaintenanceStartupTests
     {
         return new DatabaseMaintenanceSettings
         {
-            SingleInitializerConfirmed = true,
             ServerBackupDirectory = "/test/server-only/backups",
             TimeoutSeconds = 9
         };

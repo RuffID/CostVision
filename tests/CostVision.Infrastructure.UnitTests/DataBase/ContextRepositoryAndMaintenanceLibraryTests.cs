@@ -359,7 +359,6 @@ public class ContextRepositoryAndMaintenanceLibraryTests
             ["ConnectionStrings:MSSql"] = "Server=unused;Database=unused;ConnectRetryCount=0",
             ["ApiEndpoints:ProverkachekaApiUrl"] = "https://unused.invalid",
             ["ProverkachekaApiToken"] = "unused",
-            ["DatabaseMaintenance:SingleInitializerConfirmed"] = "true",
             ["DatabaseMaintenance:ServerBackupDirectory"] = "/test/server-only/backups"
         }).Build();
     }

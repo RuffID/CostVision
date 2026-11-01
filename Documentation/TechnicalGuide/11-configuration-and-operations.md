@@ -8,15 +8,14 @@ Content root выбирает ASP.NET Core при создании builder; яв
 
 | Ключ | Назначение и проверка |
 |---|---|
-| `ConnectionStrings:MSSql` | Непустая строка подключения; отсутствие/пробелы приводят к ошибке регистрации |
+| `ConnectionStrings:MSSql` | Непустая строка подключения; отсутствие/пробелы приводят к ошибке регистрации. ConnectRetryCount принудительно равен 0 в коде |
 | `ApiEndpoints:ProverkachekaApiUrl` | Абсолютный HTTP(S) адрес внешнего сервиса; ValidateOnStart |
 | `ProverkachekaApiToken` | Непустой токен; ValidateOnStart |
 | `ForwardedHeaders:KnownProxies` | Непустой список корректных IP; ValidateOnStart |
 | `Serilog` | Уровни, обогащение и sinks журнала |
 | `DatabaseMaintenance:Operation` | `UpdateExisting` по умолчанию; `InitializeNew` выбирается явно только для первой установки |
 | `DatabaseMaintenance:TimeoutSeconds` | Конечный бюджет 1–3600 секунд, default 60 |
-| `DatabaseMaintenance:ServerBackupDirectory` | Обязательный абсолютный каталог на SQL Server, без вычисления от каталога Web |
-| `DatabaseMaintenance:SingleInitializerConfirmed` | Обязательное `true` после остановки оператором других экземпляров, writes и DDL на всё обслуживание |
+| `DatabaseMaintenance:ServerBackupDirectory` | Обязательный каталог на SQL Server из конфигурации; отсутствие и пустое значение запрещены, пути по умолчанию в коде нет |
 | `ExternalRequests:TimeoutSeconds` | Default180; конечное положительное значение, представимое в TimeSpan и HttpClient.Timeout (до int.MaxValue миллисекунд) |
 | `BankStatementPdf:MaxBytes` | Положительное число, согласованный default20 МиБ = 20 971 520 байт; только банковские выписки |
 | `BankStatementPdf:MaxPages` | Положительное число, согласованный default200; только банковские выписки |
@@ -25,7 +24,9 @@ Content root выбирает ASP.NET Core при создании builder; яв
 | `DataProtection:ApplicationName` | Непустой discriminator, defaultCostVision.Web соответствует AssemblyName; одинаковый для совместимых экземпляров |
 | `Swagger:Enabled` | Defaulttrue сохраняет прежние все среды; явный false отключает Swagger JSON/UI |
 
-Значения секретов не входят в документацию. Прежде чем вызывать maintenance, Web явно выполняет `IStartupValidator.Validate()` всех зарегистрированных модулей; одного отложенного ValidateOnStart при RunAsync недостаточно. Неверные options не допускают SQL/HTTP/hosted startup. Registration/composition/options failures дают закрытый startup code без exception chains, connection string и server paths. Реальные значения SingleInitializer/каталога/прав не подставлялись для успешной проверки.
+SingleInitializerConfirmed — программное подтверждение режима единственного инициатора: read-only свойство DatabaseMaintenanceSettings всегда равно `true`. Одноимённый ключ из JSON, environment или command line не читается. Из секции DatabaseMaintenance привязываются только Operation, TimeoutSeconds и ServerBackupDirectory. Подтверждение не создаёт межпроцессную блокировку; другие экземпляры, записи и DDL должны быть остановлены на время обслуживания.
+
+Значения секретов не входят в документацию. Прежде чем вызывать maintenance, Web явно выполняет `IStartupValidator.Validate()` всех зарегистрированных модулей; одного отложенного ValidateOnStart при RunAsync недостаточно. Неверные options не допускают SQL/HTTP/hosted startup. Registration/composition/options failures дают закрытый startup code без exception chains, connection string и server paths. Проверки остаются изолированными; реальное обслуживание и права SQL Server не проверены.
 
 ## HTTP и reverse proxy
 
@@ -47,9 +48,9 @@ Kestrel допускает тело запроса до 1 000 000 000 байт. 
 
 ## Резервные копии и постоянные каталоги
 
-ServerBackupDirectory задаётся оператором для файловой системы SQL Server. Приложение не создаёт локальную папку и не проверяет этот путь через локальный Directory.Exists. Нужны права SQL service account на каталог, права maintenance user на inspection/backup/migrations, достаточное место и доступность ключей шифрования при restore. Конкретный путь, права и версия реального SQL неизвестны и являются блокерами эксплуатации.
+ServerBackupDirectory задаётся в конфигурации для файловой системы SQL Server. В локальном `CostVision.Web/Config/config.json` выбран `C:\DISTR\backups`; в коде этот путь не закреплён. Приложение не создаёт локальную папку и не проверяет этот путь через локальный Directory.Exists. Нужны права SQL service account на каталог, права maintenance user на inspection/backup/migrations, достаточное место и доступность ключей шифрования при restore. Наличие выбранного каталога, права и версия реального SQL не проверены.
 
-Поддержаны EngineEdition 2/3/4 и стабильный прямой endpoint. Требуются `ConnectRetryCount=0`, отсутствие routing/failover/reconnect, MultiSubnetFailover/Failover Partner, ReadOnly intent, AttachDBFilename, повторяющей EF execution strategy и внешней transaction. Azure SQL Database/MI/Synapse и неподтверждённые topology не поддерживаются. Library gate singleton ограничивает только один root DI container: другие процессы, фоновые и HTTP writers и DDL оператор останавливает до запуска и держит остановленными до завершения обслуживания. Значение SingleInitializerConfirmed документирует эту предпосылку, но не проверяет и не останавливает процессы. Rolling deployment с активными другими экземплярами заблокирован; распределённого lease API нет.
+Поддержаны EngineEdition 2/3/4 и стабильный прямой endpoint. Перед регистрацией ApplicationContext приложение разбирает строку подключения через SqlConnectionStringBuilder и устанавливает `ConnectRetryCount=0`: отсутствие этого ключа или ненулевое значение в конфигурации не включает переподключение. Остальные параметры сохраняются; одна строка используется EF и библиотечным maintenance через общий контекст. Требуется отсутствие routing/failover/reconnect, MultiSubnetFailover/Failover Partner, ReadOnly intent, AttachDBFilename, повторяющей EF execution strategy и внешней transaction. Azure SQL Database/MI/Synapse и неподтверждённые topology не поддерживаются. Library gate singleton ограничивает только один root DI container: другие процессы, фоновые и HTTP writers и DDL оператор останавливает до запуска и держит остановленными до завершения обслуживания. Значение SingleInitializerConfirmed документирует эту предпосылку, но не проверяет и не останавливает процессы. Rolling deployment с активными другими экземплярами заблокирован; распределённого lease API нет.
 
 SQL Server-модуль подтверждает COPY_ONLY/CHECKSUM backup, один соответствующий HEADERONLY set и VERIFYONLY с FILE position/CHECKSUM. Receipt не означает успешного restore; требуется реальное операторское восстановление отдельно. Локального hash для server backup не вычисляют. Обычный startup-журнал не раскрывает locator; его retention, доступ и recovery-процедура согласуются в эксплуатационной приёмке.
 
@@ -62,6 +63,8 @@ Data Protection по умолчанию хранит ключи в прежни�
 Serilog читает настройки из конфигурации, а SimpleClassNameEnricher добавляет короткое имя класса. Web middleware пишет путь и TraceId; фоновые компоненты сохраняют свои действующие логи. Maintenance/startup пишет только закрытые stage/code/outcome. [SafeDatabaseLoggerFactory](../../CostVision.Infrastructure/Services/DataBase/SafeDatabaseLoggerFactory.cs) передаёт EF events как числовой EventCode без исходных SQL, category/scope/state, formatter и exception chains. InnerException библиотеки остаётся диагностическим объектом и не направляется в обычный журнал.
 
 Конкретные sinks, лимиты и срок хранения определяются действующим окружением. Ротация и права записи не проверялись запуском и не считаются подтверждёнными этой документацией. Журнал не должен содержать токены и полные пользовательские документы.
+
+В appsettings.json для полной категории `CostVision.Infrastructure.Services.DataBase.SafeDatabaseLoggerFactory` установлен Serilog override `Warning`: информационные EF events скрыты в консоли и файле, предупреждения и ошибки сохраняются. Фильтр `Microsoft.EntityFrameworkCore` отдельно не покрывает события безопасного адаптера. Итоговые сообщения maintenance/startup остаются на своих категориях и не отключаются этим override.
 
 ## Контейнер
 
